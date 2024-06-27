@@ -1,8 +1,20 @@
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+# SPDX-FileCopyrightText: Albrecht Weiche <a.weiche@opentalk.eu>
+# SPDX-FileCopyrightText: Wolfgang Silbermayr <w.silbermayr@opentalk.eu>
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.79.0-bookworm
 
 stages:
   - lint
+  - test
+  - build
+  - trigger
+  - package
+
+variables:
+  KANIKO_IMAGE: gcr.io/kaniko-project/executor:debug
 
 .default_job_condition: &default_job_condition
   needs: []
@@ -20,6 +32,79 @@ lint:markdown:
   script:
     - mdl --style .markdown_style.rb --warnings .
 
+lint:fmt:
+  stage: lint
+  <<: *default_job_condition
+  script:
+    - cargo +nightly fmt -- --check
+
+lint:clippy:
+  stage: lint
+  <<: *default_job_condition
+  script:
+    - cargo clippy --workspace --all-features --tests -- --deny warnings
+
+lint:doc:
+  stage: lint
+  <<: *default_job_condition
+  variables:
+    RUSTDOCFLAGS: -Dwarnings
+  script: cargo doc --workspace --no-deps
+
+lint:dependency_check:
+  stage: lint
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        - Cargo.lock
+        - deny.toml
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  script:
+    - cargo-deny
+      --workspace check
+      --deny unmatched-skip
+      --deny license-not-encountered
+      --deny license-exception-not-encountered
+
+lint:unnecessary_dependencies:
+  stage: lint
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
+  script: cargo machete --with-metadata
+
+lint:yaml:
+  stage: lint
+  <<: *default_job_condition
+  image: alpine:3.18
+  before_script:
+    - apk add --no-cache yamllint
+  script: yamllint .
+
+lint:toml:
+  stage: lint
+  <<: *default_job_condition
+  script: taplo fmt --check
+
+lint:licensing:
+  stage: lint
+  <<: *default_job_condition
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: ['']
+  script:
+    - reuse lint
+
+lint:shellcheck:
+  stage: lint
+  <<: *default_job_condition
+  before_script:
+    - apt-get update && apt-get install -y shellcheck
+  script:
+    - git ls-files --exclude='*.sh' --ignored -c -z | xargs -0r shellcheck
+
 lint:commit:
   allow_failure: true
   cache: {}
@@ -31,3 +116,212 @@ lint:commit:
     - npm install -g @commitlint/cli @commitlint/config-conventional
   script:
     - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
+
+lint:mod-rs-files:
+  # This job is needed until we can fully deny the `self_named_module_files` in clippy.
+  # The blocker for this is a bug in clippy that triggers false positives in some cases.
+  # https://github.com/rust-lang/rust-clippy/issues/11916
+  stage: lint
+  <<: *default_job_condition
+  variables:
+    # For getting color output from `tput`
+    TERM: xterm-256color
+  before_script:
+    apt-get update && apt-get install -y fd-find
+  script:
+    ./ci/lint-mod-rs-files.sh
+
+test:cargo_test:
+  stage: test
+  <<: *default_job_condition
+  artifacts:
+    paths:
+      - target/coverage/html
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/coverage/cobertura.xml
+  coverage: '/Coverage: \d+(?:\.\d+)?/'
+  variables:
+    # Used for coverage
+    COVERAGE_XML_PATH: 'concat("Coverage: ", 100 * string(//coverage/@line-rate), "%")'
+  before_script:
+    - rustup component add rustfmt llvm-tools-preview
+    # libxml2-utils contains the xmllint command used below
+    - apt-get update && apt-get install -y libxml2-utils
+    - cargo install diesel_cli --version ~2 --no-default-features --features="postgres"
+  script:
+    - RUSTFLAGS="-C instrument-coverage -C link-arg=-fuse-ld=lld"
+      LLVM_PROFILE_FILE="$(pwd)/target/coverage/raw/coverage-%p-%m.profraw"
+      cargo test --workspace --locked
+
+    # Extract code coverage data
+    - grcov target/coverage/raw
+      --binary-path ./target/debug/
+      --source-dir .
+      --output-types cobertura,html
+      --branch
+      --ignore-not-existing
+      --ignore "*cargo*"
+      --output-path target/coverage
+
+    # Print out the coverage percentage for GitLab
+    - xmllint --xpath "$COVERAGE_XML_PATH" target/coverage/cobertura.xml
+
+build:
+  stage: build
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG != null
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  variables:
+    VERGEN_GIT_SHA: $CI_COMMIT_SHA
+    VERGEN_GIT_BRANCH: $CI_COMMIT_REF_NAME
+  artifacts:
+    paths:
+      - target/release/opentalk-roomserver
+    expire_in: 1 week
+  script:
+    - cargo auditable build --release --locked --workspace
+
+trigger-docs:
+  stage: trigger
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAME !~ /^.*canary$/
+  trigger:
+    project: opentalk/backend/docs
+
+package:container-mr:
+  stage: package
+  needs:
+    - build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  image:
+    name: $KANIKO_IMAGE
+    entrypoint: ['']
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      echo
+      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
+      /kaniko/.docker/config.json
+    # According to https://docs.docker.com/engine/reference/commandline/tag/
+    # the tag may contain lowercase and uppercase letters, digits, underscores,
+    # periods, and hyphens, so we replace everything else by '_'. It cannot start
+    # with a period or hyphen, so we replace those if we find them at the start of a line.
+    # It must be no longer than 128 characters, so we truncate it in addition.
+    #
+    # tr -c means the same as --complement, but busybox tr doesn't have that
+    - >
+      IMAGE_TAG=$(
+          echo -n "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" |
+          tr -c '[:alnum:]_.-' '_' |
+          sed 's/^[.-]/_/' |
+          cut -c -128
+      )
+    - >
+      /kaniko/executor
+      --registry-mirror=mirror.gcr.io
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
+      --destination $CI_REGISTRY_IMAGE:$IMAGE_TAG
+      --force
+
+package:container-dev:
+  stage: package
+  needs:
+    - build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  image:
+    name: $KANIKO_IMAGE
+    entrypoint: ['']
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      echo
+      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
+      /kaniko/.docker/config.json
+    - >
+      /kaniko/executor
+      --registry-mirror=mirror.gcr.io
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
+      --destination $CI_REGISTRY_IMAGE:dev
+      --force
+
+package:container-tag:
+  stage: package
+  needs:
+    - build
+  rules:
+    - if: $CI_COMMIT_TAG != null
+  image:
+    name: $KANIKO_IMAGE
+    entrypoint: ['']
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      echo
+      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
+      /kaniko/.docker/config.json
+    - >
+      /kaniko/executor
+      --registry-mirror=mirror.gcr.io
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
+      --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+      --force
+
+package:read-latest-tag:
+  stage: package
+  needs: []
+  rules:
+    - if: $CI_COMMIT_TAG != null
+  image:
+    name: alpine/git
+    entrypoint: ['']
+  script:
+    - git fetch --tags
+    - LATEST_TAG=$(git tag --list | grep "^v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+$" | sort -V | tail -n1)
+    - echo "LATEST_TAG=$LATEST_TAG" >> package.env
+  artifacts:
+    reports:
+      dotenv: package.env
+
+package:container-latest:
+  stage: package
+  needs:
+    - build
+    - package:read-latest-tag
+  rules:
+    - if: $CI_COMMIT_TAG != null
+  image:
+    name: $KANIKO_IMAGE
+    entrypoint: ['']
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      echo
+      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
+      /kaniko/.docker/config.json
+    - |
+      if [ "$CI_COMMIT_TAG" == "$LATEST_TAG" ]; then
+        /kaniko/executor \
+          --registry-mirror=mirror.gcr.io \
+          --context $CI_PROJECT_DIR \
+          --dockerfile $CI_PROJECT_DIR/ci/Dockerfile \
+          --destination $CI_REGISTRY_IMAGE:latest \
+          --force
+      fi
