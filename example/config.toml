@@ -1,1 +1,17 @@
+# HTTP server settings
+#[http]
 
+# The IPv4/IPv6 address to bind the HTTP server to.
+# Binds to all interfaces by default:
+#address = "0.0.0.0"
+#
+# All IPv6 interfaces:
+#address = "::"
+#
+# Localhost only:
+#address = "127.0.0.1"
+#address = "::1"
+
+
+# The port to bind the HTTP server to (defaults to 11333)
+# port = 11333
