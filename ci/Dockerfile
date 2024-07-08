@@ -11,5 +11,5 @@ WORKDIR /opentalk-roomserver
 COPY target/release/opentalk-roomserver .
 COPY example/config.toml config.toml
 
-EXPOSE 11311
+EXPOSE 11333
 ENTRYPOINT [ "./opentalk-roomserver" ]
