@@ -6,8 +6,8 @@ use axum::routing::get;
 use crate::api::{Context, Router};
 use axum::extract::State;
 
-pub(crate) async fn metrics(_context: State<Context>) -> &'static str {
-    "very cool metrics"
+pub(crate) async fn metrics(context: State<Context>) -> String {
+    context.metric_handle.render()
 }
 
 pub(crate) fn routes() -> Router {
