@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 // SPDX-FileCopyrightText: Wolfgang Silbermayr <w.silbermayr@opentalk.eu>
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use cli::Args;
 use settings::Settings;
@@ -11,12 +11,15 @@ use std::sync::Arc;
 mod api;
 mod cli;
 pub mod settings;
+mod trace;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
     let settings = Arc::new(Settings::load(&args.config)?);
+
+    trace::init().context("Failed to initialize tracing")?;
 
     api::run_web_server(settings).await?;
 

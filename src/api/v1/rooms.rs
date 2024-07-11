@@ -12,11 +12,16 @@ pub(crate) async fn create_room() -> &'static str {
     "placeholder"
 }
 
-pub(crate) async fn probe_room(room_id: Path<String>) -> String {
-    // Just an example for a custom metric (a counter in this case)
-    counter!("probe_room_count_per_room", "room_id" => room_id.to_string()).increment(1);
+#[tracing::instrument(level = "trace", skip(path), fields(room_id = %path.0))]
+pub(crate) async fn probe_room(path: Path<String>) -> String {
+    let room_id = path.0;
 
-    format!("probing the room with id {room_id:?}")
+    log::trace!("Probing room {}", room_id);
+
+    // Just an example for a custom metric (a counter in this case)
+    counter!("probe_room_count_per_room", "room_id" => room_id.clone()).increment(1);
+
+    format!("probing the room with id {}", room_id)
 }
 
 pub(crate) fn routes() -> Router {
