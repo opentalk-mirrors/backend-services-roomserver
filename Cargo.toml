@@ -13,11 +13,12 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-axum = "0.7.5"
+opentalk-types = { version = "0.17.0-alpha", features = ["axum", "serde"] }
+axum = { version = "0.7.5" }
 anyhow = "1"
 axum-prometheus = "0.6.1"
 log = "0.4.22"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 serde = { version = "1", features = ["derive"] }
 clap = { version = "4.5", features = ["derive"] }
 config = { version = "0.14", default-features = false, features = ["toml"] }
@@ -27,6 +28,7 @@ tracing-subscriber = { version = "0.3", features = [
   "env-filter",
   "parking_lot",
 ] }
+parking_lot = "0.12"
 
 [workspace]
 members = []

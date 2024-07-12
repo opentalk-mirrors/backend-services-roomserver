@@ -3,13 +3,37 @@
 
 use crate::api::Router;
 use axum::{
-    extract::Path,
+    extract::{Path, State},
     routing::{get, post},
+    Json,
 };
+use opentalk_types::api::error::ApiError;
+
+use crate::{api::Context, types::room_parameters::RoomParameters};
 use axum_prometheus::metrics::counter;
 
-pub(crate) async fn create_room() -> &'static str {
-    "placeholder"
+/// Creates a new room instance with the specified parameters.
+///
+/// If a room with the provided room ID already exists, the rooms idle timeout is refreshed.
+pub(crate) async fn post_create(
+    State(ctx): State<Context>,
+    Json(room_parameters): Json<RoomParameters>,
+) -> Result<(), ApiError> {
+    let room_id = room_parameters.room_id;
+
+    let (created, task_handle) = ctx.room_tasks.create_room_if_not_exists(room_parameters);
+
+    if created {
+        return Ok(());
+    }
+
+    // Refresh the idle timeout if the room was not created with this request
+    if let Err(err) = task_handle.refresh_idle_timeout().await {
+        println!("Failed to refresh idle timeout for room {}: {err}", room_id);
+        return Err(ApiError::internal());
+    }
+
+    Ok(())
 }
 
 #[tracing::instrument(level = "trace", skip(path), fields(room_id = %path.0))]
@@ -28,7 +52,7 @@ pub(crate) fn routes() -> Router {
     Router::new().nest(
         "/rooms",
         Router::new()
-            .route("/create", post(create_room))
+            .route("/create", post(post_create))
             .route("/probe/:room_id", get(probe_room)),
     )
 }

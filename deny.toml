@@ -58,7 +58,14 @@ allow = [
 confidence-threshold = 0.8
 # Allow 1 or more licenses on a per-crate basis, so that particular licenses
 # aren't accepted for every possible crate as with the normal allow list
-exceptions = [{ allow = ["EUPL-1.2"], name = "opentalk-roomserver" }]
+exceptions = [
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types" },
+]
 
 # Some crates don't have (easily) machine readable licensing information,
 # adding a clarification entry for it allows you to manually specify the
@@ -121,6 +128,8 @@ skip = [
   { name = "hyper", version = "0.14" },
   { name = "regex-automata", version = "=0.1" },
   { name = "regex-syntax", version = "=0.6" },
+  { name = "syn", version = "=1" },
+  { name = "base64", version = "=0.21" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
