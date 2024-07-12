@@ -114,7 +114,12 @@ allow = []
 # List of crates to deny
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
-skip = [{ name = "sync_wrapper", version = "=0.1.2" }]
+skip = [
+  { name = "sync_wrapper", version = "=0.1.2" },
+  { name = "http", version = "=0.2" },
+  { name = "http-body", version = "=0.4" },
+  { name = "hyper", version = "0.14" },
+]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
