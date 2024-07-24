@@ -1041,9 +1041,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types"
-version = "0.17.0-alpha"
+version = "0.17.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d89e0257fe3d7e751c10fd2a091513f715a8d0bf0356007094f9e6530674b5d"
+checksum = "43aeca58ba432ff204bed3c70a7d96cf0a46023d944bca326fb176bad4bfd2f9"
 dependencies = [
  "axum",
  "base64 0.22.1",
