@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use crate::settings::Settings;
+use crate::{room::registry::RoomTaskRegistry, settings::Settings};
 use anyhow::Result;
 use axum_prometheus::{
     metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
@@ -17,13 +17,15 @@ pub(crate) type Router = axum::Router<Context>;
 #[derive(Clone)]
 pub(crate) struct Context {
     _settings: Arc<Settings>,
+    /// Global list of room tasks and their handles
+    room_tasks: RoomTaskRegistry,
     metric_handle: PrometheusHandle,
 }
 
 /// Starts the web server
 ///
-/// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional. If the version is not
-/// specified the latest api version is used.
+/// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional, if no version is specified
+/// the latest api version is used.
 pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
     let (metric_layer, metric_handle) = PrometheusMetricLayerBuilder::new()
         .with_prefix("api")
@@ -33,6 +35,7 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
 
     let ctx = Context {
         _settings: settings.clone(),
+        room_tasks: RoomTaskRegistry::default(),
         metric_handle,
     };
 
