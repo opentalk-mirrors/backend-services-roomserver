@@ -52,7 +52,7 @@ impl RoomTask {
 
     async fn run(self) {
         if let Err(e) = self.inner_run().await {
-            println!("RoomTask exited with error {}", e)
+            log::error!("RoomTask exited with error {}", e)
         }
     }
 
@@ -68,14 +68,14 @@ impl RoomTask {
                 msg = rx.recv() => {
                     let Some(msg) = msg else {
                         // TaskHandle dropped, exiting
-                        println!("Room tasks {} handle was dropped, exiting", self.parameters.room_id);
+                        log::warn!("Room tasks {} handle was dropped, exiting", self.parameters.room_id);
                         return Ok(());
                     };
 
                     self.handle_api_request(msg).await?;
                 },
                 _ = self.idle_timeout.has_timed_out() => {
-                    println!("Room task {} reached its idle timeout, exiting", self.parameters.room_id);
+                    log::debug!("Room task {} reached its idle timeout, exiting", self.parameters.room_id);
                     return Ok(());
                 }
             };

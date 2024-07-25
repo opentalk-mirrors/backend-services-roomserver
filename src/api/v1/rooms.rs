@@ -29,7 +29,7 @@ pub(crate) async fn post_create(
 
     // Refresh the idle timeout if the room was not created with this request
     if let Err(err) = task_handle.refresh_idle_timeout().await {
-        println!("Failed to refresh idle timeout for room {}: {err}", room_id);
+        log::error!("Failed to refresh idle timeout for room {}: {err}", room_id);
         return Err(ApiError::internal());
     }
 
