@@ -16,7 +16,7 @@ version.workspace = true
 opentalk-types = { version = "0.17.0-alpha", features = ["axum", "serde"] }
 axum = { version = "0.7.5" }
 anyhow = "1"
-axum-prometheus = "0.6.1"
+axum-prometheus = "0.7.0"
 log = "0.4.22"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 serde = { version = "1", features = ["derive"] }
