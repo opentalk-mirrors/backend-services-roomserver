@@ -124,12 +124,9 @@ deny = []
 skip = [
   { name = "sync_wrapper", version = "=0.1.2" },
   { name = "http", version = "=0.2" },
-  { name = "http-body", version = "=0.4" },
-  { name = "hyper", version = "0.14" },
   { name = "regex-automata", version = "=0.1" },
   { name = "regex-syntax", version = "=0.6" },
   { name = "syn", version = "=1" },
-  { name = "base64", version = "=0.21" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
