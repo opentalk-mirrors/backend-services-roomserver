@@ -9,7 +9,6 @@ version = 1
 
 [[annotations]]
 SPDX-FileCopyrightText = [
-  "",
   "Albrecht Weiche <a.weiche@opentalk.eu>",
   "OpenTalk Team <mail@opentalk.eu>",
   "Wolfgang Silbermayr <w.silbermayr@opentalk.eu>",
@@ -20,6 +19,8 @@ path = [
   "CHANGELOG.md",
   "Cargo.lock",
   "README.md",
+  "api/docs/**.yml",
+  "ci/spectral/*.yml",
   "docs/**.md",
   "example/config.toml",
   "renovate.json",

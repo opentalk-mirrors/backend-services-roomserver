@@ -13,6 +13,7 @@ yaml-files:
 
 ignore: |
   .cargo
+  api/docs/openapi.yml
 
 rules:
   braces: enable

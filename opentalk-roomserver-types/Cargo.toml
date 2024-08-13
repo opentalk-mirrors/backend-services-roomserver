@@ -14,3 +14,8 @@ version.workspace = true
 opentalk-types.workspace = true
 opentalk-types-common.workspace = true
 serde.workspace = true
+utoipa = { workspace = true, optional = true }
+
+[features]
+default = []
+utoipa = ["dep:utoipa"]

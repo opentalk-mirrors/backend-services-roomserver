@@ -88,6 +88,24 @@ lint:toml:
   <<: *default_job_condition
   script: taplo fmt --check
 
+lint:openapi:
+  stage: lint
+  <<: *default_job_condition
+  image:
+    name: redocly/cli
+    entrypoint: ['']
+  script:
+    - /usr/local/bin/openapi lint api/docs/openapi.yml
+
+lint:openapi-spectral:
+  stage: lint
+  <<: *default_job_condition
+  image:
+    name: stoplight/spectral
+    entrypoint: ['']
+  script:
+    - spectral lint --ruleset ci/spectral/openapi.yml lint api/docs/openapi.yml
+
 lint:licensing:
   stage: lint
   <<: *default_job_condition

@@ -3,8 +3,8 @@
 
 use super::Router;
 
-mod metrics;
-mod rooms;
+pub mod metrics;
+pub mod rooms;
 
 pub use metrics::MetricBackend;
 pub use rooms::{RoomAction, RoomBackend};

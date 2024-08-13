@@ -15,3 +15,7 @@
 
 # The port to bind the HTTP server to (defaults to 11333)
 # port = 11333
+
+# Disable the OpenAPI endpoint under `/docs/openapi.json` and the corresponding
+# swagger endpoint under `/swagger`.
+# disable_openapi = false

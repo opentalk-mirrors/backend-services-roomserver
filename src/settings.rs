@@ -39,6 +39,11 @@ pub(crate) struct Http {
     /// The port that the HTTP server should use
     #[serde(default = "default_port")]
     pub(crate) port: u16,
+
+    // Disable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
+    // swagger endpoint under `/swagger`.
+    #[serde(default)]
+    pub(crate) disable_openapi: bool,
 }
 
 impl Default for Http {
@@ -46,6 +51,7 @@ impl Default for Http {
         Self {
             address: default_bind_address(),
             port: default_port(),
+            disable_openapi: false,
         }
     }
 }
@@ -54,6 +60,6 @@ fn default_bind_address() -> String {
     "0.0.0.0".into()
 }
 
-fn default_port() -> u16 {
+const fn default_port() -> u16 {
     11333
 }

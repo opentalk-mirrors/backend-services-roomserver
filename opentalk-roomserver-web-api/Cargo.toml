@@ -16,3 +16,4 @@ opentalk-roomserver-types.workspace = true
 opentalk-types.workspace = true
 opentalk-types-common.workspace = true
 tracing.workspace = true
+utoipa.workspace = true
