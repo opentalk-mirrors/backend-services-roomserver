@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use axum::routing::get;
+use axum::{async_trait, routing::get};
 
-use crate::{Context, Router};
+use crate::Router;
 use axum::extract::State;
 
-pub(crate) async fn metrics(context: State<Context>) -> String {
-    context.metric_handle.render()
+#[async_trait]
+pub trait MetricHandle: Clone + Send + Sync {
+    async fn render(&mut self) -> String;
 }
 
-pub(crate) fn routes() -> Router {
-    Router::new().route("/metrics", get(metrics))
+pub(crate) async fn metrics<Api: MetricHandle>(mut context: State<Api>) -> String {
+    context.render().await
+}
+
+pub(crate) fn routes<Api: MetricHandle + 'static>() -> Router<Api> {
+    Router::<Api>::new().route("/metrics", get(metrics::<Api>))
 }

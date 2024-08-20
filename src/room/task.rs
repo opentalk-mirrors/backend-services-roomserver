@@ -7,7 +7,7 @@ use super::registry::RoomTaskRegistry;
 use anyhow::Result;
 use tokio::sync::mpsc;
 
-use crate::types::room_parameters::RoomParameters;
+use opentalk_web_api::types::RoomParameters;
 
 const TIMEOUT: u64 = 30;
 

@@ -2,3 +2,5 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 pub(crate) mod room_parameters;
+
+pub use room_parameters::{EventInfo, RoomParameters};

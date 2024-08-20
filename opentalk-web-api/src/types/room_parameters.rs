@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 // TODO: move this to the opentalk_types crate, or should this be in a roomserver_types crate?
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct RoomParameters {
+pub struct RoomParameters {
     pub room_id: RoomId,
     pub created_by: PublicUserProfile,
     pub password: Option<String>,
@@ -24,7 +24,7 @@ pub(crate) struct RoomParameters {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct EventInfo {
+pub struct EventInfo {
     pub title: String,
     pub description: String,
     pub is_adhoc: bool,
