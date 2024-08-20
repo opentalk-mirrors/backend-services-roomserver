@@ -3,13 +3,13 @@
 
 use std::sync::Arc;
 
-use crate::{room::registry::RoomTaskRegistry, settings::Settings};
 use anyhow::Result;
 use axum_prometheus::{
     metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
 };
 
 mod v1;
+mod types;
 
 pub(crate) type Router = axum::Router<Context>;
 

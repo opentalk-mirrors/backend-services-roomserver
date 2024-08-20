@@ -3,7 +3,7 @@
 
 use axum::routing::get;
 
-use crate::api::{Context, Router};
+use crate::{Context, Router};
 use axum::extract::State;
 
 pub(crate) async fn metrics(context: State<Context>) -> String {

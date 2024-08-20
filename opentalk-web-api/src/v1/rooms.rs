@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use crate::api::Router;
+use crate::Router;
 use axum::{
     extract::{Path, State},
     routing::{get, post},
@@ -9,7 +9,7 @@ use axum::{
 };
 use opentalk_types::api::error::ApiError;
 
-use crate::{api::Context, types::room_parameters::RoomParameters};
+use crate::{Context, types::room_parameters::RoomParameters};
 use axum_prometheus::metrics::counter;
 
 /// Creates a new room instance with the specified parameters.
