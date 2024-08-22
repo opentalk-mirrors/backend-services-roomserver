@@ -9,8 +9,8 @@ use axum_prometheus::{
     metrics::counter, metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
 };
 use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomBackend};
 use opentalk_types::api::error::ApiError;
-use opentalk_web_api::v1::{self, MetricHandle, RoomContext, RoomServerApi};
 
 use crate::{room::registry::RoomTaskRegistry, settings::Settings};
 
@@ -67,17 +67,17 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
     Ok(())
 }
 
-impl RoomServerApi for Context {}
+impl Backend for Context {}
 
 #[async_trait]
-impl MetricHandle for Context {
+impl MetricBackend for Context {
     async fn render(&mut self) -> String {
         self.metric_handle.render()
     }
 }
 
 #[async_trait]
-impl RoomContext for Context {
+impl RoomBackend for Context {
     async fn create_room_if_not_exists(
         &self,
         room_parameters: RoomParameters,

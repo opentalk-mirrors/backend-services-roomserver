@@ -67,7 +67,7 @@ exceptions = [
   ], name = "opentalk-types" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-web-api" },
+  ], name = "opentalk-roomserver-web-api" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types" },

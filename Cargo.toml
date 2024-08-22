@@ -13,7 +13,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-opentalk-web-api.workspace = true
+opentalk-roomserver-web-api.workspace = true
 opentalk-types.workspace = true
 opentalk-roomserver-types.workspace = true
 axum.workspace = true
@@ -29,7 +29,7 @@ tracing-subscriber.workspace = true
 parking_lot.workspace = true
 
 [workspace]
-members = ["opentalk-roomserver-types", "opentalk-web-api"]
+members = ["opentalk-roomserver-types", "opentalk-roomserver-web-api"]
 resolver = "2"
 
 [workspace.package]
@@ -45,7 +45,7 @@ version = "0.0.0-dev"
 license = "EUPL-1.2"
 
 [workspace.dependencies]
-opentalk-web-api = { path = "opentalk-web-api", version = "0.0.0-dev" }
+opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev" }
 
 opentalk-types = { version = "0.18.0", features = ["axum", "serde"] }

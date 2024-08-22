@@ -3,4 +3,4 @@
 
 pub mod v1;
 
-pub(crate) type Router<Logic> = axum::Router<Logic>;
+pub(crate) type Router<Backend> = axum::Router<Backend>;
