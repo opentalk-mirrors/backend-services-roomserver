@@ -977,6 +977,7 @@ dependencies = [
  "clap",
  "config",
  "log",
+ "opentalk-roomserver-types",
  "opentalk-types",
  "opentalk-web-api",
  "parking_lot",
@@ -984,6 +985,14 @@ dependencies = [
  "serde_path_to_error",
  "tokio",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "opentalk-roomserver-types"
+version = "0.0.0-dev"
+dependencies = [
+ "opentalk-types",
+ "serde",
 ]
 
 [[package]]
@@ -1017,8 +1026,8 @@ name = "opentalk-web-api"
 version = "0.0.0-dev"
 dependencies = [
  "axum",
+ "opentalk-roomserver-types",
  "opentalk-types",
- "serde",
  "tracing",
 ]
 

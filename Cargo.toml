@@ -15,6 +15,7 @@ version.workspace = true
 [dependencies]
 opentalk-web-api.workspace = true
 opentalk-types.workspace = true
+opentalk-roomserver-types.workspace = true
 axum.workspace = true
 anyhow.workspace = true
 axum-prometheus.workspace = true
@@ -28,7 +29,7 @@ tracing-subscriber.workspace = true
 parking_lot.workspace = true
 
 [workspace]
-members = ["opentalk-web-api"]
+members = ["opentalk-roomserver-types", "opentalk-web-api"]
 resolver = "2"
 
 [workspace.package]
@@ -45,6 +46,8 @@ license = "EUPL-1.2"
 
 [workspace.dependencies]
 opentalk-web-api = { path = "opentalk-web-api", version = "0.0.0-dev" }
+opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev" }
+
 opentalk-types = { version = "0.18.0", features = ["axum", "serde"] }
 axum = { version = "0.7.5" }
 anyhow = "1"
@@ -61,3 +64,4 @@ tracing-subscriber = { version = "0.3", features = [
   "parking_lot",
 ] }
 parking_lot = "0.12"
+serde_json = "1.0.125"

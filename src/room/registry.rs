@@ -3,10 +3,9 @@
 
 use std::{collections::HashMap, sync::Arc};
 
+use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_types::core::RoomId;
 use parking_lot::RwLock;
-
-use opentalk_web_api::types::RoomParameters;
 
 use super::{handle::RoomTaskHandle, task::RoomTask};
 

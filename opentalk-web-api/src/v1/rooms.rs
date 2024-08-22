@@ -8,10 +8,9 @@ use axum::{
     routing::{get, post},
     Json,
 };
+use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_types::api::error::ApiError;
 use std::fmt::Debug;
-
-use crate::types::room_parameters::RoomParameters;
 
 #[async_trait]
 pub trait RoomContext: Clone + Send + Sync + Debug {

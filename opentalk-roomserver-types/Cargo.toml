@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 [package]
-name = "opentalk-web-api"
+name = "opentalk-roomserver-types"
 edition = "2021"
 authors.workspace = true
 homepage.workspace = true
@@ -11,7 +11,5 @@ version.workspace = true
 license.workspace = true
 
 [dependencies]
-axum.workspace = true
+serde.workspace = true
 opentalk-types.workspace = true
-tracing.workspace = true
-opentalk-roomserver-types.workspace = true

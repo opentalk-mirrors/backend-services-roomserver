@@ -8,6 +8,7 @@ use axum::async_trait;
 use axum_prometheus::{
     metrics::counter, metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
 };
+use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_types::api::error::ApiError;
 use opentalk_web_api::v1::{self, MetricHandle, RoomContext, RoomServerApi};
 
@@ -79,7 +80,7 @@ impl MetricHandle for Context {
 impl RoomContext for Context {
     async fn create_room_if_not_exists(
         &self,
-        room_parameters: opentalk_web_api::types::RoomParameters,
+        room_parameters: RoomParameters,
     ) -> std::result::Result<(), opentalk_types::api::error::ApiError> {
         let room_id = room_parameters.room_id;
 
