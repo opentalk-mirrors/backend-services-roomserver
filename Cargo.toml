@@ -13,7 +13,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-opentalk-types = { version = "0.18.0", features = ["axum", "serde"] }
+opentalk-types = { version = "0.19.0", features = ["axum", "serde"] }
 axum = { version = "0.7.5" }
 anyhow = "1"
 axum-prometheus = "0.7.0"
