@@ -48,7 +48,7 @@ license = "EUPL-1.2"
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev" }
 
-opentalk-types = { version = "0.18.0", features = ["axum", "serde"] }
+opentalk-types = { version = "0.19.0", features = ["axum", "serde"] }
 axum = { version = "0.7.5" }
 anyhow = "1"
 axum-prometheus = "0.7.0"
