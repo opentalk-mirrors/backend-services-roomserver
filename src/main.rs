@@ -13,7 +13,6 @@ mod cli;
 mod room;
 pub(crate) mod settings;
 mod trace;
-mod types;
 
 #[tokio::main]
 async fn main() -> Result<()> {

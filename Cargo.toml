@@ -6,14 +6,49 @@
 authors.workspace = true
 edition = "2021"
 homepage.workspace = true
-license = "EUPL-1.2"
+license.workspace = true
 name = "opentalk-roomserver"
 description = "OpenTalk RoomServer"
 repository.workspace = true
 version.workspace = true
 
 [dependencies]
-opentalk-types = { version = "0.19.0", features = ["axum", "serde"] }
+opentalk-roomserver-web-api.workspace = true
+opentalk-types.workspace = true
+opentalk-roomserver-types.workspace = true
+axum.workspace = true
+anyhow.workspace = true
+axum-prometheus.workspace = true
+log.workspace = true
+tokio.workspace = true
+serde.workspace = true
+clap.workspace = true
+config.workspace = true
+serde_path_to_error.workspace = true
+tracing-subscriber.workspace = true
+parking_lot.workspace = true
+
+[workspace]
+members = ["opentalk-roomserver-types", "opentalk-roomserver-web-api"]
+resolver = "2"
+
+[workspace.package]
+authors = [
+  "OpenTalk Team <mail@opentalk.eu>",
+  "Albrecht Weiche <a.weiche@opentalk.eu>",
+  "Wolfgang Silbermayr <w.silbermayr@opentalk.eu>",
+  "Maximilian Allies <m.allies@opentalk.eu>",
+]
+homepage = "https://opentalk.eu/"
+repository = "https://gitlab.opencode.de/opentalk/roomserver"
+version = "0.0.0-dev"
+license = "EUPL-1.2"
+
+[workspace.dependencies]
+opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
+opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev" }
+
+opentalk-types = { version = "0.18.0", features = ["axum", "serde"] }
 axum = { version = "0.7.5" }
 anyhow = "1"
 axum-prometheus = "0.7.0"
@@ -29,17 +64,4 @@ tracing-subscriber = { version = "0.3", features = [
   "parking_lot",
 ] }
 parking_lot = "0.12"
-
-[workspace]
-members = []
-resolver = "2"
-
-[workspace.package]
-authors = [
-  "OpenTalk Team <mail@opentalk.eu>",
-  "Albrecht Weiche <a.weiche@opentalk.eu>",
-  "Wolfgang Silbermayr <w.silbermayr@opentalk.eu>",
-]
-homepage = "https://opentalk.eu/"
-repository = "https://gitlab.opencode.de/opentalk/roomserver"
-version = "0.0.0-dev"
+serde_json = "1.0.125"

@@ -3,17 +3,16 @@
 
 use std::{collections::HashMap, sync::Arc};
 
+use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_types::core::RoomId;
 use parking_lot::RwLock;
-
-use crate::types::room_parameters::RoomParameters;
 
 use super::{handle::RoomTaskHandle, task::RoomTask};
 
 /// The room task registry
 ///
 /// Holds a list over all active rooms and their [`RoomTaskHandle`].
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub(crate) struct RoomTaskRegistry {
     inner: Arc<RwLock<HashMap<RoomId, RoomTaskHandle>>>,
 }

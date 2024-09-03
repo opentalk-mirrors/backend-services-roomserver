@@ -5,9 +5,8 @@ use super::handle::{Request, Response, RoomTaskHandle, TaskMessage};
 use super::idle_timeout::IdleTimeout;
 use super::registry::RoomTaskRegistry;
 use anyhow::Result;
+use opentalk_roomserver_types::room_parameters::RoomParameters;
 use tokio::sync::mpsc;
-
-use crate::types::room_parameters::RoomParameters;
 
 const TIMEOUT: u64 = 30;
 

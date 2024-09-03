@@ -3,23 +3,35 @@
 
 use std::sync::Arc;
 
-use crate::{room::registry::RoomTaskRegistry, settings::Settings};
 use anyhow::Result;
+use axum::async_trait;
 use axum_prometheus::{
-    metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
+    metrics::counter, metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
 };
+use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomBackend};
+use opentalk_types::api::error::ApiError;
 
-mod v1;
+use crate::{room::registry::RoomTaskRegistry, settings::Settings};
 
 pub(crate) type Router = axum::Router<Context>;
 
 /// Context for the API endpoints
 #[derive(Clone)]
 pub(crate) struct Context {
-    _settings: Arc<Settings>,
+    settings: Arc<Settings>,
     /// Global list of room tasks and their handles
     room_tasks: RoomTaskRegistry,
     metric_handle: PrometheusHandle,
+}
+
+impl std::fmt::Debug for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Context")
+            .field("settings", &self.settings)
+            .field("room_tasks", &self.room_tasks)
+            .finish()
+    }
 }
 
 /// Starts the web server
@@ -34,7 +46,7 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
         .build_pair();
 
     let ctx = Context {
-        _settings: settings.clone(),
+        settings: settings.clone(),
         room_tasks: RoomTaskRegistry::default(),
         metric_handle,
     };
@@ -53,4 +65,48 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
     axum::serve(listener, router).await?;
 
     Ok(())
+}
+
+impl Backend for Context {}
+
+#[async_trait]
+impl MetricBackend for Context {
+    async fn render(&mut self) -> String {
+        self.metric_handle.render()
+    }
+}
+
+#[async_trait]
+impl RoomBackend for Context {
+    async fn create_room_if_not_exists(
+        &self,
+        room_parameters: RoomParameters,
+    ) -> std::result::Result<(), opentalk_types::api::error::ApiError> {
+        let room_id = room_parameters.room_id;
+
+        let (created, task_handle) = self.room_tasks.create_room_if_not_exists(room_parameters);
+
+        if created {
+            return Ok(());
+        }
+
+        // Refresh the idle timeout if the room was not created with this request
+        if let Err(err) = task_handle.refresh_idle_timeout().await {
+            log::error!("Failed to refresh idle timeout for room {}: {err}", room_id);
+            return Err(ApiError::internal());
+        }
+
+        Ok(())
+    }
+
+    async fn probe_room(&self, path: axum::extract::Path<String>) -> String {
+        let room_id = path.0;
+
+        log::trace!("Probing room {}", room_id);
+
+        // Just an example for a custom metric (a counter in this case)
+        counter!("probe_room_count_per_room", "room_id" => room_id.clone()).increment(1);
+
+        format!("probing the room with id {}", room_id)
+    }
 }

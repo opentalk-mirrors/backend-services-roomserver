@@ -65,6 +65,12 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-web-api" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
