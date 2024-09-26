@@ -104,7 +104,7 @@ impl RoomServerClient {
     /// ```
     /// use opentalk_roomserver_client::reqwest_client::RoomServerClient;
     ///
-    /// let client = RoomServerClient::new("https://localhost:11311");
+    /// let client = RoomServerClient::new("https://localhost:11333");
     /// ```
     pub fn new(addr: &str) -> Result<Self, SetupError> {
         let client = reqwest::Client::builder()
@@ -128,7 +128,7 @@ impl RoomServerClient {
     ///     .default_headers(headers)
     ///     .build()
     ///     .unwrap();
-    /// let client = RoomServerClient::with_reqwest_client("https://localhost:11311", reqwest_client);
+    /// let client = RoomServerClient::with_reqwest_client("https://localhost:11333", reqwest_client);
     /// ```
     pub fn with_reqwest_client(addr: &str, client: reqwest::Client) -> Result<Self, SetupError> {
         let base_url = Url::parse(addr)?;

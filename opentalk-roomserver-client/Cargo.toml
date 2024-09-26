@@ -21,8 +21,7 @@ thiserror = "1.0.64"
 url = "2.5.2"
 
 [dev-dependencies]
-anyhow.workspace = true
-tokio.workspace = true
+tokio-test = "0.4.4"
 
 [features]
 default = ["default-tls", "reqwest/default"]
@@ -41,3 +40,9 @@ rustls-tls-manual-roots-no-provider = [
 ]
 rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
 rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
+
+[package.metadata.cargo-machete]
+ignored = [
+  # Used in doctests
+  "tokio-test",
+]

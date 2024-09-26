@@ -11,6 +11,63 @@
 //!
 //! Requests are constructed using the request structs found in [`api`] and executed
 //! using an implementation of the [`Client`] trait.
+//!
+//! ## Example
+//!
+//! ```no_run
+//! # tokio_test::block_on(async {
+//! # use std::collections::{BTreeMap, BTreeSet};
+//! #
+//! # use opentalk_roomserver_client::{
+//! #     api::room::RoomsCreateRequest, reqwest_client::RoomServerClient, Client,
+//! # };
+//! # use opentalk_roomserver_types::room_parameters::{EventInfo, RoomParameters};
+//! # use opentalk_types::{
+//! #     api::v1::users::PublicUserProfile,
+//! #     common::tariff::TariffResource,
+//! #     core::{RoomId, TariffId, UserId},
+//! # };
+//! #
+//! let client = RoomServerClient::new("http://localhost:11333").unwrap();
+//! let request = RoomsCreateRequest {
+//!     body: RoomParameters {
+//! // ...
+//! #        room_id: RoomId::from_u128(0x8f96ada5_2660_4b4c_adb8_1b1794f51a24),
+//! #        created_by: PublicUserProfile {
+//! #            id: UserId::from_u128(0x037bc784_5130_4da7_b63f_971395be0e44),
+//! #            email: "peter@example.net".to_owned(),
+//! #            title: "Prof. Dr. Dr. Dipl. Ing.".to_owned(),
+//! #            firstname: "Peter".to_owned(),
+//! #            lastname: "Superschlau".to_owned(),
+//! #            display_name: "Prof. Dr. Dr. Dipl. Ing. Superschlau".to_owned(),
+//! #            avatar_url: "example.com".to_owned(),
+//! #        },
+//! #        password: Some("supersecret".to_owned()),
+//! #        waiting_room: false,
+//! #        event: Some(EventInfo {
+//! #            title: "Example Event".to_owned(),
+//! #            description: "An example event.".to_owned(),
+//! #            is_adhoc: false,
+//! #            invite_code_id: None,
+//! #            call_in: None,
+//! #            streaming_links: Vec::new(),
+//! #            shared_folder: None,
+//! #        }),
+//! #        tariff: TariffResource {
+//! #            id: TariffId::from_u128(0x35499437_32a3_4b30_87cc_568eaf63ed9e),
+//! #            name: "SuperPremium".to_owned(),
+//! #            quotas: BTreeMap::new(),
+//! #            enabled_modules: BTreeSet::new(),
+//! #            disabled_features: BTreeSet::new(),
+//! #            modules: BTreeMap::new(),
+//! #        },
+//!     },
+//! };
+//!
+//! let response = client.execute(request).await.unwrap();
+//! println!("{:#?}", response);
+//! # })
+//! ```
 
 pub mod api;
 pub mod reqwest_client;
