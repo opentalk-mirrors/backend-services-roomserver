@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+edition = "2021"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-client"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+async-trait = "0.1.83"
+http-request-derive = { workspace = true, features = ["reqwest"] }
+opentalk-roomserver-types.workspace = true
+opentalk-types.workspace = true
+reqwest = { workspace = true, features = ["json"] }
+serde.workspace = true
+thiserror = "1.0.64"
+url = "2.5.2"
+
+[dev-dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+
+[features]
+default = ["default-tls", "reqwest/default"]
+
+default-tls = ["reqwest/default-tls"]
+native-tls = ["reqwest/native-tls"]
+native-tls-alpn = ["reqwest/native-tls-alpn"]
+native-tls-vendored = ["reqwest/native-tls-vendored"]
+
+rustls-tls = ["reqwest/rustls-tls"]
+rustls-tls-no-provider = ["reqwest/rustls-tls-no-provider"]
+
+rustls-tls-manual-roots = ["reqwest/rustls-tls-manual-roots"]
+rustls-tls-manual-roots-no-provider = [
+  "reqwest/rustls-tls-manual-roots-no-provider",
+]
+rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
+rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
