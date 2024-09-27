@@ -4,7 +4,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use opentalk_roomserver_types::room_parameters::RoomParameters;
-use opentalk_types::core::RoomId;
+use opentalk_types_common::rooms::RoomId;
 use parking_lot::RwLock;
 
 use super::{handle::RoomTaskHandle, task::RoomTask};

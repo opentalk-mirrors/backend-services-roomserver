@@ -22,6 +22,7 @@ log.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-types.workspace = true
+opentalk-types-common.workspace = true
 parking_lot.workspace = true
 serde.workspace = true
 serde_path_to_error.workspace = true
@@ -52,6 +53,9 @@ version = "0.0.0-dev"
 opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 
+opentalk-types = { version = "0.20.0", features = ["axum", "serde"] }
+opentalk-types-common = { version = "0.20.0", features = ["serde"] }
+
 anyhow = "1"
 axum = { version = "0.7.5" }
 axum-prometheus = "0.7.0"
@@ -59,7 +63,6 @@ clap = { version = "4.5", features = ["derive"] }
 config = { version = "0.14", default-features = false, features = ["toml"] }
 http-request-derive = "0.3.2"
 log = "0.4.22"
-opentalk-types = { version = "0.19.0", features = ["axum", "serde"] }
 parking_lot = "0.12"
 reqwest = { version = "0.12", default-features = false }
 serde = { version = "1", features = ["derive"] }
