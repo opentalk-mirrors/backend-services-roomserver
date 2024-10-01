@@ -22,11 +22,12 @@
 //! #     api::room::RoomsCreateRequest, reqwest_client::RoomServerClient, Client,
 //! # };
 //! # use opentalk_roomserver_types::room_parameters::{EventInfo, RoomParameters};
-//! # use opentalk_types::{
-//! #     api::v1::users::PublicUserProfile,
-//! #     common::tariff::TariffResource,
-//! #     core::{RoomId, TariffId, UserId},
+//! # use opentalk_types_common::{
+//! #     rooms::RoomId,
+//! #     tariffs::{TariffId, TariffResource},
+//! #     users::UserId,
 //! # };
+//! # use opentalk_types::api::v1::users::PublicUserProfile;
 //! #
 //! let client = RoomServerClient::new("http://localhost:11333").unwrap();
 //! let request = RoomsCreateRequest {

@@ -3,7 +3,7 @@
 
 use http_request_derive::HttpRequest;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
-use opentalk_types::core::RoomId;
+use opentalk_types_common::rooms::RoomId;
 use serde::Deserialize;
 
 #[derive(HttpRequest)]

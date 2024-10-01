@@ -14,13 +14,14 @@ version.workspace = true
 async-trait = "0.1.83"
 http-request-derive = { workspace = true, features = ["reqwest"] }
 opentalk-roomserver-types.workspace = true
-opentalk-types.workspace = true
+opentalk-types-common.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 serde.workspace = true
 thiserror = "1.0.64"
 url = "2.5.2"
 
 [dev-dependencies]
+opentalk-types.workspace = true
 tokio-test = "0.4.4"
 
 [features]
@@ -44,5 +45,6 @@ rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
 [package.metadata.cargo-machete]
 ignored = [
   # Used in doctests
+  "opentalk-types",
   "tokio-test",
 ]

@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_types::{
-    api::v1::users::PublicUserProfile,
-    common::{
-        event::{CallIn, StreamingLink},
-        shared_folder::SharedFolder,
-        tariff::TariffResource,
-    },
-    core::RoomId,
+use opentalk_types::api::v1::users::PublicUserProfile;
+use opentalk_types_common::{
+    call_in::CallInInfo, rooms::RoomId, shared_folders::SharedFolder, streaming::StreamingLink,
+    tariffs::TariffResource,
 };
 use serde::{Deserialize, Serialize};
 
@@ -28,7 +24,7 @@ pub struct EventInfo {
     pub description: String,
     pub is_adhoc: bool,
     pub invite_code_id: Option<String>,
-    pub call_in: Option<CallIn>,
+    pub call_in: Option<CallInInfo>,
     pub streaming_links: Vec<StreamingLink>,
     pub shared_folder: Option<SharedFolder>,
 }
