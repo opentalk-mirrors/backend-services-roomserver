@@ -36,6 +36,7 @@ pub(crate) type Router = axum::Router<Context>;
         ),
         components(
             schemas(
+                opentalk_types_common::call_in::CallInId,
                 opentalk_types_common::call_in::CallInInfo,
                 opentalk_types_common::call_in::CallInPassword,
                 opentalk_types_common::call_in::NumericId,

@@ -46,6 +46,8 @@ paths:
       security: []
 components:
   schemas:
+    CallInId:
+      $ref: "#/components/schemas/NumericId"
     CallInInfo:
       type: object
       description: Information needed to participate in a call-in connection.
@@ -134,7 +136,7 @@ components:
       type: object
       description: |
         Public user details.
-        
+
         Contains general "public" information about a user. Is accessible to all other users.
       required:
         - id

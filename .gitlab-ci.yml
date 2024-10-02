@@ -7,9 +7,9 @@
 image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.82.0-bookworm
 
 stages:
+  - build
   - lint
   - test
-  - build
   - trigger
   - package
 
@@ -106,6 +106,18 @@ lint:openapi-spectral:
   script:
     - spectral lint --ruleset ci/spectral/openapi.yml lint api/docs/openapi.yml
 
+lint:openapi-up-to-date:
+  stage: lint
+  <<: *default_job_condition
+  needs: [build]
+  script:
+    - target/release/opentalk-roomserver openapi dump > api/docs/openapi.yml
+    - |
+      if ! git diff -w --exit-code; then
+        echo "openapi specification outdated, run 'opentalk-roomserver openapi dump > api/docs/openapi.yml'"
+        exit 1
+      fi
+
 lint:licensing:
   stage: lint
   <<: *default_job_condition
@@ -155,10 +167,8 @@ lint:mod-rs-files:
   variables:
     # For getting color output from `tput`
     TERM: xterm-256color
-  before_script:
-    apt-get update && apt-get install -y fd-find
-  script:
-    ./ci/lint-mod-rs-files.sh
+  before_script: apt-get update && apt-get install -y fd-find
+  script: ./ci/lint-mod-rs-files.sh
 
 lint:justfile:
   stage: lint
