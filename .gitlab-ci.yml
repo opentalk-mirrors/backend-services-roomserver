@@ -106,7 +106,6 @@ lint:shellcheck:
     - git ls-files --exclude='*.sh' --ignored -c -z | xargs -0r shellcheck
 
 lint:commit:
-  allow_failure: true
   cache: {}
   image: node:lts-alpine
   stage: lint
@@ -116,6 +115,18 @@ lint:commit:
     - npm install -g @commitlint/cli @commitlint/config-conventional
   script:
     - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
+
+trigger_changelog_preview:
+  stage: trigger
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  variables:
+    PIPELINE_PROJECT_PATH: $CI_PROJECT_PATH
+    PIPELINE_MERGE_REQUEST_PROJECT_PATH: $CI_MERGE_REQUEST_SOURCE_PROJECT_PATH
+    PIPELINE_MERGE_REQUEST_SOURCE_BRANCH_NAME: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+    PIPELINE_MERGE_REQUEST_IID: $CI_MERGE_REQUEST_IID
+  trigger: opentalk/tools/check-changelog
 
 lint:mod-rs-files:
   # This job is needed until we can fully deny the `self_named_module_files` in clippy.
