@@ -5,7 +5,7 @@ use crate::Router;
 use axum::{
     async_trait,
     extract::{Path, State},
-    routing::{get, put},
+    routing::put,
     Json,
 };
 use opentalk_roomserver_types::room_parameters::RoomParameters;
@@ -20,8 +20,6 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
         room_parameters: RoomParameters,
         room_id: RoomId,
     ) -> Result<(), ApiError>;
-
-    async fn probe_room(&self, path: Path<String>) -> String;
 }
 
 /// Creates a new room instance with the specified parameters.
@@ -36,16 +34,9 @@ pub(crate) async fn put_room<B: RoomBackend>(
     ctx.create_room_if_not_exists(room_parameters, path.0).await
 }
 
-#[tracing::instrument(level = "trace", skip(path), fields(room_id = %path.0))]
-pub(crate) async fn probe_room<B: RoomBackend>(State(ctx): State<B>, path: Path<String>) -> String {
-    ctx.probe_room(path).await
-}
-
 pub(crate) fn routes<B: RoomBackend + 'static>() -> Router<B> {
     Router::new().nest(
         "/rooms",
-        Router::new()
-            .route("/:room_id", put(put_room::<B>))
-            .route("/probe/:room_id", get(probe_room::<B>)),
+        Router::new().route("/:room_id", put(put_room::<B>)),
     )
 }

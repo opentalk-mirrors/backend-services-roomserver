@@ -6,7 +6,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use axum::async_trait;
 use axum_prometheus::{
-    metrics::counter, metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
+    metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
 };
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomBackend};
@@ -99,16 +99,5 @@ impl RoomBackend for Context {
         }
 
         Ok(())
-    }
-
-    async fn probe_room(&self, path: axum::extract::Path<String>) -> String {
-        let room_id = path.0;
-
-        log::trace!("Probing room {}", room_id);
-
-        // Just an example for a custom metric (a counter in this case)
-        counter!("probe_room_count_per_room", "room_id" => room_id.clone()).increment(1);
-
-        format!("probing the room with id {}", room_id)
     }
 }
