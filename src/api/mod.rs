@@ -9,7 +9,7 @@ use axum_prometheus::{
     metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
 };
 use opentalk_roomserver_types::room_parameters::RoomParameters;
-use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomBackend};
+use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomAction, RoomBackend};
 use opentalk_types::api::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 
@@ -79,17 +79,22 @@ impl MetricBackend for Context {
 
 #[async_trait]
 impl RoomBackend for Context {
-    async fn create_room_if_not_exists(
+    async fn put_room(
         &self,
         room_parameters: RoomParameters,
         room_id: RoomId,
-    ) -> std::result::Result<(), opentalk_types::api::error::ApiError> {
+    ) -> std::result::Result<RoomAction, opentalk_types::api::error::ApiError> {
         let (created, task_handle) = self
             .room_tasks
-            .create_room_if_not_exists(room_id, room_parameters);
+            .put_room(room_id, room_parameters)
+            .await
+            .map_err(|err| {
+                log::error!("Failed to put room {}: {err}", room_id);
+                ApiError::internal()
+            })?;
 
-        if created {
-            return Ok(());
+        if created.is_created() {
+            return Ok(RoomAction::Created);
         }
 
         // Refresh the idle timeout if the room was not created with this request
@@ -98,6 +103,6 @@ impl RoomBackend for Context {
             return Err(ApiError::internal());
         }
 
-        Ok(())
+        Ok(RoomAction::Updated)
     }
 }

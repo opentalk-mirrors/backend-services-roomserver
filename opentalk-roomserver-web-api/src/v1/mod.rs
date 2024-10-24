@@ -7,7 +7,7 @@ mod metrics;
 mod rooms;
 
 pub use metrics::MetricBackend;
-pub use rooms::RoomBackend;
+pub use rooms::{RoomAction, RoomBackend};
 
 pub trait Backend: RoomBackend + MetricBackend + Send + Sync + Clone + Sized {}
 

@@ -5,6 +5,8 @@ use crate::Router;
 use axum::{
     async_trait,
     extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
     routing::put,
     Json,
 };
@@ -13,13 +15,39 @@ use opentalk_types::api::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use std::fmt::Debug;
 
+pub enum RoomAction {
+    Created,
+    Updated,
+}
+
+impl RoomAction {
+    /// Returns `true` if the room action is [`Created`].
+    ///
+    /// [`Created`]: RoomAction::Created
+    #[must_use]
+    pub fn is_created(&self) -> bool {
+        matches!(self, Self::Created)
+    }
+}
+
+impl IntoResponse for RoomAction {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Created => StatusCode::CREATED,
+            Self::Updated => StatusCode::NO_CONTENT,
+        }
+        .into_response()
+    }
+}
+
 #[async_trait]
 pub trait RoomBackend: Clone + Send + Sync + Debug {
-    async fn create_room_if_not_exists(
+    /// Create or update the room.
+    async fn put_room(
         &self,
         room_parameters: RoomParameters,
         room_id: RoomId,
-    ) -> Result<(), ApiError>;
+    ) -> Result<RoomAction, ApiError>;
 }
 
 /// Creates a new room instance with the specified parameters.
@@ -30,8 +58,8 @@ pub(crate) async fn put_room<B: RoomBackend>(
     State(ctx): State<B>,
     path: Path<RoomId>,
     Json(room_parameters): Json<RoomParameters>,
-) -> Result<(), ApiError> {
-    ctx.create_room_if_not_exists(room_parameters, path.0).await
+) -> Result<RoomAction, ApiError> {
+    ctx.put_room(room_parameters, path.0).await
 }
 
 pub(crate) fn routes<B: RoomBackend + 'static>() -> Router<B> {

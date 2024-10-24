@@ -15,8 +15,6 @@ const TIMEOUT: u64 = 30;
 ///
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
 /// exits.
-///
-/// When this type gets dropped, it removes itself from the [`RoomTaskRegistry`]
 pub(super) struct RoomTask {
     /// the identifier of the room
     room_id: RoomId,
@@ -24,8 +22,6 @@ pub(super) struct RoomTask {
     parameters: RoomParameters,
     /// The receiver for web server API request that target this room
     api_rx: mpsc::Receiver<TaskMessage>,
-    /// Used to remove the [`RoomTask`] from the registry when it gets dropped
-    task_registry: RoomTaskRegistry,
     /// The rooms idle timeout, only active when no participants are in the room.
     idle_timeout: IdleTimeout,
 }
@@ -43,12 +39,12 @@ impl RoomTask {
             room_id,
             parameters: room_parameters,
             api_rx: rx,
-            task_registry,
             idle_timeout: IdleTimeout::start_new(TIMEOUT),
         };
 
         tokio::task::spawn(async move {
             room_task.run().await;
+            task_registry.remove_room(room_id).await;
         });
 
         RoomTaskHandle { sender: tx }
@@ -92,14 +88,12 @@ impl RoomTask {
                 self.idle_timeout.refresh(TIMEOUT);
                 let _ = msg.response_channel.send(Response::Ack);
             }
+            Request::UpdateParameter(room_parameters) => {
+                self.parameters = room_parameters;
+                // TODO: handle updated values
+            }
         }
 
         Ok(())
-    }
-}
-
-impl Drop for RoomTask {
-    fn drop(&mut self) {
-        self.task_registry.remove_room(self.room_id)
     }
 }
