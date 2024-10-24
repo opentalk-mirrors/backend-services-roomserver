@@ -5,11 +5,12 @@ use crate::Router;
 use axum::{
     async_trait,
     extract::{Path, State},
-    routing::{get, post},
+    routing::{get, put},
     Json,
 };
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_types::api::error::ApiError;
+use opentalk_types_common::rooms::RoomId;
 use std::fmt::Debug;
 
 #[async_trait]
@@ -17,6 +18,7 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
     async fn create_room_if_not_exists(
         &self,
         room_parameters: RoomParameters,
+        room_id: RoomId,
     ) -> Result<(), ApiError>;
 
     async fn probe_room(&self, path: Path<String>) -> String;
@@ -25,11 +27,13 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
 /// Creates a new room instance with the specified parameters.
 ///
 /// If a room with the provided room ID already exists, the rooms idle timeout is refreshed.
-pub(crate) async fn post_create<B: RoomBackend>(
+#[tracing::instrument(level = "trace", skip(room_parameters), fields(room_id = %path.0))]
+pub(crate) async fn put_room<B: RoomBackend>(
     State(ctx): State<B>,
+    path: Path<RoomId>,
     Json(room_parameters): Json<RoomParameters>,
 ) -> Result<(), ApiError> {
-    ctx.create_room_if_not_exists(room_parameters).await
+    ctx.create_room_if_not_exists(room_parameters, path.0).await
 }
 
 #[tracing::instrument(level = "trace", skip(path), fields(room_id = %path.0))]
@@ -41,7 +45,7 @@ pub(crate) fn routes<B: RoomBackend + 'static>() -> Router<B> {
     Router::new().nest(
         "/rooms",
         Router::new()
-            .route("/create", post(post_create::<B>))
+            .route("/:room_id", put(put_room::<B>))
             .route("/probe/:room_id", get(probe_room::<B>)),
     )
 }

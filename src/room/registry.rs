@@ -23,17 +23,16 @@ impl RoomTaskRegistry {
     /// Returns `true` when a new room was created
     pub(crate) fn create_room_if_not_exists(
         &self,
+        room_id: RoomId,
         room_parameters: RoomParameters,
     ) -> (bool, RoomTaskHandle) {
-        let room_id = room_parameters.room_id;
-
         let mut registry = self.inner.write();
 
         if let Some(task_handle) = registry.get(&room_id) {
             return (false, task_handle.clone());
         }
 
-        let task_handle = RoomTask::spawn(room_parameters, self.clone());
+        let task_handle = RoomTask::spawn(room_id, room_parameters, self.clone());
 
         registry.insert(room_id, task_handle.clone());
 

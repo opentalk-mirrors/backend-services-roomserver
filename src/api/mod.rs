@@ -11,6 +11,7 @@ use axum_prometheus::{
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomBackend};
 use opentalk_types::api::error::ApiError;
+use opentalk_types_common::rooms::RoomId;
 
 use crate::{room::registry::RoomTaskRegistry, settings::Settings};
 
@@ -81,10 +82,11 @@ impl RoomBackend for Context {
     async fn create_room_if_not_exists(
         &self,
         room_parameters: RoomParameters,
+        room_id: RoomId,
     ) -> std::result::Result<(), opentalk_types::api::error::ApiError> {
-        let room_id = room_parameters.room_id;
-
-        let (created, task_handle) = self.room_tasks.create_room_if_not_exists(room_parameters);
+        let (created, task_handle) = self
+            .room_tasks
+            .create_room_if_not_exists(room_id, room_parameters);
 
         if created {
             return Ok(());

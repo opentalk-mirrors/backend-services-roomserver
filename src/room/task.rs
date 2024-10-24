@@ -6,6 +6,7 @@ use super::idle_timeout::IdleTimeout;
 use super::registry::RoomTaskRegistry;
 use anyhow::Result;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_types_common::rooms::RoomId;
 use tokio::sync::mpsc;
 
 const TIMEOUT: u64 = 30;
@@ -17,6 +18,8 @@ const TIMEOUT: u64 = 30;
 ///
 /// When this type gets dropped, it removes itself from the [`RoomTaskRegistry`]
 pub(super) struct RoomTask {
+    /// the identifier of the room
+    room_id: RoomId,
     /// The start parameters for the room task
     parameters: RoomParameters,
     /// The receiver for web server API request that target this room
@@ -30,12 +33,14 @@ pub(super) struct RoomTask {
 impl RoomTask {
     /// Spawns a new [`RoomTask`]
     pub(super) fn spawn(
+        room_id: RoomId,
         room_parameters: RoomParameters,
         task_registry: RoomTaskRegistry,
     ) -> RoomTaskHandle {
         let (tx, rx) = mpsc::channel(20);
 
         let room_task = RoomTask {
+            room_id,
             parameters: room_parameters,
             api_rx: rx,
             task_registry,
@@ -67,14 +72,14 @@ impl RoomTask {
                 msg = rx.recv() => {
                     let Some(msg) = msg else {
                         // TaskHandle dropped, exiting
-                        log::warn!("Room tasks {} handle was dropped, exiting", self.parameters.room_id);
+                        log::warn!("Room tasks {} handle was dropped, exiting", self.room_id);
                         return Ok(());
                     };
 
                     self.handle_api_request(msg).await?;
                 },
                 _ = self.idle_timeout.has_timed_out() => {
-                    log::debug!("Room task {} reached its idle timeout, exiting", self.parameters.room_id);
+                    log::debug!("Room task {} reached its idle timeout, exiting", self.room_id);
                     return Ok(());
                 }
             };
@@ -95,6 +100,6 @@ impl RoomTask {
 
 impl Drop for RoomTask {
     fn drop(&mut self) {
-        self.task_registry.remove_room(self.parameters.room_id)
+        self.task_registry.remove_room(self.room_id)
     }
 }

@@ -3,14 +3,13 @@
 
 use opentalk_types::api::v1::users::PublicUserProfile;
 use opentalk_types_common::{
-    call_in::CallInInfo, rooms::RoomId, shared_folders::SharedFolder, streaming::StreamingLink,
+    call_in::CallInInfo, shared_folders::SharedFolder, streaming::StreamingLink,
     tariffs::TariffResource,
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RoomParameters {
-    pub room_id: RoomId,
     pub created_by: PublicUserProfile,
     pub password: Option<String>,
     pub waiting_room: bool,
