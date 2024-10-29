@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use anyhow::Result;
+use opentalk_roomserver_types::room_parameters::RoomParameters;
 use tokio::sync::{mpsc, oneshot};
 
 /// A handle for the a [`super::task::RoomTask`]
@@ -33,6 +34,17 @@ impl RoomTaskHandle {
             Response::Ack => Ok(()),
         }
     }
+
+    /// Update the parameters for the room
+    pub(crate) async fn update_parameter(&self, parameter: RoomParameters) -> Result<()> {
+        let response = self
+            .send_request(Request::UpdateParameter(parameter))
+            .await?;
+
+        match response {
+            Response::Ack => Ok(()),
+        }
+    }
 }
 
 /// A message that can be send to a [`super::task::RoomTask`]
@@ -59,6 +71,9 @@ impl TaskMessage {
 pub(crate) enum Request {
     /// Refresh the room tasks idle timeout
     RefreshIdleTimeout,
+
+    /// Update the parameters for the room
+    UpdateParameter(RoomParameters),
 }
 
 /// Responses that are sent from the [`RoomTask`](super::task::RoomTask)

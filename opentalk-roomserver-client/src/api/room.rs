@@ -7,10 +7,12 @@ use opentalk_types_common::rooms::RoomId;
 use serde::Deserialize;
 
 #[derive(HttpRequest)]
-#[http_request(method = "POST", response = RoomCreateResponse, path = "/rooms/create")]
+#[http_request(method = "PUT", response = RoomCreateResponse, path = "/rooms/{room_id}")]
 pub struct RoomsCreateRequest {
     #[http_request(body)]
     pub body: RoomParameters,
+
+    pub room_id: RoomId,
 }
 
 #[derive(Deserialize, Debug)]

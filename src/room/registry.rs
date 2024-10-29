@@ -4,8 +4,9 @@
 use std::{collections::HashMap, sync::Arc};
 
 use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_roomserver_web_api::v1::RoomAction;
 use opentalk_types_common::rooms::RoomId;
-use parking_lot::RwLock;
+use tokio::sync::RwLock;
 
 use super::{handle::RoomTaskHandle, task::RoomTask};
 
@@ -18,40 +19,44 @@ pub(crate) struct RoomTaskRegistry {
 }
 
 impl RoomTaskRegistry {
-    /// Spawns a new room task and adds it to the registry
+    /// Spawns a new room task and adds it to the registry.
     ///
-    /// Returns `true` when a new room was created
-    pub(crate) fn create_room_if_not_exists(
+    /// Returns [`Created`] when a new room was created otherwise [`Updated`] is returned.
+    ///
+    /// [`Created`]: RoomAction::Created
+    /// [`Updated`]: RoomAction::Updated
+    pub(crate) async fn put_room(
         &self,
+        room_id: RoomId,
         room_parameters: RoomParameters,
-    ) -> (bool, RoomTaskHandle) {
-        let room_id = room_parameters.room_id;
-
-        let mut registry = self.inner.write();
+    ) -> anyhow::Result<(RoomAction, RoomTaskHandle)> {
+        let mut registry = self.inner.write().await;
 
         if let Some(task_handle) = registry.get(&room_id) {
-            return (false, task_handle.clone());
+            task_handle.update_parameter(room_parameters).await?;
+            return Ok((RoomAction::Updated, task_handle.clone()));
         }
 
-        let task_handle = RoomTask::spawn(room_parameters, self.clone());
+        let task_handle = RoomTask::spawn(room_id, room_parameters, self.clone());
 
         registry.insert(room_id, task_handle.clone());
 
-        (true, task_handle)
+        Ok((RoomAction::Created, task_handle))
     }
 
     /// Get the [`RoomTaskHandle`] for the specified [`RoomId`]
     #[allow(dead_code)] //TODO: remove when used
-    pub(crate) fn get_task_handle(&self, room_id: &RoomId) -> Option<RoomTaskHandle> {
-        self.inner.read().get(room_id).cloned()
+    pub(crate) async fn get_task_handle(&self, room_id: &RoomId) -> Option<RoomTaskHandle> {
+        self.inner.read().await.get(room_id).cloned()
     }
 
     /// Removes the room from the registry
     ///
     /// This will also destroy the related [`RoomTask`]
-    pub(crate) fn remove_room(&self, room_id: RoomId) {
-        let mut room_list = self.inner.write();
+    pub(crate) async fn remove_room(&self, room_id: RoomId) {
+        let mut room_list = self.inner.write().await;
 
+        log::trace!("Remove room task handle from registry: {room_id}");
         room_list.remove(&room_id);
     }
 }

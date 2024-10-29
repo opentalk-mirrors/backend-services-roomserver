@@ -31,9 +31,9 @@
 //! #
 //! let client = RoomServerClient::new("http://localhost:11333").unwrap();
 //! let request = RoomsCreateRequest {
+//! #   room_id: RoomId::from_u128(0x8f96ada5_2660_4b4c_adb8_1b1794f51a24),
 //!     body: RoomParameters {
 //! // ...
-//! #        room_id: RoomId::from_u128(0x8f96ada5_2660_4b4c_adb8_1b1794f51a24),
 //! #        created_by: PublicUserProfile {
 //! #            id: UserId::from_u128(0x037bc784_5130_4da7_b63f_971395be0e44),
 //! #            email: "peter@example.net".to_owned(),
