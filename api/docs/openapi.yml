@@ -1,0 +1,343 @@
+---
+openapi: 3.0.3
+info:
+  title: OpenTalk RoomServer API
+  description: Specifies the endpoints and structure of the OpenTalk RoomServer Web API
+  contact:
+    name: OpenTalk Team
+    email: mail@opentalk.eu
+  license:
+    name: EUPL-1.2
+  version: 0.0.0-dev
+servers:
+  - url: /v1
+paths:
+  /metrics:
+    get:
+      tags:
+        - "v1::metrics"
+      summary: Returns the prometheus metrics
+      description: Returns the prometheus metrics in a text format.
+      operationId: metrics
+      responses:
+        "200":
+          description: Prometheus metrics were successfully retrieved
+      security: []
+  /rooms:
+    put:
+      tags:
+        - "v1::rooms"
+      summary: Creates a new room instance with the specified parameters if no room with the provided id exists.
+      description: "If a room with the provided room ID already exists, the rooms idle timeout is refreshed."
+      operationId: put_room
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomParameters"
+        required: true
+      responses:
+        "201":
+          description: Successfully created a new room
+        "204":
+          description: The room did exist before and the parameter were updated if necessary
+        "500":
+          description: An internal server error occurred
+      security: []
+components:
+  schemas:
+    CallInId:
+      $ref: "#/components/schemas/NumericId"
+    CallInInfo:
+      type: object
+      description: Information needed to participate in a call-in connection.
+      required:
+        - tel
+        - id
+        - password
+      properties:
+        id:
+          $ref: "#/components/schemas/CallInId"
+        password:
+          $ref: "#/components/schemas/CallInPassword"
+        tel:
+          type: string
+          description: SIP Call-In phone number which must be used to reach the room
+      example:
+        id: "1234567890"
+        password: "0987654321"
+        tel: +555-123-456-789
+    CallInPassword:
+      $ref: "#/components/schemas/NumericId"
+    EventInfo:
+      type: object
+      required:
+        - title
+        - description
+        - is_adhoc
+        - streaming_links
+      properties:
+        call_in:
+          allOf:
+            - $ref: "#/components/schemas/CallInInfo"
+        description:
+          type: string
+        invite_code_id:
+          type: string
+        is_adhoc:
+          type: boolean
+        shared_folder:
+          allOf:
+            - $ref: "#/components/schemas/SharedFolder"
+        streaming_links:
+          type: array
+          items:
+            $ref: "#/components/schemas/StreamingLink"
+        title:
+          type: string
+    FeatureId:
+      type: string
+      description: A feature identifier
+      example: myfeature
+      maxLength: 255
+      minLength: 1
+      pattern: "^[-_0-9a-zA-Z]*$"
+    ModuleFeatureId:
+      anyOf:
+        - type: string
+          description: A feature identifier
+          example: myfeature
+          maxLength: 255
+          minLength: 1
+          pattern: "^[-_0-9a-zA-Z]*$"
+        - type: string
+          description: A module feature identifier
+          example: "mymodule::myfeature"
+          pattern: "^[-_0-9a-zA-Z]{1,255}::[-_0-9a-zA-Z]{1,255}$"
+      example: "mymodule::myfeature"
+    ModuleId:
+      anyOf:
+        - type: string
+          description: A module identifier
+          example: mymodule
+          maxLength: 255
+          minLength: 1
+          pattern: "^[-_0-9a-zA-Z]*$"
+      default: core
+      example: mymodule
+    NumericId:
+      type: string
+      description: A string containing number characters
+      example: "0000000000"
+      maxLength: 10
+      minLength: 10
+      pattern: "[0-9]+"
+    PublicUserProfile:
+      type: object
+      description: |
+        Public user details.
+
+        Contains general "public" information about a user. Is accessible to all other users.
+      required:
+        - id
+        - email
+        - title
+        - firstname
+        - lastname
+        - display_name
+        - avatar_url
+      properties:
+        avatar_url:
+          type: string
+          description: "The user's avatar URL"
+        display_name:
+          type: string
+          description: "The user's display name"
+        email:
+          type: string
+          description: The email of the user
+        firstname:
+          type: string
+          description: "The user's first name"
+        id:
+          $ref: "#/components/schemas/UserId"
+        lastname:
+          type: string
+          description: "The user's last name"
+        title:
+          type: string
+          description: The title of the user
+      example:
+        avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+        display_name: Alice Adams
+        email: alice@example.com
+        firstname: Alice
+        id: 00000000-0000-0000-0000-0000000a11c3
+        lastname: Adams
+        title: ""
+    RoomId:
+      type: string
+      format: uuid
+      description: The id of a room
+      example: 00000000-0000-0000-0000-0000abadcafe
+    RoomParameters:
+      type: object
+      required:
+        - created_by
+        - waiting_room
+        - tariff
+      properties:
+        created_by:
+          $ref: "#/components/schemas/PublicUserProfile"
+        event:
+          allOf:
+            - $ref: "#/components/schemas/EventInfo"
+        password:
+          type: string
+        tariff:
+          $ref: "#/components/schemas/TariffResource"
+        waiting_room:
+          type: boolean
+    SharedFolder:
+      type: object
+      description: |
+        Information about a shared folder containing
+        read and optional write access
+      required:
+        - read
+      properties:
+        read:
+          $ref: "#/components/schemas/SharedFolderAccess"
+        read_write:
+          allOf:
+            - $ref: "#/components/schemas/SharedFolderAccess"
+      example:
+        read:
+          password: v3rys3cr3t
+          url: "https://cloud.example.com/shares/abc123"
+    SharedFolderAccess:
+      type: object
+      description: Information required to access a shared folder
+      required:
+        - url
+        - password
+      properties:
+        password:
+          type: string
+          description: Password required to access the shared folder
+        url:
+          type: string
+          description: Shared folder URL
+      example:
+        password: v3rys3cr3t
+        url: "https://cloud.example.com/shares/abc123"
+    StreamingLink:
+      type: object
+      description: Streaming link for an event
+      required:
+        - name
+        - url
+      properties:
+        name:
+          type: string
+          description: The name of the streaming link
+        url:
+          type: string
+          format: uri
+          description: The url of the streaming link
+      example:
+        name: My OwnCast Stream
+        url: "https://owncast.example.com/mystream"
+    TariffId:
+      type: string
+      format: uuid
+      description: The id of a tariff
+    TariffModuleResource:
+      type: object
+      description: Tariff information related to a specific module
+      required:
+        - features
+      properties:
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeatureId"
+          description: Enabled features for the tariff
+          uniqueItems: true
+    TariffResource:
+      type: object
+      description: Information related to a specific tariff
+      required:
+        - id
+        - name
+        - quotas
+        - enabled_modules
+        - disabled_features
+        - modules
+      properties:
+        disabled_features:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleFeatureId"
+          description: "Disabled features for the tariff  (deprecated, use 'modules' instead)"
+          deprecated: true
+          uniqueItems: true
+        enabled_modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleId"
+          description: "Enabled modules for the tariff (deprecated, use 'modules' instead)"
+          deprecated: true
+          uniqueItems: true
+        id:
+          $ref: "#/components/schemas/TariffId"
+        modules:
+          type: object
+          description: "Enabled modules for the tariff, including their enabled features"
+          additionalProperties:
+            $ref: "#/components/schemas/TariffModuleResource"
+        name:
+          type: string
+          description: The name of the tariff
+        quotas:
+          type: object
+          description: The quotas of the tariff
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+      example:
+        disabled_features:
+          - "recording::stream"
+        enabled_modules:
+          - chat
+          - core
+          - media
+          - moderation
+          - recording
+        id: 00000000-0000-0000-0000-000000000000
+        modules:
+          chat:
+            features: []
+          core:
+            features: []
+          media:
+            features: []
+          moderation:
+            features: []
+          recording:
+            features:
+              - record
+        name: Starter tariff
+        quotas:
+          max_storage: 50000
+    UserId:
+      type: string
+      format: uuid
+      description: The id of a user
+      example: 00000009-9889-9889-9889-988000000000
+tags:
+  - name: "v1::rooms"
+    description: Endpoints related to rooms
+  - name: "v1::metrics"
+    description: Endpoints related to metrics

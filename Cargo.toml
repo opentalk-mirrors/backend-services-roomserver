@@ -27,6 +27,9 @@ serde.workspace = true
 serde_path_to_error.workspace = true
 tokio.workspace = true
 tracing-subscriber.workspace = true
+utoipa.workspace = true
+utoipa-swagger-ui.workspace = true
+yaml-rust2.workspace = true
 
 [workspace]
 members = [
@@ -38,9 +41,10 @@ resolver = "2"
 
 [workspace.package]
 authors = [
+  "OpenTalk Team <mail@opentalk.eu>",
+
   "Albrecht Weiche <a.weiche@opentalk.eu>",
   "Maximilian Allies <m.allies@opentalk.eu>",
-  "OpenTalk Team <mail@opentalk.eu>",
   "Wolfgang Silbermayr <w.silbermayr@opentalk.eu>",
 ]
 homepage = "https://opentalk.eu/"
@@ -49,11 +53,13 @@ repository = "https://gitlab.opencode.de/opentalk/roomserver"
 version = "0.0.0-dev"
 
 [workspace.dependencies]
-opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev" }
+opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev", features = [
+  "utoipa",
+] }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 
-opentalk-types = { version = "0.25.0", features = ["axum", "serde"] }
-opentalk-types-common = { version = "0.25.0", features = ["serde"] }
+opentalk-types = { version = "0.25.0", features = ["axum", "serde", "utoipa"] }
+opentalk-types-common = { version = "0.25.0", features = ["serde", "utoipa"] }
 
 anyhow = "1"
 axum = { version = "0.7.5" }
@@ -72,3 +78,6 @@ tracing-subscriber = { version = "0.3", features = [
   "env-filter",
   "parking_lot",
 ] }
+utoipa = { version = "4", features = ["yaml"] }
+utoipa-swagger-ui = { version = "7", features = ["axum"] }
+yaml-rust2 = "0.8"

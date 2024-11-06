@@ -8,14 +8,56 @@ use axum::async_trait;
 use axum_prometheus::{
     metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
 };
+use opentalk_roomserver_types::room_parameters;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomAction, RoomBackend};
 use opentalk_types::api::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{room::registry::RoomTaskRegistry, settings::Settings};
 
 pub(crate) type Router = axum::Router<Context>;
+
+#[derive(OpenApi)]
+#[openapi(
+        info(
+            title = "OpenTalk RoomServer API",
+            description = "Specifies the endpoints and structure of the OpenTalk RoomServer Web API",
+        ),
+        tags(
+            (name = "v1::rooms", description = "Endpoints related to rooms"),
+            (name = "v1::metrics", description = "Endpoints related to metrics")
+        ),
+        paths(
+           v1::rooms::put_room,
+           v1::metrics::metrics,
+        ),
+        components(
+            schemas(
+                opentalk_types_common::call_in::CallInId,
+                opentalk_types_common::call_in::CallInInfo,
+                opentalk_types_common::call_in::CallInPassword,
+                opentalk_types_common::call_in::NumericId,
+                opentalk_types_common::features::FeatureId,
+                opentalk_types_common::features::ModuleFeatureId,
+                opentalk_types_common::modules::ModuleId,
+                opentalk_types_common::rooms::RoomId,
+                opentalk_types_common::shared_folders::SharedFolder,
+                opentalk_types_common::shared_folders::SharedFolderAccess,
+                opentalk_types_common::streaming::StreamingLink,
+                opentalk_types_common::tariffs::TariffId,
+                opentalk_types_common::tariffs::TariffModuleResource,
+                opentalk_types_common::tariffs::TariffResource,
+                opentalk_types_common::users::UserId,
+                opentalk_types::api::v1::users::PublicUserProfile,
+                room_parameters::EventInfo,
+                room_parameters::RoomParameters,
+            )
+        )
+    )]
+pub(crate) struct ApiDoc;
 
 /// Context for the API endpoints
 #[derive(Clone)]
@@ -52,11 +94,17 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
         metric_handle,
     };
 
-    let router = Router::new()
+    let mut router = Router::new()
         .nest("/v1", v1::routes())
         .merge(v1::routes())
         .layer(metric_layer)
         .with_state(ctx);
+
+    if !settings.http.disable_openapi {
+        let mut openapi = ApiDoc::openapi();
+        openapi.servers = Some(vec![utoipa::openapi::Server::new("/v1")]);
+        router = router.merge(SwaggerUi::new("/swagger").url("/docs/openapi.json", openapi));
+    }
 
     let listener =
         tokio::net::TcpListener::bind((settings.http.address.as_str(), settings.http.port)).await?;

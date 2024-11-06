@@ -50,9 +50,20 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
     ) -> Result<RoomAction, ApiError>;
 }
 
-/// Creates a new room instance with the specified parameters.
+/// Creates a new room instance with the specified parameters if no room with the provided id exists.
 ///
 /// If a room with the provided room ID already exists, the rooms idle timeout is refreshed.
+#[utoipa::path(
+    put,
+    path = "/rooms",
+    request_body = RoomParameters,
+    responses(
+        (status = StatusCode::CREATED, description = "Successfully created a new room"),
+        (status = StatusCode::NO_CONTENT, description = "The room did exist before and the parameter were updated if necessary"),
+        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred")
+    ),
+    security()
+    )]
 #[tracing::instrument(level = "trace", skip(room_parameters), fields(room_id = %path.0))]
 pub(crate) async fn put_room<B: RoomBackend>(
     State(ctx): State<B>,
