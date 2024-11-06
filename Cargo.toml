@@ -52,8 +52,8 @@ version = "0.0.0-dev"
 opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 
-opentalk-types = { version = "0.20.0", features = ["axum", "serde"] }
-opentalk-types-common = { version = "0.20.0", features = ["serde"] }
+opentalk-types = { version = "0.25.0", features = ["axum", "serde"] }
+opentalk-types-common = { version = "0.25.0", features = ["serde"] }
 
 anyhow = "1"
 axum = { version = "0.7.5" }
