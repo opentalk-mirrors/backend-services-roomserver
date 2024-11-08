@@ -32,12 +32,15 @@ opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = 
 
 opentalk-types = { version = "0.27.0", features = ["axum", "serde", "utoipa"] }
 opentalk-types-common = { version = "0.27.0", features = ["serde", "utoipa"] }
+opentalk-types-signaling = { version = "0.27.0", features = ["serde"] }
 
 anyhow = "1"
+async-trait = "0.1"
 axum = { version = "0.7.5" }
 axum-prometheus = "0.7.0"
 clap = { version = "4.5", features = ["derive"] }
 config = { version = "0.14", default-features = false, features = ["toml"] }
+futures = "0.3.31"
 http-request-derive = "0.3.2"
 log = "0.4.22"
 reqwest = { version = "0.12", default-features = false }
@@ -45,7 +48,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.125"
 serde_path_to_error = "0.1.16"
 service-probe = "0.1.2"
+thiserror = "2.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio-test = { version = "0.4" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = [
   "env-filter",
