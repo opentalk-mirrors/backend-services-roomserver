@@ -56,6 +56,7 @@ allow = [
   "Apache-2.0",
   "BSD-3-Clause",
   "MIT",
+  "Unicode-3.0",
   "Unicode-DFS-2016",
 ] # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -145,6 +146,7 @@ deny = []
 skip = [
   { name = "hashbrown", version = "0.14" },
   { name = "http", version = "0.2" },
+  { name = "idna", version = "0" },
   { name = "regex-automata", version = "0.1" },
   { name = "regex-syntax", version = "0.6" },
   { name = "syn", version = "1" },
