@@ -151,6 +151,8 @@ skip = [
   { name = "regex-syntax", version = "0.6" },
   { name = "syn", version = "1" },
   { name = "sync_wrapper", version = "0.1" },
+  { name = "thiserror", version = "1" },
+  { name = "thiserror-impl", version = "1" },
   { name = "tower", version = "0.4" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate

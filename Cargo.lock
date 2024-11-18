@@ -1554,7 +1554,7 @@ dependencies = [
  "opentalk-types-common",
  "reqwest",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "tokio-test",
  "url",
 ]
