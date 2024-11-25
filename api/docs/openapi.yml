@@ -134,9 +134,9 @@ components:
       pattern: "[0-9]+"
     PublicUserProfile:
       type: object
-      description: |
+      description: |-
         Public user details.
-
+        
         Contains general "public" information about a user. Is accessible to all other users.
       required:
         - id
@@ -200,7 +200,7 @@ components:
           type: boolean
     SharedFolder:
       type: object
-      description: |
+      description: |-
         Information about a shared folder containing
         read and optional write access
       required:

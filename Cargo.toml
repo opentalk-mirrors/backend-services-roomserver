@@ -52,4 +52,4 @@ tracing-subscriber = { version = "0.3", features = [
 ] }
 utoipa = { version = "4", features = ["yaml"] }
 utoipa-swagger-ui = { version = "7", features = ["axum"] }
-yaml-rust2 = "0.8"
+yaml-rust2 = "0.9"
