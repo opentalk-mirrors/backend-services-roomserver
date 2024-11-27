@@ -4,11 +4,12 @@
 
 //! This crate builds an executable that runs the RoomServer. It implements the [_OpenTalk RoomServer Web API_][opentalk_roomserver_web_api].
 
+use std::sync::Arc;
+
 use anyhow::{Context, Result};
 use clap::Parser;
 use cli::{Args, SubCommand};
 use settings::Settings;
-use std::sync::Arc;
 
 mod api;
 mod cli;

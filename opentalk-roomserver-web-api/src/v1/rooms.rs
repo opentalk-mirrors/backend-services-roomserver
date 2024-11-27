@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use crate::Router;
+use std::fmt::Debug;
+
 use axum::{
     async_trait,
     extract::{Path, State},
@@ -13,7 +14,8 @@ use axum::{
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_types::api::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
-use std::fmt::Debug;
+
+use crate::Router;
 
 pub enum RoomAction {
     Created,
