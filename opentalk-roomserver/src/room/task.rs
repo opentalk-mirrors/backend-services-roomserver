@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use super::handle::{Request, Response, RoomTaskHandle, TaskMessage};
-use super::idle_timeout::IdleTimeout;
-use super::registry::RoomTaskRegistry;
 use anyhow::Result;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_types_common::rooms::RoomId;
 use tokio::sync::mpsc;
+
+use super::{
+    handle::{Request, Response, RoomTaskHandle, TaskMessage},
+    idle_timeout::IdleTimeout,
+    registry::RoomTaskRegistry,
+};
 
 const TIMEOUT: u64 = 30;
 

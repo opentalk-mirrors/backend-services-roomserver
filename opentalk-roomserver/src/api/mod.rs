@@ -8,8 +8,7 @@ use axum::async_trait;
 use axum_prometheus::{
     metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
 };
-use opentalk_roomserver_types::room_parameters;
-use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_roomserver_types::{room_parameters, room_parameters::RoomParameters};
 use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomAction, RoomBackend};
 use opentalk_types::api::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
