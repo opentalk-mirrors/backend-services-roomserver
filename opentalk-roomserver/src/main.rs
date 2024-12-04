@@ -9,6 +9,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use clap::Parser;
 use cli::{Args, SubCommand};
+use service_probe::start_probe;
 use settings::Settings;
 
 mod api;
@@ -21,7 +22,11 @@ async fn run_web_server(config_file_name: &str) -> Result<()> {
     let settings = Arc::new(Settings::load(config_file_name)?);
 
     trace::init().context("Failed to initialize tracing")?;
-
+    if let Some(monitoring) = &settings.monitoring {
+        start_probe(monitoring.addr, monitoring.port)
+            .await
+            .context("Failed to start monitoring endpoint")?;
+    }
     api::run_web_server(settings).await?;
 
     Ok(())

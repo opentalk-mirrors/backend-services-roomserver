@@ -24,6 +24,7 @@ opentalk-types.workspace = true
 opentalk-types-common.workspace = true
 serde.workspace = true
 serde_path_to_error.workspace = true
+service-probe.workspace = true
 tokio.workspace = true
 tracing-subscriber.workspace = true
 utoipa.workspace = true
