@@ -1539,6 +1539,7 @@ dependencies = [
  "opentalk-types-common",
  "serde",
  "serde_path_to_error",
+ "service-probe",
  "tokio",
  "tracing-subscriber",
  "utoipa",
@@ -2369,6 +2370,20 @@ dependencies = [
  "ryu",
  "serde",
  "unsafe-libyaml",
+]
+
+[[package]]
+name = "service-probe"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d20103e52fb3f1be434737d331a8925283cfa2faa62846aae67adecf3f8d32c"
+dependencies = [
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "log",
+ "snafu",
+ "tokio",
 ]
 
 [[package]]

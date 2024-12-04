@@ -12,6 +12,7 @@ use opentalk_roomserver_types::{room_parameters, room_parameters::RoomParameters
 use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomAction, RoomBackend};
 use opentalk_types::api::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
+use service_probe::{set_service_state, ServiceState};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -110,6 +111,7 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
 
     log::info!("Listening on http://{}", listener.local_addr()?);
 
+    set_service_state(ServiceState::Ready);
     axum::serve(listener, router).await?;
 
     Ok(())
