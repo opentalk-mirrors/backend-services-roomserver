@@ -106,7 +106,7 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
     }
 
     let listener =
-        tokio::net::TcpListener::bind((settings.http.address.as_str(), settings.http.port)).await?;
+        tokio::net::TcpListener::bind((settings.http.address, settings.http.port)).await?;
 
     log::info!("Listening on http://{}", listener.local_addr()?);
 

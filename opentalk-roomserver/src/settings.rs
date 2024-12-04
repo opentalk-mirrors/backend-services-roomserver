@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::net::{IpAddr, Ipv4Addr};
+
 use anyhow::Result;
 use config::{Config, Environment, File, FileFormat};
 use serde::Deserialize;
@@ -34,7 +36,7 @@ impl Settings {
 pub(crate) struct Http {
     /// The IP address that the HTTP server should bind to
     #[serde(default = "default_bind_address")]
-    pub(crate) address: String,
+    pub(crate) address: IpAddr,
 
     /// The port that the HTTP server should use
     #[serde(default = "default_port")]
@@ -56,8 +58,8 @@ impl Default for Http {
     }
 }
 
-fn default_bind_address() -> String {
-    "0.0.0.0".into()
+fn default_bind_address() -> IpAddr {
+    IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
 }
 
 const fn default_port() -> u16 {
