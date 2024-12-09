@@ -64,6 +64,23 @@ impl RoomTask {
         task_registry: RoomTaskRegistry,
         app_state: watch::Receiver<ApplicationState>,
     ) -> RoomTaskHandle {
+        Self::spawn_with_timeout(
+            room_id,
+            room_parameters,
+            task_registry,
+            app_state,
+            IDLE_TIMEOUT,
+        )
+    }
+
+    /// Spawns a new [`RoomTask`] with a specific timeout
+    pub(super) fn spawn_with_timeout(
+        room_id: RoomId,
+        room_parameters: RoomParameters,
+        task_registry: RoomTaskRegistry,
+        app_state: watch::Receiver<ApplicationState>,
+        timeout: Duration,
+    ) -> RoomTaskHandle {
         let (tx, rx) = mpsc::channel(20);
 
         let message_router = MessageRouter::new(app_state.clone());
@@ -72,7 +89,7 @@ impl RoomTask {
             room_id,
             parameters: room_parameters,
             api_rx: rx,
-            idle_timeout: IdleTimeout::start_new(IDLE_TIMEOUT),
+            idle_timeout: IdleTimeout::start_new(timeout),
             message_router,
             _app_state: app_state,
             participants: HashSet::default(),
@@ -121,7 +138,7 @@ impl RoomTask {
     async fn handle_api_request(&mut self, msg: TaskMessage) -> Result<()> {
         let api_response = match msg.request {
             Request::RefreshIdleTimeout => {
-                self.idle_timeout.refresh(IDLE_TIMEOUT);
+                self.idle_timeout.refresh();
                 Ok(())
             }
             Request::UpdateParameter(room_parameters) => {

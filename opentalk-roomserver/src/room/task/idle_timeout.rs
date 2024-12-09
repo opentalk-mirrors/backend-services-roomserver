@@ -8,6 +8,7 @@ use tokio::time::Sleep;
 /// Helper type to start and stop the idle timeout of the [`super::RoomTask`]
 pub(super) struct IdleTimeout {
     timeout: Option<Pin<Box<Sleep>>>,
+    duration: Duration,
 }
 
 impl IdleTimeout {
@@ -15,6 +16,7 @@ impl IdleTimeout {
     pub(super) fn start_new(duration: Duration) -> Self {
         Self {
             timeout: Some(Box::pin(tokio::time::sleep(duration))),
+            duration,
         }
     }
 
@@ -28,9 +30,9 @@ impl IdleTimeout {
     /// Refreshes the timeout
     ///
     /// Does nothing when no timeout is currently set
-    pub(super) fn refresh(&mut self, secs: Duration) {
+    pub(super) fn refresh(&mut self) {
         if self.timeout.is_some() {
-            self.start(secs);
+            self.start(self.duration);
         }
     }
 
