@@ -10,15 +10,17 @@ use axum_prometheus::{
 };
 use opentalk_roomserver_types::{room_parameters, room_parameters::RoomParameters};
 use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomAction, RoomBackend};
-use opentalk_types::api::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use service_probe::{set_service_state, ServiceState};
+use tokio::sync::watch;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{room::registry::RoomTaskRegistry, settings::Settings};
 
 pub(crate) type Router = axum::Router<Context>;
+
+pub mod signaling;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -59,6 +61,23 @@ pub(crate) type Router = axum::Router<Context>;
     )]
 pub(crate) struct ApiDoc;
 
+#[derive(Debug, Clone, Copy, Default)]
+pub enum ApplicationState {
+    #[default]
+    Running,
+
+    _ShuttingDown,
+}
+
+impl ApplicationState {
+    /// Returns `true` if the application state is [`ShuttingDown`].
+    ///
+    /// [`ShuttingDown`]: ApplicationState::_ShuttingDown
+    pub fn is_shutting_down(&self) -> bool {
+        matches!(self, Self::_ShuttingDown)
+    }
+}
+
 /// Context for the API endpoints
 #[derive(Clone)]
 pub(crate) struct Context {
@@ -66,6 +85,7 @@ pub(crate) struct Context {
     /// Global list of room tasks and their handles
     room_tasks: RoomTaskRegistry,
     metric_handle: PrometheusHandle,
+    app_state: watch::Sender<ApplicationState>,
 }
 
 impl std::fmt::Debug for Context {
@@ -88,10 +108,13 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
         .with_default_metrics()
         .build_pair();
 
+    let (app_state, _) = watch::channel(ApplicationState::default());
+
     let ctx = Context {
         settings: settings.clone(),
         room_tasks: RoomTaskRegistry::default(),
         metric_handle,
+        app_state,
     };
 
     let mut router = Router::new()
@@ -132,14 +155,14 @@ impl RoomBackend for Context {
         &self,
         room_parameters: RoomParameters,
         room_id: RoomId,
-    ) -> std::result::Result<RoomAction, opentalk_types::api::error::ApiError> {
+    ) -> Result<RoomAction, opentalk_types::api::error::ApiError> {
         let (created, task_handle) = self
             .room_tasks
-            .put_room(room_id, room_parameters)
+            .put_room(room_id, room_parameters, self.app_state.subscribe())
             .await
             .map_err(|err| {
-                log::error!("Failed to put room {}: {err}", room_id);
-                ApiError::internal()
+                log::info!("Failed to put room {}: {err}", room_id);
+                err
             })?;
 
         if created.is_created() {
@@ -147,10 +170,10 @@ impl RoomBackend for Context {
         }
 
         // Refresh the idle timeout if the room was not created with this request
-        if let Err(err) = task_handle.refresh_idle_timeout().await {
-            log::error!("Failed to refresh idle timeout for room {}: {err}", room_id);
-            return Err(ApiError::internal());
-        }
+        task_handle.refresh_idle_timeout().await.map_err(|err| {
+            log::info!("Failed to refresh idle timeout for room {}: {err}", room_id);
+            err
+        })?;
 
         Ok(RoomAction::Updated)
     }

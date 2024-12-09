@@ -11,7 +11,9 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-axum.workspace = true
+axum = { workspace = true, features = ["ws"] }
+futures.workspace = true
+log.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types.workspace = true
 opentalk-types-common.workspace = true

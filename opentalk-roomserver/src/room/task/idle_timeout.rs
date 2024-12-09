@@ -5,7 +5,7 @@ use std::{pin::Pin, time::Duration};
 
 use tokio::time::Sleep;
 
-/// Helper type to start and stop the idle timeout of the [`super::task::RoomTask`]
+/// Helper type to start and stop the idle timeout of the [`super::RoomTask`]
 pub(super) struct IdleTimeout {
     timeout: Option<Pin<Box<Sleep>>>,
 }
@@ -35,7 +35,6 @@ impl IdleTimeout {
     }
 
     /// Stops the current timeout
-    #[allow(dead_code)] //TODO: remove when used
     pub(super) fn stop(&mut self) {
         self.timeout = None;
     }

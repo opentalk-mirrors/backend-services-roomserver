@@ -57,12 +57,16 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
 /// If a room with the provided room ID already exists, the rooms idle timeout is refreshed.
 #[utoipa::path(
     put,
-    path = "/rooms",
+    path = "/rooms/{room_id}",
     request_body = RoomParameters,
+    params(
+        ("room_id" = RoomId, Path, description = "The UUID that identifies the room")
+    ),
     responses(
         (status = StatusCode::CREATED, description = "Successfully created a new room"),
         (status = StatusCode::NO_CONTENT, description = "The room did exist before and the parameter were updated if necessary"),
-        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred")
+        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
+        (status = StatusCode::UNPROCESSABLE_ENTITY, description = "Failed to parse request body"),
     ),
     security()
     )]

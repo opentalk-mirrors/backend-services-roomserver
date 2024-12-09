@@ -23,13 +23,20 @@ paths:
         "200":
           description: Prometheus metrics were successfully retrieved
       security: []
-  /rooms:
+  "/rooms/{room_id}":
     put:
       tags:
         - "v1::rooms"
       summary: Creates a new room instance with the specified parameters if no room with the provided id exists.
       description: "If a room with the provided room ID already exists, the rooms idle timeout is refreshed."
       operationId: put_room
+      parameters:
+        - name: room_id
+          in: path
+          description: The UUID that identifies the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
       requestBody:
         content:
           application/json:
@@ -41,6 +48,8 @@ paths:
           description: Successfully created a new room
         "204":
           description: The room did exist before and the parameter were updated if necessary
+        "422":
+          description: Failed to parse request body
         "500":
           description: An internal server error occurred
       security: []
