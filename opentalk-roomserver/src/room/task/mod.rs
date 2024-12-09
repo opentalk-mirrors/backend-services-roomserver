@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Duration};
 
 use anyhow::Result;
 use axum::extract::ws::WebSocket;
@@ -33,7 +33,7 @@ pub enum RoomTaskApiError {
     NotImplemented,
 }
 
-const TIMEOUT: u64 = 30;
+const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
@@ -72,7 +72,7 @@ impl RoomTask {
             room_id,
             parameters: room_parameters,
             api_rx: rx,
-            idle_timeout: IdleTimeout::start_new(TIMEOUT),
+            idle_timeout: IdleTimeout::start_new(IDLE_TIMEOUT),
             message_router,
             _app_state: app_state,
             participants: HashSet::default(),
@@ -121,7 +121,7 @@ impl RoomTask {
     async fn handle_api_request(&mut self, msg: TaskMessage) -> Result<()> {
         let api_response = match msg.request {
             Request::RefreshIdleTimeout => {
-                self.idle_timeout.refresh(TIMEOUT);
+                self.idle_timeout.refresh(IDLE_TIMEOUT);
                 Ok(())
             }
             Request::UpdateParameter(room_parameters) => {
@@ -156,7 +156,7 @@ impl RoomTask {
                 self.participants.remove(&participant_id);
 
                 if self.participants.is_empty() {
-                    self.idle_timeout.start(TIMEOUT);
+                    self.idle_timeout.start(IDLE_TIMEOUT);
                 }
             }
             SignalingMessage::Command(signaling_command) => log::info!(

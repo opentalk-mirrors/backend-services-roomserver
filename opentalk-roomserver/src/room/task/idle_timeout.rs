@@ -12,23 +12,23 @@ pub(super) struct IdleTimeout {
 
 impl IdleTimeout {
     /// Creates a new idle timeout
-    pub(super) fn start_new(secs: u64) -> Self {
+    pub(super) fn start_new(duration: Duration) -> Self {
         Self {
-            timeout: Some(Box::pin(tokio::time::sleep(Duration::from_secs(secs)))),
+            timeout: Some(Box::pin(tokio::time::sleep(duration))),
         }
     }
 
     /// Starts a new timeout
     ///
     /// Discards the current timeout if one was set
-    pub(super) fn start(&mut self, secs: u64) {
-        self.timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(secs))))
+    pub(super) fn start(&mut self, duration: Duration) {
+        self.timeout = Some(Box::pin(tokio::time::sleep(duration)))
     }
 
     /// Refreshes the timeout
     ///
     /// Does nothing when no timeout is currently set
-    pub(super) fn refresh(&mut self, secs: u64) {
+    pub(super) fn refresh(&mut self, secs: Duration) {
         if self.timeout.is_some() {
             self.start(secs);
         }
