@@ -108,7 +108,7 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
         .with_default_metrics()
         .build_pair();
 
-    let (app_state, _) = watch::channel(ApplicationState::default());
+    let (app_state, _) = watch::channel(ApplicationState::Running);
 
     let ctx = Context {
         settings: settings.clone(),
