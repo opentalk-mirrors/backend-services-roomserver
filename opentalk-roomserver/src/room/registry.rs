@@ -25,6 +25,12 @@ pub(crate) struct RoomTaskRegistry {
 }
 
 impl RoomTaskRegistry {
+
+    /// Creates a new [`RoomTaskRegistry`] with default values
+    pub fn new() -> Self {
+        Default::default()
+    }
+
     /// Spawns a new room task and adds it to the registry.
     ///
     /// Returns [`Created`] when a new room was created otherwise [`Updated`] is returned.

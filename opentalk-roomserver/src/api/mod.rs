@@ -112,7 +112,7 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
 
     let ctx = Context {
         settings: settings.clone(),
-        room_tasks: RoomTaskRegistry::default(),
+        room_tasks: RoomTaskRegistry::new(),
         metric_handle,
         app_state,
     };
