@@ -14,6 +14,8 @@ use settings::Settings;
 
 mod api;
 mod cli;
+#[cfg(test)]
+mod mocking;
 mod room;
 pub(crate) mod settings;
 mod trace;

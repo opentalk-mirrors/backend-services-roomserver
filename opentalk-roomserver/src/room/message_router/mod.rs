@@ -133,89 +133,17 @@ impl MessageRouter {
 #[cfg(test)]
 mod tests {
     use axum::extract::ws::CloseFrame;
-    use futures::{channel::mpsc, Sink, SinkExt, Stream, TryStreamExt};
+    use futures::SinkExt;
     use opentalk_roomserver_types::signaling::SignalingEvent;
-    use opentalk_roomserver_web_api::v1::signaling::websocket::{self, Message, SignalingSocket};
-    use opentalk_types_signaling::ParticipantId;
+    use opentalk_roomserver_web_api::v1::signaling::websocket::Message;
     use serde_json::json;
     use tokio::sync::watch;
 
     use crate::{
         api::ApplicationState,
+        mocking::participant::create_participant_connection,
         room::message_router::{self, MessageEnvelope, MessageRouter, SignalingMessage},
     };
-    struct MockSocket {
-        receiver: mpsc::Receiver<Result<Message, websocket::Error>>,
-        sender: mpsc::Sender<Message>,
-    }
-
-    impl Stream for MockSocket {
-        type Item = Result<Message, websocket::Error>;
-
-        fn poll_next(
-            mut self: std::pin::Pin<&mut Self>,
-            cx: &mut std::task::Context<'_>,
-        ) -> std::task::Poll<Option<Self::Item>> {
-            self.receiver.try_poll_next_unpin(cx)
-        }
-    }
-
-    impl Sink<Message> for MockSocket {
-        type Error = websocket::Error;
-
-        fn poll_ready(
-            mut self: std::pin::Pin<&mut Self>,
-            cx: &mut std::task::Context<'_>,
-        ) -> std::task::Poll<Result<(), Self::Error>> {
-            self.sender.poll_ready_unpin(cx).map_err(axum::Error::new)
-        }
-
-        fn start_send(
-            mut self: std::pin::Pin<&mut Self>,
-            item: Message,
-        ) -> Result<(), Self::Error> {
-            self.sender.start_send_unpin(item).map_err(axum::Error::new)
-        }
-
-        fn poll_flush(
-            mut self: std::pin::Pin<&mut Self>,
-            cx: &mut std::task::Context<'_>,
-        ) -> std::task::Poll<Result<(), Self::Error>> {
-            self.sender.poll_flush_unpin(cx).map_err(axum::Error::new)
-        }
-
-        fn poll_close(
-            mut self: std::pin::Pin<&mut Self>,
-            cx: &mut std::task::Context<'_>,
-        ) -> std::task::Poll<Result<(), Self::Error>> {
-            self.sender.poll_close_unpin(cx).map_err(axum::Error::new)
-        }
-    }
-
-    struct MockParticipant {
-        sender: mpsc::Sender<Result<Message, websocket::Error>>,
-        #[allow(dead_code)]
-        receiver: mpsc::Receiver<Message>,
-        id: ParticipantId,
-    }
-
-    fn create_participant_connection() -> (MockSocket, MockParticipant) {
-        let websocket_in = mpsc::channel(1);
-        let websocket_out = mpsc::channel(1);
-        (
-            MockSocket {
-                receiver: websocket_in.1,
-                sender: websocket_out.0,
-            },
-            MockParticipant {
-                sender: websocket_in.0,
-                receiver: websocket_out.1,
-                id: ParticipantId::generate(),
-            },
-        )
-    }
-
-    impl SignalingSocket for MockSocket {}
 
     #[tokio::test]
     async fn participant_lifecycle() {
