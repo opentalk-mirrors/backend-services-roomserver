@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use axum::extract::ws::WebSocket;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use tokio::sync::{mpsc, oneshot};
 
 use super::RoomTaskApiError;
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum RoomTaskHandleError {
+pub(crate) enum RoomTaskHandleError<Socket: SignalingSocket> {
     /// The room task is gone.
     ///
     /// If the room task received the request, [`request`](RoomTaskHandleError::Gone::request) will be `None`.
@@ -16,19 +16,19 @@ pub(crate) enum RoomTaskHandleError {
     #[error("The room task is no longer available")]
     Gone {
         /// If the request couldn't be dispatched to the room task, it's returned here.
-        request: Option<Request>,
+        request: Option<Request<Socket>>,
     },
 
     #[error("API request failed: {0}")]
     ApiError(#[from] RoomTaskApiError),
 }
 
-impl RoomTaskHandleError {
+impl<Socket: SignalingSocket> RoomTaskHandleError<Socket> {
     /// Take the request from the error.
     ///
     /// If the message could not be delivered to the room task, the request
     /// might be required for error handling (e.g. closing the WebSocket).
-    pub(crate) fn take_request(&mut self) -> Option<Request> {
+    pub(crate) fn take_request(&mut self) -> Option<Request<Socket>> {
         match self {
             RoomTaskHandleError::Gone { request } => request.take(),
             RoomTaskHandleError::ApiError(_) => None,
@@ -39,13 +39,26 @@ impl RoomTaskHandleError {
 /// A handle for the a [`super::RoomTask`]
 ///
 /// Is used for communication between the room task and the web server API
-#[derive(Debug, Clone)]
-pub(crate) struct RoomTaskHandle {
-    pub(super) sender: mpsc::Sender<TaskMessage>,
+#[derive(Debug)]
+pub(crate) struct RoomTaskHandle<Socket: SignalingSocket> {
+    pub(super) sender: mpsc::Sender<TaskMessage<Socket>>,
 }
 
-impl RoomTaskHandle {
-    async fn send_request(&self, request: Request) -> Result<(), RoomTaskHandleError> {
+// Manually implementing clone so that we don't require [`Socket`] to be
+// Clone as well.
+impl<Socket: SignalingSocket> Clone for RoomTaskHandle<Socket> {
+    fn clone(&self) -> Self {
+        Self {
+            sender: self.sender.clone(),
+        }
+    }
+}
+
+impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
+    async fn send_request(
+        &self,
+        request: Request<Socket>,
+    ) -> Result<(), RoomTaskHandleError<Socket>> {
         let (tx, rx) = oneshot::channel();
 
         let msg = TaskMessage::new(request, tx);
@@ -64,7 +77,7 @@ impl RoomTaskHandle {
     }
 
     /// Refresh the room idle timeout to its original duration
-    pub(crate) async fn refresh_idle_timeout(&self) -> Result<(), RoomTaskHandleError> {
+    pub(crate) async fn refresh_idle_timeout(&self) -> Result<(), RoomTaskHandleError<Socket>> {
         self.send_request(Request::RefreshIdleTimeout).await
     }
 
@@ -72,14 +85,14 @@ impl RoomTaskHandle {
     pub(crate) async fn update_parameter(
         &self,
         parameter: RoomParameters,
-    ) -> Result<(), RoomTaskHandleError> {
+    ) -> Result<(), RoomTaskHandleError<Socket>> {
         self.send_request(Request::UpdateParameter(parameter)).await
     }
 
     pub(crate) async fn accept_signaling_socket(
         &self,
-        socket: WebSocket,
-    ) -> Result<(), RoomTaskHandleError> {
+        socket: Socket,
+    ) -> Result<(), RoomTaskHandleError<Socket>> {
         self.send_request(Request::WsJoin { socket }).await
     }
 }
@@ -87,16 +100,16 @@ impl RoomTaskHandle {
 /// A message that can be send to a [`super::RoomTask`]
 ///
 /// See [`Request`] for the possible messages.
-pub(super) struct TaskMessage {
+pub(super) struct TaskMessage<Socket: SignalingSocket> {
     /// The specific request
-    pub request: Request,
+    pub request: Request<Socket>,
     /// A channel for the [`RoomTask`](super::RoomTask) to respond
     pub response_channel: oneshot::Sender<Result<(), RoomTaskApiError>>,
 }
 
-impl TaskMessage {
+impl<Socket: SignalingSocket> TaskMessage<Socket> {
     fn new(
-        request: Request,
+        request: Request<Socket>,
         response_channel: oneshot::Sender<Result<(), RoomTaskApiError>>,
     ) -> Self {
         Self {
@@ -108,7 +121,7 @@ impl TaskMessage {
 
 /// A request to a [`RoomTask`](super::RoomTask)
 #[derive(Debug)]
-pub(crate) enum Request {
+pub(crate) enum Request<Socket: SignalingSocket> {
     /// Refresh the room tasks idle timeout
     RefreshIdleTimeout,
 
@@ -116,5 +129,5 @@ pub(crate) enum Request {
     UpdateParameter(RoomParameters),
 
     /// Join the room with a given websocket stream and sink
-    WsJoin { socket: WebSocket },
+    WsJoin { socket: Socket },
 }

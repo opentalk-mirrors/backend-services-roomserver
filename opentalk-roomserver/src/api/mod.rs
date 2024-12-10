@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use axum::async_trait;
+use axum::{async_trait, extract::ws::WebSocket};
 use axum_prometheus::{
     metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
 };
@@ -83,7 +83,7 @@ impl ApplicationState {
 pub(crate) struct Context {
     settings: Arc<Settings>,
     /// Global list of room tasks and their handles
-    room_tasks: RoomTaskRegistry,
+    room_tasks: RoomTaskRegistry<WebSocket>,
     metric_handle: PrometheusHandle,
     app_state: watch::Sender<ApplicationState>,
 }
