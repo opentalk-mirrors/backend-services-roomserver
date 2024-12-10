@@ -61,7 +61,7 @@ impl RoomTaskRegistry {
 
         match handle.refresh_idle_timeout().await {
             Ok(_) => true,
-            Err(RoomTaskHandleError::Gone) => false,
+            Err(RoomTaskHandleError::Gone { .. }) => false,
             Err(e) => {
                 log::error!("Unexpected error while refreshing idle timeout: {e}");
                 false

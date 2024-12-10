@@ -156,7 +156,7 @@ impl RoomBackend for Context {
         room_parameters: RoomParameters,
         room_id: RoomId,
     ) -> Result<RoomAction, opentalk_types::api::error::ApiError> {
-        let (created, task_handle) = self
+        let (action, task_handle) = self
             .room_tasks
             .put_room(room_id, room_parameters, self.app_state.subscribe())
             .await
@@ -165,16 +165,14 @@ impl RoomBackend for Context {
                 err
             })?;
 
-        if created.is_created() {
-            return Ok(RoomAction::Created);
+        if !action.is_created() {
+            // Refresh the idle timeout if the room was not created with this request
+            task_handle.refresh_idle_timeout().await.map_err(|err| {
+                log::info!("Failed to refresh idle timeout for room {}: {err}", room_id);
+                err
+            })?;
         }
 
-        // Refresh the idle timeout if the room was not created with this request
-        task_handle.refresh_idle_timeout().await.map_err(|err| {
-            log::info!("Failed to refresh idle timeout for room {}: {err}", room_id);
-            err
-        })?;
-
-        Ok(RoomAction::Updated)
+        Ok(action)
     }
 }

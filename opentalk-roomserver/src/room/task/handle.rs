@@ -8,12 +8,32 @@ use tokio::sync::{mpsc, oneshot};
 use super::RoomTaskApiError;
 
 #[derive(Debug, thiserror::Error)]
-pub enum RoomTaskHandleError {
+pub(crate) enum RoomTaskHandleError {
+    /// The room task is gone.
+    ///
+    /// If the room task received the request, [`request`](RoomTaskHandleError::Gone::request) will be `None`.
+    /// If the room task did not receive the request, it's returned to the sender by setting it here.
     #[error("The room task is no longer available")]
-    Gone,
+    Gone {
+        /// If the request couldn't be dispatched to the room task, it's returned here.
+        request: Option<Request>,
+    },
 
     #[error("API request failed: {0}")]
     ApiError(#[from] RoomTaskApiError),
+}
+
+impl RoomTaskHandleError {
+    /// Take the request from the error.
+    ///
+    /// If the message could not be delivered to the room task, the request
+    /// might be required for error handling (e.g. closing the WebSocket).
+    pub(crate) fn take_request(&mut self) -> Option<Request> {
+        match self {
+            RoomTaskHandleError::Gone { request } => request.take(),
+            RoomTaskHandleError::ApiError(_) => None,
+        }
+    }
 }
 
 /// A handle for the a [`super::RoomTask`]
@@ -33,9 +53,12 @@ impl RoomTaskHandle {
         self.sender
             .send(msg)
             .await
-            .map_err(|_| RoomTaskHandleError::Gone)?;
+            .map_err(|e| RoomTaskHandleError::Gone {
+                request: Some(e.0.request),
+            })?;
 
-        rx.await.map_err(|_| RoomTaskHandleError::Gone)??;
+        rx.await
+            .map_err(|_| RoomTaskHandleError::Gone { request: None })??;
 
         Ok(())
     }
@@ -57,7 +80,6 @@ impl RoomTaskHandle {
         &self,
         socket: WebSocket,
     ) -> Result<(), RoomTaskHandleError> {
-        // FIXME: (a.weiche) in case we can't send the request to the room, we drop the socket.
         self.send_request(Request::WsJoin { socket }).await
     }
 }
@@ -85,6 +107,7 @@ impl TaskMessage {
 }
 
 /// A request to a [`RoomTask`](super::RoomTask)
+#[derive(Debug)]
 pub(crate) enum Request {
     /// Refresh the room tasks idle timeout
     RefreshIdleTimeout,

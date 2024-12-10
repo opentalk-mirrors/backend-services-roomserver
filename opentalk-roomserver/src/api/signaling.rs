@@ -10,12 +10,15 @@ use opentalk_types::api::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 
 use super::Context;
-use crate::room::task::{handle::RoomTaskHandleError, RoomTaskApiError};
+use crate::room::task::{
+    handle::{Request, RoomTaskHandleError},
+    RoomTaskApiError,
+};
 
 impl From<RoomTaskHandleError> for ApiError {
     fn from(error: RoomTaskHandleError) -> Self {
         match error {
-            RoomTaskHandleError::Gone => {
+            RoomTaskHandleError::Gone { request: _ } => {
                 Self::not_found().with_message("The requested room could not be found")
             }
             RoomTaskHandleError::ApiError(ref room_task_api_error) => match room_task_api_error {
@@ -41,22 +44,36 @@ impl SignalingBackend for Context {
 
     async fn accept_client_stream(
         &self,
-        mut socket: WebSocket,
+        socket: WebSocket,
         room_id: RoomId,
     ) -> Result<(), Self::Error> {
         let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
-            // the connection is probably already closed if this `send` fails
-            let _ = socket
-                .send(axum::extract::ws::Message::Close(Some(CloseFrame {
-                    code: close_code::ERROR,
-                    reason: "The room became unavailable.".into(),
-                })))
-                .await;
+            error_close_websocket(socket).await;
             return Err(ApiError::not_found());
         };
 
-        task_handle.accept_signaling_socket(socket).await?;
+        let mut res = task_handle.accept_signaling_socket(socket).await;
 
+        // handle that the socket might not reach the room task. In that case we need to close it ourself.
+        if let Err(e) = &mut res {
+            if let Some(Request::WsJoin { socket }) = e.take_request() {
+                error_close_websocket(socket).await;
+                return Err(ApiError::not_found());
+            }
+        }
+
+        res?;
         Ok(())
     }
+}
+
+/// Closes the websocket because of an unexpected server error.
+async fn error_close_websocket(mut socket: WebSocket) {
+    // the connection is probably already closed if this `send` fails
+    let _ = socket
+        .send(axum::extract::ws::Message::Close(Some(CloseFrame {
+            code: close_code::ERROR,
+            reason: "The room became unavailable.".into(),
+        })))
+        .await;
 }
