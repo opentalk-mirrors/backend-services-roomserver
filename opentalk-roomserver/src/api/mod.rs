@@ -176,3 +176,43 @@ impl RoomBackend for Context {
         Ok(action)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+
+    use opentalk_types::api::v1::users::PublicUserProfile;
+    use opentalk_types_common::{tariffs::TariffResource, utils::ExampleData};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn put_room() {
+        let settings: Arc<Settings> = Arc::new(Default::default());
+        let (_, metric_handle) = PrometheusMetricLayerBuilder::new()
+            .with_prefix("api")
+            .enable_response_body_size(true)
+            .with_default_metrics()
+            .build_pair();
+        let (app_state, _) = watch::channel(ApplicationState::Running);
+        let ctx = Context {
+            settings: settings.clone(),
+            room_tasks: RoomTaskRegistry::new(),
+            metric_handle,
+            app_state,
+        };
+        let params = RoomParameters {
+            created_by: PublicUserProfile::example_data(),
+            password: None,
+            event: None,
+            waiting_room: false,
+            tariff: TariffResource::example_data(),
+        };
+        let id = RoomId::from_u128(0xf4bc4806_a35c_4ce0_bcb3_fb990b287d4c);
+        let action = ctx.put_room(params, id).await;
+        assert!(action.unwrap().is_created());
+
+        // TODO add second put_room request and check for UPDATED response
+        // once implemented
+    }
+}
