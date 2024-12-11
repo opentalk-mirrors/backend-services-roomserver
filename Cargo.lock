@@ -2299,6 +2299,7 @@ dependencies = [
  "service-probe",
  "thiserror 2.0.9",
  "tokio",
+ "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
  "utoipa",

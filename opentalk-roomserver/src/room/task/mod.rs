@@ -135,21 +135,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
+    #[tracing::instrument(skip_all, fields(%self.room_id))]
     async fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> Result<()> {
         let api_response = match msg.request {
             Request::RefreshIdleTimeout => {
-                self.idle_timeout.refresh();
+                self.refresh_idle_timeout();
                 Ok(())
             }
             Request::UpdateParameter(room_parameters) => {
-                self.parameters = room_parameters;
-                // TODO: handle updated values
+                self.update_parameter(room_parameters);
                 Err(RoomTaskApiError::NotImplemented)
             }
             Request::WsJoin { socket } => {
-                self.new_participant(socket).await;
-
-                self.idle_timeout.stop();
+                self.ws_join(socket).await;
                 Ok(())
             }
         };
@@ -157,6 +155,23 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let _ = msg.response_channel.send(api_response);
 
         Ok(())
+    }
+
+    #[tracing::instrument(level = "info", skip_all)]
+    fn refresh_idle_timeout(&mut self) {
+        self.idle_timeout.refresh();
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    fn update_parameter(&mut self, room_parameters: RoomParameters) {
+        self.parameters = room_parameters
+        // TODO: handle updated values
+    }
+
+    #[tracing::instrument(level = "info", skip_all)]
+    async fn ws_join(&mut self, socket: Socket) {
+        self.new_participant(socket).await;
+        self.idle_timeout.stop();
     }
 
     async fn handle_message(
