@@ -37,7 +37,7 @@ pub(crate) fn routes<B: SignalingBackend + 'static>() -> Router<B> {
     ),
     security(),
     )]
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(name = "/signaling/{room_id}", level = "info", skip(ctx, ws))]
 async fn handler<B: SignalingBackend + 'static>(
     State(ctx): State<B>,
     Path(room_id): Path<RoomId>,

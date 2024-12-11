@@ -26,3 +26,9 @@
 [monitoring]
 addr = "0.0.0.0"
 port = 11411
+
+# Tracing settings
+#
+# Tracing is optional and disabled by default
+# [tracing]
+# otlp_tracing_endpoint = "http://localhost:4317"
