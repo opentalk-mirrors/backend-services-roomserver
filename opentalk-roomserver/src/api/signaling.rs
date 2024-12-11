@@ -5,7 +5,7 @@ use axum::{
     async_trait,
     extract::ws::{close_code, CloseFrame, WebSocket},
 };
-use opentalk_roomserver_web_api::v1::signaling::SignalingBackend;
+use opentalk_roomserver_web_api::v1::signaling::{websocket::SignalingSocket, SignalingBackend};
 use opentalk_types::api::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 
@@ -15,8 +15,8 @@ use crate::room::task::{
     RoomTaskApiError,
 };
 
-impl From<RoomTaskHandleError> for ApiError {
-    fn from(error: RoomTaskHandleError) -> Self {
+impl<Socket: SignalingSocket> From<RoomTaskHandleError<Socket>> for ApiError {
+    fn from(error: RoomTaskHandleError<Socket>) -> Self {
         match error {
             RoomTaskHandleError::Gone { request: _ } => {
                 Self::not_found().with_message("The requested room could not be found")

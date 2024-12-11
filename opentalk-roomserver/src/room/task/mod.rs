@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Duration};
 
 use anyhow::Result;
-use axum::extract::ws::WebSocket;
 use opentalk_roomserver_types::{room_parameters::RoomParameters, signaling::SignalingEvent};
+use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, watch};
@@ -33,19 +33,19 @@ pub enum RoomTaskApiError {
     NotImplemented,
 }
 
-const TIMEOUT: u64 = 30;
+const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
 /// exits.
-pub(super) struct RoomTask {
+pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
     /// the identifier of the room
     room_id: RoomId,
     /// The start parameters for the room task
     parameters: RoomParameters,
     /// The receiver for web server API request that target this room
-    api_rx: mpsc::Receiver<TaskMessage>,
+    api_rx: mpsc::Receiver<TaskMessage<Socket>>,
     /// The rooms idle timeout, only active when no participants are in the room.
     idle_timeout: IdleTimeout,
 
@@ -56,14 +56,31 @@ pub(super) struct RoomTask {
     participants: HashSet<ParticipantId>,
 }
 
-impl RoomTask {
+impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Spawns a new [`RoomTask`]
     pub(super) fn spawn(
         room_id: RoomId,
         room_parameters: RoomParameters,
-        task_registry: RoomTaskRegistry,
+        task_registry: RoomTaskRegistry<Socket>,
         app_state: watch::Receiver<ApplicationState>,
-    ) -> RoomTaskHandle {
+    ) -> RoomTaskHandle<Socket> {
+        Self::spawn_with_timeout(
+            room_id,
+            room_parameters,
+            task_registry,
+            app_state,
+            IDLE_TIMEOUT,
+        )
+    }
+
+    /// Spawns a new [`RoomTask`] with a specific timeout
+    pub(super) fn spawn_with_timeout(
+        room_id: RoomId,
+        room_parameters: RoomParameters,
+        task_registry: RoomTaskRegistry<Socket>,
+        app_state: watch::Receiver<ApplicationState>,
+        timeout: Duration,
+    ) -> RoomTaskHandle<Socket> {
         let (tx, rx) = mpsc::channel(20);
 
         let message_router = MessageRouter::new(app_state.clone());
@@ -72,7 +89,7 @@ impl RoomTask {
             room_id,
             parameters: room_parameters,
             api_rx: rx,
-            idle_timeout: IdleTimeout::start_new(TIMEOUT),
+            idle_timeout: IdleTimeout::start_new(timeout),
             message_router,
             _app_state: app_state,
             participants: HashSet::default(),
@@ -118,10 +135,10 @@ impl RoomTask {
         }
     }
 
-    async fn handle_api_request(&mut self, msg: TaskMessage) -> Result<()> {
+    async fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> Result<()> {
         let api_response = match msg.request {
             Request::RefreshIdleTimeout => {
-                self.idle_timeout.refresh(TIMEOUT);
+                self.idle_timeout.refresh();
                 Ok(())
             }
             Request::UpdateParameter(room_parameters) => {
@@ -156,7 +173,7 @@ impl RoomTask {
                 self.participants.remove(&participant_id);
 
                 if self.participants.is_empty() {
-                    self.idle_timeout.start(TIMEOUT);
+                    self.idle_timeout.start(IDLE_TIMEOUT);
                 }
             }
             SignalingMessage::Command(signaling_command) => log::info!(
@@ -177,7 +194,7 @@ impl RoomTask {
         Ok(())
     }
 
-    async fn new_participant(&mut self, socket: WebSocket) {
+    async fn new_participant(&mut self, socket: Socket) {
         let participant_id = ParticipantId::generate();
 
         if self

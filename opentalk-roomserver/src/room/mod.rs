@@ -14,3 +14,56 @@
 mod message_router;
 pub(crate) mod registry;
 pub(crate) mod task;
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use opentalk_roomserver_types::room_parameters::RoomParameters;
+    use opentalk_types::api::v1::users::PublicUserProfile;
+    use opentalk_types_common::{rooms::RoomId, tariffs::TariffResource, utils::ExampleData};
+    use tokio::{sync::watch, time::sleep};
+
+    use super::task::handle::RoomTaskHandle;
+    use crate::{
+        api::ApplicationState,
+        mocking::{mock_socket::MockSocket, participant::create_participant_connection},
+        room::{registry::RoomTaskRegistry, task::RoomTask},
+    };
+
+    const TIMEOUT: Duration = Duration::from_millis(500);
+
+    fn create_room_parameters() -> RoomParameters {
+        RoomParameters {
+            created_by: PublicUserProfile::example_data(),
+            password: Default::default(),
+            waiting_room: Default::default(),
+            event: Default::default(),
+            tariff: TariffResource::example_data(),
+        }
+    }
+
+    fn create_room_task() -> RoomTaskHandle<MockSocket> {
+        let id = RoomId::from_u128(0xc270ab35_5cdb_4614_b872_8dd66ceefc70);
+        let params = create_room_parameters();
+        let registry = RoomTaskRegistry::new();
+        let (_, state) = watch::channel(ApplicationState::Running);
+        RoomTask::spawn_with_timeout(id, params, registry, state, TIMEOUT)
+    }
+
+    #[tokio::test]
+    async fn timeout() {
+        let handle = create_room_task();
+        sleep(TIMEOUT - Duration::from_millis(100)).await;
+        handle.refresh_idle_timeout().await.unwrap();
+        sleep(TIMEOUT + Duration::from_millis(100)).await;
+        handle.refresh_idle_timeout().await.unwrap_err();
+    }
+
+    #[tokio::test]
+    async fn accept_signaling_socket() {
+        let handle = create_room_task();
+        let (socket, _) = create_participant_connection();
+        handle.accept_signaling_socket(socket).await.unwrap();
+    }
+}

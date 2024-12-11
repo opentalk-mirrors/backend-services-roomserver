@@ -4,7 +4,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use opentalk_roomserver_types::room_parameters::RoomParameters;
-use opentalk_roomserver_web_api::v1::RoomAction;
+use opentalk_roomserver_web_api::v1::{signaling::websocket::SignalingSocket, RoomAction};
 use opentalk_types_common::rooms::RoomId;
 use tokio::sync::{watch, RwLock};
 
@@ -19,12 +19,29 @@ use crate::{
 /// The room task registry
 ///
 /// Holds a list over all active rooms and their [`RoomTaskHandle`].
-#[derive(Clone, Default, Debug)]
-pub(crate) struct RoomTaskRegistry {
-    inner: Arc<RwLock<HashMap<RoomId, RoomTaskHandle>>>,
+#[derive(Default, Debug)]
+pub(crate) struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
+    inner: Arc<RwLock<HashMap<RoomId, RoomTaskHandle<Socket>>>>,
 }
 
-impl RoomTaskRegistry {
+// Manually implementing clone so that we don't require [`Socket`] to be
+// Clone as well.
+impl<Socket: SignalingSocket> Clone for RoomTaskRegistry<Socket> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
+    /// Creates a new [`RoomTaskRegistry`] wi th default values
+    pub fn new() -> Self {
+        Self {
+            inner: Default::default(),
+        }
+    }
+
     /// Spawns a new room task and adds it to the registry.
     ///
     /// Returns [`Created`] when a new room was created otherwise [`Updated`] is returned.
@@ -36,7 +53,7 @@ impl RoomTaskRegistry {
         room_id: RoomId,
         room_parameters: RoomParameters,
         app_state: watch::Receiver<ApplicationState>,
-    ) -> Result<(RoomAction, RoomTaskHandle), RoomTaskHandleError> {
+    ) -> Result<(RoomAction, RoomTaskHandle<Socket>), RoomTaskHandleError<Socket>> {
         let mut registry = self.inner.write().await;
 
         if let Some(task_handle) = registry.get(&room_id) {
@@ -70,7 +87,7 @@ impl RoomTaskRegistry {
     }
 
     /// Get the [`RoomTaskHandle`] for the specified [`RoomId`]
-    pub(crate) async fn get_task_handle(&self, room_id: &RoomId) -> Option<RoomTaskHandle> {
+    pub(crate) async fn get_task_handle(&self, room_id: &RoomId) -> Option<RoomTaskHandle<Socket>> {
         self.inner.read().await.get(room_id).cloned()
     }
 
