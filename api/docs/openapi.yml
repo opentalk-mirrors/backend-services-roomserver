@@ -12,17 +12,6 @@ info:
 servers:
   - url: /v1
 paths:
-  /metrics:
-    get:
-      tags:
-        - "v1::metrics"
-      summary: Returns the prometheus metrics
-      description: Returns the prometheus metrics in a text format.
-      operationId: metrics
-      responses:
-        "200":
-          description: Prometheus metrics were successfully retrieved
-      security: []
   "/rooms/{room_id}":
     put:
       tags:
@@ -356,5 +345,3 @@ components:
 tags:
   - name: "v1::rooms"
     description: Endpoints related to rooms
-  - name: "v1::metrics"
-    description: Endpoints related to metrics

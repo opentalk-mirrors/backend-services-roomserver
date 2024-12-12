@@ -5,6 +5,16 @@ use std::net::IpAddr;
 
 use serde::Deserialize;
 
+#[derive(Default, Debug, Clone, Deserialize)]
+pub(crate) struct Metrics {
+    #[serde(default = "default_metrics_port")]
+    pub(crate) port: u16,
+}
+
+const fn default_metrics_port() -> u16 {
+    11412
+}
+
 /// Configuration for the ready, startup, liveness probe.
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct Monitoring {

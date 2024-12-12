@@ -1,23 +1,24 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::sync::Arc;
+use std::{net::IpAddr, sync::Arc};
 
+use anyhow::Context as _;
 use axum::{async_trait, extract::ws::WebSocket};
-use axum_prometheus::{
-    metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle},
-    utils::SECONDS_DURATION_BUCKETS, PrometheusMetricLayerBuilder,
-    AXUM_HTTP_REQUESTS_DURATION_SECONDS,
-};
+use axum_prometheus::metrics_exporter_prometheus::PrometheusHandle;
 use opentalk_roomserver_types::{room_parameters, room_parameters::RoomParameters};
-use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomAction, RoomBackend};
+use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
 use opentalk_types_common::rooms::RoomId;
 use service_probe::{set_service_state, ServiceState};
 use tokio::sync::watch;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{room::registry::RoomTaskRegistry, settings::Settings};
+use crate::{
+    metrics::{MetricContext, MetricRouter},
+    room::registry::RoomTaskRegistry,
+    settings::Settings,
+};
 
 pub(crate) type Router = axum::Router<Context>;
 
@@ -31,11 +32,9 @@ pub mod signaling;
         ),
         tags(
             (name = "v1::rooms", description = "Endpoints related to rooms"),
-            (name = "v1::metrics", description = "Endpoints related to metrics")
         ),
         paths(
            v1::rooms::put_room,
-           v1::metrics::metrics,
         ),
         components(
             schemas(
@@ -87,7 +86,6 @@ pub(crate) struct Context {
     settings: Arc<Settings>,
     /// Global list of room tasks and their handles
     room_tasks: RoomTaskRegistry<WebSocket>,
-    metric_handle: PrometheusHandle,
     app_state: watch::Sender<ApplicationState>,
 }
 
@@ -104,39 +102,33 @@ impl std::fmt::Debug for Context {
 ///
 /// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional, if no version is specified
 /// the latest api version is used.
-pub(crate) async fn run_web_server(settings: Arc<Settings>) -> anyhow::Result<()> {
-    let (metric_layer, metric_handle) = PrometheusMetricLayerBuilder::new()
-        .with_prefix("api")
-        .enable_response_body_size(true)
-        // Using with_metrics_from instead of with_default_metrics because
-        // with_default_metrics crashes when port 9000 is already in use,
-        // see https://github.com/Ptrskay3/axum-prometheus/issues/66
-        .with_metrics_from_fn(|| {
-            PrometheusBuilder::new()
-                .set_buckets_for_metric(
-                    Matcher::Full(AXUM_HTTP_REQUESTS_DURATION_SECONDS.to_string()),
-                    SECONDS_DURATION_BUCKETS,
-                )
-                .expect("Setting prometheus buckets failed")
-                .install_recorder()
-                .expect("Installing prometheus recorder failed")
-        })
-        .build_pair();
-
+pub(crate) async fn run_web_server<L>(
+    settings: Arc<Settings>,
+    metric_layer: L,
+) -> anyhow::Result<()>
+where
+    L: tower::Layer<axum::routing::Route> + Clone + Send + 'static,
+    L::Service: tower::Service<axum::extract::Request> + Clone + Send + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Response:
+        axum::response::IntoResponse + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Error:
+        Into<std::convert::Infallible> + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Future: Send + 'static,
+{
     let (app_state, _) = watch::channel(ApplicationState::Running);
 
     let ctx = Context {
-        settings: settings.clone(),
+        settings: Arc::clone(&settings),
         room_tasks: RoomTaskRegistry::new(),
-        metric_handle,
         app_state,
     };
 
     let mut router = Router::new()
         .nest("/v1", v1::routes())
         .merge(v1::routes())
-        .layer(metric_layer)
         .with_state(ctx);
+
+    router = router.layer(metric_layer);
 
     if !settings.http.disable_openapi {
         let mut openapi = ApiDoc::openapi();
@@ -155,14 +147,31 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> anyhow::Result<()
     Ok(())
 }
 
-impl Backend for Context {}
+pub(crate) async fn run_metric_server(
+    address: IpAddr,
+    port: u16,
+    metric_handle: PrometheusHandle,
+) -> anyhow::Result<()> {
+    let ctx = MetricContext { metric_handle };
 
-#[async_trait]
-impl MetricBackend for Context {
-    async fn render(&mut self) -> String {
-        self.metric_handle.render()
-    }
+    let router = MetricRouter::new()
+        .nest("/v1", crate::metrics::routes())
+        .merge(crate::metrics::routes())
+        .with_state(ctx);
+
+    let listener = tokio::net::TcpListener::bind((address, port))
+        .await
+        .with_context(|| format!("Failed to bind metrics to port {port}"))?;
+    log::info!(
+        "Listening for metrics on http://{}",
+        listener.local_addr().expect("Failed to get local address")
+    );
+    axum::serve(listener, router)
+        .await
+        .context("Failed to serve metrics")
 }
+
+impl Backend for Context {}
 
 #[async_trait]
 impl RoomBackend for Context {
@@ -204,16 +213,10 @@ mod test {
     #[tokio::test]
     async fn put_room() {
         let settings: Arc<Settings> = Arc::new(Default::default());
-        let (_, metric_handle) = PrometheusMetricLayerBuilder::new()
-            .with_prefix("api")
-            .enable_response_body_size(true)
-            .with_default_metrics()
-            .build_pair();
         let (app_state, _) = watch::channel(ApplicationState::Running);
         let ctx = Context {
             settings: settings.clone(),
             room_tasks: RoomTaskRegistry::new(),
-            metric_handle,
             app_state,
         };
         let params = RoomParameters {

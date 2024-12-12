@@ -3,22 +3,16 @@
 
 use super::Router;
 
-pub mod metrics;
 pub mod rooms;
 pub mod signaling;
 
-pub use metrics::MetricBackend;
 pub use rooms::{RoomAction, RoomBackend};
 use signaling::SignalingBackend;
 
-pub trait Backend:
-    Send + Sync + Clone + Sized + RoomBackend + MetricBackend + SignalingBackend
-{
-}
+pub trait Backend: Send + Sync + Clone + Sized + RoomBackend + SignalingBackend {}
 
 pub fn routes<B: Backend + 'static>() -> Router<B> {
     Router::<B>::new()
-        .merge(metrics::routes())
         .merge(rooms::routes())
         .merge(signaling::routes())
 }

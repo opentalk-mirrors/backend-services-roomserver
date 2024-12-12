@@ -7,6 +7,11 @@
 use std::sync::Arc;
 
 use anyhow::Context;
+use axum_prometheus::{
+    metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle},
+    utils::SECONDS_DURATION_BUCKETS,
+    GenericMetricLayer, PrometheusMetricLayerBuilder, AXUM_HTTP_REQUESTS_DURATION_SECONDS,
+};
 use clap::Parser;
 use cli::{Args, SubCommand};
 use service_probe::{start_probe, ServiceState};
@@ -14,6 +19,7 @@ use settings::Settings;
 
 mod api;
 mod cli;
+mod metrics;
 #[cfg(test)]
 mod mocking;
 mod room;
@@ -29,9 +35,39 @@ async fn run_web_server(config_file_name: &str) -> anyhow::Result<()> {
             .await
             .context("Failed to start monitoring endpoint")?;
     }
-    api::run_web_server(settings).await?;
+    // TODO handle metrics server errors
+    let (metric_layer, metric_handle) = build_prometheus_layer();
+    tokio::spawn(api::run_metric_server(
+        settings.http.address,
+        settings.metrics.port,
+        metric_handle,
+    ));
+    api::run_web_server(settings, metric_layer).await?;
 
     Ok(())
+}
+
+fn build_prometheus_layer<'a>() -> (
+    GenericMetricLayer<'a, PrometheusHandle, axum_prometheus::Handle>,
+    PrometheusHandle,
+) {
+    PrometheusMetricLayerBuilder::new()
+        .with_prefix("api")
+        .enable_response_body_size(true)
+        // Using with_metrics_from instead of with_default_metrics because
+        // with_default_metrics crashes when port 9000 is already in use,
+        // see https://github.com/Ptrskay3/axum-prometheus/issues/66
+        .with_metrics_from_fn(|| {
+            PrometheusBuilder::new()
+                .set_buckets_for_metric(
+                    Matcher::Full(AXUM_HTTP_REQUESTS_DURATION_SECONDS.to_string()),
+                    SECONDS_DURATION_BUCKETS,
+                )
+                .expect("Setting prometheus buckets failed")
+                .install_recorder()
+                .expect("Installing prometheus recorder failed")
+        })
+        .build_pair()
 }
 
 #[tokio::main]
