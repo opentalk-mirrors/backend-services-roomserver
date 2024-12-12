@@ -19,7 +19,7 @@ pub(crate) struct Settings {
     pub(crate) monitoring: Option<Monitoring>,
 
     #[serde(default)]
-    pub(crate) metrics: Metrics,
+    pub(crate) metrics: Option<Metrics>,
 
     #[serde(default)]
     pub(crate) tracing: Option<Tracing>,

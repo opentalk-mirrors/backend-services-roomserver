@@ -35,13 +35,18 @@ async fn run_web_server(config_file_name: &str) -> anyhow::Result<()> {
             .await
             .context("Failed to start monitoring endpoint")?;
     }
-    // TODO handle metrics server errors
-    let (metric_layer, metric_handle) = build_prometheus_layer();
-    tokio::spawn(api::run_metric_server(
-        settings.http.address,
-        settings.metrics.port,
-        metric_handle,
-    ));
+
+    let mut metric_layer = None;
+    if let Some(metric) = &settings.metrics {
+        // TODO handle metrics server errors
+        let (m_layer, metric_handle) = build_prometheus_layer();
+        tokio::spawn(api::run_metric_server(
+            settings.http.address,
+            metric.port,
+            metric_handle,
+        ));
+        metric_layer = Some(m_layer);
+    }
     api::run_web_server(settings, metric_layer).await?;
 
     Ok(())

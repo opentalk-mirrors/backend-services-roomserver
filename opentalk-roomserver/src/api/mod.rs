@@ -104,7 +104,7 @@ impl std::fmt::Debug for Context {
 /// the latest api version is used.
 pub(crate) async fn run_web_server<L>(
     settings: Arc<Settings>,
-    metric_layer: L,
+    metric_layer: Option<L>,
 ) -> anyhow::Result<()>
 where
     L: tower::Layer<axum::routing::Route> + Clone + Send + 'static,
@@ -128,7 +128,9 @@ where
         .merge(v1::routes())
         .with_state(ctx);
 
-    router = router.layer(metric_layer);
+    if let Some(layer) = metric_layer {
+        router = router.layer(layer);
+    }
 
     if !settings.http.disable_openapi {
         let mut openapi = ApiDoc::openapi();
