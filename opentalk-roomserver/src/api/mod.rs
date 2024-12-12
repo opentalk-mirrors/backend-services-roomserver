@@ -5,7 +5,9 @@ use std::sync::Arc;
 
 use axum::{async_trait, extract::ws::WebSocket};
 use axum_prometheus::{
-    metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
+    metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle},
+    utils::SECONDS_DURATION_BUCKETS, PrometheusMetricLayerBuilder,
+    AXUM_HTTP_REQUESTS_DURATION_SECONDS,
 };
 use opentalk_roomserver_types::{room_parameters, room_parameters::RoomParameters};
 use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomAction, RoomBackend};
@@ -106,7 +108,19 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> anyhow::Result<()
     let (metric_layer, metric_handle) = PrometheusMetricLayerBuilder::new()
         .with_prefix("api")
         .enable_response_body_size(true)
-        .with_default_metrics()
+        // Using with_metrics_from instead of with_default_metrics because
+        // with_default_metrics crashes when port 9000 is already in use,
+        // see https://github.com/Ptrskay3/axum-prometheus/issues/66
+        .with_metrics_from_fn(|| {
+            PrometheusBuilder::new()
+                .set_buckets_for_metric(
+                    Matcher::Full(AXUM_HTTP_REQUESTS_DURATION_SECONDS.to_string()),
+                    SECONDS_DURATION_BUCKETS,
+                )
+                .expect("Setting prometheus buckets failed")
+                .install_recorder()
+                .expect("Installing prometheus recorder failed")
+        })
         .build_pair();
 
     let (app_state, _) = watch::channel(ApplicationState::Running);
