@@ -22,6 +22,7 @@ log.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-types.workspace = true
+opentalk-types-api-v1 = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling = { workspace = true, features = ["rand"] }
 serde.workspace = true

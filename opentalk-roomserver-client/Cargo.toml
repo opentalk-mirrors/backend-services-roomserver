@@ -21,7 +21,7 @@ thiserror = "2.0.0"
 url = "2.5.2"
 
 [dev-dependencies]
-opentalk-types.workspace = true
+opentalk-types-api-v1.workspace = true
 tokio-test = "0.4.4"
 
 [features]
@@ -45,6 +45,6 @@ rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
 [package.metadata.cargo-machete]
 ignored = [
   # Used in doctests
-  "opentalk-types",
+  "opentalk-types-api-v1",
   "tokio-test",
 ]

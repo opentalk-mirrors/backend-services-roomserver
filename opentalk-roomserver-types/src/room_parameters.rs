@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_types::api::v1::users::PublicUserProfile;
+use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     call_in::CallInInfo, shared_folders::SharedFolder, streaming::StreamingLink,
     tariffs::TariffResource,
