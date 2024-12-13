@@ -19,3 +19,8 @@ prepare-release VERSION: _check_cargo_set_version
     cargo set-version --workspace {{ VERSION }}
     # Regenerate the lockfile
     cargo check
+
+# Update the version in the OpenAPI spec
+update-frontend-api:
+    # Update OpenAPI specification (which contains the version number)
+    cargo run -- openapi dump > api/docs/openapi.yml
