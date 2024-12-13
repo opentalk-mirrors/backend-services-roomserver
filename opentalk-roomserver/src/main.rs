@@ -4,9 +4,10 @@
 
 //! This crate builds an executable that runs the RoomServer. It implements the [_OpenTalk RoomServer Web API_][opentalk_roomserver_web_api].
 
-use std::sync::Arc;
+use std::{result, sync::Arc, time::Duration};
 
 use anyhow::Context;
+use api::ApplicationState;
 use axum_prometheus::{
     metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle},
     utils::SECONDS_DURATION_BUCKETS,
@@ -14,8 +15,15 @@ use axum_prometheus::{
 };
 use clap::Parser;
 use cli::{Args, SubCommand};
-use service_probe::{start_probe, ServiceState};
-use settings::Settings;
+use futures::TryFutureExt;
+use service_probe::{start_probe, stop_probe, ServiceState};
+use settings::{telemetry::Monitoring, Settings};
+use tokio::{
+    signal,
+    sync::watch::{self, Receiver},
+    task::JoinSet,
+    time::{timeout_at, Instant},
+};
 
 mod api;
 mod cli;
@@ -26,28 +34,72 @@ mod room;
 pub(crate) mod settings;
 mod trace;
 
-async fn run_web_server(config_file_name: &str) -> anyhow::Result<()> {
+const SHUTDOWN_GRACE_PERIOD: Duration = Duration::from_secs(42);
+
+pub(crate) async fn wait_shutdown(mut app_state: watch::Receiver<ApplicationState>) {
+    let res = app_state.wait_for(ApplicationState::is_shutting_down).await;
+    if let Err(e) = res {
+        log::error!("AppState gone: {}", e);
+    }
+}
+
+pub fn decorate_error(decoration: &'static str) -> impl Fn(anyhow::Error) -> anyhow::Error {
+    move |err| err.context(decoration)
+}
+
+async fn run_app(config_file_name: &str) -> anyhow::Result<()> {
+    let (app_state, _) = watch::channel(ApplicationState::Running);
     let settings = Arc::new(Settings::load(config_file_name)?);
+    let mut set = JoinSet::new();
+
+    set.spawn(
+        shutdown_signal(app_state.subscribe())
+            .map_err(decorate_error("Shutdown handler exited with error")),
+    );
 
     trace::init(settings.tracing.as_ref()).context("Failed to initialize tracing")?;
     if let Some(monitoring) = &settings.monitoring {
-        start_probe(monitoring.addr, monitoring.port, ServiceState::Up)
-            .await
-            .context("Failed to start monitoring endpoint")?;
+        set.spawn(
+            start_service_probe(monitoring.clone(), app_state.subscribe())
+                .map_err(decorate_error("Service prove exited with error")),
+        );
     }
 
     let mut metric_layer = None;
     if let Some(metric) = &settings.metrics {
-        // TODO handle metrics server errors
         let (m_layer, metric_handle) = build_prometheus_layer();
-        tokio::spawn(api::run_metric_server(
-            settings.http.address,
-            metric.port,
-            metric_handle,
-        ));
+        set.spawn(
+            api::run_metric_server(
+                settings.http.address,
+                metric.port,
+                metric_handle,
+                app_state.subscribe(),
+            )
+            .map_err(decorate_error("Metric server exited with error")),
+        );
         metric_layer = Some(m_layer);
     }
-    api::run_web_server(settings, metric_layer).await?;
+
+    set.spawn(
+        api::run_web_server(settings, app_state.clone(), metric_layer)
+            .map_err(decorate_error("API server exited with error")),
+    );
+
+    match set.join_next().await {
+        // No task was started, this should not happen
+        None => log::error!("Failed to start any task!"),
+        // Task panicked
+        Some(Err(e)) => log::error!("Task panicked: {e}"),
+        // Task finished successfully
+        Some(Ok(Ok(()))) => {}
+        // Task returned an error
+        Some(Ok(Err(e))) => log::error!("{e:?}"),
+    };
+    let result = graceful_shutdown(app_state, &mut set).await;
+    if result.is_err() {
+        set.abort_all();
+        return result.context("Forced Shutdown");
+    }
 
     Ok(())
 }
@@ -75,6 +127,73 @@ fn build_prometheus_layer<'a>() -> (
         .build_pair()
 }
 
+async fn graceful_shutdown(
+    app_state: watch::Sender<ApplicationState>,
+    set: &mut JoinSet<result::Result<(), anyhow::Error>>,
+) -> anyhow::Result<()> {
+    log::debug!("Starting graceful shutdown");
+    app_state.send_replace(ApplicationState::ShuttingDown);
+    loop {
+        let result = timeout_at(Instant::now() + SHUTDOWN_GRACE_PERIOD, set.join_next()).await;
+        match result {
+            // Timeout elapsed
+            Err(_) => {
+                log::error!("Not all tasks exited in time!");
+                return Err(anyhow::anyhow!("Not all tasks exited in time!"));
+            }
+            // All tasks shut down
+            Ok(None) => return Ok(()),
+            // Task exited successfully
+            Ok(Some(Ok(Ok(())))) => log::info!("Task exited"),
+            // Task returned error
+            Ok(Some(Ok(Err(e)))) => log::error!("{e}"),
+            // Task panicked
+            Ok(Some(Err(e))) => log::error!("{e}"),
+        };
+    }
+}
+
+async fn shutdown_signal(app_state: Receiver<ApplicationState>) -> anyhow::Result<()> {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+        _ = wait_shutdown(app_state) => {},
+    }
+
+    Ok(())
+}
+
+async fn start_service_probe(
+    monitoring: Monitoring,
+    mut app_state_receiver: Receiver<ApplicationState>,
+) -> Result<(), anyhow::Error> {
+    start_probe(monitoring.addr, monitoring.port, ServiceState::Up)
+        .await
+        .context("Failed to start monitoring endpoint")?;
+    app_state_receiver
+        .wait_for(ApplicationState::is_shutting_down)
+        .await?;
+    stop_probe().await;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
@@ -87,7 +206,7 @@ async fn main() -> anyhow::Result<()> {
         Some(SubCommand::Openapi(command)) => {
             cli::openapi::handle_command(command).await?;
         }
-        None => run_web_server(&args.config).await?,
+        None => run_app(&args.config).await?,
     }
 
     Ok(())

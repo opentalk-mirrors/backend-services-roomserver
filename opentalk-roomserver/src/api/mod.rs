@@ -18,6 +18,7 @@ use crate::{
     metrics::{MetricContext, MetricRouter},
     room::registry::RoomTaskRegistry,
     settings::Settings,
+    wait_shutdown,
 };
 
 pub(crate) type Router = axum::Router<Context>;
@@ -68,15 +69,15 @@ pub enum ApplicationState {
     #[default]
     Running,
 
-    _ShuttingDown,
+    ShuttingDown,
 }
 
 impl ApplicationState {
     /// Returns `true` if the application state is [`ShuttingDown`].
     ///
-    /// [`ShuttingDown`]: ApplicationState::_ShuttingDown
+    /// [`ShuttingDown`]: ApplicationState::ShuttingDown
     pub fn is_shutting_down(&self) -> bool {
-        matches!(self, Self::_ShuttingDown)
+        matches!(self, Self::ShuttingDown)
     }
 }
 
@@ -104,6 +105,7 @@ impl std::fmt::Debug for Context {
 /// the latest api version is used.
 pub(crate) async fn run_web_server<L>(
     settings: Arc<Settings>,
+    app_state: watch::Sender<ApplicationState>,
     metric_layer: Option<L>,
 ) -> anyhow::Result<()>
 where
@@ -115,8 +117,7 @@ where
         Into<std::convert::Infallible> + 'static,
     <L::Service as tower::Service<axum::extract::Request>>::Future: Send + 'static,
 {
-    let (app_state, _) = watch::channel(ApplicationState::Running);
-
+    let app_state_subscriber = app_state.subscribe();
     let ctx = Context {
         settings: Arc::clone(&settings),
         room_tasks: RoomTaskRegistry::new(),
@@ -144,7 +145,9 @@ where
     log::info!("Listening on http://{}", listener.local_addr()?);
 
     set_service_state(ServiceState::Ready);
-    axum::serve(listener, router).await?;
+    axum::serve(listener, router)
+        .with_graceful_shutdown(wait_shutdown(app_state_subscriber))
+        .await?;
 
     Ok(())
 }
@@ -153,6 +156,7 @@ pub(crate) async fn run_metric_server(
     address: IpAddr,
     port: u16,
     metric_handle: PrometheusHandle,
+    app_state: watch::Receiver<ApplicationState>,
 ) -> anyhow::Result<()> {
     let ctx = MetricContext { metric_handle };
 
@@ -169,6 +173,7 @@ pub(crate) async fn run_metric_server(
         listener.local_addr().expect("Failed to get local address")
     );
     axum::serve(listener, router)
+        .with_graceful_shutdown(wait_shutdown(app_state))
         .await
         .context("Failed to serve metrics")
 }
