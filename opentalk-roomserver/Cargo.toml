@@ -38,3 +38,11 @@ yaml-rust2.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
+
+[build-dependencies]
+anyhow.workspace = true
+vergen = { version = "9", features = ["build", "cargo", "rustc"] }
+vergen-gix = "1"
+
+[package.metadata.cargo-machete]
+ignored = ["vergen", "vergen-gix"]

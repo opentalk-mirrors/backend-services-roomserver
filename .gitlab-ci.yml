@@ -62,6 +62,7 @@ lint:dependency_check:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
   script:
     - cargo-deny
+      --all-features
       --workspace check
       --deny unmatched-skip
       --deny license-not-encountered

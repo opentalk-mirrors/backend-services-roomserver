@@ -38,6 +38,10 @@ async fn run_web_server(config_file_name: &str) -> Result<()> {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
+    if args.run_tasks().should_exit() {
+        return Ok(());
+    }
+
     match args.cmd {
         Some(SubCommand::Openapi(command)) => {
             cli::openapi::handle_command(command).await?;
