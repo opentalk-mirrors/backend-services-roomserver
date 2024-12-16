@@ -20,7 +20,7 @@ mod tests {
     use std::time::Duration;
 
     use opentalk_roomserver_types::room_parameters::RoomParameters;
-    use opentalk_types::api::v1::users::PublicUserProfile;
+    use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{rooms::RoomId, tariffs::TariffResource, utils::ExampleData};
     use tokio::{sync::watch, time::sleep};
 

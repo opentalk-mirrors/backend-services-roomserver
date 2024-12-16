@@ -1189,16 +1189,6 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idna"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "634d9b1461af396cad843f47fdba5597a4f9e6ddd4bfb6ff5d85028c25cb12f6"
-dependencies = [
- "unicode-bidi",
- "unicode-normalization",
-]
-
-[[package]]
-name = "idna"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "686f825264d630750a544639377bae737628043f20d38bbc029e8f29ea968a7e"
@@ -1591,6 +1581,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-types",
+ "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
@@ -1612,7 +1603,7 @@ dependencies = [
  "async-trait",
  "http-request-derive",
  "opentalk-roomserver-types",
- "opentalk-types",
+ "opentalk-types-api-v1",
  "opentalk-types-common",
  "reqwest",
  "serde",
@@ -1625,7 +1616,7 @@ dependencies = [
 name = "opentalk-roomserver-types"
 version = "0.0.0-dev"
 dependencies = [
- "opentalk-types",
+ "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
@@ -1650,37 +1641,47 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types"
-version = "0.27.0"
+version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb741c9a2303602de8e9154264c926ed25bf870d9b78098a238c919c677e7024"
+checksum = "9cdb0d94389b7ec10c763f0f0bdbfe82140d4a930201d1c7b1d1123b8c669609"
 dependencies = [
  "axum",
+ "http 0.2.12",
+ "http 1.2.0",
+ "itertools",
+ "log",
+ "opentalk-types-signaling",
+ "serde",
+ "serde_json",
+ "snafu",
+ "utoipa",
+ "validator",
+]
+
+[[package]]
+name = "opentalk-types-api-v1"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7207f0750aa2d879dbb02cf0dcf884eea31a74330f5457a031b971eea139a03e"
+dependencies = [
  "base64",
  "bincode",
  "chrono",
  "chrono-tz",
  "derive_more",
- "http 0.2.12",
- "http 1.2.0",
- "itertools",
- "log",
  "opentalk-types-common",
- "opentalk-types-signaling",
  "serde",
  "serde_json",
- "snafu",
- "strum",
+ "serde_with",
  "url",
  "utoipa",
- "uuid",
- "validator",
 ]
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.27.0"
+version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f84907a0c4038d4f6ac26281c56c8925aee58a4cd5b7adb2a4726c4f903e9c5d"
+checksum = "c7addd307975584845ec2e900f9b99e88917376ee5b4a2df63d0d7baecb7caaf"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -1700,9 +1701,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling"
-version = "0.27.0"
+version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c88df094429b59235fabcc686432914aeff5b24d1d6cbc387a2edeed20a9c094"
+checksum = "f6b8e8480a1846b8c0e447a063c7bf687c2d3255f249fb8985f0458367f05144"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
@@ -1900,6 +1901,28 @@ dependencies = [
  "proc-macro2",
  "quote",
  "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr2"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96de42df36bb9bba5542fe9f1a054b8cc87e172759a1868aa05c1f3acc89dfc5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
+name = "proc-macro-error2"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11ec05c52be0a07b08061f7dd003e7d7092e0472bc731b4af7bb1ef876109802"
+dependencies = [
+ "proc-macro-error-attr2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
 ]
 
 [[package]]
@@ -3073,25 +3096,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e51b68083f157f853b6379db119d1c1be0e6e4dec98101079dec41f6f5cf6df"
 
 [[package]]
-name = "unicode-bidi"
-version = "0.3.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ab17db44d7388991a428b2ee655ce0c212e862eff1768a455c58f9aad6e7893"
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adb9e6ca4f869e1180728b7950e35922a7fc6397f7b641499e8f3ef06e50dc83"
-
-[[package]]
-name = "unicode-normalization"
-version = "0.1.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5033c97c4262335cded6d6fc3e5c18ab755e1a3dc96376350f3d8e9f009ad956"
-dependencies = [
- "tinyvec",
-]
 
 [[package]]
 name = "unicode-xid"
@@ -3118,7 +3126,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32f8b686cadd1473f4bd0117a5d28d36b1ade384ea9b5069a1c40aefed7fda60"
 dependencies = [
  "form_urlencoded",
- "idna 1.0.3",
+ "idna",
  "percent-encoding",
  "serde",
 ]
@@ -3204,11 +3212,11 @@ dependencies = [
 
 [[package]]
 name = "validator"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db79c75af171630a3148bd3e6d7c4f42b6a9a014c2945bc5ed0020cbb8d9478e"
+checksum = "d0b4a29d8709210980a09379f27ee31549b73292c87ab9899beee1c0d3be6303"
 dependencies = [
- "idna 0.5.0",
+ "idna",
  "once_cell",
  "regex",
  "serde",
@@ -3220,13 +3228,13 @@ dependencies = [
 
 [[package]]
 name = "validator_derive"
-version = "0.18.2"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df0bcf92720c40105ac4b2dda2a4ea3aa717d4d6a862cc217da653a4bd5c6b10"
+checksum = "bac855a2ce6f843beb229757e6e570a42e837bcb15e5f449dd48d5747d41bf77"
 dependencies = [
  "darling",
  "once_cell",
- "proc-macro-error",
+ "proc-macro-error2",
  "proc-macro2",
  "quote",
  "syn 2.0.90",

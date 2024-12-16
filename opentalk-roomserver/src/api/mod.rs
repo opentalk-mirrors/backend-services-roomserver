@@ -38,6 +38,7 @@ pub mod signaling;
         ),
         components(
             schemas(
+                opentalk_types_api_v1::users::PublicUserProfile,
                 opentalk_types_common::call_in::CallInId,
                 opentalk_types_common::call_in::CallInInfo,
                 opentalk_types_common::call_in::CallInPassword,
@@ -52,8 +53,9 @@ pub mod signaling;
                 opentalk_types_common::tariffs::TariffId,
                 opentalk_types_common::tariffs::TariffModuleResource,
                 opentalk_types_common::tariffs::TariffResource,
+                opentalk_types_common::users::DisplayName,
                 opentalk_types_common::users::UserId,
-                opentalk_types::api::v1::users::PublicUserProfile,
+                opentalk_types_common::users::UserTitle,
                 room_parameters::EventInfo,
                 room_parameters::RoomParameters,
             )
@@ -181,7 +183,7 @@ impl RoomBackend for Context {
 mod test {
     use std::sync::Arc;
 
-    use opentalk_types::api::v1::users::PublicUserProfile;
+    use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{tariffs::TariffResource, utils::ExampleData};
 
     use super::*;

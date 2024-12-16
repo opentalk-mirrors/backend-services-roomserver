@@ -16,7 +16,7 @@
 //!
 //! ```no_run
 //! # tokio_test::block_on(async {
-//! # use std::collections::{BTreeMap, BTreeSet};
+//! # use std::{ str::FromStr as _, {collections::{BTreeMap, BTreeSet}}};
 //! #
 //! # use opentalk_roomserver_client::{
 //! #     api::room::RoomsCreateRequest, reqwest_client::RoomServerClient, Client,
@@ -27,7 +27,9 @@
 //! #     tariffs::{TariffId, TariffResource},
 //! #     users::UserId,
 //! # };
-//! # use opentalk_types::api::v1::users::PublicUserProfile;
+//! # use opentalk_types_api_v1::users::PublicUserProfile;
+//! # use opentalk_types_common::users::UserTitle;
+//! # use opentalk_types_common::users::DisplayName;
 //! #
 //! let client = RoomServerClient::new("http://localhost:11333").unwrap();
 //! let request = RoomsCreateRequest {
@@ -37,10 +39,10 @@
 //! #        created_by: PublicUserProfile {
 //! #            id: UserId::from_u128(0x037bc784_5130_4da7_b63f_971395be0e44),
 //! #            email: "peter@example.net".to_owned(),
-//! #            title: "Prof. Dr. Dr. Dipl. Ing.".to_owned(),
+//! #            title: UserTitle::from_str("Prof. Dr. Dr. Dipl. Ing.").unwrap(),
 //! #            firstname: "Peter".to_owned(),
 //! #            lastname: "Superschlau".to_owned(),
-//! #            display_name: "Prof. Dr. Dr. Dipl. Ing. Superschlau".to_owned(),
+//! #            display_name: DisplayName::from_str("Prof. Dr. Dr. Dipl. Ing. Superschlau").unwrap(),
 //! #            avatar_url: "example.com".to_owned(),
 //! #        },
 //! #        password: Some("supersecret".to_owned()),

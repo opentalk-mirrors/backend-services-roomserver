@@ -11,7 +11,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-opentalk-types.workspace = true
+opentalk-types-api-v1.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 pretty_assertions.workspace = true

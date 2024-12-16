@@ -33,14 +33,6 @@ ignore = [
   # This is a transitive dependency of this project.
   # We need to wait for our dependencies to fix this by switching themselves.
   "RUSTSEC-2024-0370",
-  # idna 0.5.0 and earlier accepts Punycode labels that do not produce any
-  # non-ASCII output.
-  #
-  # This a transitive dependency of this project.
-  # The issue is already resolved in opentalk-types by updating validator to
-  # 0.19 and will be fixed here too, once a new release of opentalk-types has
-  # been released.
-  "RUSTSEC-2024-0421",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -63,6 +55,7 @@ version = 2
 allow = [
   "Apache-2.0",
   "BSD-3-Clause",
+  "ISC",
   "MIT",
   "Unicode-3.0",
 ] # The confidence threshold for detecting a license from license text.
@@ -88,6 +81,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-api-v1" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-common" },
@@ -153,7 +149,6 @@ deny = []
 skip = [
   { name = "hashbrown", version = "0.14" },
   { name = "http", version = "0.2" },
-  { name = "idna", version = "0" },
   { name = "regex-automata", version = "0.1" },
   { name = "regex-syntax", version = "0.6" },
   { name = "syn", version = "1" },
