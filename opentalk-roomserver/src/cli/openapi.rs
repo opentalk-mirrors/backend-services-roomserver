@@ -13,8 +13,6 @@ use clap::{Subcommand, ValueEnum};
 use utoipa::{openapi::Server, OpenApi};
 use yaml_rust2::{YamlEmitter, YamlLoader};
 
-use crate::Result;
-
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
 pub enum Command {
@@ -41,7 +39,7 @@ pub enum ExportFormat {
     Json,
 }
 
-pub(crate) async fn handle_command(command: Command) -> Result<()> {
+pub(crate) async fn handle_command(command: Command) -> anyhow::Result<()> {
     match command {
         Command::Dump { format, target } => {
             let mut outstream: Box<dyn Write> = if target == Path::new("-").to_path_buf() {

@@ -3,7 +3,6 @@
 //! Manages the websocket connection for a single participant
 use std::time::Duration;
 
-use anyhow::Result;
 use futures::{SinkExt as _, StreamExt as _};
 use opentalk_roomserver_types::signaling::{SignalingCommand, SignalingError, SignalingEvent};
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
@@ -47,7 +46,7 @@ impl ConnectionHandle {
     ///
     /// If the connection to the participant is already closed or broken, the
     /// event will be dropped and the connection to the participant will be closed.
-    pub async fn send_event(&self, event: SignalingEvent) -> Result<()> {
+    pub async fn send_event(&self, event: SignalingEvent) -> anyhow::Result<()> {
         self.connection_task_event_sender.send(event).await?;
 
         Ok(())
@@ -270,7 +269,7 @@ impl<Socket: SignalingSocket + 'static> ParticipantConnectionTask<Socket> {
     }
 
     /// Parse the [`SignalingEvent`] and send it over the websocket
-    async fn send_event_to_websocket(&mut self, event: &SignalingEvent) -> Result<()> {
+    async fn send_event_to_websocket(&mut self, event: &SignalingEvent) -> anyhow::Result<()> {
         let message = match serde_json::to_string(event) {
             Ok(message) => message,
             Err(e) => {

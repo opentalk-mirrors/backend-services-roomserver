@@ -5,7 +5,6 @@
 
 use std::collections::{hash_map::Entry, HashMap};
 
-use anyhow::Result;
 use axum::extract::ws::{close_code, CloseFrame};
 use futures::SinkExt;
 pub use message::{MessageEnvelope, SignalingMessage};

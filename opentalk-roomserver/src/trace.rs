@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use anyhow::{Context as _, Result};
+use anyhow::Context;
 use opentelemetry::{trace::TracerProvider as _, KeyValue};
 use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
 use opentelemetry_sdk::{
@@ -23,7 +23,7 @@ use crate::settings::telemetry::Tracing;
 
 const DEFAULT_LOGGING_DIRECTIVES: &str = "warn,opentalk_roomserver=info";
 
-pub fn init(settings: Option<&Tracing>) -> Result<()> {
+pub fn init(settings: Option<&Tracing>) -> anyhow::Result<()> {
     // Layer which acts as filter of traces and spans.
     let filter = create_filter(settings.and_then(Tracing::log_filter));
 
@@ -46,7 +46,7 @@ type Subscriber = Layered<EnvFilter, Registry>;
 
 fn init_tracing_layer(
     settings: Option<&Tracing>,
-) -> Result<Option<OpenTelemetryLayer<Layered<SubscriberLayer, Subscriber>, Tracer>>> {
+) -> anyhow::Result<Option<OpenTelemetryLayer<Layered<SubscriberLayer, Subscriber>, Tracer>>> {
     match settings {
         Some(settings) => {
             let otlp_exporter = SpanExporter::builder()
