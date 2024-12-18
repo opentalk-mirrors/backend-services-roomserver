@@ -97,8 +97,7 @@ impl From<ExitReason> for CloseReason {
         match value {
             ExitReason::UnexpectedDisconnection => Self::ConnectionLost,
             ExitReason::Congestion => Self::Congestion,
-            ExitReason::Shutdown => Self::TaskClosed,
-            ExitReason::ClosedByRoomTask => Self::TaskClosed,
+            ExitReason::Shutdown | ExitReason::ClosedByRoomTask => Self::TaskClosed,
             ExitReason::ClosedByClient => Self::ParticipantClosed,
         }
     }
@@ -275,14 +274,12 @@ impl<Socket: SignalingSocket + 'static> ParticipantConnectionTask<Socket> {
         let message = match serde_json::to_string(event) {
             Ok(message) => message,
             Err(e) => {
-                let error_msg = format!(
-                    "Unable to serialize signaling event to websocket message {}",
-                    e
-                );
+                let error_msg =
+                    format!("Unable to serialize signaling event to websocket message {e}");
 
                 // This error _should_ never occur. We panic if this is a debug build
                 if cfg!(debug_assertions) {
-                    panic!("{error_msg}")
+                    panic!("{error_msg}");
                 }
 
                 log::error!("{error_msg}");
@@ -330,8 +327,7 @@ impl<Socket: SignalingSocket + 'static> ParticipantConnectionTask<Socket> {
 async fn wait_close<Socket: SignalingSocket>(mut socket: Socket) {
     while let Some(msg) = socket.next().await {
         match msg {
-            Ok(Message::Close(_)) => return,
-            Err(_) => return,
+            Ok(Message::Close(_)) | Err(_) => return,
             // Discard all messages, but error and close
             _ => {}
         }

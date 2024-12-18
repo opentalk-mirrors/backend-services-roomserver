@@ -31,7 +31,7 @@ pub enum SignalingError {
 impl From<serde_json::Error> for SignalingError {
     fn from(error: serde_json::Error) -> Self {
         Self::InvalidJson {
-            message: format!("Failed to deserialize message: {}", error),
+            message: format!("Failed to deserialize message: {error}"),
         }
     }
 }
@@ -48,6 +48,7 @@ pub struct SignalingCommand {
 }
 
 impl SignalingCommand {
+    #[must_use]
     pub fn has_unknown_fields(&self) -> bool {
         !self.unknown_fields.is_null()
     }
@@ -57,6 +58,7 @@ impl SignalingCommand {
     /// NOTE: `unknown_fields` should be a [`serde_json::Value::Object`] variant. This
     /// should be the case when collecting additional fields in a struct definition
     /// (see [`SignalingCommand`] for an example)
+    #[must_use]
     pub fn unknown_fields(&self) -> Option<Vec<String>> {
         if !self.has_unknown_fields() {
             return None;

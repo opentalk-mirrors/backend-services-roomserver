@@ -151,7 +151,7 @@ impl RoomServerClient {
             });
         }
 
-        Ok(Self { base_url, client })
+        Ok(Self { client, base_url })
     }
 }
 
