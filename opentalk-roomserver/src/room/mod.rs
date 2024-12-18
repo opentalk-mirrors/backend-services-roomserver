@@ -26,9 +26,9 @@ mod tests {
 
     use super::task::handle::RoomTaskHandle;
     use crate::{
-        api::ApplicationState,
         mocking::{mock_socket::MockSocket, participant::create_participant_connection},
         room::{registry::RoomTaskRegistry, task::RoomTask},
+        ApplicationState,
     };
 
     const TIMEOUT: Duration = Duration::from_millis(500);

@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{net::IpAddr, sync::Arc};
+use std::sync::Arc;
 
-use anyhow::Context as _;
 use axum::{async_trait, extract::ws::WebSocket};
-use axum_prometheus::metrics_exporter_prometheus::PrometheusHandle;
 use opentalk_roomserver_types::{room_parameters, room_parameters::RoomParameters};
 use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
 use opentalk_types_common::rooms::RoomId;
@@ -15,10 +13,7 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    metrics::{MetricContext, MetricRouter},
-    room::registry::RoomTaskRegistry,
-    settings::Settings,
-    wait_shutdown,
+    room::registry::RoomTaskRegistry, settings::Settings, wait_shutdown, ApplicationState,
 };
 
 pub(crate) type Router = axum::Router<Context>;
@@ -63,23 +58,6 @@ pub mod signaling;
         )
     )]
 pub(crate) struct ApiDoc;
-
-#[derive(Debug, Clone, Copy, Default)]
-pub enum ApplicationState {
-    #[default]
-    Running,
-
-    ShuttingDown,
-}
-
-impl ApplicationState {
-    /// Returns `true` if the application state is [`ShuttingDown`].
-    ///
-    /// [`ShuttingDown`]: ApplicationState::ShuttingDown
-    pub fn is_shutting_down(&self) -> bool {
-        matches!(self, Self::ShuttingDown)
-    }
-}
 
 /// Context for the API endpoints
 #[derive(Clone)]
@@ -150,32 +128,6 @@ where
         .await?;
 
     Ok(())
-}
-
-pub(crate) async fn run_metric_server(
-    address: IpAddr,
-    port: u16,
-    metric_handle: PrometheusHandle,
-    app_state: watch::Receiver<ApplicationState>,
-) -> anyhow::Result<()> {
-    let ctx = MetricContext { metric_handle };
-
-    let router = MetricRouter::new()
-        .nest("/v1", crate::metrics::routes())
-        .merge(crate::metrics::routes())
-        .with_state(ctx);
-
-    let listener = tokio::net::TcpListener::bind((address, port))
-        .await
-        .with_context(|| format!("Failed to bind metrics to port {port}"))?;
-    log::info!(
-        "Listening for metrics on http://{}",
-        listener.local_addr().expect("Failed to get local address")
-    );
-    axum::serve(listener, router)
-        .with_graceful_shutdown(wait_shutdown(app_state))
-        .await
-        .context("Failed to serve metrics")
 }
 
 impl Backend for Context {}

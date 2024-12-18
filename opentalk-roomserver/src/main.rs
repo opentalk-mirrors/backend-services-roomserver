@@ -7,7 +7,6 @@
 use std::{result, sync::Arc, time::Duration};
 
 use anyhow::Context;
-use api::ApplicationState;
 use axum_prometheus::{
     metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle},
     utils::SECONDS_DURATION_BUCKETS,
@@ -35,6 +34,23 @@ pub(crate) mod settings;
 mod trace;
 
 const SHUTDOWN_GRACE_PERIOD: Duration = Duration::from_secs(42);
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum ApplicationState {
+    #[default]
+    Running,
+
+    ShuttingDown,
+}
+
+impl ApplicationState {
+    /// Returns `true` if the application state is [`ShuttingDown`].
+    ///
+    /// [`ShuttingDown`]: ApplicationState::ShuttingDown
+    pub fn is_shutting_down(&self) -> bool {
+        matches!(self, Self::ShuttingDown)
+    }
+}
 
 pub(crate) async fn wait_shutdown(mut app_state: watch::Receiver<ApplicationState>) {
     let res = app_state.wait_for(ApplicationState::is_shutting_down).await;
@@ -69,7 +85,7 @@ async fn run_app(config_file_name: &str) -> anyhow::Result<()> {
     if let Some(metric) = &settings.metrics {
         let (m_layer, metric_handle) = build_prometheus_layer();
         set.spawn(
-            api::run_metric_server(
+            metrics::run_metric_server(
                 settings.http.address,
                 metric.port,
                 metric_handle,

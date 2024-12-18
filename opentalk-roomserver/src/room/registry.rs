@@ -9,11 +9,11 @@ use opentalk_types_common::rooms::RoomId;
 use tokio::sync::{watch, RwLock};
 
 use crate::{
-    api::ApplicationState,
     room::task::{
         handle::{RoomTaskHandle, RoomTaskHandleError},
         RoomTask,
     },
+    ApplicationState,
 };
 
 /// The room task registry
