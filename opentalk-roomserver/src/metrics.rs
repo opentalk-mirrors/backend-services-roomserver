@@ -4,23 +4,23 @@
 use std::net::IpAddr;
 
 use anyhow::Context as _;
-use axum::{extract::State, routing::get};
-use axum_prometheus::metrics_exporter_prometheus::PrometheusHandle;
+use axum::{extract::State, routing::get, Router};
 use tokio::sync::watch;
 
 use crate::{wait_shutdown, ApplicationState};
 
-pub(crate) type MetricRouter = axum::Router<MetricContext>;
-
-pub(crate) async fn run_metric_server(
+pub(crate) async fn run_metric_server<H>(
     address: IpAddr,
     port: u16,
-    metric_handle: PrometheusHandle,
+    metric_handle: H,
     app_state: watch::Receiver<ApplicationState>,
-) -> Result<(), anyhow::Error> {
+) -> Result<(), anyhow::Error>
+where
+    H: MetricHandle + Clone + Send + Sync + 'static,
+{
     let ctx = MetricContext { metric_handle };
 
-    let router = MetricRouter::new()
+    let router = Router::<MetricContext<H>>::new()
         .route("/metrics", get(metrics))
         .with_state(ctx);
 
@@ -37,28 +37,32 @@ pub(crate) async fn run_metric_server(
         .context("Failed to serve metrics")
 }
 
-#[derive(Clone)]
-pub(crate) struct MetricContext {
-    pub metric_handle: PrometheusHandle,
+pub(crate) trait MetricHandle {
+    fn render(&self) -> String;
 }
 
-impl MetricContext {
+#[derive(Clone)]
+struct MetricContext<H: MetricHandle> {
+    pub metric_handle: H,
+}
+
+impl<H: MetricHandle> MetricContext<H> {
     async fn render(&mut self) -> String {
         self.metric_handle.render()
     }
 }
 
-/// Returns the prometheus metrics
+/// Returns the metrics
 ///
-/// Returns the prometheus metrics in a text format.
+/// Returns the metrics in a text format.
 #[utoipa::path(
     get,
     path = "/metrics",
     responses(
-        (status = StatusCode::OK, description = "Prometheus metrics were successfully retrieved"),
+        (status = StatusCode::OK, description = "Metrics were successfully retrieved"),
     ),
     security(),
     )]
-async fn metrics(mut context: State<MetricContext>) -> String {
+async fn metrics<H: MetricHandle>(mut context: State<MetricContext<H>>) -> String {
     context.render().await
 }
