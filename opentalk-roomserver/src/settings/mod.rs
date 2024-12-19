@@ -9,10 +9,9 @@ use telemetry::{Metrics, Monitoring, Tracing};
 
 pub mod telemetry;
 
-#[derive(Debug, Default, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub(crate) struct Settings {
     /// HTTP web server settings
-    #[serde(default)]
     pub(crate) http: Http,
 
     #[serde(default)]
@@ -40,6 +39,21 @@ impl Settings {
 
         Ok(serde_path_to_error::deserialize(config)?)
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_settings(api_token: String) -> Self {
+        Self {
+            http: Http {
+                address: default_bind_address(),
+                port: default_port(),
+                api_token,
+                disable_openapi: false,
+            },
+            monitoring: None,
+            metrics: None,
+            tracing: None,
+        }
+    }
 }
 
 /// Settings for the HTTP server
@@ -53,20 +67,13 @@ pub(crate) struct Http {
     #[serde(default = "default_port")]
     pub(crate) port: u16,
 
+    /// The API token for service endpoints
+    pub(crate) api_token: String,
+
     // Disable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
     // swagger endpoint under `/swagger`.
     #[serde(default)]
     pub(crate) disable_openapi: bool,
-}
-
-impl Default for Http {
-    fn default() -> Self {
-        Self {
-            address: default_bind_address(),
-            port: default_port(),
-            disable_openapi: false,
-        }
-    }
 }
 
 fn default_bind_address() -> IpAddr {

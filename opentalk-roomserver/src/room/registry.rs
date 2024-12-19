@@ -68,6 +68,28 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         Ok((RoomAction::Created, task_handle))
     }
 
+    /// Spawns a new room task or returns the [`RoomTaskHandle`] if the room task is already running.
+    ///
+    /// Returns [`None`] when the room was created.
+    pub(crate) async fn create_or_get(
+        &self,
+        room_id: RoomId,
+        room_parameters: RoomParameters,
+        app_state: watch::Receiver<ApplicationState>,
+    ) -> Option<RoomTaskHandle<Socket>> {
+        let mut registry = self.inner.write().await;
+
+        if let Some(task_handle) = registry.get(&room_id) {
+            return Some(task_handle.clone());
+        }
+
+        let task_handle = RoomTask::spawn(room_id, room_parameters, self.clone(), app_state);
+
+        registry.insert(room_id, task_handle);
+
+        None
+    }
+
     /// Checks if the requested room id exists and refreshes the idle timeout if it does
     pub(crate) async fn ensure_room_exists(&self, room_id: &RoomId) -> bool {
         let registry = self.inner.read().await;

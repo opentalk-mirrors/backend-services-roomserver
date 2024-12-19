@@ -93,6 +93,7 @@ impl GetErrorKind for Error {
 /// and using [`RoomServerClient::with_reqwest_client`].
 ///
 /// Requests can be executed using [`RoomServerClient::execute`].
+#[derive(Clone)]
 pub struct RoomServerClient {
     client: reqwest::Client,
     base_url: Url,

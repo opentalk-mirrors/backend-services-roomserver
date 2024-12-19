@@ -30,6 +30,7 @@ opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0
 ] }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 
+opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.0-dev" }
 opentalk-types-api-v1 = { version = "0.33.0", features = ["axum"] }
 opentalk-types-common = { version = "0.32.0", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.32.0", features = ["serde"] }
@@ -43,6 +44,7 @@ config = { version = "0.15", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 http-request-derive = "0.3.2"
 log = "0.4.22"
+
 opentalk-version = "0.1.1"
 pretty_assertions = "1.4.1"
 reqwest = { version = "0.12", default-features = false }
@@ -53,6 +55,7 @@ service-probe = "0.2.0"
 thiserror = "2.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tokio-test = { version = "0.4" }
+tower = "0.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = [
   "env-filter",
@@ -60,4 +63,5 @@ tracing-subscriber = { version = "0.3", features = [
 ] }
 utoipa = { version = "5.3.1", features = ["yaml"] }
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
+uuid = "1"
 yaml-rust2 = "0.10"

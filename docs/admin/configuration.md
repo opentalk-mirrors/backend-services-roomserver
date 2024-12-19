@@ -38,6 +38,8 @@ This file can be found in the source code distribution under `example/config.tom
 #address = "127.0.0.1"
 #address = "::1"
 
+# The api token for internal service endpoints
+api_token = "secret"
 
 # The port to bind the HTTP server to (defaults to 11333)
 #port = 11333

@@ -1,0 +1,152 @@
+// SPDX-License-Identifier: EUPL-1.2
+// SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+use std::{
+    collections::{hash_map::Entry, BTreeSet, HashMap},
+    time::{Duration, Instant},
+};
+
+use opentalk_roomserver_types::signaling_context::SignalingClientContext;
+use opentalk_types_common::roomserver::Token;
+
+const DEFAULT_EXPIRY: Duration = Duration::from_secs(30);
+
+/// Information about a token and when it was created
+///
+/// Used to determine if a token has expired
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct TokenExpiry {
+    created_at: Instant,
+    token: Token,
+}
+
+impl TokenExpiry {
+    fn new_now(token: Token) -> Self {
+        Self {
+            created_at: Instant::now(),
+            token,
+        }
+    }
+}
+
+/// Manages the active signaling tokens of the RoomServer
+///
+/// Expired tokens get cleaned up when the TokenStore is accessed
+pub(crate) struct TokenStore {
+    /// The active tokens
+    tokens: HashMap<Token, SignalingClientContext>,
+    /// A set to track the expiry of each token
+    expiry_set: BTreeSet<TokenExpiry>,
+    /// The duration for that a token is active
+    expiry: Duration,
+}
+
+impl TokenStore {
+    pub(crate) fn new() -> Self {
+        Self::new_with_expiry(DEFAULT_EXPIRY)
+    }
+
+    pub(crate) fn new_with_expiry(expiry: Duration) -> Self {
+        Self {
+            tokens: HashMap::new(),
+            expiry_set: BTreeSet::new(),
+            expiry,
+        }
+    }
+
+    pub(crate) fn create_token(&mut self, signaling_context: SignalingClientContext) -> Token {
+        self.remove_expired_entries();
+
+        // loop to avoid the uuid collision error branch
+        let token = loop {
+            let token = Token::generate();
+
+            match self.tokens.entry(token) {
+                Entry::Occupied(_) => continue,
+                Entry::Vacant(vacant_entry) => {
+                    vacant_entry.insert(signaling_context);
+                    break token;
+                }
+            }
+        };
+
+        self.expiry_set.insert(TokenExpiry::new_now(token));
+
+        token
+    }
+
+    pub(crate) fn consume_token(&mut self, token: &Token) -> Option<SignalingClientContext> {
+        self.remove_expired_entries();
+        self.tokens.remove(token)
+    }
+
+    fn remove_expired_entries(&mut self) {
+        let now = Instant::now();
+
+        while let Some(&entry) = self.expiry_set.first() {
+            let duration_since_creation = now.duration_since(entry.created_at);
+
+            if duration_since_creation >= self.expiry {
+                self.expiry_set.remove(&entry);
+                self.tokens.remove(&entry.token);
+            } else {
+                // The oldest key is not yet expired
+                return;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{thread, time::Duration};
+
+    use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters};
+    use opentalk_types_api_v1::users::PublicUserProfile;
+    use opentalk_types_common::{rooms::RoomId, users::UserId};
+
+    use super::TokenStore;
+    use crate::api::token_store::SignalingClientContext;
+
+    fn build_test_context(i: u128) -> SignalingClientContext {
+        SignalingClientContext {
+            room_id: RoomId::from_u128(i),
+            client_parameters: ClientParameters {
+                client_id: i.to_string(),
+                kind: ClientKind::Registered {
+                    profile: PublicUserProfile {
+                        id: UserId::from_u128(i),
+                        email: "alice@example.com".to_string(),
+                        title: "".parse().expect("valid user title"),
+                        firstname: "Alice".to_string(),
+                        lastname: "Adams".to_string(),
+                        display_name: "Alice Adams".parse().expect("valid display name"),
+                        avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+                            .to_string(),
+                    },
+                },
+            },
+        }
+    }
+
+    #[test]
+    fn test_expiry() {
+        let mut store = TokenStore::new_with_expiry(Duration::from_millis(500));
+
+        let context1 = build_test_context(1);
+        let token1 = store.create_token(context1.clone());
+
+        let context2 = build_test_context(2);
+        let token2 = store.create_token(context2.clone());
+
+        // get the right context for token1
+        assert_eq!(store.consume_token(&token1), Some(context1));
+        // ensure the token was consumed
+        assert_eq!(None, store.consume_token(&token1));
+
+        thread::sleep(Duration::from_millis(750));
+
+        //ensure the second token expired
+        assert_eq!(None, store.consume_token(&token2));
+    }
+}
