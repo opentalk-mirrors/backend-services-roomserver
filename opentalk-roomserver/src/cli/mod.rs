@@ -39,7 +39,7 @@ pub(crate) struct Args {
     pub(crate) config: String,
 
     /// Print long version description and exit.
-    #[clap(long, action=ArgAction::SetTrue)]
+    #[clap(short('V'), long, action=ArgAction::SetTrue, help = "Print version information")]
     pub(crate) version: bool,
 
     #[clap(subcommand)]

@@ -2270,6 +2270,7 @@ dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "opentalk-version",
  "serde",
  "serde_json",
  "serde_path_to_error",
@@ -2399,6 +2400,17 @@ dependencies = [
  "serde_json",
  "strum",
  "uuid",
+]
+
+[[package]]
+name = "opentalk-version"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "400926474bcd8fe12aed187053575f27f3d2890391b61fccda18be777ff8d6ba"
+dependencies = [
+ "anyhow",
+ "vergen",
+ "vergen-gix",
 ]
 
 [[package]]

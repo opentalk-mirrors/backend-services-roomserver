@@ -25,6 +25,7 @@ opentalk-types.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling = { workspace = true, features = ["rand"] }
+opentalk-version.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_path_to_error.workspace = true
@@ -36,11 +37,13 @@ utoipa.workspace = true
 utoipa-swagger-ui.workspace = true
 yaml-rust2.workspace = true
 
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
 
 [build-dependencies]
 anyhow.workspace = true
+opentalk-version.workspace = true
 vergen = { version = "9", features = ["build", "cargo", "rustc"] }
 vergen-gix = "1"
 
