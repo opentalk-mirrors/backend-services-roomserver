@@ -40,7 +40,7 @@ async-trait = "0.1"
 axum = { version = "0.7.5" }
 axum-prometheus = "0.7.0"
 clap = { version = "4.5", features = ["derive"] }
-config = { version = "0.14", default-features = false, features = ["toml"] }
+config = { version = "0.15", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 http-request-derive = "0.3.2"
 log = "0.4.22"
