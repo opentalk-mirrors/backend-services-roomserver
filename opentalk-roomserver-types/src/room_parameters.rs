@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::fmt::Debug;
+
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     call_in::CallInInfo, shared_folders::SharedFolder, streaming::StreamingLink,
@@ -8,7 +10,7 @@ use opentalk_types_common::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct RoomParameters {
     pub created_by: PublicUserProfile,
@@ -28,6 +30,18 @@ pub struct RoomParameters {
     pub event: Option<EventInfo>,
 
     pub tariff: TariffResource,
+}
+
+impl Debug for RoomParameters {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RoomParameters")
+            .field("created_by", &self.created_by)
+            .field("password", &"<REDACTED>")
+            .field("waiting_room", &self.waiting_room)
+            .field("event", &self.event)
+            .field("tariff", &self.tariff)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -26,15 +26,23 @@ opentalk-types-api-v1 = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling = { workspace = true, features = ["rand"] }
 opentalk-version.workspace = true
+opentelemetry = "0.27.1"
+opentelemetry-otlp = "0.27.0"
+opentelemetry_sdk = { version = "0.27.1", features = [
+  "rt-tokio-current-thread",
+] }
 serde.workspace = true
 serde_json.workspace = true
 serde_path_to_error.workspace = true
 service-probe.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tracing.workspace = true
+tracing-opentelemetry = "0.28.0"
 tracing-subscriber.workspace = true
 utoipa.workspace = true
 utoipa-swagger-ui.workspace = true
+uuid = { version = "1.11.0", features = ["v4"] }
 yaml-rust2.workspace = true
 
 

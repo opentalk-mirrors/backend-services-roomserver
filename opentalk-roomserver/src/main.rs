@@ -23,7 +23,7 @@ mod trace;
 async fn run_web_server(config_file_name: &str) -> Result<()> {
     let settings = Arc::new(Settings::load(config_file_name)?);
 
-    trace::init().context("Failed to initialize tracing")?;
+    trace::init(settings.tracing.as_ref()).context("Failed to initialize tracing")?;
     if let Some(monitoring) = &settings.monitoring {
         start_probe(monitoring.addr, monitoring.port, ServiceState::Up)
             .await

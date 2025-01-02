@@ -6,14 +6,21 @@ use std::net::{IpAddr, Ipv4Addr};
 use anyhow::Result;
 use config::{Config, Environment, File, FileFormat};
 use serde::Deserialize;
+use telemetry::{Monitoring, Tracing};
+
+pub mod telemetry;
 
 #[derive(Debug, Default, Clone, Deserialize)]
 pub(crate) struct Settings {
     /// HTTP web server settings
     #[serde(default)]
     pub(crate) http: Http,
+
     #[serde(default)]
     pub(crate) monitoring: Option<Monitoring>,
+
+    #[serde(default)]
+    pub(crate) tracing: Option<Tracing>,
 }
 
 impl Settings {
@@ -60,23 +67,10 @@ impl Default for Http {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub(crate) struct Monitoring {
-    #[serde(default = "default_monitor_port")]
-    pub(crate) port: u16,
-
-    #[serde(default = "default_bind_address")]
-    pub(crate) addr: IpAddr,
-}
-
 fn default_bind_address() -> IpAddr {
     IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
 }
 
 const fn default_port() -> u16 {
     11333
-}
-
-const fn default_monitor_port() -> u16 {
-    11411
 }
