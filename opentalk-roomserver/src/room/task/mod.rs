@@ -105,7 +105,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     async fn run(self) {
         if let Err(e) = self.inner_run().await {
-            log::error!("RoomTask exited with error {}", e)
+            log::error!("RoomTask exited with error {e}");
         }
     }
 
@@ -127,7 +127,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     log::trace!("received {msg:?}");
                     let _ = self.handle_message(msg).await;
                 }
-                _ = self.idle_timeout.has_timed_out() => {
+                () = self.idle_timeout.has_timed_out() => {
                     log::debug!("Room task {} reached its idle timeout, exiting", self.room_id);
                     return Ok(());
                 }

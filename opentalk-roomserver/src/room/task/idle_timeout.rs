@@ -24,7 +24,7 @@ impl IdleTimeout {
     ///
     /// Discards the current timeout if one was set
     pub(super) fn start(&mut self, duration: Duration) {
-        self.timeout = Some(Box::pin(tokio::time::sleep(duration)))
+        self.timeout = Some(Box::pin(tokio::time::sleep(duration)));
     }
 
     /// Refreshes the timeout

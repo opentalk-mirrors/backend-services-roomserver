@@ -95,7 +95,7 @@ impl std::fmt::Debug for Context {
         f.debug_struct("Context")
             .field("settings", &self.settings)
             .field("room_tasks", &self.room_tasks)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
