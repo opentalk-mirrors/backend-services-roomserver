@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 use clap::Parser;
 use cli::{Args, SubCommand};
 use service_probe::{start_probe, ServiceState};
@@ -20,7 +20,7 @@ mod room;
 pub(crate) mod settings;
 mod trace;
 
-async fn run_web_server(config_file_name: &str) -> Result<()> {
+async fn run_web_server(config_file_name: &str) -> anyhow::Result<()> {
     let settings = Arc::new(Settings::load(config_file_name)?);
 
     trace::init(settings.tracing.as_ref()).context("Failed to initialize tracing")?;
@@ -35,7 +35,7 @@ async fn run_web_server(config_file_name: &str) -> Result<()> {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     if args.run_tasks().should_exit() {

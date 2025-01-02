@@ -3,7 +3,6 @@
 
 use std::sync::Arc;
 
-use anyhow::Result;
 use axum::{async_trait, extract::ws::WebSocket};
 use axum_prometheus::{
     metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
@@ -103,7 +102,7 @@ impl std::fmt::Debug for Context {
 ///
 /// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional, if no version is specified
 /// the latest api version is used.
-pub(crate) async fn run_web_server(settings: Arc<Settings>) -> Result<()> {
+pub(crate) async fn run_web_server(settings: Arc<Settings>) -> anyhow::Result<()> {
     let (metric_layer, metric_handle) = PrometheusMetricLayerBuilder::new()
         .with_prefix("api")
         .enable_response_body_size(true)

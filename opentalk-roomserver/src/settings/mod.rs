@@ -3,7 +3,6 @@
 
 use std::net::{IpAddr, Ipv4Addr};
 
-use anyhow::Result;
 use config::{Config, Environment, File, FileFormat};
 use serde::Deserialize;
 use telemetry::{Monitoring, Tracing};
@@ -26,7 +25,7 @@ pub(crate) struct Settings {
 impl Settings {
     /// Creates a new Settings instance from the provided TOML file.
     /// Specific fields can be set or overwritten with environment variables (See struct level docs for more details).
-    pub(crate) fn load(file_name: &str) -> Result<Self> {
+    pub(crate) fn load(file_name: &str) -> anyhow::Result<Self> {
         let config = Config::builder()
             .add_source(File::new(file_name, FileFormat::Toml))
             .add_source(

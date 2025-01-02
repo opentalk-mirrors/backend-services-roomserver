@@ -3,7 +3,6 @@
 
 use std::{collections::HashSet, time::Duration};
 
-use anyhow::Result;
 use opentalk_roomserver_types::{room_parameters::RoomParameters, signaling::SignalingEvent};
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::rooms::RoomId;
@@ -109,7 +108,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    async fn inner_run(mut self) -> Result<()> {
+    async fn inner_run(mut self) -> anyhow::Result<()> {
         // TODO: initialize modules
 
         loop {
@@ -136,7 +135,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(skip_all, fields(%self.room_id))]
-    async fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> Result<()> {
+    async fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> anyhow::Result<()> {
         let api_response = match msg.request {
             Request::RefreshIdleTimeout => {
                 self.refresh_idle_timeout();
