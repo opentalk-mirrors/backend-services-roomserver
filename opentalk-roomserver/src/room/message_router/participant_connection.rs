@@ -18,7 +18,7 @@ use tokio::{
 };
 
 use super::message::{CloseReason, MessageEnvelope, SignalingMessage};
-use crate::api::ApplicationState;
+use crate::ApplicationState;
 
 /// The time for the [`ParticipantConnectionTask`] to wait when putting messages
 /// into the command channel (the channel that connects to the [`RoomTask`](crate::room::task::RoomTask)).

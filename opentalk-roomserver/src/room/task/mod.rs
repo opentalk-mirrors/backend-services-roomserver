@@ -11,7 +11,6 @@ use tokio::sync::{mpsc, watch};
 
 use super::message_router::AlreadyConnectedError;
 use crate::{
-    api::ApplicationState,
     room::{
         message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
         registry::RoomTaskRegistry,
@@ -20,6 +19,7 @@ use crate::{
             idle_timeout::IdleTimeout,
         },
     },
+    ApplicationState,
 };
 
 pub(crate) mod handle;

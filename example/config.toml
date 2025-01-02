@@ -27,6 +27,12 @@
 addr = "0.0.0.0"
 port = 11411
 
+# Metrics settings
+#
+# Metrics is optional and disabled by default
+# [metrics]
+# port = 11412
+
 # Tracing settings
 #
 # Tracing is optional and disabled by default

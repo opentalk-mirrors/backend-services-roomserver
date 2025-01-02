@@ -36,7 +36,8 @@ serde_json.workspace = true
 serde_path_to_error.workspace = true
 service-probe.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt", "signal"] }
+tower = "0.5.2"
 tracing.workspace = true
 tracing-opentelemetry = "0.28.0"
 tracing-subscriber.workspace = true

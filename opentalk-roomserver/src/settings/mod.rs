@@ -5,7 +5,7 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use config::{Config, Environment, File, FileFormat};
 use serde::Deserialize;
-use telemetry::{Monitoring, Tracing};
+use telemetry::{Metrics, Monitoring, Tracing};
 
 pub mod telemetry;
 
@@ -17,6 +17,9 @@ pub(crate) struct Settings {
 
     #[serde(default)]
     pub(crate) monitoring: Option<Monitoring>,
+
+    #[serde(default)]
+    pub(crate) metrics: Option<Metrics>,
 
     #[serde(default)]
     pub(crate) tracing: Option<Tracing>,

@@ -4,18 +4,17 @@
 use std::sync::Arc;
 
 use axum::{async_trait, extract::ws::WebSocket};
-use axum_prometheus::{
-    metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayerBuilder,
-};
 use opentalk_roomserver_types::{room_parameters, room_parameters::RoomParameters};
-use opentalk_roomserver_web_api::v1::{self, Backend, MetricBackend, RoomAction, RoomBackend};
+use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
 use opentalk_types_common::rooms::RoomId;
 use service_probe::{set_service_state, ServiceState};
 use tokio::sync::watch;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{room::registry::RoomTaskRegistry, settings::Settings};
+use crate::{
+    room::registry::RoomTaskRegistry, settings::Settings, wait_shutdown, ApplicationState,
+};
 
 pub(crate) type Router = axum::Router<Context>;
 
@@ -29,11 +28,9 @@ pub mod signaling;
         ),
         tags(
             (name = "v1::rooms", description = "Endpoints related to rooms"),
-            (name = "v1::metrics", description = "Endpoints related to metrics")
         ),
         paths(
            v1::rooms::put_room,
-           v1::metrics::metrics,
         ),
         components(
             schemas(
@@ -62,30 +59,12 @@ pub mod signaling;
     )]
 pub(crate) struct ApiDoc;
 
-#[derive(Debug, Clone, Copy, Default)]
-pub enum ApplicationState {
-    #[default]
-    Running,
-
-    _ShuttingDown,
-}
-
-impl ApplicationState {
-    /// Returns `true` if the application state is [`ShuttingDown`].
-    ///
-    /// [`ShuttingDown`]: ApplicationState::_ShuttingDown
-    pub fn is_shutting_down(&self) -> bool {
-        matches!(self, Self::_ShuttingDown)
-    }
-}
-
 /// Context for the API endpoints
 #[derive(Clone)]
 pub(crate) struct Context {
     settings: Arc<Settings>,
     /// Global list of room tasks and their handles
     room_tasks: RoomTaskRegistry<WebSocket>,
-    metric_handle: PrometheusHandle,
     app_state: watch::Sender<ApplicationState>,
 }
 
@@ -102,27 +81,35 @@ impl std::fmt::Debug for Context {
 ///
 /// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional, if no version is specified
 /// the latest api version is used.
-pub(crate) async fn run_web_server(settings: Arc<Settings>) -> anyhow::Result<()> {
-    let (metric_layer, metric_handle) = PrometheusMetricLayerBuilder::new()
-        .with_prefix("api")
-        .enable_response_body_size(true)
-        .with_default_metrics()
-        .build_pair();
-
-    let (app_state, _) = watch::channel(ApplicationState::Running);
-
+pub(crate) async fn run_web_server<L>(
+    settings: Arc<Settings>,
+    app_state: watch::Sender<ApplicationState>,
+    metric_layer: Option<L>,
+) -> anyhow::Result<()>
+where
+    L: tower::Layer<axum::routing::Route> + Clone + Send + 'static,
+    L::Service: tower::Service<axum::extract::Request> + Clone + Send + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Response:
+        axum::response::IntoResponse + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Error:
+        Into<std::convert::Infallible> + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Future: Send + 'static,
+{
+    let app_state_subscriber = app_state.subscribe();
     let ctx = Context {
-        settings: settings.clone(),
+        settings: Arc::clone(&settings),
         room_tasks: RoomTaskRegistry::new(),
-        metric_handle,
         app_state,
     };
 
     let mut router = Router::new()
         .nest("/v1", v1::routes())
         .merge(v1::routes())
-        .layer(metric_layer)
         .with_state(ctx);
+
+    if let Some(layer) = metric_layer {
+        router = router.layer(layer);
+    }
 
     if !settings.http.disable_openapi {
         let mut openapi = ApiDoc::openapi();
@@ -136,19 +123,14 @@ pub(crate) async fn run_web_server(settings: Arc<Settings>) -> anyhow::Result<()
     log::info!("Listening on http://{}", listener.local_addr()?);
 
     set_service_state(ServiceState::Ready);
-    axum::serve(listener, router).await?;
+    axum::serve(listener, router)
+        .with_graceful_shutdown(wait_shutdown(app_state_subscriber))
+        .await?;
 
     Ok(())
 }
 
 impl Backend for Context {}
-
-#[async_trait]
-impl MetricBackend for Context {
-    async fn render(&mut self) -> String {
-        self.metric_handle.render()
-    }
-}
 
 #[async_trait]
 impl RoomBackend for Context {
@@ -190,16 +172,10 @@ mod test {
     #[tokio::test]
     async fn put_room() {
         let settings: Arc<Settings> = Arc::new(Default::default());
-        let (_, metric_handle) = PrometheusMetricLayerBuilder::new()
-            .with_prefix("api")
-            .enable_response_body_size(true)
-            .with_default_metrics()
-            .build_pair();
         let (app_state, _) = watch::channel(ApplicationState::Running);
         let ctx = Context {
             settings: settings.clone(),
             room_tasks: RoomTaskRegistry::new(),
-            metric_handle,
             app_state,
         };
         let params = RoomParameters {

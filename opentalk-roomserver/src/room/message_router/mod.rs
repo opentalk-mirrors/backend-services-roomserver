@@ -14,8 +14,8 @@ use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, watch};
 
 use crate::{
-    api::ApplicationState,
     room::message_router::participant_connection::{ConnectionHandle, ParticipantConnectionTask},
+    ApplicationState,
 };
 
 mod message;
@@ -139,9 +139,9 @@ mod tests {
     use tokio::sync::watch;
 
     use crate::{
-        api::ApplicationState,
         mocking::participant::create_participant_connection,
         room::message_router::{self, MessageEnvelope, MessageRouter, SignalingMessage},
+        ApplicationState,
     };
 
     #[tokio::test]
