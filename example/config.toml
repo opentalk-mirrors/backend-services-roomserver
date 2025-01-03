@@ -1,40 +1,40 @@
+[http]
 # HTTP server settings
-#[http]
 
 # The IPv4/IPv6 address to bind the HTTP server to.
 # Binds to all interfaces by default:
 #address = "0.0.0.0"
-#
+
 # All IPv6 interfaces:
 #address = "::"
-#
+
 # Localhost only:
 #address = "127.0.0.1"
 #address = "::1"
 
 
 # The port to bind the HTTP server to (defaults to 11333)
-# port = 11333
+#port = 11333
 
 # Disable the OpenAPI endpoint under `/docs/openapi.json` and the corresponding
 # swagger endpoint under `/swagger`.
-# disable_openapi = false
+#disable_openapi = false
 
-# Monitoring settings
-#
-# Monitoring is optional and disabled by default
 [monitoring]
-addr = "0.0.0.0"
-port = 11411
+# Monitoring settings
 
+# Monitoring is optional and disabled by default
+#addr = "0.0.0.0"
+#port = 11411
+
+[metrics]
 # Metrics settings
-#
-# Metrics is optional and disabled by default
-# [metrics]
-# port = 11412
 
+# Metrics is optional and disabled by default
+#port = 11412
+
+[tracing]
 # Tracing settings
-#
+
 # Tracing is optional and disabled by default
-# [tracing]
-# otlp_tracing_endpoint = "http://localhost:4317"
+#otlp_tracing_endpoint = "http://localhost:4317"
