@@ -15,6 +15,7 @@ use axum_prometheus::{
 use clap::Parser;
 use cli::{Args, SubCommand};
 use futures::TryFutureExt;
+use metrics::MetricHandle;
 use service_probe::{start_probe, stop_probe, ServiceState};
 use settings::{telemetry::Monitoring, Settings};
 use tokio::{
@@ -141,6 +142,12 @@ fn build_prometheus_layer<'a>() -> (
                 .expect("Installing prometheus recorder failed")
         })
         .build_pair()
+}
+
+impl MetricHandle for PrometheusHandle {
+    fn render(&self) -> String {
+        self.render()
+    }
 }
 
 async fn graceful_shutdown(
