@@ -1,3 +1,29 @@
+---
+title: Configuration
+---
+
+# Configuring OpenTalk-RoomServer
+
+The RoomServer can be configured using environment variables and a configuration file.
+Environment variables take precedence over the configuration file.
+
+## Environment variables
+
+Settings in the configuration file can be overwritten by environment variables,
+nested fields are separated by two underscores `__`. The pattern looks like
+this:
+
+```sh
+OT_ROOMSERVER_<field>__<nested-field>…
+```
+
+## Example configuration file
+
+This file can be found in the source code distribution under `example/config.toml`
+
+<!-- begin:fromfile:example/config.toml.md -->
+
+```toml
 [http]
 # HTTP server settings
 
@@ -38,3 +64,6 @@
 
 # Tracing is optional and disabled by default
 #otlp_tracing_endpoint = "http://localhost:4317"
+```
+
+<!-- end:fromfile:example/config.toml.md -->
