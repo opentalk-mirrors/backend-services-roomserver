@@ -3,7 +3,8 @@
 
 use std::sync::Arc;
 
-use axum::{async_trait, extract::ws::WebSocket};
+use async_trait::async_trait;
+use axum::extract::ws::WebSocket;
 use opentalk_roomserver_types::{room_parameters, room_parameters::RoomParameters};
 use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
 use opentalk_types_common::rooms::RoomId;
@@ -87,8 +88,8 @@ pub(crate) async fn run_web_server<L>(
     metric_layer: Option<L>,
 ) -> anyhow::Result<()>
 where
-    L: tower::Layer<axum::routing::Route> + Clone + Send + 'static,
-    L::Service: tower::Service<axum::extract::Request> + Clone + Send + 'static,
+    L: tower::Layer<axum::routing::Route> + Clone + Send + Sync + 'static,
+    L::Service: tower::Service<axum::extract::Request> + Clone + Send + Sync + 'static,
     <L::Service as tower::Service<axum::extract::Request>>::Response:
         axum::response::IntoResponse + 'static,
     <L::Service as tower::Service<axum::extract::Request>>::Error:
@@ -138,7 +139,7 @@ impl RoomBackend for Context {
         &self,
         room_parameters: RoomParameters,
         room_id: RoomId,
-    ) -> Result<RoomAction, opentalk_types::api::error::ApiError> {
+    ) -> Result<RoomAction, opentalk_types_api_v1::error::ApiError> {
         let (action, task_handle) = self
             .room_tasks
             .put_room(room_id, room_parameters, self.app_state.subscribe())

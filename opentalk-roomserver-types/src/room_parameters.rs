@@ -110,14 +110,6 @@ mod tests {
                 "quotas": {
                     "max_storage": 50000
                 },
-                "enabled_modules": [
-                    "chat",
-                    "core",
-                    "media",
-                    "moderation",
-                    "recording"
-                 ],
-                "disabled_features": [ "recording::stream" ],
                 "modules": {
                     "chat": {
                         "features": []

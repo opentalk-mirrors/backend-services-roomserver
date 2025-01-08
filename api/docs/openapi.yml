@@ -1,5 +1,5 @@
 ---
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: OpenTalk RoomServer API
   description: Specifies the endpoints and structure of the OpenTalk RoomServer Web API
@@ -8,6 +8,7 @@ info:
     email: mail@opentalk.eu
   license:
     name: EUPL-1.2
+    identifier: EUPL-1.2
   version: 0.0.0-dev
 servers:
   - url: /v1
@@ -46,6 +47,7 @@ components:
   schemas:
     CallInId:
       $ref: "#/components/schemas/NumericId"
+      description: The id of a call-in participation
     CallInInfo:
       type: object
       description: Information needed to participate in a call-in connection.
@@ -56,8 +58,12 @@ components:
       properties:
         id:
           $ref: "#/components/schemas/CallInId"
+          description: SIP ID which must transmitted via DTMF (number field on the phone) to identify this room
         password:
           $ref: "#/components/schemas/CallInPassword"
+          description: |-
+            SIP password which must be transmitted via DTMF (number field on the phone) after entering the `sip_id`
+            to enter the room
         tel:
           type: string
           description: SIP Call-In phone number which must be used to reach the room
@@ -67,10 +73,12 @@ components:
         tel: +555-123-456-789
     CallInPassword:
       $ref: "#/components/schemas/NumericId"
+      description: The password for authenticating call-in participation
     DisplayName:
       type: string
       description: The display name of a user or participant
-      example: Alice Adams
+      examples:
+        - Alice Adams
       maxLength: 255
     EventInfo:
       type: object
@@ -81,8 +89,7 @@ components:
         - streaming_links
       properties:
         call_in:
-          allOf:
-            - $ref: "#/components/schemas/CallInInfo"
+          $ref: "#/components/schemas/CallInInfo"
         description:
           type: string
         invite_code_id:
@@ -90,8 +97,7 @@ components:
         is_adhoc:
           type: boolean
         shared_folder:
-          allOf:
-            - $ref: "#/components/schemas/SharedFolder"
+          $ref: "#/components/schemas/SharedFolder"
         streaming_links:
           type: array
           items:
@@ -101,7 +107,8 @@ components:
     FeatureId:
       type: string
       description: A feature identifier
-      example: myfeature
+      examples:
+        - myfeature
       maxLength: 255
       minLength: 1
       pattern: "^[-_0-9a-zA-Z]*$"
@@ -109,20 +116,23 @@ components:
       anyOf:
         - type: string
           description: A feature identifier
-          example: myfeature
+          examples:
+            - myfeature
           maxLength: 255
           minLength: 1
           pattern: "^[-_0-9a-zA-Z]*$"
         - type: string
           description: A module feature identifier
-          example: "mymodule::myfeature"
+          examples:
+            - "mymodule::myfeature"
           pattern: "^[-_0-9a-zA-Z]{1,255}::[-_0-9a-zA-Z]{1,255}$"
       example: "mymodule::myfeature"
     ModuleId:
       anyOf:
         - type: string
           description: A module identifier
-          example: mymodule
+          examples:
+            - mymodule
           maxLength: 255
           minLength: 1
           pattern: "^[-_0-9a-zA-Z]*$"
@@ -131,7 +141,8 @@ components:
     NumericId:
       type: string
       description: A string containing number characters
-      example: "0000000000"
+      examples:
+        - "0000000000"
       maxLength: 10
       minLength: 10
       pattern: "[0-9]+"
@@ -155,6 +166,7 @@ components:
           description: "The user's avatar URL"
         display_name:
           $ref: "#/components/schemas/DisplayName"
+          description: "The user's display name"
         email:
           type: string
           description: The email of the user
@@ -163,11 +175,13 @@ components:
           description: "The user's first name"
         id:
           $ref: "#/components/schemas/UserId"
+          description: The user id
         lastname:
           type: string
           description: "The user's last name"
         title:
           $ref: "#/components/schemas/UserTitle"
+          description: The title of the user
       example:
         avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
         display_name: Alice Adams
@@ -191,8 +205,7 @@ components:
         created_by:
           $ref: "#/components/schemas/PublicUserProfile"
         event:
-          allOf:
-            - $ref: "#/components/schemas/EventInfo"
+          $ref: "#/components/schemas/EventInfo"
         password:
           type: string
         tariff:
@@ -209,9 +222,10 @@ components:
       properties:
         read:
           $ref: "#/components/schemas/SharedFolderAccess"
+          description: Read access information for the shared folder
         read_write:
-          allOf:
-            - $ref: "#/components/schemas/SharedFolderAccess"
+          $ref: "#/components/schemas/SharedFolderAccess"
+          description: Read-write access information for the shared folder
       example:
         read:
           password: v3rys3cr3t
@@ -272,31 +286,27 @@ components:
         - id
         - name
         - quotas
-        - enabled_modules
-        - disabled_features
         - modules
       properties:
-        disabled_features:
-          type: array
-          items:
-            $ref: "#/components/schemas/ModuleFeatureId"
-          description: "Disabled features for the tariff  (deprecated, use 'modules' instead)"
-          deprecated: true
-          uniqueItems: true
-        enabled_modules:
-          type: array
-          items:
-            $ref: "#/components/schemas/ModuleId"
-          description: "Enabled modules for the tariff (deprecated, use 'modules' instead)"
-          deprecated: true
-          uniqueItems: true
         id:
           $ref: "#/components/schemas/TariffId"
+          description: The ID of the tariff
         modules:
           type: object
           description: "Enabled modules for the tariff, including their enabled features"
           additionalProperties:
             $ref: "#/components/schemas/TariffModuleResource"
+          propertyNames:
+            anyOf:
+              - type: string
+                description: A module identifier
+                examples:
+                  - mymodule
+                maxLength: 255
+                minLength: 1
+                pattern: "^[-_0-9a-zA-Z]*$"
+            default: core
+            example: mymodule
         name:
           type: string
           description: The name of the tariff
@@ -307,15 +317,14 @@ components:
             type: integer
             format: int64
             minimum: 0
+          propertyNames:
+            anyOf:
+              - type: string
+                description: A quota type
+                examples:
+                  - max_storage
+            example: max_storage
       example:
-        disabled_features:
-          - "recording::stream"
-        enabled_modules:
-          - chat
-          - core
-          - media
-          - moderation
-          - recording
         id: 00000000-0000-0000-0000-000000000000
         modules:
           chat:
@@ -340,7 +349,8 @@ components:
     UserTitle:
       type: string
       description: The title of a user
-      example: M.Sc.
+      examples:
+        - M.Sc.
       maxLength: 255
 tags:
   - name: "v1::rooms"

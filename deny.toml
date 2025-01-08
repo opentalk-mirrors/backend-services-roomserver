@@ -27,13 +27,7 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore = [
-  # proc-macro-error is unmaintained
-  #
-  # This is a transitive dependency of this project.
-  # We need to wait for our dependencies to fix this by switching themselves.
-  "RUSTSEC-2024-0370",
-]
+ignore = []
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.
@@ -55,11 +49,13 @@ version = 2
 allow = [
   "Apache-2.0",
   "BSD-3-Clause",
+  "BSL-1.0",
   "ISC",
   "MIT",
   "MPL-2.0",
   "OpenSSL",
   "Unicode-3.0",
+  "Zlib",
 ] # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
 # canonical license text of a valid SPDX license file.
@@ -80,9 +76,6 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-web-api" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-types" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-api-v1" },
@@ -149,13 +142,15 @@ allow = []
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
+  { name = "axum", version = "0.7" },
+  { name = "axum-core", version = "0.4" },
   { name = "hashbrown", version = "0.12" },
   { name = "hashbrown", version = "0.14" },
-  { name = "http", version = "0.2" },
   { name = "indexmap", version = "1" },
+  { name = "itertools", version = "0.13" },
+  { name = "matchit", version = "0.7" },
   { name = "regex-automata", version = "0.1" },
   { name = "regex-syntax", version = "0.6" },
-  { name = "syn", version = "1" },
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
   { name = "tower", version = "0.4" },
