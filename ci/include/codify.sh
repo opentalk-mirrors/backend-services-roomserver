@@ -10,7 +10,8 @@ codify() {
   fi
 
   echo "\`\`\`$1"
-  # print out data passed to stdin
-  cat -
+  while IFS= read -r data; do
+    echo "$data"
+  done
   echo '```'
 }
