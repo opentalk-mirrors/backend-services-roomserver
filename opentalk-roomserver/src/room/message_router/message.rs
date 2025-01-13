@@ -15,9 +15,6 @@ pub enum CloseReason {
 
     /// The connection to the participant was closed by sending a close frame to the participant.
     TaskClosed,
-
-    /// The participant was dropped due to congestion
-    Congestion,
 }
 
 /// A signaling message sent by a client

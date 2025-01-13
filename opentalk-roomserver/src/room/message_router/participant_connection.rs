@@ -10,22 +10,12 @@ use opentalk_roomserver_web_api::v1::signaling::websocket::{
 };
 use opentalk_types_signaling::ParticipantId;
 use tokio::{
-    sync::{
-        mpsc::{self, error::SendTimeoutError},
-        watch,
-    },
+    sync::{mpsc, watch},
     task::JoinHandle,
 };
 
 use super::message::{CloseReason, MessageEnvelope, SignalingMessage};
 use crate::ApplicationState;
-
-/// The time for the [`ParticipantConnectionTask`] to wait when putting messages
-/// into the command channel (the channel that connects to the [`RoomTask`](crate::room::task::RoomTask)).
-///
-/// When the timeout is reached, the [`ParticipantConnectionTask`] will close
-/// the connection to the participant.
-const COMMAND_CHANNEL_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// The duration the participant has to respond with a close frame after a close
 /// frame is sent by the server. If the participant does not send a close frame
@@ -62,8 +52,6 @@ enum ExitReason {
     ClosedByClient,
     /// The websocket was disconnected for no specific reason
     UnexpectedDisconnection,
-    /// The internal channel to the room task is under congestion, so the websocket connection was closed
-    Congestion,
     /// The room server is shutting down
     Shutdown,
 }
@@ -79,10 +67,6 @@ impl ExitReason {
                 code: 1000,
                 reason: "closed by server".into(),
             }),
-            ExitReason::Congestion => Some(CloseFrame {
-                code: 1011,
-                reason: "high load".into(),
-            }),
             ExitReason::Shutdown => Some(CloseFrame {
                 code: 1001,
                 reason: "server shutdown".into(),
@@ -95,7 +79,6 @@ impl From<ExitReason> for CloseReason {
     fn from(value: ExitReason) -> Self {
         match value {
             ExitReason::UnexpectedDisconnection => Self::ConnectionLost,
-            ExitReason::Congestion => Self::Congestion,
             ExitReason::Shutdown | ExitReason::ClosedByRoomTask => Self::TaskClosed,
             ExitReason::ClosedByClient => Self::ParticipantClosed,
         }
@@ -240,15 +223,11 @@ impl<Socket: SignalingSocket + 'static> ParticipantConnectionTask<Socket> {
         };
         let wrapped_cmd = SignalingMessage::Command(command).into_envelope(self.participant_id);
 
-        let res = self
-            .room_task_command_sender
-            .send_timeout(wrapped_cmd, COMMAND_CHANNEL_TIMEOUT)
-            .await;
+        let res = self.room_task_command_sender.send(wrapped_cmd).await;
 
         match res {
             Ok(_) => Ok(()),
-            Err(SendTimeoutError::Closed(_)) => Err(ExitReason::ClosedByRoomTask),
-            Err(SendTimeoutError::Timeout(_)) => Err(ExitReason::Congestion),
+            Err(_) => Err(ExitReason::ClosedByRoomTask),
         }
     }
 
