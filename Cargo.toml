@@ -30,15 +30,14 @@ opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0
 ] }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 
-opentalk-types = { version = "0.28.0", features = ["axum", "serde", "utoipa"] }
-opentalk-types-api-v1 = { version = "0.28.0", features = ["serde"] }
-opentalk-types-common = { version = "0.28.0", features = ["serde", "utoipa"] }
-opentalk-types-signaling = { version = "0.28.0", features = ["serde"] }
+opentalk-types-api-v1 = { version = "0.30", features = ["axum"] }
+opentalk-types-common = { version = "0.30", features = ["serde", "utoipa"] }
+opentalk-types-signaling = { version = "0.30", features = ["serde"] }
 
 anyhow = "1"
 async-trait = "0.1"
-axum = { version = "0.7.5" }
-axum-prometheus = "0.7.0"
+axum = { version = "0.8.1" }
+axum-prometheus = "0.8.0"
 clap = { version = "4.5", features = ["derive"] }
 config = { version = "0.15", default-features = false, features = ["toml"] }
 futures = "0.3.31"
@@ -59,6 +58,6 @@ tracing-subscriber = { version = "0.3", features = [
   "env-filter",
   "parking_lot",
 ] }
-utoipa = { version = "4", features = ["yaml"] }
-utoipa-swagger-ui = { version = "7", features = ["axum"] }
+utoipa = { version = "5.3.1", features = ["yaml"] }
+utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
 yaml-rust2 = "0.9"

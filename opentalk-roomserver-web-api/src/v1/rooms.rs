@@ -3,8 +3,8 @@
 
 use std::fmt::Debug;
 
+use async_trait::async_trait;
 use axum::{
-    async_trait,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -12,7 +12,7 @@ use axum::{
     Json,
 };
 use opentalk_roomserver_types::room_parameters::RoomParameters;
-use opentalk_types::api::error::ApiError;
+use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 
 use crate::Router;

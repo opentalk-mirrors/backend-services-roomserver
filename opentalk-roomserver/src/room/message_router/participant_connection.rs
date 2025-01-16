@@ -58,7 +58,7 @@ enum ExitReason {
 
 impl ExitReason {
     /// Create a close frame appropriate for the exit reason
-    fn close_frame(&self) -> Option<CloseFrame<'static>> {
+    fn close_frame(&self) -> Option<CloseFrame> {
         match self {
             ExitReason::ClosedByClient => None,
             ExitReason::UnexpectedDisconnection => None,
@@ -184,7 +184,7 @@ impl<Socket: SignalingSocket + 'static> ParticipantConnectionTask<Socket> {
         frame: Option<Result<Message, websocket::Error>>,
     ) -> Result<(), ExitReason> {
         match frame {
-            Some(Ok(Message::Text(message))) => self.handle_text_frame(message).await,
+            Some(Ok(Message::Text(message))) => self.handle_text_frame(message.to_string()).await,
             Some(Ok(Message::Close(close_frame))) => {
                 log::debug!(
                     "Connection closed by participant `{:?}`: {close_frame:?}",

@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use axum::{
-    async_trait,
-    extract::ws::{close_code, CloseFrame, WebSocket},
-};
+use async_trait::async_trait;
+use axum::extract::ws::{close_code, CloseFrame, WebSocket};
 use opentalk_roomserver_web_api::v1::signaling::{websocket::SignalingSocket, SignalingBackend};
-use opentalk_types::api::error::ApiError;
+use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 
 use super::Context;

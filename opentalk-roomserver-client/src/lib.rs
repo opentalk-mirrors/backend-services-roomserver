@@ -60,8 +60,6 @@
 //! #            id: TariffId::from_u128(0x35499437_32a3_4b30_87cc_568eaf63ed9e),
 //! #            name: "SuperPremium".to_owned(),
 //! #            quotas: BTreeMap::new(),
-//! #            enabled_modules: BTreeSet::new(),
-//! #            disabled_features: BTreeSet::new(),
 //! #            modules: BTreeMap::new(),
 //! #        },
 //!     },
