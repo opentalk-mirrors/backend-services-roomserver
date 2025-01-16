@@ -22,6 +22,8 @@ use crate::ApplicationState;
 /// within this period, the connection will be forcefully terminated.
 const CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
 
+const SEND_TIMEOUT: Duration = Duration::from_secs(1);
+
 /// Handle to the task that communicates with the participant ([`ParticipantConnectionTask`]).
 ///
 /// Dropping this handle will close the connection to the participant.
@@ -36,8 +38,15 @@ impl ConnectionHandle {
     ///
     /// If the connection to the participant is already closed or broken, the
     /// event will be dropped and the connection to the participant will be closed.
+    ///
+    /// ## Timeout
+    ///
+    /// Sending an event will fail after 1 second. If the participant is
+    /// congested, the event is dropped.
     pub async fn send_event(&self, event: SignalingEvent) -> anyhow::Result<()> {
-        self.connection_task_event_sender.send(event).await?;
+        self.connection_task_event_sender
+            .send_timeout(event, SEND_TIMEOUT)
+            .await?;
 
         Ok(())
     }
