@@ -13,10 +13,7 @@ use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, watch};
 
-use crate::{
-    room::message_router::participant_connection::{ConnectionHandle, ParticipantConnectionTask},
-    ApplicationState,
-};
+use crate::{room::message_router::participant_connection::ConnectionHandle, ApplicationState};
 
 mod message;
 mod participant_connection;
@@ -32,6 +29,8 @@ pub struct AlreadyConnectedError;
 /// Provides the interface for communication between client and [`RoomTask`](super::task::RoomTask)
 pub struct MessageRouter {
     /// An internal sender that is given to each [`ParticipantConnectionTask`] to communicate with the [`RoomTask`](super::task::RoomTask)
+    ///
+    /// [`ParticipantConnectionTask`]: participant_connection::ParticipantConnectionTask
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
 
     /// A map of participants and their associated websocket connection
@@ -91,6 +90,8 @@ impl MessageRouter {
     /// Register a new participant connection
     ///
     /// Spawns a new [`ParticipantConnectionTask`] that manages the websocket connection
+    ///
+    /// [`ParticipantConnectionTask`]: participant_connection::ParticipantConnectionTask
     pub(crate) async fn register_participant<Socket: SignalingSocket + 'static>(
         &mut self,
         participant_id: ParticipantId,
@@ -107,7 +108,7 @@ impl MessageRouter {
             return Err(AlreadyConnectedError);
         };
 
-        let task_handle = ParticipantConnectionTask::create(
+        let task_handle = participant_connection::create(
             participant_id,
             websocket,
             self.room_task_command_sender.clone(),

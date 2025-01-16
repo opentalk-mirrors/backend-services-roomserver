@@ -3,7 +3,7 @@
 
 use axum::extract::ws::Message;
 use futures::{channel::mpsc, Sink, SinkExt, Stream, TryStreamExt};
-use opentalk_roomserver_web_api::v1::signaling::websocket::{self, SignalingSocket};
+use opentalk_roomserver_web_api::v1::signaling::websocket::{self, SignalingSink, SignalingStream};
 
 #[derive(Debug)]
 pub struct MockSocket {
@@ -60,4 +60,5 @@ impl Sink<Message> for MockSocket {
     }
 }
 
-impl SignalingSocket for MockSocket {}
+impl SignalingSink for MockSocket {}
+impl SignalingStream for MockSocket {}
