@@ -48,6 +48,19 @@ pub struct SignalingCommand {
 }
 
 impl SignalingCommand {
+    pub fn new(
+        namespace: ModuleId,
+        transaction_id: Option<u64>,
+        content: serde_json::Value,
+    ) -> Self {
+        Self {
+            namespace,
+            transaction_id,
+            content,
+            unknown_fields: serde_json::Value::Object(Default::default()),
+        }
+    }
+
     #[must_use]
     pub fn has_unknown_fields(&self) -> bool {
         !self.unknown_fields.is_null()
