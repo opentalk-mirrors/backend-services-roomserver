@@ -59,7 +59,7 @@ This file can be found in the source code distribution under `example/config.tom
 # Metrics is optional and disabled by default
 #port = 11412
 
-[tracing]
+#[tracing]
 # Tracing settings
 
 # Tracing is optional and disabled by default
