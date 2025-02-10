@@ -21,7 +21,7 @@ use super::Router;
 pub mod websocket;
 
 pub(crate) fn routes<B: SignalingBackend + 'static>() -> Router<B> {
-    Router::new().route("/signaling/:room_id", get(handler::<B>))
+    Router::new().route("/signaling/{room_id}", get(handler::<B>))
 }
 
 #[utoipa::path(

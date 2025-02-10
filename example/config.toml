@@ -33,7 +33,7 @@
 # Metrics is optional and disabled by default
 #port = 11412
 
-[tracing]
+#[tracing]
 # Tracing settings
 
 # Tracing is optional and disabled by default

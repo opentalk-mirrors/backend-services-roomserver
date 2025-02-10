@@ -82,6 +82,6 @@ pub(crate) async fn put_room<B: RoomBackend>(
 pub(crate) fn routes<B: RoomBackend + 'static>() -> Router<B> {
     Router::new().nest(
         "/rooms",
-        Router::new().route("/:room_id", put(put_room::<B>)),
+        Router::new().route("/{room_id}", put(put_room::<B>)),
     )
 }
