@@ -275,7 +275,7 @@ mod test {
     use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{
         tariffs::TariffResource,
-        users::{DisplayName, UserId, UserTitle},
+        users::{DisplayName, UserId, UserInfo, UserTitle},
         utils::ExampleData,
     };
 
@@ -308,11 +308,13 @@ mod test {
                 profile: PublicUserProfile {
                     id: UserId::nil(),
                     email: "example@opentalk.eu".into(),
-                    title: UserTitle::new(),
-                    firstname: "Test".into(),
-                    lastname: "Tester".into(),
-                    display_name: DisplayName::from_str_lossy("tester"),
-                    avatar_url: "example.com".into(),
+                    user_info: UserInfo {
+                        title: UserTitle::new(),
+                        firstname: "Test".into(),
+                        lastname: "Tester".into(),
+                        display_name: DisplayName::from_str_lossy("tester"),
+                        avatar_url: "example.com".into(),
+                    },
                 },
             },
         }

@@ -257,41 +257,24 @@ components:
       minLength: 10
       pattern: "[0-9]+"
     PublicUserProfile:
-      type: object
+      allOf:
+        - $ref: "#/components/schemas/UserInfo"
+          description: General information about the user
+        - type: object
+          required:
+            - id
+            - email
+          properties:
+            email:
+              type: string
+              description: The email of the user
+            id:
+              $ref: "#/components/schemas/UserId"
+              description: The user id
       description: |-
         Public user details.
         
         Contains general "public" information about a user. Is accessible to all other users.
-      required:
-        - id
-        - email
-        - title
-        - firstname
-        - lastname
-        - display_name
-        - avatar_url
-      properties:
-        avatar_url:
-          type: string
-          description: "The user's avatar URL"
-        display_name:
-          $ref: "#/components/schemas/DisplayName"
-          description: "The user's display name"
-        email:
-          type: string
-          description: The email of the user
-        firstname:
-          type: string
-          description: "The user's first name"
-        id:
-          $ref: "#/components/schemas/UserId"
-          description: The user id
-        lastname:
-          type: string
-          description: "The user's last name"
-        title:
-          $ref: "#/components/schemas/UserTitle"
-          description: The title of the user
       example:
         avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
         display_name: Alice Adams
@@ -612,6 +595,37 @@ components:
       format: uuid
       description: The id of a user
       example: 00000009-9889-9889-9889-988000000000
+    UserInfo:
+      type: object
+      description: Information about the room creator
+      required:
+        - title
+        - firstname
+        - lastname
+        - display_name
+        - avatar_url
+      properties:
+        avatar_url:
+          type: string
+          description: The creators avatar url
+        display_name:
+          $ref: "#/components/schemas/DisplayName"
+          description: The creators display name
+        firstname:
+          type: string
+          description: The creators first name
+        lastname:
+          type: string
+          description: The creators last name
+        title:
+          $ref: "#/components/schemas/UserTitle"
+          description: Optional title of the creator
+      example:
+        avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+        display_name: Alice Adams
+        firstname: Alice
+        lastname: Adams
+        title: ""
     UserTitle:
       type: string
       description: The title of a user

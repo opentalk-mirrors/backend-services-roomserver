@@ -106,7 +106,11 @@ mod tests {
 
     use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters};
     use opentalk_types_api_v1::users::PublicUserProfile;
-    use opentalk_types_common::{rooms::RoomId, roomserver::Token, users::UserId};
+    use opentalk_types_common::{
+        rooms::RoomId,
+        roomserver::Token,
+        users::{UserId, UserInfo},
+    };
 
     use super::{TokenExpiry, TokenStore};
     use crate::api::token_store::SignalingClientContext;
@@ -120,12 +124,15 @@ mod tests {
                     profile: PublicUserProfile {
                         id: UserId::from_u128(i),
                         email: "alice@example.com".to_string(),
-                        title: "".parse().expect("valid user title"),
-                        firstname: "Alice".to_string(),
-                        lastname: "Adams".to_string(),
-                        display_name: "Alice Adams".parse().expect("valid display name"),
-                        avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-                            .to_string(),
+                        user_info: UserInfo {
+                            title: "".parse().expect("valid user title"),
+                            firstname: "Alice".to_string(),
+                            lastname: "Adams".to_string(),
+                            display_name: "Alice Adams".parse().expect("valid display name"),
+                            avatar_url:
+                                "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+                                    .to_string(),
+                        },
                     },
                 },
             },
