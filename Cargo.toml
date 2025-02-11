@@ -30,9 +30,9 @@ opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0
 ] }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 
-opentalk-types-api-v1 = { version = "0.30", features = ["axum"] }
-opentalk-types-common = { version = "0.30", features = ["serde", "utoipa"] }
-opentalk-types-signaling = { version = "0.30", features = ["serde"] }
+opentalk-types-api-v1 = { version = "0.33.0", features = ["axum"] }
+opentalk-types-common = { version = "0.32.0", features = ["serde", "utoipa"] }
+opentalk-types-signaling = { version = "0.32.0", features = ["serde"] }
 
 anyhow = "1"
 async-trait = "0.1"
