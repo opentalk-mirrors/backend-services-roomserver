@@ -6,8 +6,7 @@ use anyhow::Context;
 use opentelemetry::{trace::TracerProvider as _, KeyValue};
 use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
 use opentelemetry_sdk::{
-    runtime::TokioCurrentThread,
-    trace::{Tracer, TracerProvider},
+    trace::{SdkTracerProvider, Tracer},
     Resource,
 };
 use tracing_opentelemetry::OpenTelemetryLayer;
@@ -69,19 +68,20 @@ fn init_tracing_layer(
                 .clone()
                 .unwrap_or_else(|| Uuid::new_v4().to_string());
 
-            let tracer_provider = TracerProvider::builder()
-                .with_batch_exporter(otlp_exporter, TokioCurrentThread)
-                .with_resource(Resource::new(vec![
-                    KeyValue::new("service.name", service_name),
-                    KeyValue::new("service.namespace", service_namespace),
-                    KeyValue::new("service.instance.id", service_instance_id),
-                    KeyValue::new(
-                        "service.version",
-                        option_env!("VERGEN_GIT_SEMVER")
-                            .or(option_env!("CARGO_PKG_VERSION"))
-                            .unwrap_or("unknown"),
-                    ),
-                ]))
+            let resource = Resource::builder()
+                .with_service_name(service_name)
+                .with_attribute(KeyValue::new("service.namespace", service_namespace))
+                .with_attribute(KeyValue::new("service.instance.id", service_instance_id))
+                .with_attribute(KeyValue::new(
+                    "service.version",
+                    option_env!("VERGEN_GIT_SEMVER")
+                        .or(option_env!("CARGO_PKG_VERSION"))
+                        .unwrap_or("unknown"),
+                ))
+                .build();
+            let tracer_provider = SdkTracerProvider::builder()
+                .with_batch_exporter(otlp_exporter)
+                .with_resource(resource)
                 .build();
 
             let tracer = tracer_provider.tracer("tracing-otel-subscriber");

@@ -26,9 +26,9 @@ opentalk-types-api-v1 = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling = { workspace = true, features = ["rand"] }
 opentalk-version.workspace = true
-opentelemetry = "0.27.1"
-opentelemetry-otlp = "0.27.0"
-opentelemetry_sdk = { version = "0.27.1", features = [
+opentelemetry = "0.28.0"
+opentelemetry-otlp = { version = "0.28.0", features = ["grpc-tonic"] }
+opentelemetry_sdk = { version = "0.28.0", features = [
   "rt-tokio-current-thread",
 ] }
 serde.workspace = true
@@ -39,7 +39,7 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "signal"] }
 tower = "0.5.2"
 tracing.workspace = true
-tracing-opentelemetry = "0.28.0"
+tracing-opentelemetry = "0.29.0"
 tracing-subscriber.workspace = true
 utoipa.workspace = true
 utoipa-swagger-ui.workspace = true
