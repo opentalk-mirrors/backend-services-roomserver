@@ -13,6 +13,7 @@
 
 mod message_router;
 pub(crate) mod registry;
+pub mod signaling;
 pub(crate) mod task;
 
 #[cfg(test)]

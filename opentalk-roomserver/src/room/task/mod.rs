@@ -1,19 +1,29 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashSet, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
-use opentalk_roomserver_types::{room_parameters::RoomParameters, signaling::SignalingEvent};
+use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::ParticipantId;
-use tokio::sync::{mpsc, watch};
+use tokio::{
+    sync::{mpsc, watch},
+    task::JoinSet,
+};
 
-use super::message_router::AlreadyConnectedError;
+use super::{
+    message_router::AlreadyConnectedError,
+    signaling::{signaling_module::SignalingModule, ModuleDispatcher, ModuleHandle},
+};
 use crate::{
     room::{
         message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
         registry::RoomTaskRegistry,
+        signaling::module_context::DynModuleContext,
         task::{
             handle::{Request, RoomTaskHandle, TaskMessage},
             idle_timeout::IdleTimeout,
@@ -37,6 +47,8 @@ pub enum RoomTaskApiError {
 /// Should be higher than the lifetime of the signaling token from the token store to ensure that the room doesn't
 /// expire before the signaling token does.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+
+type Modules = HashMap<ModuleId, Box<dyn ModuleHandle>>;
 
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
@@ -115,6 +127,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     async fn inner_run(mut self) -> anyhow::Result<()> {
         // TODO: initialize modules
 
+        let mut modules = self.initialize_modules().await;
+
+        // HashMap<ModuleId, Box<dyn ModuleCaller>>,
+
         loop {
             tokio::select! {
                 msg = self.api_rx.recv() => {
@@ -128,7 +144,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 },
                 msg = self.message_router.recv() => {
                     log::trace!("received {msg:?}");
-                    let _ = self.handle_message(msg).await;
+                    let _ = self.handle_message(&mut modules, msg).await;
                 }
                 () = self.idle_timeout.has_timed_out() => {
                     log::debug!("Room task {} reached its idle timeout, exiting", self.room_id);
@@ -136,6 +152,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 }
             };
         }
+    }
+
+    async fn initialize_modules(&mut self) -> Modules {
+        let modules = &self.parameters.tariff.modules;
+
+        let mut join_set = JoinSet::new();
+
+        for module_id in modules.keys() {
+            join_set.spawn(init_module(module_id.clone()));
+        }
+
+        join_set.join_all().await.into_iter().flatten().collect()
     }
 
     #[tracing::instrument(skip_all, fields(%self.room_id))]
@@ -179,6 +207,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     async fn handle_message(
         &mut self,
+        modules: &mut Modules,
         MessageEnvelope {
             participant_id,
             message,
@@ -194,21 +223,24 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     self.idle_timeout.start(IDLE_TIMEOUT);
                 }
             }
-            SignalingMessage::Command(signaling_command) => log::trace!(
-                "Received command from participant {participant_id}:\n{}\n",
-                serde_json::to_string_pretty(&signaling_command).unwrap()
-            ),
+            SignalingMessage::Command(signaling_command) => {
+                log::trace!("received signaling command: {signaling_command:?}");
+
+                let Some(module) = modules.get_mut(&signaling_command.namespace) else {
+                    log::debug!("Unknown namespace: {}", &signaling_command.namespace);
+                    return Ok(());
+                };
+
+                module
+                    .on_event(
+                        &mut self.context(),
+                        participant_id,
+                        signaling_command.content,
+                    )
+                    .await?;
+            }
         }
 
-        self.message_router
-            .send_event(
-                participant_id,
-                SignalingEvent {
-                    namespace: "ping".to_string(),
-                    content: Default::default(),
-                },
-            )
-            .await;
         Ok(())
     }
 
@@ -227,4 +259,30 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.participants.insert(participant_id);
     }
+
+    fn context(&mut self) -> DynModuleContext<'_> {
+        DynModuleContext::new(
+            self.room_id,
+            &self.parameters,
+            &mut self.message_router,
+            &self.participants,
+        )
+    }
+}
+
+async fn init_module(module_id: ModuleId) -> Option<(ModuleId, Box<dyn ModuleHandle>)> {
+    let module_handle = match module_id.as_str() {
+        "ping" => super::signaling::ping::PingModule::init().await,
+        unknown_module => {
+            log::error!("failed to load unknown module {unknown_module}, skipping");
+            None
+        }
+    }?;
+
+    Some((
+        module_id,
+        Box::new(ModuleDispatcher {
+            module: module_handle,
+        }),
+    ))
 }
