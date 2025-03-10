@@ -3,14 +3,23 @@
 
 use std::sync::Arc;
 
+use anyhow::Result;
 use async_trait::async_trait;
 use axum::extract::ws::WebSocket;
-use opentalk_roomserver_types::{room_parameters, room_parameters::RoomParameters};
+use opentalk_roomserver_types::{
+    client_parameters::ClientParameters, room_parameters, room_parameters::RoomParameters,
+    signaling_context::SignalingClientContext,
+};
 use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use service_probe::{set_service_state, ServiceState};
-use tokio::sync::watch;
-use utoipa::OpenApi;
+use token_store::TokenStore;
+use tokio::sync::{watch, Mutex};
+use utoipa::{
+    openapi::security::{Http, HttpAuthScheme},
+    OpenApi,
+};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
@@ -20,6 +29,7 @@ use crate::{
 pub(crate) type Router = axum::Router<Context>;
 
 pub mod signaling;
+mod token_store;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -32,6 +42,7 @@ pub mod signaling;
         ),
         paths(
            v1::rooms::put_room,
+           v1::rooms::request_token
         ),
         components(
             schemas(
@@ -53,12 +64,31 @@ pub mod signaling;
                 opentalk_types_common::users::DisplayName,
                 opentalk_types_common::users::UserId,
                 opentalk_types_common::users::UserTitle,
-                room_parameters::EventInfo,
+                room_parameters::EventContext,
                 room_parameters::RoomParameters,
             )
-        )
+        ),
+        modifiers(&SecurityAddon),
     )]
 pub(crate) struct ApiDoc;
+
+struct SecurityAddon;
+
+impl utoipa::Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        use utoipa::openapi::security::SecurityScheme;
+
+        let components = openapi.components.as_mut().unwrap();
+
+        let http_scheme = Http::builder()
+            .scheme(HttpAuthScheme::Bearer)
+            .bearer_format("api token")
+            .description("The roomservers API token is expected to be in the `Authorization` header with the format: `bearer <token>`".into())
+            .build();
+
+        components.add_security_scheme("API-Token", SecurityScheme::Http(http_scheme));
+    }
+}
 
 /// Context for the API endpoints
 #[derive(Clone)]
@@ -66,6 +96,9 @@ pub(crate) struct Context {
     settings: Arc<Settings>,
     /// Global list of room tasks and their handles
     room_tasks: RoomTaskRegistry<WebSocket>,
+    // A list of eligible participants and their join tokens
+    token_store: Arc<Mutex<TokenStore>>,
+
     app_state: watch::Sender<ApplicationState>,
 }
 
@@ -75,6 +108,36 @@ impl std::fmt::Debug for Context {
             .field("settings", &self.settings)
             .field("room_tasks", &self.room_tasks)
             .finish_non_exhaustive()
+    }
+}
+
+impl Context {
+    /// Spawn the room task from the given room parameters
+    ///
+    /// If the room is already running, the rooms idle timeout is refreshed and the given RoomParameters will be ignored
+    async fn prepare_room(
+        &self,
+        room_id: RoomId,
+        room_parameters: RoomParameters,
+    ) -> Result<(), ApiError> {
+        let Some(room_handle) = self
+            .room_tasks
+            .create_or_get(room_id, room_parameters, self.app_state.subscribe())
+            .await
+        else {
+            // room has been created
+            return Ok(());
+        };
+
+        // refresh the idle timeout of the existing room to avoid race conditions
+        if let Err(e) = room_handle.refresh_idle_timeout().await {
+            // This can only fail if the rooms idle timeout has been reached or the room has been manually removed
+            log::error!("Failed to refresh idle timeout of room {room_id}: {e}");
+
+            return Err(ApiError::internal());
+        }
+
+        Ok(())
     }
 }
 
@@ -100,12 +163,13 @@ where
     let ctx = Context {
         settings: Arc::clone(&settings),
         room_tasks: RoomTaskRegistry::new(),
+        token_store: Arc::new(Mutex::new(TokenStore::new())),
         app_state,
     };
 
     let mut router = Router::new()
-        .nest("/v1", v1::routes())
-        .merge(v1::routes())
+        .nest("/v1", v1::routes(settings.http.api_token.clone()))
+        .merge(v1::routes(settings.http.api_token.clone()))
         .with_state(ctx);
 
     if let Some(layer) = metric_layer {
@@ -137,8 +201,8 @@ impl Backend for Context {}
 impl RoomBackend for Context {
     async fn put_room(
         &self,
-        room_parameters: RoomParameters,
         room_id: RoomId,
+        room_parameters: RoomParameters,
     ) -> Result<RoomAction, opentalk_types_api_v1::error::ApiError> {
         let (action, task_handle) = self
             .room_tasks
@@ -159,38 +223,131 @@ impl RoomBackend for Context {
 
         Ok(action)
     }
+
+    async fn request_room_token(
+        &mut self,
+        room_id: RoomId,
+        client_parameters: ClientParameters,
+        room_parameters: Option<RoomParameters>,
+    ) -> Result<Option<Token>, opentalk_types_api_v1::error::ApiError> {
+        match room_parameters {
+            Some(parameters) => self.prepare_room(room_id, parameters).await?,
+            None => {
+                let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
+                    return Ok(None);
+                };
+
+                task_handle.refresh_idle_timeout().await?;
+            }
+        }
+
+        let token = self
+            .token_store
+            .lock()
+            .await
+            .create_token(SignalingClientContext::new(room_id, client_parameters));
+
+        Ok(Some(token))
+    }
 }
 
 #[cfg(test)]
 mod test {
     use std::sync::Arc;
 
+    use opentalk_roomserver_types::client_parameters::ClientKind;
     use opentalk_types_api_v1::users::PublicUserProfile;
-    use opentalk_types_common::{tariffs::TariffResource, utils::ExampleData};
+    use opentalk_types_common::{
+        tariffs::TariffResource,
+        users::{DisplayName, UserId, UserTitle},
+        utils::ExampleData,
+    };
 
     use super::*;
 
-    #[tokio::test]
-    async fn put_room() {
-        let settings: Arc<Settings> = Arc::new(Default::default());
+    fn test_context() -> Context {
+        let settings: Arc<Settings> = Arc::new(Settings::test_settings("secret".into()));
         let (app_state, _) = watch::channel(ApplicationState::Running);
-        let ctx = Context {
+
+        Context {
             settings: settings.clone(),
             room_tasks: RoomTaskRegistry::new(),
+            token_store: Arc::new(Mutex::new(TokenStore::new())),
             app_state,
-        };
-        let params = RoomParameters {
+        }
+    }
+
+    fn client_parameters2() -> ClientParameters {
+        ClientParameters {
+            client_id: "1234".into(),
+            kind: ClientKind::Guest,
+        }
+    }
+
+    fn client_parameters1() -> ClientParameters {
+        ClientParameters {
+            client_id: "1234".into(),
+            kind: ClientKind::Registered {
+                profile: PublicUserProfile {
+                    id: UserId::nil(),
+                    email: "example@opentalk.eu".into(),
+                    title: UserTitle::new(),
+                    firstname: "Test".into(),
+                    lastname: "Tester".into(),
+                    display_name: DisplayName::from_str_lossy("tester"),
+                    avatar_url: "example.com".into(),
+                },
+            },
+        }
+    }
+
+    fn room_parameters() -> RoomParameters {
+        RoomParameters {
             created_by: PublicUserProfile::example_data(),
             password: None,
-            event: None,
             waiting_room: false,
+            call_in: None,
+            event: None,
+            invite_code: None,
             tariff: TariffResource::example_data(),
-        };
-        let id = RoomId::from_u128(0xf4bc4806_a35c_4ce0_bcb3_fb990b287d4c);
-        let action = ctx.put_room(params, id).await;
-        assert!(action.unwrap().is_created());
+            streaming_links: vec![],
+        }
+    }
 
-        // TODO add second put_room request and check for UPDATED response
-        // once implemented
+    #[tokio::test]
+    async fn put_room() {
+        let ctx = test_context();
+
+        let id = RoomId::from_u128(0xf4bc4806_a35c_4ce0_bcb3_fb990b287d4c);
+        let action = ctx.put_room(id, room_parameters()).await.unwrap();
+        assert_eq!(action, RoomAction::Created);
+
+        // TODO add second put_room request and check for UPDATED response once implemented
+    }
+
+    #[tokio::test]
+    async fn request_token() {
+        let mut ctx = test_context();
+
+        let token = ctx
+            .request_room_token(RoomId::nil(), client_parameters1(), None)
+            .await
+            .unwrap();
+
+        assert_eq!(token, None);
+
+        let token = ctx
+            .request_room_token(RoomId::nil(), client_parameters1(), Some(room_parameters()))
+            .await
+            .unwrap();
+
+        assert!(token.is_some());
+
+        let token = ctx
+            .request_room_token(RoomId::nil(), client_parameters2(), None)
+            .await
+            .unwrap();
+
+        assert!(token.is_some())
     }
 }

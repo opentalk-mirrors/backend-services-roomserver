@@ -3,9 +3,10 @@
 
 use async_trait::async_trait;
 use axum::extract::ws::{close_code, CloseFrame, WebSocket};
+use opentalk_roomserver_types::signaling_context::SignalingClientContext;
 use opentalk_roomserver_web_api::v1::signaling::{websocket::SignalingSocket, SignalingBackend};
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 
 use super::Context;
 use crate::room::task::{
@@ -38,6 +39,14 @@ impl SignalingBackend for Context {
         } else {
             Err(ApiError::not_found())
         }
+    }
+
+    async fn consume_token(&self, token: Token) -> Result<SignalingClientContext, Self::Error> {
+        self.token_store
+            .lock()
+            .await
+            .consume_token(&token)
+            .ok_or_else(|| ApiError::unauthorized().with_code("invalid_token"))
     }
 
     async fn accept_client_stream(

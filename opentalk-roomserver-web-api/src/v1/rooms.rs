@@ -8,15 +8,20 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::put,
+    routing::{post, put},
     Json,
 };
-use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_roomserver_types::{
+    api::{TokenRequestBody, TokenResponse},
+    client_parameters::ClientParameters,
+    room_parameters::RoomParameters,
+};
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 
 use crate::Router;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RoomAction {
     Created,
     Updated,
@@ -35,10 +40,9 @@ impl RoomAction {
 impl IntoResponse for RoomAction {
     fn into_response(self) -> Response {
         match self {
-            Self::Created => StatusCode::CREATED,
-            Self::Updated => StatusCode::NO_CONTENT,
+            Self::Created => StatusCode::CREATED.into_response(),
+            Self::Updated => StatusCode::NO_CONTENT.into_response(),
         }
-        .into_response()
     }
 }
 
@@ -47,9 +51,16 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
     /// Create or update the room.
     async fn put_room(
         &self,
-        room_parameters: RoomParameters,
         room_id: RoomId,
+        room_parameters: RoomParameters,
     ) -> Result<RoomAction, ApiError>;
+
+    async fn request_room_token(
+        &mut self,
+        room_id: RoomId,
+        client_parameters: ClientParameters,
+        room_parameters: Option<RoomParameters>,
+    ) -> Result<Option<Token>, ApiError>;
 }
 
 /// Creates a new room instance with the specified parameters if no room with the provided id exists.
@@ -65,10 +76,14 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
     responses(
         (status = StatusCode::CREATED, description = "Successfully created a new room"),
         (status = StatusCode::NO_CONTENT, description = "The room did exist before and the parameter were updated if necessary"),
-        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
+        (status = StatusCode::UNAUTHORIZED, description = "The provided API token is invalid"),
+        (status = StatusCode::BAD_REQUEST, description = "The provided API token could not be parsed"),
         (status = StatusCode::UNPROCESSABLE_ENTITY, description = "Failed to parse request body"),
+        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
     ),
-    security()
+    security(
+        ("API-Token" = [])
+    )
     )]
 #[tracing::instrument(level = "trace", skip(room_parameters), fields(room_id = %path.0))]
 pub(crate) async fn put_room<B: RoomBackend>(
@@ -76,12 +91,57 @@ pub(crate) async fn put_room<B: RoomBackend>(
     path: Path<RoomId>,
     Json(room_parameters): Json<RoomParameters>,
 ) -> Result<RoomAction, ApiError> {
-    ctx.put_room(room_parameters, path.0).await
+    ctx.put_room(path.0, room_parameters).await
+}
+
+/// Creates a new signaling token for the specified user and room
+///
+/// The signaling token can be used to establish a websocket connection with the roomserver through the
+/// `/signaling/<token>` endpoint. The token has a limited lifetime (30 seconds by default) and can only be used once.
+///
+/// Calling this endpoint will start a new room task or refresh existing ones. To get a token for an unknown room, the
+/// request body has to contain the `room_parameters` field (See [`TokenRequestBody`]). If the room is already running,
+/// any provided `room_parameters` will be ignored.
+#[utoipa::path(
+    post,
+    path = "/rooms/{room_id}/token",
+    request_body = TokenRequestBody,
+    params(
+        ("room_id" = RoomId, Path, description = "The UUID that identifies the room")
+    ),
+    responses(
+        (status = StatusCode::OK, description = "The response body contains either the signaling token, or a prompt to include the associated room parameters in the request", body = TokenResponse),
+        (status = StatusCode::UNAUTHORIZED, description = "The provided API token is invalid"),
+        (status = StatusCode::BAD_REQUEST, description = "The provided API token could not be parsed"),
+        (status = StatusCode::UNPROCESSABLE_ENTITY, description = "Failed to parse request body"),
+        (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
+    ),
+    security(
+        ("API-Token" = [])
+    )
+    )]
+#[tracing::instrument(level = "trace", skip(body), fields(room_id = %path.0))]
+pub(crate) async fn request_token<B: RoomBackend>(
+    State(mut ctx): State<B>,
+    path: Path<RoomId>,
+    Json(body): Json<TokenRequestBody>,
+) -> Result<Json<TokenResponse>, ApiError> {
+    let response = match ctx
+        .request_room_token(path.0, body.client_parameters, body.room_parameters)
+        .await?
+    {
+        Some(token) => TokenResponse::Token { token },
+        None => TokenResponse::UnknownRoom,
+    };
+
+    Ok(Json(response))
 }
 
 pub(crate) fn routes<B: RoomBackend + 'static>() -> Router<B> {
     Router::new().nest(
         "/rooms",
-        Router::new().route("/{room_id}", put(put_room::<B>)),
+        Router::new()
+            .route("/{room_id}", put(put_room::<B>))
+            .route("/{room_id}/token", post(request_token::<B>)),
     )
 }

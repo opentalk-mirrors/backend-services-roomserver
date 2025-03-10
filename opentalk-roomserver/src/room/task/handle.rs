@@ -77,6 +77,8 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
     }
 
     /// Refresh the room idle timeout to its original duration
+    ///
+    /// This can only fail if the room has reached its idle timeout or been removed by a user
     pub(crate) async fn refresh_idle_timeout(&self) -> Result<(), RoomTaskHandleError<Socket>> {
         self.send_request(Request::RefreshIdleTimeout).await
     }

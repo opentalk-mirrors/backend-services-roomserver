@@ -38,8 +38,11 @@ mod tests {
             created_by: PublicUserProfile::example_data(),
             password: Default::default(),
             waiting_room: Default::default(),
+            call_in: Default::default(),
             event: Default::default(),
+            invite_code: Default::default(),
             tariff: TariffResource::example_data(),
+            streaming_links: Default::default(),
         }
     }
 

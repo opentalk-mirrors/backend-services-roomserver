@@ -16,7 +16,8 @@ axum = { workspace = true, features = ["ws"] }
 futures.workspace = true
 log.workspace = true
 opentalk-roomserver-types.workspace = true
-opentalk-types-api-v1 = { workspace = true, features = ["http"] }
+opentalk-types-api-v1 = { workspace = true, features = ["axum", "http"] }
 opentalk-types-common.workspace = true
+tower.workspace = true
 tracing.workspace = true
 utoipa.workspace = true

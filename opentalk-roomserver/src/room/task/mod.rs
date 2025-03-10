@@ -32,7 +32,11 @@ pub enum RoomTaskApiError {
     NotImplemented,
 }
 
-const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+/// The timeout for an empty room
+///
+/// Should be higher than the lifetime of the signaling token from the token store to ensure that the room doesn't
+/// expire before the signaling token does.
+const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
@@ -182,7 +186,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> anyhow::Result<()> {
         match message {
             SignalingMessage::Closed(close_reason) => {
-                log::info!("Websocket closed for participant {participant_id}: {close_reason:?}");
+                log::trace!("Websocket closed for participant {participant_id}: {close_reason:?}");
 
                 self.participants.remove(&participant_id);
 
@@ -190,7 +194,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     self.idle_timeout.start(IDLE_TIMEOUT);
                 }
             }
-            SignalingMessage::Command(signaling_command) => log::info!(
+            SignalingMessage::Command(signaling_command) => log::trace!(
                 "Received command from participant {participant_id}:\n{}\n",
                 serde_json::to_string_pretty(&signaling_command).unwrap()
             ),

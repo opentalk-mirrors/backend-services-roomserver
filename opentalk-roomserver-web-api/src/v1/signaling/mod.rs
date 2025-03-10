@@ -14,38 +14,43 @@ use axum::{
     response::{IntoResponse, Response},
     routing::get,
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_roomserver_types::signaling_context::SignalingClientContext;
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 
 use super::Router;
 
 pub mod websocket;
 
 pub(crate) fn routes<B: SignalingBackend + 'static>() -> Router<B> {
-    Router::new().route("/signaling/{room_id}", get(handler::<B>))
+    Router::new().route("/signaling/{token}", get(handler::<B>))
 }
 
 #[utoipa::path(
     get,
-    path = "/signaling/{room_id}",
+    path = "/signaling/{token}",
     responses(
         (status = StatusCode::SWITCHING_PROTOCOLS, description = "Successfully upgraded connection to WebSocket"),
         (status = StatusCode::NOT_FOUND, description = "The requested room does not exist"),
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
     ),
     params(
-        ("room_id" = RoomId, Path, description = "The UUID that identifies the room")
+        ("token" = RoomId, Path, description = "The UUID token that verifies the user")
     ),
     security(),
     )]
-#[tracing::instrument(name = "/signaling/{room_id}", level = "info", skip(ctx, ws))]
+#[tracing::instrument(name = "/signaling/{token}", level = "info", skip(ctx, token, ws))]
 async fn handler<B: SignalingBackend + 'static>(
     State(ctx): State<B>,
-    Path(room_id): Path<RoomId>,
+    Path(token): Path<Token>,
     ws: WebSocketUpgrade,
 ) -> Result<Response, B::Error> {
     log::debug!("Received signaling connection request");
 
-    // This refreshes the rooms idle timeout to avoid race conditions
+    // Verify and consume the users roomserver token
+    let signaling_context = ctx.consume_token(token).await?;
+    let room_id = signaling_context.room_id;
+
+    // This refreshes the rooms idle timeout if the room exists to avoid race conditions
     ctx.ensure_room_exists(room_id).await?;
 
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, ctx, room_id)))
@@ -68,6 +73,11 @@ pub trait SignalingBackend: Clone + Send + Sync + std::fmt::Debug {
 
     /// Returns an error if the room doesn't exist.
     async fn ensure_room_exists(&self, room_id: RoomId) -> Result<(), Self::Error>;
+
+    /// Consume the given token from the internal token store
+    ///
+    /// Returns an error if the token is does not exist
+    async fn consume_token(&self, token: Token) -> Result<SignalingClientContext, Self::Error>;
 
     /// Accept a client stream and connect it to the room.
     ///
