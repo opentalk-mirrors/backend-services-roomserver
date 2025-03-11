@@ -21,6 +21,7 @@ use opentalk_types_signaling::ParticipantId;
 use signaling_module::{SignalingEvent, SignalingModule};
 
 pub mod module_context;
+pub(crate) mod module_initializer;
 pub(crate) mod ping;
 pub mod signaling_module;
 
@@ -39,8 +40,8 @@ pub trait ModuleHandle: Send {
 /// Resolves generic JSON messages into concrete types for the associated [`SignalingModule`]
 ///
 /// Implements the [`ModuleHandle`] trait.
-pub struct ModuleDispatcher<M: SignalingModule> {
-    pub module: M,
+struct ModuleDispatcher<M: SignalingModule + Send> {
+    module: M,
 }
 
 impl<M> ModuleDispatcher<M>

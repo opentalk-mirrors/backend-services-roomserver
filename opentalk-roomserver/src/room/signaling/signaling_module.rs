@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use super::module_context::ModuleContext;
+use crate::Settings;
 
 /// The trait that defines a signaling module
 ///
@@ -28,7 +29,7 @@ pub trait SignalingModule: Send + Sized {
     type Outgoing: Serialize + PartialEq + Debug + Send;
 
     /// Creates an instance of the interface to access the module
-    async fn init() -> Option<Self>;
+    async fn init(init_data: SignalingModuleInitData) -> Option<Self>;
 
     /// Receive the next event that was dispatched to this module.
     ///
@@ -47,4 +48,11 @@ where
         sender: ParticipantId,
         content: M::Incoming,
     },
+}
+
+/// Data that a signaling module might require to initialize
+#[derive(Clone, Debug)]
+pub struct SignalingModuleInitData {
+    /// The roomserver settings
+    pub settings: Arc<Settings>,
 }

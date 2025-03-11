@@ -1,23 +1,20 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
+use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
-use tokio::{
-    sync::{mpsc, watch},
-    task::JoinSet,
-};
+use tokio::sync::{mpsc, watch};
 
 use super::{
     message_router::AlreadyConnectedError,
-    signaling::{signaling_module::SignalingModule, ModuleDispatcher, ModuleHandle},
+    signaling::{
+        module_initializer::{ModuleRegistry, Modules},
+        signaling_module::SignalingModuleInitData,
+    },
 };
 use crate::{
     room::{
@@ -29,7 +26,7 @@ use crate::{
             idle_timeout::IdleTimeout,
         },
     },
-    ApplicationState,
+    ApplicationState, Settings,
 };
 
 pub(crate) mod handle;
@@ -48,8 +45,6 @@ pub enum RoomTaskApiError {
 /// expire before the signaling token does.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
-type Modules = HashMap<ModuleId, Box<dyn ModuleHandle>>;
-
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
@@ -66,6 +61,8 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
 
     message_router: MessageRouter,
 
+    _settings: Arc<Settings>,
+
     _app_state: watch::Receiver<ApplicationState>,
 
     participants: HashSet<ParticipantId>,
@@ -77,6 +74,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         room_id: RoomId,
         room_parameters: RoomParameters,
         task_registry: RoomTaskRegistry<Socket>,
+        module_registry: Arc<ModuleRegistry>,
+        settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> RoomTaskHandle<Socket> {
         Self::spawn_with_timeout(
@@ -84,6 +83,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             room_parameters,
             task_registry,
             app_state,
+            module_registry,
+            settings,
             IDLE_TIMEOUT,
         )
     }
@@ -91,46 +92,58 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Spawns a new [`RoomTask`] with a specific timeout
     pub(super) fn spawn_with_timeout(
         room_id: RoomId,
-        room_parameters: RoomParameters,
+        mut room_parameters: RoomParameters,
         task_registry: RoomTaskRegistry<Socket>,
         app_state: watch::Receiver<ApplicationState>,
+        module_registry: Arc<ModuleRegistry>,
+        settings: Arc<Settings>,
         timeout: Duration,
     ) -> RoomTaskHandle<Socket> {
         let (tx, rx) = mpsc::channel(20);
 
         let message_router = MessageRouter::new(app_state.clone());
 
-        let room_task = RoomTask {
-            room_id,
-            parameters: room_parameters,
-            api_rx: rx,
-            idle_timeout: IdleTimeout::start_new(timeout),
-            message_router,
-            _app_state: app_state,
-            participants: HashSet::default(),
-        };
-
         tokio::task::spawn(async move {
-            room_task.run().await;
+            let (modules, uninitialized) = module_registry
+                .initialize_modules(
+                    room_parameters.tariff.modules.keys(),
+                    SignalingModuleInitData {
+                        settings: Arc::clone(&settings),
+                    },
+                )
+                .await;
+
+            // Remove unknown modules from the room parameters
+            for module_id in uninitialized {
+                log::debug!("Unable to initialize unknown module {module_id} for room {room_id}");
+                room_parameters.tariff.modules.remove(&module_id);
+            }
+
+            let room_task = RoomTask {
+                room_id,
+                parameters: room_parameters,
+                api_rx: rx,
+                idle_timeout: IdleTimeout::start_new(timeout),
+                message_router,
+                _settings: settings,
+                _app_state: app_state,
+                participants: HashSet::default(),
+            };
+
+            room_task.run(modules).await;
             task_registry.remove_room(room_id).await;
         });
 
         RoomTaskHandle { sender: tx }
     }
 
-    async fn run(self) {
-        if let Err(e) = self.inner_run().await {
+    async fn run(self, modules: Modules) {
+        if let Err(e) = self.inner_run(modules).await {
             log::error!("RoomTask exited with error {e}");
         }
     }
 
-    async fn inner_run(mut self) -> anyhow::Result<()> {
-        // TODO: initialize modules
-
-        let mut modules = self.initialize_modules().await;
-
-        // HashMap<ModuleId, Box<dyn ModuleCaller>>,
-
+    async fn inner_run(mut self, mut modules: Modules) -> anyhow::Result<()> {
         loop {
             tokio::select! {
                 msg = self.api_rx.recv() => {
@@ -152,18 +165,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 }
             };
         }
-    }
-
-    async fn initialize_modules(&mut self) -> Modules {
-        let modules = &self.parameters.tariff.modules;
-
-        let mut join_set = JoinSet::new();
-
-        for module_id in modules.keys() {
-            join_set.spawn(init_module(module_id.clone()));
-        }
-
-        join_set.join_all().await.into_iter().flatten().collect()
     }
 
     #[tracing::instrument(skip_all, fields(%self.room_id))]
@@ -268,21 +269,4 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &self.participants,
         )
     }
-}
-
-async fn init_module(module_id: ModuleId) -> Option<(ModuleId, Box<dyn ModuleHandle>)> {
-    let module_handle = match module_id.as_str() {
-        "ping" => super::signaling::ping::PingModule::init().await,
-        unknown_module => {
-            log::error!("failed to load unknown module {unknown_module}, skipping");
-            None
-        }
-    }?;
-
-    Some((
-        module_id,
-        Box::new(ModuleDispatcher {
-            module: module_handle,
-        }),
-    ))
 }

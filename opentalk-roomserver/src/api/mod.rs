@@ -23,7 +23,9 @@ use utoipa::{
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    room::registry::RoomTaskRegistry, settings::Settings, wait_shutdown, ApplicationState,
+    room::{registry::RoomTaskRegistry, signaling::module_initializer::ModuleRegistry},
+    settings::Settings,
+    wait_shutdown, ApplicationState,
 };
 
 pub(crate) type Router = axum::Router<Context>;
@@ -98,6 +100,7 @@ pub(crate) struct Context {
     room_tasks: RoomTaskRegistry<WebSocket>,
     // A list of eligible participants and their join tokens
     token_store: Arc<Mutex<TokenStore>>,
+    module_registry: Arc<ModuleRegistry>,
 
     app_state: watch::Sender<ApplicationState>,
 }
@@ -122,7 +125,13 @@ impl Context {
     ) -> Result<(), ApiError> {
         let Some(room_handle) = self
             .room_tasks
-            .create_or_get(room_id, room_parameters, self.app_state.subscribe())
+            .create_or_get(
+                room_id,
+                room_parameters,
+                Arc::clone(&self.module_registry),
+                Arc::clone(&self.settings),
+                self.app_state.subscribe(),
+            )
             .await
         else {
             // room has been created
@@ -164,6 +173,7 @@ where
         settings: Arc::clone(&settings),
         room_tasks: RoomTaskRegistry::new(),
         token_store: Arc::new(Mutex::new(TokenStore::new())),
+        module_registry: Arc::new(ModuleRegistry::new()),
         app_state,
     };
 
@@ -206,7 +216,13 @@ impl RoomBackend for Context {
     ) -> Result<RoomAction, opentalk_types_api_v1::error::ApiError> {
         let (action, task_handle) = self
             .room_tasks
-            .put_room(room_id, room_parameters, self.app_state.subscribe())
+            .put_room(
+                room_id,
+                room_parameters,
+                Arc::clone(&self.module_registry),
+                Arc::clone(&self.settings),
+                self.app_state.subscribe(),
+            )
             .await
             .map_err(|err| {
                 log::info!("Failed to put room {}: {err}", room_id);
@@ -273,6 +289,7 @@ mod test {
             settings: settings.clone(),
             room_tasks: RoomTaskRegistry::new(),
             token_store: Arc::new(Mutex::new(TokenStore::new())),
+            module_registry: Arc::new(ModuleRegistry::new()),
             app_state,
         }
     }

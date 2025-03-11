@@ -5,9 +5,11 @@
 use opentalk_types_common::modules::{module_id, ModuleId};
 use serde::{Deserialize, Serialize};
 
-use super::{ModuleContext, SignalingEvent, SignalingModule};
+use super::{
+    signaling_module::SignalingModuleInitData, ModuleContext, SignalingEvent, SignalingModule,
+};
 
-pub const MODULE_ID: ModuleId = module_id!("ping");
+const MODULE_ID: ModuleId = module_id!("ping");
 
 pub struct PingModule;
 
@@ -19,7 +21,7 @@ impl SignalingModule for PingModule {
 
     type Outgoing = Event;
 
-    async fn init() -> Option<Self> {
+    async fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self)
     }
 
