@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashSet, sync::Arc, time::Duration};
+use std::{any::Any, collections::HashSet, future::Future, pin::Pin, sync::Arc, time::Duration};
 
+use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, watch};
 
@@ -20,7 +21,7 @@ use crate::{
     room::{
         message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
         registry::RoomTaskRegistry,
-        signaling::module_context::DynModuleContext,
+        signaling::{module_context::DynModuleContext, DynEvent},
         task::{
             handle::{Request, RoomTaskHandle, TaskMessage},
             idle_timeout::IdleTimeout,
@@ -45,6 +46,15 @@ pub enum RoomTaskApiError {
 /// expire before the signaling token does.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
+pub struct LoopbackMessage {
+    pub namespace: ModuleId,
+    pub value: Box<dyn Any + Send + 'static>,
+}
+
+/// A set of loopback futures that were created by signaling modules
+pub type LoopbackFutures =
+    FuturesUnordered<Pin<Box<dyn Future<Output = Option<LoopbackMessage>> + Send + Sync>>>;
+
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
@@ -60,6 +70,8 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
     idle_timeout: IdleTimeout,
 
     message_router: MessageRouter,
+
+    loopback_futures: LoopbackFutures,
 
     _settings: Arc<Settings>,
 
@@ -125,6 +137,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 api_rx: rx,
                 idle_timeout: IdleTimeout::start_new(timeout),
                 message_router,
+                loopback_futures: FuturesUnordered::new(),
                 _settings: settings,
                 _app_state: app_state,
                 participants: HashSet::default(),
@@ -159,6 +172,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     log::trace!("received {msg:?}");
                     let _ = self.handle_message(&mut modules, msg).await;
                 }
+                Some(msg) = self.loopback_futures.next() => {
+                    let Some(msg) = msg else {
+                        log::error!("Signaling module channel was dropped");
+                        continue;
+                    };
+                    let Some(module) = modules.get_mut(&msg.namespace) else {
+                        log::error!("Received loopback event for unknown module {}", msg.namespace);
+                        continue;
+                    };
+                    module.on_event(&mut self.context(), DynEvent::LoopbackEvent(msg.value)).await;
+                },
                 () = self.idle_timeout.has_timed_out() => {
                     log::debug!("Room task {} reached its idle timeout, exiting", self.room_id);
                     return Ok(());
@@ -235,10 +259,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 module
                     .on_event(
                         &mut self.context(),
-                        participant_id,
-                        signaling_command.content,
+                        DynEvent::WebsocketMessage {
+                            sender: participant_id,
+                            command: signaling_command.content,
+                        },
                     )
-                    .await?;
+                    .await;
             }
         }
 
@@ -267,6 +293,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &self.parameters,
             &mut self.message_router,
             &self.participants,
+            &self.loopback_futures,
         )
     }
 }

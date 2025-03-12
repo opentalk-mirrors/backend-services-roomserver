@@ -14,7 +14,8 @@ use crate::Settings;
 ///
 /// Implementors can be added as a module to the room task. The room task will forward signaling events to the module
 /// with the corresponding [`SignalingModule::NAMESPACE`]. All [`SignalingModule::on_event`] calls are handled in
-/// sequence on the same task.
+/// sequence on the same task. Signaling modules are expected to spawn separate tasks when compute intense or
+/// long-running operations need to be executed (See [`SignalingModule::Loopback`] for more details).
 #[async_trait::async_trait]
 pub trait SignalingModule: Send + Sized {
     /// The unique namespace for the module
@@ -27,6 +28,14 @@ pub trait SignalingModule: Send + Sized {
 
     /// The outgoing websocket payload that is sent to the clients
     type Outgoing: Serialize + PartialEq + Debug + Send;
+
+    /// Internal result type for asynchronous tasks
+    ///
+    /// These are received as [`SignalingEvent::LoopbackMessage`] in the [`SignalingModule::on_event`] when an asynchronous
+    /// task created by the module finishes.
+    ///
+    /// Tasks can be created with [`ModuleContext::spawn`] or [`ModuleContext::spawn_blocking`].
+    type Loopback: Send + 'static;
 
     /// Creates an instance of the interface to access the module
     async fn init(init_data: SignalingModuleInitData) -> Option<Self>;
@@ -48,6 +57,9 @@ where
         sender: ParticipantId,
         content: M::Incoming,
     },
+
+    /// An asynchronous task which was started by the module completed
+    LoopbackMessage(M::Loopback),
 }
 
 /// Data that a signaling module might require to initialize
