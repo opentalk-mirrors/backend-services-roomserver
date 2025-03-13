@@ -139,8 +139,11 @@ components:
         - type: object
           description: A guest participant
           required:
+            - display_name
             - kind
           properties:
+            display_name:
+              $ref: "#/components/schemas/DisplayName"
             kind:
               type: string
               enum:
@@ -177,12 +180,15 @@ components:
     EventContext:
       type: object
       required:
+        - id
         - title
         - description
         - is_adhoc
       properties:
         description:
           $ref: "#/components/schemas/EventDescription"
+        id:
+          $ref: "#/components/schemas/EventId"
         is_adhoc:
           type: boolean
         shared_folder:
@@ -191,6 +197,7 @@ components:
           $ref: "#/components/schemas/EventTitle"
       example:
         description: The Weekly Team Event
+        id: 00000000-0000-0000-0000-004433221100
         is_adhoc: false
         shared_folder:
           read:
@@ -203,6 +210,11 @@ components:
       examples:
         - The Weekly Team Event
       maxLength: 4096
+    EventId:
+      type: string
+      format: uuid
+      description: The identifier of an event
+      example: 00000000-0000-0000-0000-004433221100
     EventTitle:
       type: string
       description: The title of an event
@@ -295,17 +307,21 @@ components:
         - waiting_room
         - tariff
         - streaming_links
+        - e2e_encryption
       properties:
         call_in:
           $ref: "#/components/schemas/CallInInfo"
         created_by:
           $ref: "#/components/schemas/PublicUserProfile"
+        e2e_encryption:
+          type: boolean
+          description: Indicates whether the meeting room should have e2e encryption enabled.
         event:
           $ref: "#/components/schemas/EventContext"
         invite_code:
           $ref: "#/components/schemas/InviteCode"
         password:
-          type: string
+          $ref: "#/components/schemas/RoomPassword"
         streaming_links:
           type: array
           items:
@@ -327,8 +343,10 @@ components:
           id: 00000000-0000-0000-0000-0000000a11c3
           lastname: Adams
           title: ""
+        e2e_encryption: false
         event:
           description: The Weekly Team Event
+          id: 00000000-0000-0000-0000-004433221100
           is_adhoc: false
           shared_folder:
             read:
@@ -336,7 +354,7 @@ components:
               url: "https://cloud.example.com/shares/abc123"
           title: Team Event
         invite_code: 00000000-0000-0000-0000-0000deadbeef
-        password: string
+        password: "1234"
         streaming_links:
           - name: My OwnCast Stream
             url: "https://owncast.example.com/mystream"
@@ -358,6 +376,13 @@ components:
           quotas:
             max_storage: 50000
         waiting_room: false
+    RoomPassword:
+      type: string
+      description: A room password
+      examples:
+        - v3rys3cr3t
+      maxLength: 255
+      minLength: 1
     SharedFolder:
       type: object
       description: |-
@@ -532,8 +557,10 @@ components:
             id: 00000000-0000-0000-0000-0000000a11c3
             lastname: Adams
             title: ""
+          e2e_encryption: false
           event:
             description: The Weekly Team Event
+            id: 00000000-0000-0000-0000-004433221100
             is_adhoc: false
             shared_folder:
               read:
@@ -541,7 +568,7 @@ components:
                 url: "https://cloud.example.com/shares/abc123"
             title: Team Event
           invite_code: 00000000-0000-0000-0000-0000deadbeef
-          password: string
+          password: "1234"
           streaming_links:
             - name: My OwnCast Stream
               url: "https://owncast.example.com/mystream"

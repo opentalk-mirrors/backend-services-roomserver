@@ -11,6 +11,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+chrono.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["serde", "utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true

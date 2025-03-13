@@ -14,7 +14,9 @@ use axum::{
     response::{IntoResponse, Response},
     routing::get,
 };
-use opentalk_roomserver_types::signaling_context::SignalingClientContext;
+use opentalk_roomserver_types::{
+    client_parameters::ClientParameters, signaling_context::SignalingClientContext,
+};
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 
 use super::Router;
@@ -53,12 +55,22 @@ async fn open_signaling_socket<B: SignalingBackend + 'static>(
     // This refreshes the rooms idle timeout if the room exists to avoid race conditions
     ctx.ensure_room_exists(room_id).await?;
 
-    Ok(ws.on_upgrade(move |socket| handle_socket(socket, ctx, room_id)))
+    Ok(ws.on_upgrade(move |socket| {
+        handle_socket(socket, ctx, room_id, signaling_context.client_parameters)
+    }))
 }
 
-async fn handle_socket<B: SignalingBackend + 'static>(socket: WebSocket, ctx: B, room_id: RoomId) {
+async fn handle_socket<B: SignalingBackend + 'static>(
+    socket: WebSocket,
+    ctx: B,
+    room_id: RoomId,
+    client_parameters: ClientParameters,
+) {
     log::debug!("Upgrade to websocket connection");
-    if let Err(e) = ctx.accept_client_stream(socket, room_id).await {
+    if let Err(e) = ctx
+        .accept_client_stream(socket, room_id, client_parameters)
+        .await
+    {
         log::info!("Failed to accept client stream: {e:?}");
     }
 }
@@ -89,5 +101,6 @@ pub trait SignalingBackend: Clone + Send + Sync + std::fmt::Debug {
         &self,
         socket: WebSocket,
         room_id: RoomId,
+        client_parameters: ClientParameters,
     ) -> Result<(), Self::Error>;
 }

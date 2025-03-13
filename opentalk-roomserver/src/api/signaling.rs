@@ -3,7 +3,9 @@
 
 use async_trait::async_trait;
 use axum::extract::ws::{close_code, CloseFrame, WebSocket};
-use opentalk_roomserver_types::signaling_context::SignalingClientContext;
+use opentalk_roomserver_types::{
+    client_parameters::ClientParameters, signaling_context::SignalingClientContext,
+};
 use opentalk_roomserver_web_api::v1::signaling::{websocket::SignalingSocket, SignalingBackend};
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
@@ -53,17 +55,20 @@ impl SignalingBackend for Context {
         &self,
         socket: WebSocket,
         room_id: RoomId,
+        client_parameters: ClientParameters,
     ) -> Result<(), Self::Error> {
         let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
             error_close_websocket(socket).await;
             return Err(ApiError::not_found());
         };
 
-        let mut res = task_handle.accept_signaling_socket(socket).await;
+        let mut res = task_handle
+            .accept_signaling_socket(socket, client_parameters)
+            .await;
 
         // handle that the socket might not reach the room task. In that case we need to close it ourself.
         if let Err(e) = &mut res {
-            if let Some(Request::WsJoin { socket }) = e.take_request() {
+            if let Some(Request::WsJoin { socket, .. }) = e.take_request() {
                 error_close_websocket(socket).await;
                 return Err(ApiError::not_found());
             }

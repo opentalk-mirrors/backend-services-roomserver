@@ -7,6 +7,7 @@ use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
+//TODO: maybe use ref json value
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalingEvent {
     pub namespace: ModuleId,

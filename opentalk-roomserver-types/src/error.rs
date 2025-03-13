@@ -11,17 +11,18 @@ pub const NAMESPACE: ModuleId = module_id!("error");
 #[serde(rename_all = "snake_case", tag = "error")]
 pub enum SignalingError {
     /// The requested namespace is unknown to the room server
-    UnknownNamespace {
-        invalid_namespace: String,
-    },
+    UnknownNamespace { invalid_namespace: String },
 
     /// The received message was not valid JSON.
-    InvalidJson {
-        message: String,
-    },
+    InvalidJson { message: String },
 
-    // A non-specific internal error
+    /// A non-specific internal error
     Internal,
+
+    /// A fatal error in a module occurred. The module was terminated.
+    ///
+    /// Further messages to this namespace will be ignored.
+    FatalModuleError { namespace: ModuleId },
 }
 
 impl From<serde_json::Error> for SignalingError {

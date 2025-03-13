@@ -297,7 +297,9 @@ mod test {
     fn client_parameters2() -> ClientParameters {
         ClientParameters {
             client_id: "1234".into(),
-            kind: ClientKind::Guest,
+            kind: ClientKind::Guest {
+                display_name: DisplayName::from_str_lossy("tester"),
+            },
         }
     }
 
@@ -330,6 +332,7 @@ mod test {
             invite_code: None,
             tariff: TariffResource::example_data(),
             streaming_links: vec![],
+            e2e_encryption: false,
         }
     }
 

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_roomserver_types::{
+    client_parameters::ClientParameters, room_parameters::RoomParameters,
+};
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use tokio::sync::{mpsc, oneshot};
 
@@ -94,8 +96,13 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
     pub(crate) async fn accept_signaling_socket(
         &self,
         socket: Socket,
+        client_parameters: ClientParameters,
     ) -> Result<(), RoomTaskHandleError<Socket>> {
-        self.send_request(Request::WsJoin { socket }).await
+        self.send_request(Request::WsJoin {
+            socket,
+            client_parameters,
+        })
+        .await
     }
 }
 
@@ -131,5 +138,8 @@ pub(crate) enum Request<Socket: SignalingSocket> {
     UpdateParameter(RoomParameters),
 
     /// Join the room with a given websocket stream and sink
-    WsJoin { socket: Socket },
+    WsJoin {
+        socket: Socket,
+        client_parameters: ClientParameters,
+    },
 }

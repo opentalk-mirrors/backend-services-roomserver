@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{convert::Infallible, fmt::Debug, sync::Arc};
+use std::{collections::BTreeMap, convert::Infallible, fmt::Debug, sync::Arc};
 
 use opentalk_types_common::modules::ModuleId;
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize};
 
-use super::module_context::ModuleContext;
+use super::module_context::{DynModuleContext, ModuleContext};
 use crate::Settings;
 
 /// The trait that defines a signaling module
 ///
 /// Implementors can be added as a module to the room task. The room task will forward signaling events to the module
-/// with the corresponding [`SignalingModule::NAMESPACE`]. All [`SignalingModule::on_event`] calls are handled in
-/// sequence on the same task. Signaling modules are expected to spawn separate tasks when compute intense or
-/// long-running operations need to be executed (See [`SignalingModule::Loopback`] for more details).
+/// with the corresponding [`SignalingModule::NAMESPACE`]. All event calls are handled in sequence on the same task.
+/// Signaling modules are expected to spawn separate tasks when compute intense or long-running operations need to be
+/// executed (See [`SignalingModule::Loopback`] for more details).
 #[async_trait::async_trait]
 pub trait SignalingModule: Send + Sized {
     /// The unique namespace for the module
@@ -23,7 +23,7 @@ pub trait SignalingModule: Send + Sized {
     /// This is used as a general identifier to dispatch incoming signaling messages to the correct module.
     const NAMESPACE: ModuleId;
 
-    /// The incoming websocket payload which is received as an [`SignalingEvent::WebsocketMessage`] in [`SignalingModule::on_event`]
+    /// The incoming websocket payload which is received as in [`SignalingModule::on_websocket_message`]
     type Incoming: for<'de> Deserialize<'de> + Send;
 
     /// The outgoing websocket payload that is sent to the clients
@@ -31,13 +31,23 @@ pub trait SignalingModule: Send + Sized {
 
     /// Internal result type for asynchronous tasks
     ///
-    /// These are received as [`SignalingEvent::LoopbackMessage`] in the [`SignalingModule::on_event`] when an asynchronous
-    /// task created by the module finishes.
+    /// These are received in the [`SignalingModule::on_loopback_event`] when an asynchronous task created by
+    /// the module finishes.
     ///
     /// Tasks can be created with [`ModuleContext::spawn`] or [`ModuleContext::spawn_blocking`].
     type Loopback: Send + 'static;
 
-    /// The non-fatal error that can be returned from [`SignalingModule::on_event`]
+    /// Namespaced data that can be attached to a participants `JoinSuccess` message
+    type JoinInfo: SignalingModuleFrontendData + Clone + Send;
+
+    /// Namespaced data that can be attached to the `Joined` message
+    ///
+    /// When a participant connects they trigger a `Joined` event for all other participants in the conference. Modules
+    /// can append this type to the message to communicate module specific state of a new participant to the other
+    /// participants.
+    type PeerJoinInfo: Serialize + Send + 'static;
+
+    /// The non-fatal error that can be returned from signaling module event handlers
     ///
     /// Is converted into a websocket event and returned to the command issuing participant
     ///
@@ -47,13 +57,29 @@ pub trait SignalingModule: Send + Sized {
     /// Creates an instance of the interface to access the module
     async fn init(init_data: SignalingModuleInitData) -> Option<Self>;
 
-    /// Receive the next event that was dispatched to this module.
-    ///
-    /// This function is performance critical.
-    async fn on_event(
+    async fn on_participant_connected(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        event: SignalingEvent<Self>,
+        participant_id: ParticipantId,
+    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>>;
+
+    async fn on_participant_disconnected(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        participant_id: ParticipantId,
+    ) -> Result<(), SignalingModuleError<Self::Error>>;
+
+    async fn on_websocket_message(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        content: Self::Incoming,
+    ) -> Result<(), SignalingModuleError<Self::Error>>;
+
+    async fn on_loopback_event(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>>;
 
     /// Destroy the module and remove all associated resources
@@ -62,20 +88,71 @@ pub trait SignalingModule: Send + Sized {
     async fn destroy(self) {}
 }
 
-/// The type received in [`SignalingModule::on_event`]
-#[derive(Debug, Clone, Deserialize)]
-pub enum SignalingEvent<M>
-where
-    M: SignalingModule,
-{
-    /// A websocket message was sent to the module
-    WebsocketMessage {
-        sender: ParticipantId,
-        content: M::Incoming,
-    },
+pub struct JoinInfo<M: SignalingModule> {
+    /// Module specific data that will be attached to the participants `JoinedSuccess` message
+    pub join_success: Option<M::JoinInfo>,
+    /// Module specific data that will be attached to other participants `Joined` message
+    pub peer: PeerJoinInfoMap<M>,
+}
 
-    /// An asynchronous task which was started by the module completed
-    LoopbackMessage(M::Loopback),
+impl<M: SignalingModule> Default for JoinInfo<M> {
+    fn default() -> Self {
+        Self {
+            join_success: Default::default(),
+            peer: Default::default(),
+        }
+    }
+}
+
+// TODO: placeholder participant info/state
+pub struct ParticipantInfo {}
+
+/// A map of participants and their [`SignalingModule::PeerJoinInfo`]
+///
+/// When a `Joined` message is sent to a participant, the participants associated [`SignalingModule::PeerJoinInfo`] will
+/// be attached to it.
+pub struct PeerJoinInfoMap<M: SignalingModule> {
+    pub(crate) map: BTreeMap<ParticipantId, M::PeerJoinInfo>,
+}
+
+impl<M: SignalingModule> Default for PeerJoinInfoMap<M> {
+    fn default() -> Self {
+        Self {
+            map: Default::default(),
+        }
+    }
+}
+
+impl<M: SignalingModule> PeerJoinInfoMap<M> {
+    /// Attach the same [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) for all participants
+    pub fn insert_for_all(&mut self, ctx: &mut DynModuleContext<'_>, info: M::PeerJoinInfo)
+    where
+        M::PeerJoinInfo: Clone,
+    {
+        self.insert_for_matching(ctx, info, |_, _| true);
+    }
+
+    /// Attach [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) to a single participant
+    pub fn insert(&mut self, participant_id: ParticipantId, info: M::PeerJoinInfo) {
+        self.map.insert(participant_id, info);
+    }
+
+    /// Attach [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) for all participants that match the given filter
+    pub fn insert_for_matching<F>(
+        &mut self,
+        ctx: &mut DynModuleContext<'_>,
+        info: M::PeerJoinInfo,
+        mut filter: F,
+    ) where
+        F: FnMut(ParticipantId, &ParticipantInfo) -> bool,
+        M::PeerJoinInfo: Clone,
+    {
+        for participant in ctx.participants.iter() {
+            if filter(*participant, &ParticipantInfo {}) {
+                self.map.insert(*participant, info.clone());
+            }
+        }
+    }
 }
 
 /// Data that a signaling module might require to initialize
@@ -90,7 +167,7 @@ pub trait ModuleError: Debug + Send {}
 
 impl ModuleError for Infallible {}
 
-/// The error type returned by [`SignalingModule::on_event`]
+/// The error type returned by signaling module event handlers
 #[derive(Debug)]
 pub enum SignalingModuleError<E> {
     /// An non-fatal internal error occurred

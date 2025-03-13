@@ -7,7 +7,7 @@ use std::collections::{hash_map::Entry, HashMap};
 
 use axum::extract::ws::{close_code, CloseFrame};
 use futures::SinkExt;
-pub use message::{MessageEnvelope, SignalingMessage};
+pub use message::{CloseReason, MessageEnvelope, SignalingMessage};
 use opentalk_roomserver_types::signaling::SignalingEvent;
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_signaling::ParticipantId;
@@ -59,15 +59,40 @@ impl MessageRouter {
         }
     }
 
-    /// Send a message to a participant
+    /// Send a [`SignalingEvent`] to a participant
     pub async fn send_event(&mut self, participant_id: ParticipantId, event: SignalingEvent) {
         let Some(connection_handle) = self.connections.get(&participant_id) else {
             return;
         };
 
         if connection_handle.send_event(event).await.is_err() {
-            log::info!("Attempted to message participant who has already left");
+            log::debug!("Attempted to message participant who has already left");
             self.connections.remove(&participant_id);
+        }
+    }
+
+    /// Send a [`SignalingEvent`] to **all** participants
+    pub async fn broadcast_event(&mut self, event: SignalingEvent) {
+        let mut send_futures = Vec::new();
+
+        for (participant_id, connection_handle) in &mut self.connections {
+            let cloned_event = event.clone();
+
+            send_futures.push(async move {
+                if connection_handle.send_event(cloned_event).await.is_err() {
+                    log::debug!("Attempted to message participant who has already left");
+                    return Some(*participant_id);
+                }
+                None
+            });
+        }
+
+        // send events to all participants and collect stale connections
+        let stale_connections = futures::future::join_all(send_futures).await;
+
+        // remove all stale connections
+        for participant_id in stale_connections.iter().flatten() {
+            self.connections.remove(participant_id);
         }
     }
 
