@@ -26,24 +26,22 @@ opentalk-types-api-v1 = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling = { workspace = true, features = ["rand"] }
 opentalk-version.workspace = true
-opentelemetry = "0.28.0"
-opentelemetry-otlp = { version = "0.28.0", features = ["grpc-tonic"] }
-opentelemetry_sdk = { version = "0.28.0", features = [
-  "rt-tokio-current-thread",
-] }
+opentelemetry.workspace = true
+opentelemetry-otlp.workspace = true
+opentelemetry_sdk.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_path_to_error.workspace = true
 service-probe.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "signal"] }
-tower = "0.5.2"
+tower.workspace = true
 tracing.workspace = true
-tracing-opentelemetry = "0.29.0"
+tracing-opentelemetry.workspace = true
 tracing-subscriber.workspace = true
 utoipa.workspace = true
 utoipa-swagger-ui.workspace = true
-uuid = { version = "1.11.0", features = ["v4"] }
+uuid = { workspace = true, features = ["v4"] }
 yaml-rust2.workspace = true
 
 
@@ -53,8 +51,8 @@ tokio = { workspace = true, features = ["macros", "rt"] }
 [build-dependencies]
 anyhow.workspace = true
 opentalk-version.workspace = true
-vergen = { version = "9", features = ["build", "cargo", "rustc"] }
-vergen-gix = "1"
+vergen.workspace = true
+vergen-gix.workspace = true
 
 [package.metadata.cargo-machete]
 ignored = ["vergen", "vergen-gix"]
