@@ -11,18 +11,18 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-async-trait = "0.1.83"
+async-trait.workspace = true
 http-request-derive = { workspace = true, features = ["reqwest"] }
 opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 serde.workspace = true
-thiserror = "2.0.0"
-url = "2.5.2"
+thiserror.workspace = true
+url.workspace = true
 
 [dev-dependencies]
 opentalk-types-api-v1.workspace = true
-tokio-test = "0.4.4"
+tokio-test.workspace = true
 
 [features]
 default = ["default-tls", "reqwest/default"]
