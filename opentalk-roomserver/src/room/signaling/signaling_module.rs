@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{fmt::Debug, sync::Arc};
+use std::{convert::Infallible, fmt::Debug, sync::Arc};
 
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
@@ -27,7 +27,7 @@ pub trait SignalingModule: Send + Sized {
     type Incoming: for<'de> Deserialize<'de> + Send;
 
     /// The outgoing websocket payload that is sent to the clients
-    type Outgoing: Serialize + PartialEq + Debug + Send;
+    type Outgoing: Serialize + PartialEq + Debug + From<Self::Error> + Send;
 
     /// Internal result type for asynchronous tasks
     ///
@@ -37,13 +37,29 @@ pub trait SignalingModule: Send + Sized {
     /// Tasks can be created with [`ModuleContext::spawn`] or [`ModuleContext::spawn_blocking`].
     type Loopback: Send + 'static;
 
+    /// The non-fatal error that can be returned from [`SignalingModule::on_event`]
+    ///
+    /// Is converted into a websocket event and returned to the command issuing participant
+    ///
+    /// Use [`Infallible`] if there is no error case.
+    type Error: ModuleError;
+
     /// Creates an instance of the interface to access the module
     async fn init(init_data: SignalingModuleInitData) -> Option<Self>;
 
     /// Receive the next event that was dispatched to this module.
     ///
     /// This function is performance critical.
-    async fn on_event(&mut self, ctx: &mut ModuleContext<'_, Self>, event: SignalingEvent<Self>);
+    async fn on_event(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        event: SignalingEvent<Self>,
+    ) -> Result<(), SignalingModuleError<Self::Error>>;
+
+    /// Destroy the module and remove all associated resources
+    ///
+    /// Long running tasks must be spawned in a separate task
+    async fn destroy(self) {}
 }
 
 /// The type received in [`SignalingModule::on_event`]
@@ -67,4 +83,45 @@ where
 pub struct SignalingModuleInitData {
     /// The roomserver settings
     pub settings: Arc<Settings>,
+}
+
+/// Marker trait to allow us to convert the [`SignalingModule::Error`] into a [`SignalingModuleError`]
+pub trait ModuleError: Debug + Send {}
+
+impl ModuleError for Infallible {}
+
+/// The error type returned by [`SignalingModule::on_event`]
+#[derive(Debug)]
+pub enum SignalingModuleError<E> {
+    /// An non-fatal internal error occurred
+    Internal(anyhow::Error),
+    /// A fatal error occurred.
+    ///
+    /// This is considered to be unrecoverable, the module will be flagged as broken and deactivated
+    Fatal(FatalError),
+    /// The module specific error
+    ///
+    /// Is turned into a websocket message and returned to the command issuing participant
+    Module(E),
+}
+
+impl<E> From<anyhow::Error> for SignalingModuleError<E> {
+    fn from(err: anyhow::Error) -> Self {
+        Self::Internal(err)
+    }
+}
+
+impl<E: ModuleError> From<E> for SignalingModuleError<E> {
+    fn from(err: E) -> Self {
+        Self::Module(err)
+    }
+}
+
+#[derive(Debug)]
+pub struct FatalError(pub anyhow::Error);
+
+impl<E> From<FatalError> for SignalingModuleError<E> {
+    fn from(err: FatalError) -> Self {
+        Self::Fatal(err)
+    }
 }

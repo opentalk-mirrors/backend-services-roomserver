@@ -9,7 +9,8 @@ use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    signaling_module::SignalingModuleInitData, ModuleContext, SignalingEvent, SignalingModule,
+    signaling_module::{FatalError, ModuleError, SignalingModuleError, SignalingModuleInitData},
+    ModuleContext, SignalingEvent, SignalingModule,
 };
 
 const MODULE_ID: ModuleId = module_id!("ping");
@@ -26,19 +27,32 @@ impl SignalingModule for PingModule {
 
     type Loopback = LoopbackEvent;
 
+    type Error = PingError;
+
     async fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self)
     }
 
-    async fn on_event(&mut self, ctx: &mut ModuleContext<'_, Self>, event: SignalingEvent<Self>) {
+    async fn on_event(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        event: SignalingEvent<Self>,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
         match event {
             SignalingEvent::WebsocketMessage { sender, content } => match content {
-                Command::Ping => ctx.send_ws_message(sender, Event::Pong).await.unwrap(),
+                Command::Ping => ctx.send_ws_message(sender, Event::Pong).await?,
                 Command::BlockingDelayedPing => {
                     ctx.spawn_blocking(move || Self::handle_ping_delayed(sender));
                 }
                 Command::AsyncDelayedPing => {
                     ctx.spawn(Self::handle_async_ping_delayed(sender));
+                }
+                Command::PingError => Self::ping_error()?,
+                Command::Die => {
+                    return Err(FatalError(anyhow::anyhow!(
+                        "Dying as requested, cya later alligator"
+                    ))
+                    .into());
                 }
             },
             SignalingEvent::LoopbackMessage(msg) => match msg {
@@ -49,6 +63,8 @@ impl SignalingModule for PingModule {
                 }
             },
         }
+
+        Ok(())
     }
 }
 
@@ -62,6 +78,10 @@ impl PingModule {
         tokio::time::sleep(Duration::from_secs(3)).await;
         LoopbackEvent::DelayedPingCompleted(participant_id)
     }
+
+    fn ping_error() -> Result<(), PingError> {
+        Err(PingError)
+    }
 }
 
 #[derive(Deserialize)]
@@ -73,6 +93,10 @@ pub enum Command {
     BlockingDelayedPing,
     /// A ping with delayed response
     AsyncDelayedPing,
+    /// A ping that will result in a [`PingError`]
+    PingError,
+    /// Request the ping module to die by returning a [`FatalError`]
+    Die,
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -80,7 +104,19 @@ pub enum Command {
 pub enum Event {
     Pong,
     DelayedPong,
+    Error(PingError),
 }
+
+impl From<PingError> for Event {
+    fn from(err: PingError) -> Self {
+        Self::Error(err)
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+pub struct PingError;
+
+impl ModuleError for PingError {}
 
 pub enum LoopbackEvent {
     DelayedPingCompleted(ParticipantId),

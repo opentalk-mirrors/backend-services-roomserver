@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalingEvent {
+    // TODO make this a ModuleId
     pub namespace: String,
     pub content: serde_json::Value,
 }
@@ -18,22 +19,6 @@ pub enum MessageTarget {
     // Group(GroupName),
     Participant(ParticipantId),
     Participants(BTreeSet<ParticipantId>),
-}
-
-/// Errors that are reported back to the client via the signaling socket.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case", tag = "error")]
-pub enum SignalingError {
-    /// The received message was not valid JSON.
-    InvalidJson { message: String },
-}
-
-impl From<serde_json::Error> for SignalingError {
-    fn from(error: serde_json::Error) -> Self {
-        Self::InvalidJson {
-            message: format!("Failed to deserialize message: {error}"),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

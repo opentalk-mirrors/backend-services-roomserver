@@ -4,7 +4,7 @@
 use std::{any::Any, collections::HashSet, future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use futures::stream::{FuturesUnordered, StreamExt};
-use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_roomserver_types::{error::SignalingError, room_parameters::RoomParameters};
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::ParticipantId;
@@ -14,7 +14,7 @@ use super::{
     message_router::AlreadyConnectedError,
     signaling::{
         module_initializer::{ModuleRegistry, Modules},
-        signaling_module::SignalingModuleInitData,
+        signaling_module::{FatalError, SignalingModuleInitData},
     },
 };
 use crate::{
@@ -48,6 +48,8 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub struct LoopbackMessage {
     pub namespace: ModuleId,
+    /// TODO: this might need to be optional at some point
+    pub participant_id: ParticipantId,
     pub value: Box<dyn Any + Send + 'static>,
 }
 
@@ -172,6 +174,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     log::trace!("received {msg:?}");
                     let _ = self.handle_message(&mut modules, msg).await;
                 }
+                // TODO: check if this immediately returns none every iteration
                 Some(msg) = self.loopback_futures.next() => {
                     let Some(msg) = msg else {
                         log::error!("Signaling module channel was dropped");
@@ -181,7 +184,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         log::error!("Received loopback event for unknown module {}", msg.namespace);
                         continue;
                     };
-                    module.on_event(&mut self.context(), DynEvent::LoopbackEvent(msg.value)).await;
+                    if let Err(err) = module.on_event(&mut self.context(msg.participant_id), DynEvent::LoopbackEvent(msg.value)).await {
+                        self.handle_fatal_module_error(&mut modules, msg.namespace, err).await;
+                    }
                 },
                 () = self.idle_timeout.has_timed_out() => {
                     log::debug!("Room task {} reached its idle timeout, exiting", self.room_id);
@@ -252,19 +257,24 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 log::trace!("received signaling command: {signaling_command:?}");
 
                 let Some(module) = modules.get_mut(&signaling_command.namespace) else {
-                    log::debug!("Unknown namespace: {}", &signaling_command.namespace);
+                    self.handle_unknown_namespace(participant_id, signaling_command.namespace)
+                        .await;
                     return Ok(());
                 };
 
-                module
+                if let Err(err) = module
                     .on_event(
-                        &mut self.context(),
+                        &mut self.context(participant_id),
                         DynEvent::WebsocketMessage {
                             sender: participant_id,
                             command: signaling_command.content,
                         },
                     )
-                    .await;
+                    .await
+                {
+                    self.handle_fatal_module_error(modules, signaling_command.namespace, err)
+                        .await;
+                }
             }
         }
 
@@ -287,9 +297,50 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.participants.insert(participant_id);
     }
 
-    fn context(&mut self) -> DynModuleContext<'_> {
+    /// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
+    ///
+    /// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
+    async fn handle_fatal_module_error(
+        &mut self,
+        modules: &mut Modules,
+        namespace: ModuleId,
+        err: FatalError,
+    ) {
+        log::error!(
+            "The {namespace} module caused a fatal error and will be shut down: {:#?}",
+            err.0
+        );
+
+        let Some(module) = modules.remove(&namespace) else {
+            log::error!("Attempted to remove non-existent module {namespace}");
+            return;
+        };
+
+        module.destroy().await;
+
+        // Remove the module from the room state
+        self.parameters.tariff.modules.remove(&namespace);
+
+        // TODO: do the broadcast event in the `error` namespace to announce the dead module
+    }
+
+    async fn handle_unknown_namespace(&mut self, origin: ParticipantId, namespace: ModuleId) {
+        log::debug!(
+            "Received signaling message with unknown namespace: {}",
+            &namespace
+        );
+
+        let signaling_error = SignalingError::UnknownNamespace {
+            invalid_namespace: namespace.to_string(),
+        };
+
+        self.context(origin).send_ws_error(signaling_error).await;
+    }
+
+    fn context(&mut self, participant_id: ParticipantId) -> DynModuleContext<'_> {
         DynModuleContext::new(
             self.room_id,
+            participant_id,
             &self.parameters,
             &mut self.message_router,
             &self.participants,

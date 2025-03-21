@@ -4,7 +4,10 @@
 use std::{pin::Pin, time::Duration};
 
 use futures::{stream::Peekable, FutureExt, SinkExt as _, StreamExt as _};
-use opentalk_roomserver_types::signaling::{SignalingCommand, SignalingError, SignalingEvent};
+use opentalk_roomserver_types::{
+    error::SignalingError,
+    signaling::{SignalingCommand, SignalingEvent},
+};
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
     CloseFrame, Message, SignalingSink, SignalingSocket, SignalingStream,
 };
@@ -286,7 +289,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
 
     async fn send_error(&mut self, error: impl Into<SignalingError>) -> Result<(), ExitReason> {
         let error_message = serde_json::to_string(&error.into())
-            .unwrap_or_else(|_| r#"{"error": "server_error"}"#.into())
+            .unwrap_or_else(|_| r#"{"error": "internal"}"#.into())
             .into();
 
         if let Err(e) = self.sink.send(error_message).await {

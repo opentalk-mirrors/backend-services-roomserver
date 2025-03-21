@@ -13,13 +13,14 @@
 //!
 //! Due to the generic nature of the [`ModuleDispatcher`] they cannot be stored in a single collection either,
 //! at least not when their generic type differs. This is where the [`ModuleHandle`] is used as an abstraction
-//! to remove any generic bounds. We achieve this with dynamic dispatch by storing them as a [`Box<dyn ModuleCaller>`].
+//! to remove any generic bounds. We achieve this with dynamic dispatch by storing them as a `Box<dyn ModuleDispatcher>`.
 use std::any::Any;
 
+use anyhow::Context;
 use module_context::{DynModuleContext, ModuleContext};
-use opentalk_roomserver_types::signaling::SignalingError;
+use opentalk_roomserver_types::error::SignalingError;
 use opentalk_types_signaling::ParticipantId;
-use signaling_module::{SignalingEvent, SignalingModule};
+use signaling_module::{FatalError, SignalingEvent, SignalingModule, SignalingModuleError};
 
 pub mod module_context;
 pub(crate) mod module_initializer;
@@ -30,7 +31,14 @@ pub mod signaling_module;
 #[async_trait::async_trait]
 pub trait ModuleHandle: Send {
     /// Invokes an event in the associated [`SignalingModule`]
-    async fn on_event(&mut self, ctx: &mut DynModuleContext<'_>, event: DynEvent);
+    async fn on_event(
+        &mut self,
+        // TODO: make this owned
+        ctx: &mut DynModuleContext<'_>,
+        event: DynEvent,
+    ) -> Result<(), FatalError>;
+
+    async fn destroy(self: Box<Self>);
 }
 
 pub enum DynEvent {
@@ -53,14 +61,16 @@ where
     M: SignalingModule,
 {
     /// Dispatches dynamic events to the correct modules and resolves their type
-    async fn handle_event(&mut self, ctx: &mut ModuleContext<'_, M>, event: DynEvent) {
+    async fn handle_event(
+        &mut self,
+        ctx: &mut ModuleContext<'_, M>,
+        event: DynEvent,
+    ) -> Result<(), SignalingModuleError<M::Error>> {
         match event {
             DynEvent::WebsocketMessage { sender, command } => {
-                self.handle_ws_event(ctx, sender, command).await;
+                self.handle_ws_event(ctx, sender, command).await
             }
-            DynEvent::LoopbackEvent(result) => {
-                self.handle_loopback_event(ctx, result).await;
-            }
+            DynEvent::LoopbackEvent(result) => self.handle_loopback_event(ctx, result).await,
         }
     }
 
@@ -71,7 +81,7 @@ where
         ctx: &mut ModuleContext<'_, M>,
         sender: ParticipantId,
         command: serde_json::Value,
-    ) {
+    ) -> Result<(), SignalingModuleError<M::Error>> {
         let content = match serde_json::from_value(command) {
             Ok(content) => content,
             Err(err) => {
@@ -81,21 +91,18 @@ where
                     err
                 );
 
-                ctx.send_ws_error(
-                    sender,
-                    SignalingError::InvalidJson {
-                        message: "failed to deserialize websocket message".into(),
-                    },
-                )
+                ctx.send_ws_error(SignalingError::InvalidJson {
+                    message: "failed to deserialize websocket message".into(),
+                })
                 .await;
 
-                return;
+                return Ok(());
             }
         };
 
         self.module
             .on_event(ctx, SignalingEvent::WebsocketMessage { sender, content })
-            .await;
+            .await
     }
 
     /// Resolves a dynamic loopback message that was received by [`ModuleHandle::on_event`] to the concrete
@@ -104,18 +111,17 @@ where
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         value: Box<dyn Any + Send + 'static>,
-    ) {
-        let Ok(value) = value.downcast() else {
-            log::error!(
+    ) -> Result<(), SignalingModuleError<M::Error>> {
+        let value = value.downcast().ok().with_context(|| {
+            format!(
                 "Failed to downcast loopback type for module in namespace {}",
                 M::NAMESPACE
-            );
-            return;
-        };
+            )
+        })?;
 
         self.module
             .on_event(ctx, SignalingEvent::LoopbackMessage(*value))
-            .await;
+            .await
     }
 }
 
@@ -124,9 +130,34 @@ impl<M> ModuleHandle for ModuleDispatcher<M>
 where
     M: SignalingModule,
 {
-    async fn on_event(&mut self, ctx: &mut DynModuleContext<'_>, event: DynEvent) {
+    async fn on_event(
+        &mut self,
+        ctx: &mut DynModuleContext<'_>,
+        event: DynEvent,
+    ) -> Result<(), FatalError> {
         let mut ctx = ModuleContext::<M>::new(ctx.reborrow());
 
-        self.handle_event(&mut ctx, event).await;
+        if let Err(err) = self.handle_event(&mut ctx, event).await {
+            match err {
+                SignalingModuleError::Fatal(err) => return Err(err),
+                SignalingModuleError::Internal(err) => {
+                    log::error!(
+                        "The '{}' module returned an internal error: {err:#?}",
+                        M::NAMESPACE
+                    );
+                    ctx.send_ws_error(SignalingError::Internal).await;
+                }
+                SignalingModuleError::Module(err) => {
+                    let msg = err.into();
+
+                    ctx.send_ws_message(ctx.participant_id, msg).await?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn destroy(self: Box<Self>) {
+        self.module.destroy().await
     }
 }
