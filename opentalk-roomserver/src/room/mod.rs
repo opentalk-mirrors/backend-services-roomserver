@@ -13,21 +13,23 @@
 
 mod message_router;
 pub(crate) mod registry;
+pub mod signaling;
 pub(crate) mod task;
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
 
     use opentalk_roomserver_types::room_parameters::RoomParameters;
     use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{rooms::RoomId, tariffs::TariffResource, utils::ExampleData};
     use tokio::{sync::watch, time::sleep};
 
-    use super::task::handle::RoomTaskHandle;
+    use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{mock_socket::MockSocket, participant::create_participant_connection},
         room::{registry::RoomTaskRegistry, task::RoomTask},
+        settings::Settings,
         ApplicationState,
     };
 
@@ -49,9 +51,19 @@ mod tests {
     fn create_room_task() -> RoomTaskHandle<MockSocket> {
         let id = RoomId::from_u128(0xc270ab35_5cdb_4614_b872_8dd66ceefc70);
         let params = create_room_parameters();
-        let registry = RoomTaskRegistry::new();
+        let task_registry = RoomTaskRegistry::new();
+        let module_registry = Arc::new(ModuleRegistry::new());
         let (_, state) = watch::channel(ApplicationState::Running);
-        RoomTask::spawn_with_timeout(id, params, registry, state, TIMEOUT)
+        let settings = Arc::new(Settings::test_settings("secret".to_owned()));
+        RoomTask::spawn_with_timeout(
+            id,
+            params,
+            task_registry,
+            state,
+            module_registry,
+            settings,
+            TIMEOUT,
+        )
     }
 
     #[tokio::test]

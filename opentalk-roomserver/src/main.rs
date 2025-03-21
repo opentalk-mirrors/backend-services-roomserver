@@ -30,7 +30,7 @@ mod cli;
 mod metrics;
 #[cfg(test)]
 mod mocking;
-mod room;
+pub mod room;
 pub(crate) mod settings;
 mod trace;
 

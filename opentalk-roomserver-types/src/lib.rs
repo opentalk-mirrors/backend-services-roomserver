@@ -5,6 +5,7 @@
 
 pub mod api;
 pub mod client_parameters;
+pub mod error;
 pub mod room_parameters;
 pub mod signaling;
 pub mod signaling_context;

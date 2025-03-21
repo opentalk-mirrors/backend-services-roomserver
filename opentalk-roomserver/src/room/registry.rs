@@ -8,12 +8,13 @@ use opentalk_roomserver_web_api::v1::{signaling::websocket::SignalingSocket, Roo
 use opentalk_types_common::rooms::RoomId;
 use tokio::sync::{watch, RwLock};
 
+use super::signaling::module_initializer::ModuleRegistry;
 use crate::{
     room::task::{
         handle::{RoomTaskHandle, RoomTaskHandleError},
         RoomTask,
     },
-    ApplicationState,
+    ApplicationState, Settings,
 };
 
 /// The room task registry
@@ -52,6 +53,8 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         &self,
         room_id: RoomId,
         room_parameters: RoomParameters,
+        module_registry: Arc<ModuleRegistry>,
+        settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> Result<(RoomAction, RoomTaskHandle<Socket>), RoomTaskHandleError<Socket>> {
         let mut registry = self.inner.write().await;
@@ -61,7 +64,14 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             return Ok((RoomAction::Updated, task_handle.clone()));
         }
 
-        let task_handle = RoomTask::spawn(room_id, room_parameters, self.clone(), app_state);
+        let task_handle = RoomTask::spawn(
+            room_id,
+            room_parameters,
+            self.clone(),
+            module_registry,
+            settings,
+            app_state,
+        );
 
         registry.insert(room_id, task_handle.clone());
 
@@ -75,6 +85,8 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         &self,
         room_id: RoomId,
         room_parameters: RoomParameters,
+        module_registry: Arc<ModuleRegistry>,
+        settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> Option<RoomTaskHandle<Socket>> {
         let mut registry = self.inner.write().await;
@@ -83,7 +95,14 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             return Some(task_handle.clone());
         }
 
-        let task_handle = RoomTask::spawn(room_id, room_parameters, self.clone(), app_state);
+        let task_handle = RoomTask::spawn(
+            room_id,
+            room_parameters,
+            self.clone(),
+            module_registry,
+            settings,
+            app_state,
+        );
 
         registry.insert(room_id, task_handle);
 

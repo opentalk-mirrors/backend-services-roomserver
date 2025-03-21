@@ -1,25 +1,33 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashSet, time::Duration};
+use std::{any::Any, collections::HashSet, future::Future, pin::Pin, sync::Arc, time::Duration};
 
-use opentalk_roomserver_types::{room_parameters::RoomParameters, signaling::SignalingEvent};
+use futures::stream::{FuturesUnordered, StreamExt};
+use opentalk_roomserver_types::{error::SignalingError, room_parameters::RoomParameters};
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, watch};
 
-use super::message_router::AlreadyConnectedError;
+use super::{
+    message_router::AlreadyConnectedError,
+    signaling::{
+        module_initializer::{ModuleRegistry, Modules},
+        signaling_module::{FatalError, SignalingModuleInitData},
+    },
+};
 use crate::{
     room::{
         message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
         registry::RoomTaskRegistry,
+        signaling::{module_context::DynModuleContext, DynEvent},
         task::{
             handle::{Request, RoomTaskHandle, TaskMessage},
             idle_timeout::IdleTimeout,
         },
     },
-    ApplicationState,
+    ApplicationState, Settings,
 };
 
 pub(crate) mod handle;
@@ -38,6 +46,17 @@ pub enum RoomTaskApiError {
 /// expire before the signaling token does.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
+pub struct LoopbackMessage {
+    pub namespace: ModuleId,
+    /// TODO: this might need to be optional at some point
+    pub participant_id: ParticipantId,
+    pub value: Box<dyn Any + Send + 'static>,
+}
+
+/// A set of loopback futures that were created by signaling modules
+pub type LoopbackFutures =
+    FuturesUnordered<Pin<Box<dyn Future<Output = Option<LoopbackMessage>> + Send + Sync>>>;
+
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
@@ -54,6 +73,10 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
 
     message_router: MessageRouter,
 
+    loopback_futures: LoopbackFutures,
+
+    _settings: Arc<Settings>,
+
     _app_state: watch::Receiver<ApplicationState>,
 
     participants: HashSet<ParticipantId>,
@@ -65,6 +88,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         room_id: RoomId,
         room_parameters: RoomParameters,
         task_registry: RoomTaskRegistry<Socket>,
+        module_registry: Arc<ModuleRegistry>,
+        settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> RoomTaskHandle<Socket> {
         Self::spawn_with_timeout(
@@ -72,6 +97,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             room_parameters,
             task_registry,
             app_state,
+            module_registry,
+            settings,
             IDLE_TIMEOUT,
         )
     }
@@ -79,42 +106,59 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Spawns a new [`RoomTask`] with a specific timeout
     pub(super) fn spawn_with_timeout(
         room_id: RoomId,
-        room_parameters: RoomParameters,
+        mut room_parameters: RoomParameters,
         task_registry: RoomTaskRegistry<Socket>,
         app_state: watch::Receiver<ApplicationState>,
+        module_registry: Arc<ModuleRegistry>,
+        settings: Arc<Settings>,
         timeout: Duration,
     ) -> RoomTaskHandle<Socket> {
         let (tx, rx) = mpsc::channel(20);
 
         let message_router = MessageRouter::new(app_state.clone());
 
-        let room_task = RoomTask {
-            room_id,
-            parameters: room_parameters,
-            api_rx: rx,
-            idle_timeout: IdleTimeout::start_new(timeout),
-            message_router,
-            _app_state: app_state,
-            participants: HashSet::default(),
-        };
-
         tokio::task::spawn(async move {
-            room_task.run().await;
+            let (modules, uninitialized) = module_registry
+                .initialize_modules(
+                    room_parameters.tariff.modules.keys(),
+                    SignalingModuleInitData {
+                        settings: Arc::clone(&settings),
+                    },
+                )
+                .await;
+
+            // Remove unknown modules from the room parameters
+            for module_id in uninitialized {
+                log::debug!("Unable to initialize unknown module {module_id} for room {room_id}");
+                room_parameters.tariff.modules.remove(&module_id);
+            }
+
+            let room_task = RoomTask {
+                room_id,
+                parameters: room_parameters,
+                api_rx: rx,
+                idle_timeout: IdleTimeout::start_new(timeout),
+                message_router,
+                loopback_futures: FuturesUnordered::new(),
+                _settings: settings,
+                _app_state: app_state,
+                participants: HashSet::default(),
+            };
+
+            room_task.run(modules).await;
             task_registry.remove_room(room_id).await;
         });
 
         RoomTaskHandle { sender: tx }
     }
 
-    async fn run(self) {
-        if let Err(e) = self.inner_run().await {
+    async fn run(self, modules: Modules) {
+        if let Err(e) = self.inner_run(modules).await {
             log::error!("RoomTask exited with error {e}");
         }
     }
 
-    async fn inner_run(mut self) -> anyhow::Result<()> {
-        // TODO: initialize modules
-
+    async fn inner_run(mut self, mut modules: Modules) -> anyhow::Result<()> {
         loop {
             tokio::select! {
                 msg = self.api_rx.recv() => {
@@ -128,8 +172,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 },
                 msg = self.message_router.recv() => {
                     log::trace!("received {msg:?}");
-                    let _ = self.handle_message(msg).await;
+                    let _ = self.handle_message(&mut modules, msg).await;
                 }
+                // TODO: check if this immediately returns none every iteration
+                Some(msg) = self.loopback_futures.next() => {
+                    let Some(msg) = msg else {
+                        log::error!("Signaling module channel was dropped");
+                        continue;
+                    };
+                    let Some(module) = modules.get_mut(&msg.namespace) else {
+                        log::error!("Received loopback event for unknown module {}", msg.namespace);
+                        continue;
+                    };
+                    if let Err(err) = module.on_event(&mut self.context(msg.participant_id), DynEvent::LoopbackEvent(msg.value)).await {
+                        self.handle_fatal_module_error(&mut modules, msg.namespace, err).await;
+                    }
+                },
                 () = self.idle_timeout.has_timed_out() => {
                     log::debug!("Room task {} reached its idle timeout, exiting", self.room_id);
                     return Ok(());
@@ -179,6 +237,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     async fn handle_message(
         &mut self,
+        modules: &mut Modules,
         MessageEnvelope {
             participant_id,
             message,
@@ -194,21 +253,31 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     self.idle_timeout.start(IDLE_TIMEOUT);
                 }
             }
-            SignalingMessage::Command(signaling_command) => log::trace!(
-                "Received command from participant {participant_id}:\n{}\n",
-                serde_json::to_string_pretty(&signaling_command).unwrap()
-            ),
+            SignalingMessage::Command(signaling_command) => {
+                log::trace!("received signaling command: {signaling_command:?}");
+
+                let Some(module) = modules.get_mut(&signaling_command.namespace) else {
+                    self.handle_unknown_namespace(participant_id, signaling_command.namespace)
+                        .await;
+                    return Ok(());
+                };
+
+                if let Err(err) = module
+                    .on_event(
+                        &mut self.context(participant_id),
+                        DynEvent::WebsocketMessage {
+                            sender: participant_id,
+                            command: signaling_command.content,
+                        },
+                    )
+                    .await
+                {
+                    self.handle_fatal_module_error(modules, signaling_command.namespace, err)
+                        .await;
+                }
+            }
         }
 
-        self.message_router
-            .send_event(
-                participant_id,
-                SignalingEvent {
-                    namespace: "ping".to_string(),
-                    content: Default::default(),
-                },
-            )
-            .await;
         Ok(())
     }
 
@@ -226,5 +295,56 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         self.participants.insert(participant_id);
+    }
+
+    /// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
+    ///
+    /// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
+    async fn handle_fatal_module_error(
+        &mut self,
+        modules: &mut Modules,
+        namespace: ModuleId,
+        err: FatalError,
+    ) {
+        log::error!(
+            "The {namespace} module caused a fatal error and will be shut down: {:#?}",
+            err.0
+        );
+
+        let Some(module) = modules.remove(&namespace) else {
+            log::error!("Attempted to remove non-existent module {namespace}");
+            return;
+        };
+
+        module.destroy().await;
+
+        // Remove the module from the room state
+        self.parameters.tariff.modules.remove(&namespace);
+
+        // TODO: do the broadcast event in the `error` namespace to announce the dead module
+    }
+
+    async fn handle_unknown_namespace(&mut self, origin: ParticipantId, namespace: ModuleId) {
+        log::debug!(
+            "Received signaling message with unknown namespace: {}",
+            &namespace
+        );
+
+        let signaling_error = SignalingError::UnknownNamespace {
+            invalid_namespace: namespace.to_string(),
+        };
+
+        self.context(origin).send_ws_error(signaling_error).await;
+    }
+
+    fn context(&mut self, participant_id: ParticipantId) -> DynModuleContext<'_> {
+        DynModuleContext::new(
+            self.room_id,
+            participant_id,
+            &self.parameters,
+            &mut self.message_router,
+            &self.participants,
+            &self.loopback_futures,
+        )
     }
 }

@@ -10,7 +10,7 @@ use telemetry::{Metrics, Monitoring, Tracing};
 pub mod telemetry;
 
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct Settings {
+pub struct Settings {
     /// HTTP web server settings
     pub(crate) http: Http,
 
