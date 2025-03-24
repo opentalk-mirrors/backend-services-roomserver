@@ -99,13 +99,16 @@ impl TokenStore {
 
 #[cfg(test)]
 mod tests {
-    use std::{thread, time::Duration};
+    use std::{
+        thread,
+        time::{Duration, Instant},
+    };
 
     use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters};
     use opentalk_types_api_v1::users::PublicUserProfile;
-    use opentalk_types_common::{rooms::RoomId, users::UserId};
+    use opentalk_types_common::{rooms::RoomId, roomserver::Token, users::UserId};
 
-    use super::TokenStore;
+    use super::{TokenExpiry, TokenStore};
     use crate::api::token_store::SignalingClientContext;
 
     fn build_test_context(i: u128) -> SignalingClientContext {
@@ -148,5 +151,44 @@ mod tests {
 
         //ensure the second token expired
         assert_eq!(None, store.consume_token(&token2));
+    }
+
+    /// The sorting of [Token] depends on the order of the structs fields. This
+    /// test shall ensure that the tokens are ordered by created-at time first.
+    #[test]
+    fn test_token_sorting() {
+        let tokens = [
+            // expired tokens
+            TokenExpiry {
+                token: Token::from_u128(5),
+                created_at: Instant::now().checked_sub(Duration::from_secs(63)).unwrap(),
+            },
+            TokenExpiry {
+                token: Token::from_u128(4),
+                created_at: Instant::now().checked_sub(Duration::from_secs(62)).unwrap(),
+            },
+            TokenExpiry {
+                token: Token::from_u128(3),
+                created_at: Instant::now().checked_sub(Duration::from_secs(61)).unwrap(),
+            },
+            // valid tokens
+            TokenExpiry {
+                token: Token::from_u128(2),
+                created_at: Instant::now().checked_add(Duration::from_secs(61)).unwrap(),
+            },
+            TokenExpiry {
+                token: Token::from_u128(1),
+                created_at: Instant::now().checked_add(Duration::from_secs(62)).unwrap(),
+            },
+            TokenExpiry {
+                token: Token::from_u128(0),
+                created_at: Instant::now().checked_add(Duration::from_secs(63)).unwrap(),
+            },
+        ]
+        .to_vec();
+        let mut sorted_tokens = tokens.clone();
+        sorted_tokens.sort();
+
+        assert_eq!(sorted_tokens, tokens);
     }
 }
