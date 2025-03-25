@@ -147,14 +147,9 @@ allow = []
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
-  { name = "axum", version = "0.7" },
-  { name = "axum-core", version = "0.4" },
   { name = "getrandom", version = "0.2" },
-  { name = "hashbrown", version = "0.12" },
   { name = "hashbrown", version = "0.14" },
-  { name = "indexmap", version = "1" },
   { name = "linux-raw-sys", version = "0.4" },
-  { name = "matchit", version = "0.7" },
   { name = "rand", version = "0.8" },
   { name = "rand_chacha", version = "0.3" },
   { name = "rand_core", version = "0.6" },
