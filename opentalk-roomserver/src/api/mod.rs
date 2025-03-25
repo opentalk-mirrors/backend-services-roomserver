@@ -92,6 +92,61 @@ impl utoipa::Modify for SecurityAddon {
     }
 }
 
+/// Starts the web server
+///
+/// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional, if no version is specified
+/// the latest api version is used.
+pub(crate) async fn run_web_server<L>(
+    settings: Arc<Settings>,
+    app_state: watch::Sender<ApplicationState>,
+    metric_layer: Option<L>,
+) -> anyhow::Result<()>
+where
+    L: tower::Layer<axum::routing::Route> + Clone + Send + Sync + 'static,
+    L::Service: tower::Service<axum::extract::Request> + Clone + Send + Sync + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Response:
+        axum::response::IntoResponse + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Error:
+        Into<std::convert::Infallible> + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Future: Send + 'static,
+{
+    let app_state_subscriber = app_state.subscribe();
+    let ctx = Context {
+        settings: Arc::clone(&settings),
+        room_tasks: RoomTaskRegistry::new(),
+        token_store: Arc::new(Mutex::new(TokenStore::new())),
+        module_registry: Arc::new(ModuleRegistry::new()),
+        app_state,
+    };
+
+    let mut router = Router::new()
+        .nest("/v1", v1::routes(settings.http.api_token.clone()))
+        .merge(v1::routes(settings.http.api_token.clone()))
+        .with_state(ctx);
+
+    if let Some(layer) = metric_layer {
+        router = router.layer(layer);
+    }
+
+    if !settings.http.disable_openapi {
+        let mut openapi = ApiDoc::openapi();
+        openapi.servers = Some(vec![utoipa::openapi::Server::new("/v1")]);
+        router = router.merge(SwaggerUi::new("/swagger").url("/docs/openapi.json", openapi));
+    }
+
+    let listener =
+        tokio::net::TcpListener::bind((settings.http.address, settings.http.port)).await?;
+
+    log::info!("Listening on http://{}", listener.local_addr()?);
+
+    set_service_state(ServiceState::Ready);
+    axum::serve(listener, router)
+        .with_graceful_shutdown(wait_shutdown(app_state_subscriber))
+        .await?;
+
+    Ok(())
+}
+
 /// Context for the API endpoints
 #[derive(Clone)]
 pub(crate) struct Context {
@@ -148,61 +203,6 @@ impl Context {
 
         Ok(())
     }
-}
-
-/// Starts the web server
-///
-/// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional, if no version is specified
-/// the latest api version is used.
-pub(crate) async fn run_web_server<L>(
-    settings: Arc<Settings>,
-    app_state: watch::Sender<ApplicationState>,
-    metric_layer: Option<L>,
-) -> anyhow::Result<()>
-where
-    L: tower::Layer<axum::routing::Route> + Clone + Send + Sync + 'static,
-    L::Service: tower::Service<axum::extract::Request> + Clone + Send + Sync + 'static,
-    <L::Service as tower::Service<axum::extract::Request>>::Response:
-        axum::response::IntoResponse + 'static,
-    <L::Service as tower::Service<axum::extract::Request>>::Error:
-        Into<std::convert::Infallible> + 'static,
-    <L::Service as tower::Service<axum::extract::Request>>::Future: Send + 'static,
-{
-    let app_state_subscriber = app_state.subscribe();
-    let ctx = Context {
-        settings: Arc::clone(&settings),
-        room_tasks: RoomTaskRegistry::new(),
-        token_store: Arc::new(Mutex::new(TokenStore::new())),
-        module_registry: Arc::new(ModuleRegistry::new()),
-        app_state,
-    };
-
-    let mut router = Router::new()
-        .nest("/v1", v1::routes(settings.http.api_token.clone()))
-        .merge(v1::routes(settings.http.api_token.clone()))
-        .with_state(ctx);
-
-    if let Some(layer) = metric_layer {
-        router = router.layer(layer);
-    }
-
-    if !settings.http.disable_openapi {
-        let mut openapi = ApiDoc::openapi();
-        openapi.servers = Some(vec![utoipa::openapi::Server::new("/v1")]);
-        router = router.merge(SwaggerUi::new("/swagger").url("/docs/openapi.json", openapi));
-    }
-
-    let listener =
-        tokio::net::TcpListener::bind((settings.http.address, settings.http.port)).await?;
-
-    log::info!("Listening on http://{}", listener.local_addr()?);
-
-    set_service_state(ServiceState::Ready);
-    axum::serve(listener, router)
-        .with_graceful_shutdown(wait_shutdown(app_state_subscriber))
-        .await?;
-
-    Ok(())
 }
 
 impl Backend for Context {}

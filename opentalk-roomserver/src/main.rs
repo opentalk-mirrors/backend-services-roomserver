@@ -66,7 +66,8 @@ pub fn decorate_error(decoration: &'static str) -> impl Fn(anyhow::Error) -> any
 
 async fn run_app(config_file_name: &str) -> anyhow::Result<()> {
     let (app_state, _) = watch::channel(ApplicationState::Running);
-    let settings = Arc::new(Settings::load(config_file_name)?);
+    let settings =
+        Arc::new(Settings::load(config_file_name).context("Failed to load configuration")?);
     let mut set = JoinSet::new();
 
     set.spawn(

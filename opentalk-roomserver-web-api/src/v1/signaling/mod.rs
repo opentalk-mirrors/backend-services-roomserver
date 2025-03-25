@@ -22,7 +22,7 @@ use super::Router;
 pub mod websocket;
 
 pub(crate) fn routes<B: SignalingBackend + 'static>() -> Router<B> {
-    Router::new().route("/signaling/{token}", get(handler::<B>))
+    Router::new().route("/signaling/{token}", get(open_signaling_socket::<B>))
 }
 
 #[utoipa::path(
@@ -39,7 +39,7 @@ pub(crate) fn routes<B: SignalingBackend + 'static>() -> Router<B> {
     security(),
     )]
 #[tracing::instrument(name = "/signaling/{token}", level = "info", skip(ctx, token, ws))]
-async fn handler<B: SignalingBackend + 'static>(
+async fn open_signaling_socket<B: SignalingBackend + 'static>(
     State(ctx): State<B>,
     Path(token): Path<Token>,
     ws: WebSocketUpgrade,
