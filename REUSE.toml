@@ -22,6 +22,7 @@ path = [
   "api/docs/**.yml",
   "ci/spectral/*.yml",
   "docs/**.md",
+  "example/**.json",
   "example/config.toml",
   "renovate.json",
 ]
