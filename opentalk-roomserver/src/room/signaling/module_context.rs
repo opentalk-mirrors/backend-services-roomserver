@@ -79,7 +79,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             .send_event(
                 self.participant_id,
                 SignalingEvent {
-                    namespace: error::NAMESPACE.to_string(),
+                    namespace: error::NAMESPACE,
                     content,
                 },
             )
@@ -147,7 +147,7 @@ where
             .send_event(
                 participant_id,
                 SignalingEvent {
-                    namespace: M::NAMESPACE.to_string(),
+                    namespace: M::NAMESPACE,
                     content: serde_json::to_value(msg)
                         .context("Failed to serialize internal websocket payload type")
                         .map_err(FatalError)?,
