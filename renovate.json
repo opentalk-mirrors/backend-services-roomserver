@@ -3,6 +3,9 @@
   "extends": [
     "config:recommended"
   ],
+  "reviewers": [
+    "@opentalk/tools/renovate-reviewers/backend"
+  ],
   "packageRules": [
     {
       "matchPackagePatterns": [
