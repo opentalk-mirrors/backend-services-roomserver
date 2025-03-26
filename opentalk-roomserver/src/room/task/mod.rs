@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{any::Any, collections::HashSet, future::Future, pin::Pin, sync::Arc, time::Duration};
+use std::{
+    any::Any,
+    collections::HashSet,
+    future::{pending, Future},
+    pin::Pin,
+    sync::Arc,
+    time::Duration,
+};
 
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_types::{error::SignalingError, room_parameters::RoomParameters};
@@ -133,13 +140,16 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 room_parameters.tariff.modules.remove(&module_id);
             }
 
+            let loopback_futures = LoopbackFutures::new();
+            loopback_futures.push(Box::pin(pending()));
+
             let room_task = RoomTask {
                 room_id,
                 parameters: room_parameters,
                 api_rx: rx,
                 idle_timeout: IdleTimeout::start_new(timeout),
                 message_router,
-                loopback_futures: FuturesUnordered::new(),
+                loopback_futures,
                 _settings: settings,
                 _app_state: app_state,
                 participants: HashSet::default(),
@@ -174,7 +184,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     log::trace!("received {msg:?}");
                     let _ = self.handle_message(&mut modules, msg).await;
                 }
-                // TODO: check if this immediately returns none every iteration
                 Some(msg) = self.loopback_futures.next() => {
                     let Some(msg) = msg else {
                         log::error!("Signaling module channel was dropped");
