@@ -29,22 +29,14 @@
 //! # };
 //! # use opentalk_types_api_v1::users::PublicUserProfile;
 //! # use opentalk_types_common::users::{UserTitle, DisplayName};
-//! # use opentalk_types_common::events::{EventTitle, EventDescription};
+//! # use opentalk_types_common::{events::{EventTitle, EventDescription}, utils::ExampleData};
 //! #
 //! let client = RoomServerClient::new("http://localhost:11333").unwrap();
 //! let request = RoomsCreateRequest {
 //! #   room_id: RoomId::from_u128(0x8f96ada5_2660_4b4c_adb8_1b1794f51a24),
 //!     body: RoomParameters {
 //! // ...
-//! #        created_by: PublicUserProfile {
-//! #            id: UserId::from_u128(0x037bc784_5130_4da7_b63f_971395be0e44),
-//! #            email: "peter@example.net".to_owned(),
-//! #            title: UserTitle::from_str("Prof. Dr. Dr. Dipl. Ing.").unwrap(),
-//! #            firstname: "Peter".to_owned(),
-//! #            lastname: "Superschlau".to_owned(),
-//! #            display_name: DisplayName::from_str("Prof. Dr. Dr. Dipl. Ing. Superschlau").unwrap(),
-//! #            avatar_url: "example.com".to_owned(),
-//! #        },
+//! #        created_by: PublicUserProfile::example_data(),
 //! #        password: Some("supersecret".to_owned()),
 //! #        waiting_room: false,
 //! #        call_in: None,
