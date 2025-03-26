@@ -136,6 +136,7 @@ mod tests {
     use futures::SinkExt;
     use opentalk_roomserver_types::signaling::SignalingEvent;
     use opentalk_roomserver_web_api::v1::signaling::websocket::Message;
+    use opentalk_types_common::modules::module_id;
     use serde_json::json;
     use tokio::sync::watch;
 
@@ -177,7 +178,7 @@ mod tests {
             .send_event(
                 p1.id,
                 SignalingEvent {
-                    namespace: "ping".to_string(),
+                    namespace: module_id!("ping"),
                     content: json!({
                         "cool": 12,
                         "thing": true,

@@ -9,8 +9,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalingEvent {
-    // TODO make this a ModuleId
-    pub namespace: String,
+    pub namespace: ModuleId,
     pub content: serde_json::Value,
 }
 
