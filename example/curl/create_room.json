@@ -1,0 +1,21 @@
+{
+    "created_by": {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "email": "test@example.opentalk.eu",
+        "title": "Dr.",
+        "firstname": "Test",
+        "lastname": "Tester",
+        "display_name": "Testi",
+        "avatar_url": ""
+    },
+    "waiting_room": false,
+    "tariff": {
+        "id": "00000000-0000-0000-0000-000000000002",
+        "name": "test_tariff",
+        "quotas": {},
+        "enabled_modules": [],
+        "disabled_features": [],
+        "modules": {}
+    },
+    "streaming_links": []
+}
