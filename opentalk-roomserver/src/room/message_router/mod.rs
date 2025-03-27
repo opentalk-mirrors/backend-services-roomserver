@@ -162,7 +162,7 @@ mod tests {
     use opentalk_roomserver_types::signaling::SignalingEvent;
     use opentalk_roomserver_web_api::v1::signaling::websocket::Message;
     use opentalk_types_common::modules::module_id;
-    use serde_json::json;
+    use serde_json::{json, value::to_raw_value};
     use tokio::sync::watch;
 
     use crate::{
@@ -190,24 +190,25 @@ mod tests {
         );
 
         let received = router.recv().await;
-        assert_eq!(
+        assert!(matches!(
             received,
             MessageEnvelope {
-                participant_id: p1.id,
+                participant_id,
                 message: SignalingMessage::Closed(
                     message_router::message::CloseReason::ParticipantClosed
                 )
-            }
-        );
+            } if participant_id == p1.id
+        ));
         router
             .send_event(
                 p1.id,
                 SignalingEvent {
                     namespace: module_id!("ping"),
-                    content: json!({
+                    content: to_raw_value(&json!({
                         "cool": 12,
                         "thing": true,
-                    }),
+                    }))
+                    .unwrap(),
                 },
             )
             .await;

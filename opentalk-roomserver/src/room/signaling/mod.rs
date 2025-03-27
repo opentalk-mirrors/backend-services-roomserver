@@ -21,7 +21,8 @@ use module_context::{DynModuleContext, ModuleContext};
 use opentalk_roomserver_types::error::SignalingError;
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ModuleData, ParticipantId};
-use signaling_module::{FatalError, SignalingModule, SignalingModuleError};
+use serde_json::value::RawValue;
+use signaling_module::{FatalError, SharedRawJson, SignalingModule, SignalingModuleError};
 
 pub mod module_context;
 pub(crate) mod module_initializer;
@@ -51,7 +52,7 @@ pub trait ModuleHandle: Send {
 pub enum DynEvent {
     WebsocketMessage {
         sender: ParticipantId,
-        command: serde_json::Value,
+        command: Box<RawValue>,
     },
     LoopbackEvent(Box<dyn Any + Send + 'static>),
 }
@@ -60,7 +61,7 @@ pub enum DynBroadcastEvent<'evt> {
     Joined {
         participant_id: ParticipantId,
         module_data: &'evt mut ModuleData,
-        peer_module_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, serde_json::Value>>,
+        peer_module_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedRawJson>>,
     },
     Left(ParticipantId),
 }
@@ -116,19 +117,10 @@ where
                 }
 
                 for (participant_id, peer_join_info) in join_info.peer.map {
-                    let data = serde_json::to_value(peer_join_info)
-                        .with_context(|| {
-                            format!(
-                                "failed to serialize PeerJoinInfo for module '{}'",
-                                M::NAMESPACE
-                            )
-                        })
-                        .map_err(FatalError)?;
-
                     peer_module_data
                         .entry(participant_id)
                         .or_default()
-                        .insert(M::NAMESPACE, data);
+                        .insert(M::NAMESPACE, peer_join_info);
                 }
             }
             DynBroadcastEvent::Left(participant_id) => {
@@ -146,9 +138,9 @@ where
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         sender: ParticipantId,
-        command: serde_json::Value,
+        command: Box<RawValue>,
     ) -> Result<(), SignalingModuleError<M::Error>> {
-        let content = match serde_json::from_value(command) {
+        let content = match serde_json::from_str(command.get()) {
             Ok(content) => content,
             Err(err) => {
                 log::debug!(

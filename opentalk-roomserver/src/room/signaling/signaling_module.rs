@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::BTreeMap, convert::Infallible, fmt::Debug, sync::Arc};
+use std::{collections::BTreeMap, convert::Infallible, fmt::Debug, marker::PhantomData, sync::Arc};
 
+use anyhow::Context;
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
+use serde_json::value::{to_raw_value, RawValue};
 
 use super::module_context::{DynModuleContext, ModuleContext};
 use crate::Settings;
@@ -112,29 +114,49 @@ pub struct ParticipantInfo {}
 /// When a `Joined` message is sent to a participant, the participants associated [`SignalingModule::PeerJoinInfo`] will
 /// be attached to it.
 pub struct PeerJoinInfoMap<M: SignalingModule> {
-    pub(crate) map: BTreeMap<ParticipantId, M::PeerJoinInfo>,
+    pub(crate) map: BTreeMap<ParticipantId, SharedRawJson>,
+    _m: PhantomData<M>,
 }
 
 impl<M: SignalingModule> Default for PeerJoinInfoMap<M> {
     fn default() -> Self {
         Self {
             map: Default::default(),
+            _m: PhantomData,
         }
     }
 }
 
 impl<M: SignalingModule> PeerJoinInfoMap<M> {
     /// Attach the same [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) for all participants
-    pub fn insert_for_all(&mut self, ctx: &mut DynModuleContext<'_>, info: M::PeerJoinInfo)
-    where
-        M::PeerJoinInfo: Clone,
-    {
-        self.insert_for_matching(ctx, info, |_, _| true);
+    pub fn insert_for_all(
+        &mut self,
+        ctx: &mut DynModuleContext<'_>,
+        info: M::PeerJoinInfo,
+    ) -> Result<(), FatalError> {
+        self.insert_for_matching(ctx, info, |_, _| true)
     }
 
     /// Attach [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) to a single participant
-    pub fn insert(&mut self, participant_id: ParticipantId, info: M::PeerJoinInfo) {
-        self.map.insert(participant_id, info);
+    pub fn insert(
+        &mut self,
+        participant_id: ParticipantId,
+        info: M::PeerJoinInfo,
+    ) -> Result<(), FatalError> {
+        let raw_value = SharedRawJson::from(
+            to_raw_value(&info)
+                .with_context(|| {
+                    format!(
+                        "Failed to serialize PeerJoinInfo for module '{}'",
+                        M::NAMESPACE
+                    )
+                })
+                .map_err(FatalError)?,
+        );
+
+        self.map.insert(participant_id, raw_value);
+
+        Ok(())
     }
 
     /// Attach [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) for all participants that match the given filter
@@ -143,15 +165,37 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
         ctx: &mut DynModuleContext<'_>,
         info: M::PeerJoinInfo,
         mut filter: F,
-    ) where
+    ) -> Result<(), FatalError>
+    where
         F: FnMut(ParticipantId, &ParticipantInfo) -> bool,
-        M::PeerJoinInfo: Clone,
     {
+        // Lazily serialize the PeerJoinInfo into a json string
+        let mut raw_value: Option<SharedRawJson> = None;
+
         for participant in ctx.participants.iter() {
-            if filter(*participant, &ParticipantInfo {}) {
-                self.map.insert(*participant, info.clone());
+            if !filter(*participant, &ParticipantInfo {}) {
+                continue;
             }
+
+            // Serialize the PeerJoinInfo if it hasn't already
+            let raw_value = match &mut raw_value {
+                Some(raw_value) => raw_value,
+                None => raw_value.insert(SharedRawJson::from(
+                    to_raw_value(&info)
+                        .with_context(|| {
+                            format!(
+                                "Failed to serialize PeerJoinInfo for module '{}'",
+                                M::NAMESPACE
+                            )
+                        })
+                        .map_err(FatalError)?,
+                )),
+            };
+
+            self.map.insert(*participant, raw_value.clone());
         }
+
+        Ok(())
     }
 }
 
@@ -200,5 +244,40 @@ pub struct FatalError(pub anyhow::Error);
 impl<E> From<FatalError> for SignalingModuleError<E> {
     fn from(err: FatalError) -> Self {
         Self::Fatal(err)
+    }
+}
+
+/// Type to deal with opaque JSON values.
+///
+/// Some scenarios require sending the same value to a large amount of participants,
+/// which is why the value is reference counted and therefore cheap to clone.
+#[derive(Debug, Clone)]
+pub struct SharedRawJson {
+    inner: Arc<RawValue>,
+}
+
+impl From<Box<RawValue>> for SharedRawJson {
+    fn from(value: Box<RawValue>) -> Self {
+        Self {
+            inner: value.into(),
+        }
+    }
+}
+
+impl Serialize for SharedRawJson {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        RawValue::serialize(&*self.inner, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for SharedRawJson {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        <Box<RawValue>>::deserialize(deserializer).map(Self::from)
     }
 }

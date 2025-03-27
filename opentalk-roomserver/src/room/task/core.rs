@@ -16,7 +16,9 @@ use super::{handle_fatal_module_error, Modules};
 use crate::room::{
     message_router::CloseReason,
     signaling::{
-        module_context::DynModuleContext, signaling_module::FatalError, DynBroadcastEvent,
+        module_context::DynModuleContext,
+        signaling_module::{FatalError, SharedRawJson},
+        DynBroadcastEvent,
     },
 };
 
@@ -32,7 +34,7 @@ pub enum CoreEvent {
     /// Broadcast message sent to all participants when a new participant has joined
     ParticipantJoined {
         participant_id: ParticipantId,
-        peer_join_info: BTreeMap<ModuleId, serde_json::Value>,
+        peer_join_info: BTreeMap<ModuleId, SharedRawJson>,
     },
 
     /// Broadcast message sent to all participants when a participant disconnected
@@ -219,9 +221,10 @@ mod tests {
     };
     use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
     use opentalk_types_signaling_control::{event::JoinSuccess, room::RoomInfo};
-    use serde_json::json;
+    use serde_json::{json, value::to_raw_value};
 
     use super::{CoreEvent, DisconnectReason};
+    use crate::room::signaling::signaling_module::SharedRawJson;
 
     #[test]
     fn serialize_core_event_success() {
@@ -301,9 +304,12 @@ mod tests {
         let mut peer_join_info = BTreeMap::new();
         peer_join_info.insert(
             module_id!("test"),
-            json!({
-                "key": "value"
-            }),
+            SharedRawJson::from(
+                to_raw_value(&json!({
+                    "key": "value"
+                }))
+                .unwrap(),
+            ),
         );
 
         let event = CoreEvent::ParticipantJoined {
