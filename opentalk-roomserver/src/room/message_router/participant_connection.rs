@@ -406,7 +406,7 @@ mod tests {
                         SignalingCommand::new(
                             "ping".parse().unwrap(),
                             None,
-                            serde_json::value::RawValue::from_string("{}".into()).unwrap(),
+                            serde_json::value::RawValue::NULL.to_owned(),
                         ),
                     ),
                 })

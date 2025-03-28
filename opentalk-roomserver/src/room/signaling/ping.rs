@@ -19,7 +19,6 @@ const MODULE_ID: ModuleId = module_id!("ping");
 
 pub struct PingModule;
 
-#[async_trait::async_trait]
 impl SignalingModule for PingModule {
     const NAMESPACE: ModuleId = MODULE_ID;
 

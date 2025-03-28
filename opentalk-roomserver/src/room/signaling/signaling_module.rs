@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::BTreeMap, convert::Infallible, fmt::Debug, marker::PhantomData, sync::Arc};
+use std::{
+    collections::BTreeMap, convert::Infallible, fmt::Debug, future::Future, marker::PhantomData,
+    sync::Arc,
+};
 
 use anyhow::Context;
 use opentalk_types_common::modules::ModuleId;
@@ -18,7 +21,6 @@ use crate::Settings;
 /// with the corresponding [`SignalingModule::NAMESPACE`]. All event calls are handled in sequence on the same task.
 /// Signaling modules are expected to spawn separate tasks when compute intense or long-running operations need to be
 /// executed (See [`SignalingModule::Loopback`] for more details).
-#[async_trait::async_trait]
 pub trait SignalingModule: Send + Sized {
     /// The unique namespace for the module
     ///
@@ -57,37 +59,39 @@ pub trait SignalingModule: Send + Sized {
     type Error: ModuleError;
 
     /// Creates an instance of the interface to access the module
-    async fn init(init_data: SignalingModuleInitData) -> Option<Self>;
+    fn init(init_data: SignalingModuleInitData) -> impl Future<Output = Option<Self>> + Send;
 
-    async fn on_participant_connected(
+    fn on_participant_connected(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>>;
+    ) -> impl Future<Output = Result<JoinInfo<Self>, SignalingModuleError<Self::Error>>> + Send;
 
-    async fn on_participant_disconnected(
+    fn on_participant_disconnected(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
-    ) -> Result<(), SignalingModuleError<Self::Error>>;
+    ) -> impl Future<Output = Result<(), SignalingModuleError<Self::Error>>> + Send;
 
-    async fn on_websocket_message(
+    fn on_websocket_message(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         content: Self::Incoming,
-    ) -> Result<(), SignalingModuleError<Self::Error>>;
+    ) -> impl Future<Output = Result<(), SignalingModuleError<Self::Error>>> + Send;
 
-    async fn on_loopback_event(
+    fn on_loopback_event(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
-    ) -> Result<(), SignalingModuleError<Self::Error>>;
+    ) -> impl Future<Output = Result<(), SignalingModuleError<Self::Error>>> + Send;
 
     /// Destroy the module and remove all associated resources
     ///
     /// Long running tasks must be spawned in a separate task
-    async fn destroy(self) {}
+    fn destroy(self) -> impl Future<Output = ()> + Send {
+        async {}
+    }
 }
 
 pub struct JoinInfo<M: SignalingModule> {
