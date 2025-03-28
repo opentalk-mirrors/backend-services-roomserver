@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::fmt::Debug;
+use std::{fmt::Debug, str::FromStr};
 
+use chrono::TimeDelta;
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     call_in::CallInInfo,
-    events::{EventDescription, EventTitle},
-    rooms::invite_codes::InviteCode,
+    events::{EventDescription, EventId, EventTitle},
+    rooms::{invite_codes::InviteCode, RoomPassword},
     shared_folders::SharedFolder,
     streaming::StreamingLink,
-    tariffs::TariffResource,
+    tariffs::{QuotaType, TariffResource},
+    time::Timestamp,
     utils::ExampleData,
 };
 use serde::{Deserialize, Serialize};
@@ -24,7 +26,7 @@ pub struct RoomParameters {
     // by default which creates a false positive in the spectral linter when
     // combined with example data.
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub password: Option<String>,
+    pub password: Option<RoomPassword>,
 
     pub waiting_room: bool,
 
@@ -49,6 +51,23 @@ pub struct RoomParameters {
     pub tariff: TariffResource,
 
     pub streaming_links: Vec<StreamingLink>,
+
+    /// Indicates whether the meeting room should have e2e encryption enabled.
+    pub e2e_encryption: bool,
+}
+
+impl RoomParameters {
+    pub fn calc_time_limit_quota(&self, start_time: Timestamp) -> Option<Timestamp> {
+        let remaining_secs = self
+            .tariff
+            .quotas
+            .get(&QuotaType::RoomTimeLimitSecs)
+            .map(|secs| i64::try_from(*secs).unwrap_or(i64::MAX))?;
+
+        start_time
+            .checked_add_signed(TimeDelta::seconds(remaining_secs))
+            .map(Timestamp::from)
+    }
 }
 
 impl Debug for RoomParameters {
@@ -70,13 +89,14 @@ impl ExampleData for RoomParameters {
     fn example_data() -> Self {
         Self {
             created_by: PublicUserProfile::example_data(),
-            password: Some("string".into()),
+            password: Some(RoomPassword::from_str("1234").unwrap()),
             waiting_room: false,
             call_in: Some(CallInInfo::example_data()),
             event: Some(EventContext::example_data()),
             invite_code: Some(InviteCode::example_data()),
             tariff: TariffResource::example_data(),
             streaming_links: vec![StreamingLink::example_data()],
+            e2e_encryption: false,
         }
     }
 }
@@ -84,6 +104,8 @@ impl ExampleData for RoomParameters {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(EventContext::example_data())))]
 pub struct EventContext {
+    pub id: EventId,
+
     pub title: EventTitle,
 
     pub description: EventDescription,
@@ -100,6 +122,7 @@ pub struct EventContext {
 impl ExampleData for EventContext {
     fn example_data() -> Self {
         Self {
+            id: EventId::example_data(),
             title: EventTitle::example_data(),
             description: EventDescription::example_data(),
             is_adhoc: false,
@@ -118,16 +141,7 @@ mod tests {
 
     #[test]
     fn room_parameters() {
-        let params = RoomParameters {
-            created_by: PublicUserProfile::example_data(),
-            password: Default::default(),
-            call_in: Some(CallInInfo::example_data()),
-            waiting_room: Default::default(),
-            event: Default::default(),
-            invite_code: Default::default(),
-            tariff: TariffResource::example_data(),
-            streaming_links: vec![StreamingLink::example_data()],
-        };
+        let params = RoomParameters::example_data();
         let json = json!({
             "created_by": {
                 "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060",
@@ -138,15 +152,27 @@ mod tests {
                 "lastname": "Adams",
                 "title": "",
             },
-            "password": None::<String>,
+            "password": "",
             "call_in": {
                 "tel": "+555-123-456-789",
                 "id": "1234567890",
                 "password": "0987654321"
             },
             "waiting_room": false,
-            "event": None::<String>,
-            "invite_code": None::<String>,
+            "event": {
+                "description": "The Weekly Team Event",
+                "id": "00000000-0000-0000-0000-004433221100",
+                "is_adhoc": false,
+                "shared_folder": {
+                    "read": {
+                        "password": "v3rys3cr3t",
+                        "url": "https://cloud.example.com/shares/abc123",
+                    },
+                },
+                "title": "Team Event",
+            },
+            "invite_code": "00000000-0000-0000-0000-0000deadbeef",
+            "password": "1234",
             "tariff": {
                 "id": "00000000-0000-0000-0000-000000000000",
                 "name": "Starter tariff",
@@ -171,7 +197,8 @@ mod tests {
                     }
                 }
             },
-            "streaming_links": [{"name": "My OwnCast Stream", "url": "https://owncast.example.com/mystream"}]
+            "streaming_links": [{"name": "My OwnCast Stream", "url": "https://owncast.example.com/mystream"}],
+            "e2e_encryption": false
         });
 
         // serialization
@@ -183,13 +210,9 @@ mod tests {
 
     #[test]
     fn event_info() {
-        let info = EventContext {
-            title: EventTitle::example_data(),
-            description: EventDescription::example_data(),
-            is_adhoc: Default::default(),
-            shared_folder: Some(SharedFolder::example_data()),
-        };
+        let info = EventContext::example_data();
         let json = json!({
+            "id": "00000000-0000-0000-0000-004433221100",
             "title": "Team Event",
             "description": "The Weekly Team Event",
             "is_adhoc": false,

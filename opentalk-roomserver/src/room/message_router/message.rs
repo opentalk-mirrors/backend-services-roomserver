@@ -15,6 +15,8 @@ pub enum CloseReason {
 
     /// The connection to the participant was closed by sending a close frame to the participant.
     TaskClosed,
+
+    InternalError,
 }
 
 /// A signaling message sent by a client

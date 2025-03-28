@@ -11,25 +11,25 @@ use std::{
 use anyhow::Context;
 use opentalk_roomserver_types::{
     error::{self, SignalingError},
-    room_parameters::RoomParameters,
     signaling::SignalingEvent,
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::ParticipantId;
+use serde::Serialize;
 
 use super::{signaling_module::FatalError, SignalingModule};
 use crate::room::{
     message_router::MessageRouter,
-    task::{LoopbackFutures, LoopbackMessage},
+    task::{LoopbackFutures, LoopbackMessage, RoomInfo},
 };
 
 /// Contains the state of the [`RoomTask`](super::super::task::RoomTask) that is accessible to all [`SignalingModule`]s
 pub struct DynModuleContext<'ctx> {
     pub room_id: RoomId,
     pub participant_id: ParticipantId,
-    pub parameters: &'ctx RoomParameters,
+    pub(crate) room_info: &'ctx mut RoomInfo,
     message_router: &'ctx mut MessageRouter,
-    pub participants: &'ctx HashSet<ParticipantId>,
+    pub participants: &'ctx mut HashSet<ParticipantId>,
     loopback_futures: &'ctx LoopbackFutures,
 }
 
@@ -37,30 +37,76 @@ impl<'ctx> DynModuleContext<'ctx> {
     pub(crate) fn new(
         room_id: RoomId,
         participant_id: ParticipantId,
-        parameters: &'ctx RoomParameters,
+        room_info: &'ctx mut RoomInfo,
         message_router: &'ctx mut MessageRouter,
-        participants: &'ctx HashSet<ParticipantId>,
+        participants: &'ctx mut HashSet<ParticipantId>,
         loopback_futures: &'ctx LoopbackFutures,
     ) -> Self {
         Self {
             room_id,
             participant_id,
-            parameters,
+            room_info,
             message_router,
             participants,
             loopback_futures,
         }
     }
 
+    pub fn room_info(&self) -> &RoomInfo {
+        self.room_info
+    }
+
+    /// Create a owned copy of self with a narrower lifetime
     pub(crate) fn reborrow(&mut self) -> DynModuleContext<'_> {
         DynModuleContext {
             room_id: self.room_id,
             participant_id: self.participant_id,
-            parameters: self.parameters,
+            room_info: self.room_info,
             message_router: self.message_router,
             participants: self.participants,
             loopback_futures: self.loopback_futures,
         }
+    }
+
+    /// Send a websocket message to the given participant
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`FatalError`] when the content fails to serialize
+    pub(crate) async fn send_ws_message(
+        &mut self,
+        participant_id: ParticipantId,
+        namespace: ModuleId,
+        content: impl Serialize,
+    ) -> Result<(), FatalError> {
+        let content = serde_json::to_value(content)
+            .with_context(|| format!("Failed to serialize message for namespace '{namespace}'"))
+            .map_err(FatalError)?;
+
+        self.message_router
+            .send_event(participant_id, SignalingEvent { namespace, content })
+            .await;
+
+        Ok(())
+    }
+
+    /// Broadcast a websocket message to all participants
+    ///
+    /// Returns a [`FatalError`] when the content fails to serialize.
+    pub(crate) async fn broadcast_ws_message(
+        &mut self,
+        namespace: ModuleId,
+        content: impl Serialize,
+    ) -> Result<(), FatalError> {
+        let content = serde_json::to_value(content)
+            .with_context(|| format!("Failed to serialize message for namespace '{namespace}'"))
+            .map_err(FatalError)?;
+
+        self.message_router
+            .broadcast_event(SignalingEvent { namespace, content })
+            .await;
+
+        Ok(())
     }
 
     /// Send a websocket error message of type [`SignalingError`] to the associated participant
@@ -83,6 +129,26 @@ impl<'ctx> DynModuleContext<'ctx> {
                     content,
                 },
             )
+            .await;
+    }
+
+    /// Send a websocket error message of type [`SignalingError`] to all participants
+    ///
+    /// The message is always scoped to the [`error::NAMESPACE`]
+    pub(crate) async fn broadcast_ws_error(&mut self, error: SignalingError) {
+        let content = match serde_json::to_value(error) {
+            Ok(value) => value,
+            Err(err) => {
+                log::error!("Failed to serialize SignalingError type: {err}");
+                r#"{"error": "internal"}"#.into()
+            }
+        };
+
+        self.message_router
+            .broadcast_event(SignalingEvent {
+                namespace: error::NAMESPACE,
+                content,
+            })
             .await;
     }
 }
@@ -160,7 +226,7 @@ where
 
     /// Spawns a new task that completes the given `future` and sends the result
     /// back to the calling module as [`SignalingModule::Loopback`] in the
-    /// [`SignalingModule::on_event`] method.
+    /// [`SignalingModule::on_loopback_event`] method.
     ///
     /// The room task will panic if the provided future panics.
     pub fn spawn<F>(&self, future: F)
@@ -182,7 +248,7 @@ where
 
     /// Spawns a blocking function as a asynchronous task and sends the result
     /// back to the calling module as [`SignalingModule::Loopback`] in the
-    /// [`SignalingModule::on_event`] method.
+    /// [`SignalingModule::on_loopback_event`] method.
     ///
     /// If the provided function panics, any results will be discarded and the module won't be notified.
     pub fn spawn_blocking<F>(&self, blocking_function: F)

@@ -9,8 +9,10 @@ use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    signaling_module::{FatalError, ModuleError, SignalingModuleError, SignalingModuleInitData},
-    ModuleContext, SignalingEvent, SignalingModule,
+    signaling_module::{
+        FatalError, JoinInfo, ModuleError, SignalingModuleError, SignalingModuleInitData,
+    },
+    ModuleContext, SignalingModule,
 };
 
 const MODULE_ID: ModuleId = module_id!("ping");
@@ -25,7 +27,11 @@ impl SignalingModule for PingModule {
 
     type Outgoing = Event;
 
-    type Loopback = LoopbackEvent;
+    type Loopback = DelayedPingCompleted;
+
+    type JoinInfo = ();
+
+    type PeerJoinInfo = String;
 
     type Error = PingError;
 
@@ -33,50 +39,77 @@ impl SignalingModule for PingModule {
         Some(Self)
     }
 
-    async fn on_event(
+    async fn on_participant_connected(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        event: SignalingEvent<Self>,
-    ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match event {
-            SignalingEvent::WebsocketMessage { sender, content } => match content {
-                Command::Ping => ctx.send_ws_message(sender, Event::Pong).await?,
-                Command::BlockingDelayedPing => {
-                    ctx.spawn_blocking(move || Self::handle_ping_delayed(sender));
-                }
-                Command::AsyncDelayedPing => {
-                    ctx.spawn(Self::handle_async_ping_delayed(sender));
-                }
-                Command::PingError => Self::ping_error()?,
-                Command::Die => {
-                    return Err(FatalError(anyhow::anyhow!(
-                        "Dying as requested, cya later alligator"
-                    ))
-                    .into());
-                }
-            },
-            SignalingEvent::LoopbackMessage(msg) => match msg {
-                LoopbackEvent::DelayedPingCompleted(participant_id) => {
-                    ctx.send_ws_message(participant_id, Event::DelayedPong)
-                        .await
-                        .unwrap();
-                }
-            },
+        participant_id: ParticipantId,
+    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
+        log::info!("Participant {participant_id} connected");
+        let mut join_info = JoinInfo::default();
+
+        for participant_id in ctx.participants.iter() {
+            join_info
+                .peer
+                .insert(*participant_id, format!("Hello {participant_id}"));
         }
 
+        Ok(join_info)
+    }
+
+    async fn on_participant_disconnected(
+        &mut self,
+        _ctx: &mut ModuleContext<'_, Self>,
+        participant_id: ParticipantId,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        log::info!("Participant {participant_id} disconnected");
+        Ok(())
+    }
+
+    async fn on_websocket_message(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        content: Self::Incoming,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        match content {
+            Command::Ping => ctx.send_ws_message(sender, Event::Pong).await?,
+            Command::BlockingDelayedPing => {
+                ctx.spawn_blocking(move || Self::handle_ping_delayed(sender));
+            }
+            Command::AsyncDelayedPing => {
+                ctx.spawn(Self::handle_async_ping_delayed(sender));
+            }
+            Command::PingError => Self::ping_error()?,
+            Command::Die => {
+                return Err(
+                    FatalError(anyhow::anyhow!("Dying as requested, cya later alligator")).into(),
+                );
+            }
+        }
+        Ok(())
+    }
+
+    async fn on_loopback_event(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        event: Self::Loopback,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        ctx.send_ws_message(event.0, Event::DelayedPong)
+            .await
+            .unwrap();
         Ok(())
     }
 }
 
 impl PingModule {
-    fn handle_ping_delayed(participant_id: ParticipantId) -> LoopbackEvent {
+    fn handle_ping_delayed(participant_id: ParticipantId) -> DelayedPingCompleted {
         thread::sleep(Duration::from_secs(3));
-        LoopbackEvent::DelayedPingCompleted(participant_id)
+        DelayedPingCompleted(participant_id)
     }
 
-    async fn handle_async_ping_delayed(participant_id: ParticipantId) -> LoopbackEvent {
+    async fn handle_async_ping_delayed(participant_id: ParticipantId) -> DelayedPingCompleted {
         tokio::time::sleep(Duration::from_secs(3)).await;
-        LoopbackEvent::DelayedPingCompleted(participant_id)
+        DelayedPingCompleted(participant_id)
     }
 
     fn ping_error() -> Result<(), PingError> {
@@ -118,6 +151,4 @@ pub struct PingError;
 
 impl ModuleError for PingError {}
 
-pub enum LoopbackEvent {
-    DelayedPingCompleted(ParticipantId),
-}
+pub struct DelayedPingCompleted(ParticipantId);

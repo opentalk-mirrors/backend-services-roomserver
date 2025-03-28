@@ -2342,6 +2342,7 @@ dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "opentalk-types-signaling-control",
  "opentalk-version",
  "opentelemetry",
  "opentelemetry-otlp",
@@ -2384,6 +2385,7 @@ dependencies = [
 name = "opentalk-roomserver-types"
 version = "0.0.0-dev"
 dependencies = [
+ "chrono",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -2493,6 +2495,18 @@ dependencies = [
  "serde_json",
  "strum 0.27.1",
  "uuid",
+]
+
+[[package]]
+name = "opentalk-types-signaling-control"
+version = "0.33.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d556333e3461ca49a3f65b411b26c76fd7a777f35cc40023bf2dea73924dfc7"
+dependencies = [
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

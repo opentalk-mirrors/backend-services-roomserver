@@ -20,9 +20,11 @@ pub(crate) mod task;
 mod tests {
     use std::{sync::Arc, time::Duration};
 
-    use opentalk_roomserver_types::room_parameters::RoomParameters;
-    use opentalk_types_api_v1::users::PublicUserProfile;
-    use opentalk_types_common::{rooms::RoomId, tariffs::TariffResource, utils::ExampleData};
+    use opentalk_roomserver_types::{
+        client_parameters::{self, ClientParameters},
+        room_parameters::RoomParameters,
+    };
+    use opentalk_types_common::{rooms::RoomId, users::DisplayName, utils::ExampleData};
     use tokio::{sync::watch, time::sleep};
 
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
@@ -35,22 +37,9 @@ mod tests {
 
     const TIMEOUT: Duration = Duration::from_millis(500);
 
-    fn create_room_parameters() -> RoomParameters {
-        RoomParameters {
-            created_by: PublicUserProfile::example_data(),
-            password: Default::default(),
-            waiting_room: Default::default(),
-            call_in: Default::default(),
-            event: Default::default(),
-            invite_code: Default::default(),
-            tariff: TariffResource::example_data(),
-            streaming_links: Default::default(),
-        }
-    }
-
     fn create_room_task() -> RoomTaskHandle<MockSocket> {
         let id = RoomId::from_u128(0xc270ab35_5cdb_4614_b872_8dd66ceefc70);
-        let params = create_room_parameters();
+        let params = RoomParameters::example_data();
         let task_registry = RoomTaskRegistry::new();
         let module_registry = Arc::new(ModuleRegistry::new());
         let (_, state) = watch::channel(ApplicationState::Running);
@@ -79,6 +68,16 @@ mod tests {
     async fn accept_signaling_socket() {
         let handle = create_room_task();
         let (socket, _) = create_participant_connection();
-        handle.accept_signaling_socket(socket).await.unwrap();
+        let client_parameters = ClientParameters {
+            client_id: "1234".into(),
+            kind: client_parameters::ClientKind::Guest {
+                display_name: DisplayName::from_str_lossy("tester"),
+            },
+        };
+
+        handle
+            .accept_signaling_socket(socket, client_parameters)
+            .await
+            .unwrap();
     }
 }

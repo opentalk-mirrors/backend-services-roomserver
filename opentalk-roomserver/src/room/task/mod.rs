@@ -11,14 +11,16 @@ use std::{
 };
 
 use futures::stream::{FuturesUnordered, StreamExt};
-use opentalk_roomserver_types::{error::SignalingError, room_parameters::RoomParameters};
+use opentalk_roomserver_types::{
+    client_parameters::ClientParameters, error::SignalingError, room_parameters::RoomParameters,
+};
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
+use opentalk_types_common::{modules::ModuleId, rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, watch};
 
 use super::{
-    message_router::AlreadyConnectedError,
+    message_router::{AlreadyConnectedError, CloseReason},
     signaling::{
         module_initializer::{ModuleRegistry, Modules},
         signaling_module::{FatalError, SignalingModuleInitData},
@@ -37,6 +39,7 @@ use crate::{
     ApplicationState, Settings,
 };
 
+pub(crate) mod core;
 pub(crate) mod handle;
 mod idle_timeout;
 
@@ -69,10 +72,8 @@ pub type LoopbackFutures =
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
 /// exits.
 pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
-    /// the identifier of the room
-    room_id: RoomId,
-    /// The start parameters for the room task
-    parameters: RoomParameters,
+    info: RoomInfo,
+
     /// The receiver for web server API request that target this room
     api_rx: mpsc::Receiver<TaskMessage<Socket>>,
     /// The rooms idle timeout, only active when no participants are in the room.
@@ -87,6 +88,16 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
     _app_state: watch::Receiver<ApplicationState>,
 
     participants: HashSet<ParticipantId>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RoomInfo {
+    /// the identifier of the room
+    room_id: RoomId,
+    /// The start parameters for the room task
+    pub room: RoomParameters,
+    /// The time at which the room will close
+    pub closes_at: Option<Timestamp>,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -140,12 +151,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 room_parameters.tariff.modules.remove(&module_id);
             }
 
+            let room_info = RoomInfo {
+                room_id,
+                closes_at: room_parameters.calc_time_limit_quota(Timestamp::now()),
+                room: room_parameters,
+            };
+
             let loopback_futures = LoopbackFutures::new();
             loopback_futures.push(Box::pin(pending()));
 
             let room_task = RoomTask {
-                room_id,
-                parameters: room_parameters,
+                info: room_info,
                 api_rx: rx,
                 idle_timeout: IdleTimeout::start_new(timeout),
                 message_router,
@@ -174,11 +190,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 msg = self.api_rx.recv() => {
                     let Some(msg) = msg else {
                         // TaskHandle dropped, exiting
-                        log::warn!("Room tasks {} api channel was dropped, exiting", self.room_id);
+                        log::warn!("Room tasks {} api channel was dropped, exiting", self.info.room_id);
                         return Ok(());
                     };
 
-                    self.handle_api_request(msg).await?;
+                    self.handle_api_request(&mut modules, msg).await?;
                 },
                 msg = self.message_router.recv() => {
                     log::trace!("received {msg:?}");
@@ -193,20 +209,25 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         log::error!("Received loopback event for unknown module {}", msg.namespace);
                         continue;
                     };
-                    if let Err(err) = module.on_event(&mut self.context(msg.participant_id), DynEvent::LoopbackEvent(msg.value)).await {
-                        self.handle_fatal_module_error(&mut modules, msg.namespace, err).await;
+                    let mut ctx = self.context(msg.participant_id);
+                    if let Err(err) = module.on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value)).await {
+                        handle_fatal_module_error(&mut ctx, &mut modules, msg.namespace, err).await;
                     }
                 },
                 () = self.idle_timeout.has_timed_out() => {
-                    log::debug!("Room task {} reached its idle timeout, exiting", self.room_id);
+                    log::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
                     return Ok(());
                 }
             };
         }
     }
 
-    #[tracing::instrument(skip_all, fields(%self.room_id))]
-    async fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> anyhow::Result<()> {
+    #[tracing::instrument(skip_all, fields(%self.info.room_id))]
+    async fn handle_api_request(
+        &mut self,
+        modules: &mut Modules,
+        msg: TaskMessage<Socket>,
+    ) -> anyhow::Result<()> {
         let api_response = match msg.request {
             Request::RefreshIdleTimeout => {
                 self.refresh_idle_timeout();
@@ -216,8 +237,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 self.update_parameter(room_parameters);
                 Err(RoomTaskApiError::NotImplemented)
             }
-            Request::WsJoin { socket } => {
-                self.ws_join(socket).await;
+            Request::WsJoin {
+                socket,
+                client_parameters,
+            } => {
+                self.ws_join(modules, socket, client_parameters).await;
                 Ok(())
             }
         };
@@ -234,13 +258,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     #[tracing::instrument(level = "info", skip(self))]
     fn update_parameter(&mut self, room_parameters: RoomParameters) {
-        self.parameters = room_parameters
+        self.info.room = room_parameters
         // TODO: handle updated values
     }
 
     #[tracing::instrument(level = "info", skip_all)]
-    async fn ws_join(&mut self, socket: Socket) {
-        self.new_participant(socket).await;
+    async fn ws_join(
+        &mut self,
+        modules: &mut Modules,
+        socket: Socket,
+        client_parameters: ClientParameters,
+    ) {
+        self.new_participant(socket, modules, client_parameters)
+            .await;
         self.idle_timeout.stop();
     }
 
@@ -255,13 +285,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         match message {
             SignalingMessage::Closed(close_reason) => {
                 log::trace!("Websocket closed for participant {participant_id}: {close_reason:?}");
-
-                self.participants.remove(&participant_id);
-
-                if self.participants.is_empty() {
-                    self.idle_timeout.start(IDLE_TIMEOUT);
-                }
+                self.remove_participant(modules, participant_id, close_reason)
+                    .await;
             }
+
             SignalingMessage::Command(signaling_command) => {
                 log::trace!("received signaling command: {signaling_command:?}");
 
@@ -271,9 +298,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     return Ok(());
                 };
 
+                let mut ctx = self.context(participant_id);
+
                 if let Err(err) = module
                     .on_event(
-                        &mut self.context(participant_id),
+                        &mut ctx,
                         DynEvent::WebsocketMessage {
                             sender: participant_id,
                             command: signaling_command.content,
@@ -281,7 +310,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     )
                     .await
                 {
-                    self.handle_fatal_module_error(modules, signaling_command.namespace, err)
+                    handle_fatal_module_error(&mut ctx, modules, signaling_command.namespace, err)
                         .await;
                 }
             }
@@ -290,7 +319,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         Ok(())
     }
 
-    async fn new_participant(&mut self, socket: Socket) {
+    async fn new_participant(
+        &mut self,
+        socket: Socket,
+        modules: &mut Modules,
+        client_parameters: ClientParameters,
+    ) {
         let participant_id = ParticipantId::generate();
 
         if self
@@ -303,34 +337,36 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         }
 
-        self.participants.insert(participant_id);
+        if let Err(err) = core::participant_joined(
+            &mut self.context(participant_id),
+            participant_id,
+            modules,
+            client_parameters,
+        )
+        .await
+        {
+            log::error!("failed to add participant to conference {err:#?}");
+
+            self.remove_participant(modules, participant_id, CloseReason::InternalError)
+                .await;
+        }
     }
 
-    /// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
-    ///
-    /// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
-    async fn handle_fatal_module_error(
+    async fn remove_participant(
         &mut self,
         modules: &mut Modules,
-        namespace: ModuleId,
-        err: FatalError,
+        participant_id: ParticipantId,
+        reason: CloseReason,
     ) {
-        log::error!(
-            "The {namespace} module caused a fatal error and will be shut down: {:#?}",
-            err.0
-        );
+        self.participants.remove(&participant_id);
 
-        let Some(module) = modules.remove(&namespace) else {
-            log::error!("Attempted to remove non-existent module {namespace}");
-            return;
-        };
+        let ctx = &mut self.context(participant_id);
 
-        module.destroy().await;
+        core::participant_disconnected(ctx, reason.into(), modules).await;
 
-        // Remove the module from the room state
-        self.parameters.tariff.modules.remove(&namespace);
-
-        // TODO: do the broadcast event in the `error` namespace to announce the dead module
+        if self.participants.is_empty() {
+            self.idle_timeout.start(IDLE_TIMEOUT);
+        }
     }
 
     async fn handle_unknown_namespace(&mut self, origin: ParticipantId, namespace: ModuleId) {
@@ -348,12 +384,40 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     fn context(&mut self, participant_id: ParticipantId) -> DynModuleContext<'_> {
         DynModuleContext::new(
-            self.room_id,
+            self.info.room_id,
             participant_id,
-            &self.parameters,
+            &mut self.info,
             &mut self.message_router,
-            &self.participants,
+            &mut self.participants,
             &self.loopback_futures,
         )
     }
+}
+
+/// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
+///
+/// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
+pub(crate) async fn handle_fatal_module_error(
+    ctx: &mut DynModuleContext<'_>,
+    modules: &mut Modules,
+    namespace: ModuleId,
+    err: FatalError,
+) {
+    log::error!(
+        "The {namespace} module caused a fatal error and will be shut down: {:#?}",
+        err.0
+    );
+
+    let Some(module) = modules.remove(&namespace) else {
+        log::error!("Attempted to remove non-existent module {namespace}");
+        return;
+    };
+
+    module.destroy().await;
+
+    // Remove the module from the room state
+    ctx.room_info.room.tariff.modules.remove(&namespace);
+
+    ctx.broadcast_ws_error(SignalingError::FatalModuleError { namespace })
+        .await;
 }

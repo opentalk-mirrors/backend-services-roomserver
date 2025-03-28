@@ -34,6 +34,7 @@ opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0
 opentalk-types-api-v1 = { version = "0.35", features = ["axum"] }
 opentalk-types-common = { version = "0.32.2", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.33", features = ["serde"] }
+opentalk-types-signaling-control = { version = "0.33", features = ["serde"] }
 
 anyhow = "1"
 async-trait = "0.1"
@@ -45,6 +46,7 @@ futures = "0.3.31"
 http-request-derive = "0.3.2"
 log = "0.4.22"
 
+chrono = "0.4"
 opentalk-version = "0.1.1"
 opentelemetry = "0.29.0"
 opentelemetry-otlp = { version = "0.29.0", features = ["grpc-tonic"] }

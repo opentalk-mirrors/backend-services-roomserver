@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_types_api_v1::users::PublicUserProfile;
-use opentalk_types_common::utils::ExampleData;
+use opentalk_types_common::{users::DisplayName, utils::ExampleData};
 use serde::{Deserialize, Serialize};
 
 /// Client context required for a signaling connection
@@ -24,7 +24,7 @@ pub enum ClientKind {
     /// A registered user
     Registered { profile: PublicUserProfile },
     /// A guest participant
-    Guest,
+    Guest { display_name: DisplayName },
 }
 
 impl ExampleData for ClientParameters {
@@ -41,7 +41,7 @@ impl ExampleData for ClientParameters {
 #[cfg(test)]
 mod tests {
     use opentalk_types_api_v1::users::PublicUserProfile;
-    use opentalk_types_common::utils::ExampleData;
+    use opentalk_types_common::{users::DisplayName, utils::ExampleData};
     use serde_json::json;
 
     use super::ClientKind;
@@ -51,7 +51,9 @@ mod tests {
     fn guest() {
         let value = serde_json::to_value(ClientParameters {
             client_id: "1234".into(),
-            kind: ClientKind::Guest,
+            kind: ClientKind::Guest {
+                display_name: DisplayName::from_str_lossy("test"),
+            },
         })
         .unwrap();
 
@@ -61,6 +63,7 @@ mod tests {
                 {
                     "client_id": "1234",
                     "kind": "guest",
+                    "display_name": "test"
                 }
             )
         );

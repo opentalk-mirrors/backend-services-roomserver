@@ -21,39 +21,16 @@
 //! # use opentalk_roomserver_client::{
 //! #     api::room::RoomsCreateRequest, reqwest_client::RoomServerClient, Client,
 //! # };
-//! # use opentalk_roomserver_types::room_parameters::{EventContext, RoomParameters};
-//! # use opentalk_types_common::{
-//! #     rooms::RoomId,
-//! #     tariffs::{TariffId, TariffResource},
-//! #     users::UserId,
-//! # };
-//! # use opentalk_types_api_v1::users::PublicUserProfile;
-//! # use opentalk_types_common::users::{UserTitle, DisplayName};
-//! # use opentalk_types_common::{events::{EventTitle, EventDescription}, utils::ExampleData};
+//! # use opentalk_roomserver_types::room_parameters::RoomParameters;
+//! # use opentalk_types_common::rooms::RoomId;
+//! # use opentalk_types_common::utils::ExampleData;
 //! #
 //! let client = RoomServerClient::new("http://localhost:11333").unwrap();
 //! let request = RoomsCreateRequest {
 //! #   room_id: RoomId::from_u128(0x8f96ada5_2660_4b4c_adb8_1b1794f51a24),
 //!     body: RoomParameters {
 //! // ...
-//! #        created_by: PublicUserProfile::example_data(),
-//! #        password: Some("supersecret".to_owned()),
-//! #        waiting_room: false,
-//! #        call_in: None,
-//! #        event: Some(EventContext {
-//! #            title: EventTitle::from_str("Example Event").unwrap(),
-//! #            description: EventDescription::from_str("An example event.").unwrap(),
-//! #            is_adhoc: false,
-//! #            shared_folder: None,
-//! #        }),
-//! #        invite_code: None,
-//! #        tariff: TariffResource {
-//! #            id: TariffId::from_u128(0x35499437_32a3_4b30_87cc_568eaf63ed9e),
-//! #            name: "SuperPremium".to_owned(),
-//! #            quotas: BTreeMap::new(),
-//! #            modules: BTreeMap::new(),
-//! #        },
-//! #        streaming_links: Vec::new(),
+//! #       ..RoomParameters::example_data()
 //!     },
 //! };
 //!

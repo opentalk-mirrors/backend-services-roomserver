@@ -25,6 +25,7 @@ opentalk-roomserver-web-api.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling = { workspace = true, features = ["rand"] }
+opentalk-types-signaling-control = { workspace = true, features = ["serde"] }
 opentalk-version.workspace = true
 opentelemetry.workspace = true
 opentelemetry-otlp.workspace = true
