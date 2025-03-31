@@ -17,17 +17,19 @@
 use std::{any::Any, collections::BTreeMap};
 
 use anyhow::Context;
-use module_context::{DynModuleContext, ModuleContext};
+use dyn_module_context::DynModuleContext;
+use opentalk_roomserver_signaling::{
+    module_context::ModuleContext,
+    signaling_module::{FatalError, SharedRawJson, SignalingModule, SignalingModuleError},
+};
 use opentalk_roomserver_types::error::SignalingError;
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use serde_json::value::RawValue;
-use signaling_module::{FatalError, SharedRawJson, SignalingModule, SignalingModuleError};
 
-pub mod module_context;
+pub mod dyn_module_context;
 pub(crate) mod module_initializer;
 pub(crate) mod ping;
-pub mod signaling_module;
 
 /// Abstracted handle to a [`SignalingModule`]
 #[async_trait::async_trait]

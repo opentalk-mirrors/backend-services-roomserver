@@ -3,13 +3,10 @@
 
 use std::{collections::HashMap, marker::PhantomData};
 
+use opentalk_roomserver_signaling::signaling_module::{SignalingModule, SignalingModuleInitData};
 use opentalk_types_common::modules::ModuleId;
 
-use super::{
-    ping::PingModule,
-    signaling_module::{SignalingModule, SignalingModuleInitData},
-    ModuleDispatcher, ModuleHandle,
-};
+use super::{ping::PingModule, ModuleDispatcher, ModuleHandle};
 
 /// A set of initialized modules that can used through their [`ModuleHandle`]
 pub type Modules = HashMap<ModuleId, Box<dyn ModuleHandle>>;

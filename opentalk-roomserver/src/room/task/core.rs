@@ -3,6 +3,7 @@
 
 use std::collections::BTreeMap;
 
+use opentalk_roomserver_signaling::signaling_module::{FatalError, SharedRawJson};
 use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters};
 use opentalk_types_common::{
     events::{EventInfo, MeetingDetails},
@@ -15,11 +16,7 @@ use serde::{Deserialize, Serialize};
 use super::{handle_fatal_module_error, Modules};
 use crate::room::{
     message_router::CloseReason,
-    signaling::{
-        module_context::DynModuleContext,
-        signaling_module::{FatalError, SharedRawJson},
-        DynBroadcastEvent,
-    },
+    signaling::{dyn_module_context::DynModuleContext, DynBroadcastEvent},
 };
 
 pub const NAMESPACE: ModuleId = module_id!("core");
@@ -212,6 +209,7 @@ async fn broadcast_event_to_modules(
 mod tests {
     use std::collections::BTreeMap;
 
+    use opentalk_roomserver_signaling::signaling_module::SharedRawJson;
     use opentalk_types_common::{
         modules::module_id,
         rooms::RoomId,
@@ -224,7 +222,6 @@ mod tests {
     use serde_json::{json, value::to_raw_value};
 
     use super::{CoreEvent, DisconnectReason};
-    use crate::room::signaling::signaling_module::SharedRawJson;
 
     #[test]
     fn serialize_core_event_success() {

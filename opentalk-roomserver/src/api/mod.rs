@@ -9,6 +9,7 @@ use axum::{
     extract::{ws::WebSocket, MatchedPath},
     http::Request,
 };
+use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters, room_parameters::RoomParameters,
     signaling_context::SignalingClientContext,
@@ -29,7 +30,6 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     room::{registry::RoomTaskRegistry, signaling::module_initializer::ModuleRegistry},
-    settings::Settings,
     wait_shutdown, ApplicationState,
 };
 

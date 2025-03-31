@@ -2335,9 +2335,10 @@ dependencies = [
  "axum",
  "axum-prometheus",
  "clap",
- "config",
  "futures",
  "log",
+ "opentalk-roomserver-common",
+ "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-types-api-v1",
@@ -2350,7 +2351,6 @@ dependencies = [
  "opentelemetry_sdk",
  "serde",
  "serde_json",
- "serde_path_to_error",
  "service-probe",
  "thiserror 2.0.12",
  "tokio",
@@ -2381,6 +2381,32 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio-test",
  "url",
+]
+
+[[package]]
+name = "opentalk-roomserver-common"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+ "config",
+ "serde",
+ "serde_path_to_error",
+]
+
+[[package]]
+name = "opentalk-roomserver-signaling"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+ "futures",
+ "log",
+ "opentalk-roomserver-common",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

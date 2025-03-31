@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk RoomServer Common"
+edition = "2021"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-common"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+config.workspace = true
+serde.workspace = true
+serde_path_to_error.workspace = true

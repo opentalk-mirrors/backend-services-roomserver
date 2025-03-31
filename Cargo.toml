@@ -31,6 +31,8 @@ opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 
 opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.0-dev" }
+opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.0-dev" }
+opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.0-dev" }
 opentalk-types-api-v1 = { version = "0.35", features = ["axum"] }
 opentalk-types-common = { version = "0.32.2", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.33", features = ["serde"] }
@@ -56,7 +58,7 @@ opentelemetry_sdk = { version = "0.29.0", features = [
 pretty_assertions = "1.4.1"
 reqwest = { version = "0.12", default-features = false }
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1.0.125", features = ["raw_value"] }
+serde_json = { version = "1.0.125" }
 serde_path_to_error = "0.1.16"
 service-probe = "0.2.0"
 thiserror = "2.0"

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use anyhow::Context;
+use opentalk_roomserver_common::settings::telemetry::Tracing;
 use opentelemetry::{trace::TracerProvider as _, KeyValue};
 use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
 use opentelemetry_sdk::{
@@ -17,8 +18,6 @@ use tracing_subscriber::{
     EnvFilter, Registry,
 };
 use uuid::Uuid;
-
-use crate::settings::telemetry::Tracing;
 
 const DEFAULT_LOGGING_DIRECTIVES: &str = "warn,opentalk_roomserver=info";
 

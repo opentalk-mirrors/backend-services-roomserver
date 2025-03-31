@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: EUPL-1.2
+// SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+/// The `loopback` module is intended for internal use only
+#[doc(hidden)]
+pub mod loopback;
+pub mod module_context;
+pub mod room_info;
+pub mod signaling_module;
