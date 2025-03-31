@@ -18,6 +18,7 @@ use opentalk_roomserver_types::{
     client_parameters::ClientParameters, signaling_context::SignalingClientContext,
 };
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use tracing::Span;
 
 use super::Router;
 
@@ -40,7 +41,7 @@ pub(crate) fn routes<B: SignalingBackend + 'static>() -> Router<B> {
     ),
     security(),
     )]
-#[tracing::instrument(name = "/signaling/{token}", level = "info", skip(ctx, token, ws))]
+#[tracing::instrument(name = "/signaling/{token}", level = "info", skip_all, fields(opentalk.room_id = "unknown"))]
 async fn open_signaling_socket<B: SignalingBackend + 'static>(
     State(ctx): State<B>,
     Path(token): Path<Token>,
@@ -55,7 +56,10 @@ async fn open_signaling_socket<B: SignalingBackend + 'static>(
     // This refreshes the rooms idle timeout if the room exists to avoid race conditions
     ctx.ensure_room_exists(room_id).await?;
 
+    let span = Span::current();
+    span.record("opentalk.room_id", room_id.to_string());
     Ok(ws.on_upgrade(move |socket| {
+        let _e = span.enter();
         handle_socket(socket, ctx, room_id, signaling_context.client_parameters)
     }))
 }

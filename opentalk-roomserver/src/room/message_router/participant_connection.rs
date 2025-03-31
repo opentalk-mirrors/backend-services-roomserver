@@ -249,6 +249,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         Ok((permit, message))
     }
 
+    #[tracing::instrument(skip_all, fields(opentalk.participant_id = %self.participant_id))]
     async fn handle_websocket_frame(
         &mut self,
         frame: Message,
@@ -266,6 +267,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             }
             _ => {
                 // Ping, Pong and Binary are ignored
+                log::debug!("Ignoring ping, pong or binary websocket message");
                 Ok(())
             }
         }
@@ -278,7 +280,10 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
     ) -> Result<(), ExitReason> {
         let command = match serde_json::from_str::<SignalingCommand>(&msg) {
             Ok(cmd) => cmd,
-            Err(e) => return self.send_error(e).await,
+            Err(e) => {
+                log::debug!("Error parsing signaling command: {e}");
+                return self.send_error(e).await;
+            }
         };
         let wrapped_cmd = SignalingMessage::Command(command).into_envelope(self.participant_id);
 
@@ -376,6 +381,7 @@ mod tests {
     use futures::{pin_mut, StreamExt as _};
     use opentalk_roomserver_types::signaling::SignalingCommand;
     use tokio::sync::mpsc;
+    use tracing::Span;
 
     use crate::{
         mocking::{mock_socket::MockSocket, participant::create_participant_connection},
@@ -409,6 +415,7 @@ mod tests {
                             serde_json::value::RawValue::NULL.to_owned(),
                         ),
                     ),
+                    span: Span::none(),
                 })
                 .await
                 .unwrap();

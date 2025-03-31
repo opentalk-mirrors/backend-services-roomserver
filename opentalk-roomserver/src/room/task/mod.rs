@@ -102,6 +102,7 @@ pub struct RoomInfo {
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Spawns a new [`RoomTask`]
+    #[tracing::instrument(level = "debug", skip_all, fields(opentalk.room_id = %room_id))]
     pub(super) fn spawn(
         room_id: RoomId,
         room_parameters: RoomParameters,
@@ -122,6 +123,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     /// Spawns a new [`RoomTask`] with a specific timeout
+    #[tracing::instrument(level = "info", skip_all, fields(opentalk.room_id = %room_id))]
     pub(super) fn spawn_with_timeout(
         room_id: RoomId,
         mut room_parameters: RoomParameters,
@@ -171,6 +173,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 participants: HashSet::default(),
             };
 
+            log::debug!("Spawn room with modules: {:?}", modules.keys());
             room_task.run(modules).await;
             task_registry.remove_room(room_id).await;
         });
@@ -222,7 +225,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    #[tracing::instrument(skip_all, fields(%self.info.room_id))]
+    #[tracing::instrument(skip_all, parent = &msg.span, fields(opentalk.room_id = %self.info.room_id))]
     async fn handle_api_request(
         &mut self,
         modules: &mut Modules,
@@ -274,12 +277,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.idle_timeout.stop();
     }
 
+    #[tracing::instrument(level = "info", skip_all, parent = &span, fields(participant_id = %participant_id))]
     async fn handle_message(
         &mut self,
         modules: &mut Modules,
         MessageEnvelope {
             participant_id,
             message,
+            span,
         }: MessageEnvelope<SignalingMessage>,
     ) -> anyhow::Result<()> {
         match message {

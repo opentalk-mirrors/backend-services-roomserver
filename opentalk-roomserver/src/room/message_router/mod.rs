@@ -196,7 +196,8 @@ mod tests {
                 participant_id,
                 message: SignalingMessage::Closed(
                     message_router::message::CloseReason::ParticipantClosed
-                )
+                ),
+                ..
             } if participant_id == p1.id
         ));
         router
