@@ -19,7 +19,6 @@ const MODULE_ID: ModuleId = module_id!("ping");
 
 pub struct PingModule;
 
-#[async_trait::async_trait]
 impl SignalingModule for PingModule {
     const NAMESPACE: ModuleId = MODULE_ID;
 
@@ -50,7 +49,7 @@ impl SignalingModule for PingModule {
         for participant_id in ctx.participants.iter() {
             join_info
                 .peer
-                .insert(*participant_id, format!("Hello {participant_id}"));
+                .insert(*participant_id, format!("Hello {participant_id}"))?;
         }
 
         Ok(join_info)

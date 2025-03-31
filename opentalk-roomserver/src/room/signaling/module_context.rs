@@ -16,6 +16,7 @@ use opentalk_roomserver_types::{
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::ParticipantId;
 use serde::Serialize;
+use serde_json::value::RawValue;
 
 use super::{signaling_module::FatalError, SignalingModule};
 use crate::room::{
@@ -79,7 +80,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         namespace: ModuleId,
         content: impl Serialize,
     ) -> Result<(), FatalError> {
-        let content = serde_json::to_value(content)
+        let content = serde_json::value::to_raw_value(&content)
             .with_context(|| format!("Failed to serialize message for namespace '{namespace}'"))
             .map_err(FatalError)?;
 
@@ -98,7 +99,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         namespace: ModuleId,
         content: impl Serialize,
     ) -> Result<(), FatalError> {
-        let content = serde_json::to_value(content)
+        let content = serde_json::value::to_raw_value(&content)
             .with_context(|| format!("Failed to serialize message for namespace '{namespace}'"))
             .map_err(FatalError)?;
 
@@ -113,11 +114,11 @@ impl<'ctx> DynModuleContext<'ctx> {
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
     pub(crate) async fn send_ws_error(&mut self, error: SignalingError) {
-        let content = match serde_json::to_value(error) {
+        let content = match serde_json::value::to_raw_value(&error) {
             Ok(value) => value,
             Err(err) => {
                 log::error!("Failed to serialize SignalingError type: {err}");
-                r#"{"error": "internal"}"#.into()
+                RawValue::from_string(r#"{"error": "internal"}"#.into()).unwrap()
             }
         };
 
@@ -136,11 +137,11 @@ impl<'ctx> DynModuleContext<'ctx> {
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
     pub(crate) async fn broadcast_ws_error(&mut self, error: SignalingError) {
-        let content = match serde_json::to_value(error) {
+        let content = match serde_json::value::to_raw_value(&error) {
             Ok(value) => value,
             Err(err) => {
                 log::error!("Failed to serialize SignalingError type: {err}");
-                r#"{"error": "internal"}"#.into()
+                RawValue::from_string(r#"{"error": "internal"}"#.into()).unwrap()
             }
         };
 
@@ -214,7 +215,7 @@ where
                 participant_id,
                 SignalingEvent {
                     namespace: M::NAMESPACE,
-                    content: serde_json::to_value(msg)
+                    content: serde_json::value::to_raw_value(&msg)
                         .context("Failed to serialize internal websocket payload type")
                         .map_err(FatalError)?,
                 },

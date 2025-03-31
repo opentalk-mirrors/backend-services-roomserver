@@ -20,7 +20,7 @@ pub enum CloseReason {
 }
 
 /// A signaling message sent by a client
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum SignalingMessage {
     /// The connection to the client was closed
     Closed(CloseReason),

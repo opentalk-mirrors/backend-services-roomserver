@@ -129,6 +129,7 @@ where
     }
 
     if !settings.http.disable_openapi {
+        // TODO: Having this enabled causes the utoipa schema to be cloned and dropped for each request which increases cost by about ~40%
         let mut openapi = ApiDoc::openapi();
         openapi.servers = Some(vec![utoipa::openapi::Server::new("/v1")]);
         router = router.merge(SwaggerUi::new("/swagger").url("/docs/openapi.json", openapi));
