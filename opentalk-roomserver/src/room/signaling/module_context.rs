@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{
-    collections::HashSet,
-    future::Future,
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
+use std::{collections::HashSet, future::Future, marker::PhantomData};
 
 use anyhow::Context;
 use opentalk_roomserver_types::{
@@ -29,7 +24,7 @@ pub struct DynModuleContext<'ctx> {
     pub room_id: RoomId,
     pub participant_id: ParticipantId,
     pub(crate) room_info: &'ctx mut RoomInfo,
-    message_router: &'ctx mut MessageRouter,
+    pub(crate) message_router: &'ctx mut MessageRouter,
     pub participants: &'ctx mut HashSet<ParticipantId>,
     loopback_futures: &'ctx LoopbackFutures,
 }
@@ -51,10 +46,6 @@ impl<'ctx> DynModuleContext<'ctx> {
             participants,
             loopback_futures,
         }
-    }
-
-    pub fn room_info(&self) -> &RoomInfo {
-        self.room_info
     }
 
     /// Create a owned copy of self with a narrower lifetime
@@ -161,41 +152,40 @@ pub struct ModuleContext<'ctx, M>
 where
     M: SignalingModule,
 {
-    inner: DynModuleContext<'ctx>,
+    pub room_id: RoomId,
+    pub participant_id: ParticipantId,
+    pub(crate) room_info: &'ctx mut RoomInfo,
+    // TODO use `SharedRawJson` and implement functions to send messages to all/subset of participants without re-allocation
+    messages: Vec<(ParticipantId, SignalingEvent)>,
+    pub participants: &'ctx mut HashSet<ParticipantId>,
+    loopback_futures: &'ctx LoopbackFutures,
     m: PhantomData<fn() -> M>,
 }
 
-// Allows accessing the fields of `inner` without having to expose the field
-impl<'ctx, M> Deref for ModuleContext<'ctx, M>
-where
-    M: SignalingModule,
-{
-    type Target = DynModuleContext<'ctx>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-// Allows accessing the fields of `inner` as mutable without having to expose the field
-impl<M> DerefMut for ModuleContext<'_, M>
-where
-    M: SignalingModule,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
-
-impl<'ctx, M> ModuleContext<'ctx, M>
-where
-    M: SignalingModule,
-{
-    pub(super) fn new(ctx: DynModuleContext<'ctx>) -> Self {
+impl<'ctx, M: SignalingModule> From<DynModuleContext<'ctx>> for ModuleContext<'ctx, M> {
+    fn from(ctx: DynModuleContext<'ctx>) -> Self {
         Self {
-            inner: ctx,
+            room_id: ctx.room_id,
+            participant_id: ctx.participant_id,
+            room_info: ctx.room_info,
+            messages: Vec::new(),
+            participants: ctx.participants,
+            loopback_futures: ctx.loopback_futures,
             m: PhantomData,
         }
+    }
+}
+
+impl<M> ModuleContext<'_, M>
+where
+    M: SignalingModule,
+{
+    pub fn room_info(&self) -> &RoomInfo {
+        self.room_info
+    }
+
+    pub fn into_messages(self) -> Vec<(ParticipantId, SignalingEvent)> {
+        self.messages
     }
 
     /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given `participant_id`
@@ -205,24 +195,39 @@ where
     /// # Errors
     ///
     /// Returns `Err` when the [`SignalingModule::Outgoing`] type failed to be serialized.
-    pub async fn send_ws_message(
+    pub fn send_ws_message(
         &mut self,
         participant_id: ParticipantId,
         msg: M::Outgoing,
     ) -> Result<(), FatalError> {
-        self.message_router
-            .send_event(
-                participant_id,
-                SignalingEvent {
-                    namespace: M::NAMESPACE,
-                    content: serde_json::value::to_raw_value(&msg)
-                        .context("Failed to serialize internal websocket payload type")
-                        .map_err(FatalError)?,
-                },
-            )
-            .await;
+        let message = SignalingEvent {
+            namespace: M::NAMESPACE,
+            content: serde_json::value::to_raw_value(&msg)
+                .context("Failed to serialize internal websocket payload type")
+                .map_err(FatalError)?,
+        };
+        self.messages.push((participant_id, message));
 
         Ok(())
+    }
+
+    /// Send a websocket error message of type [`SignalingError`] to the associated participant
+    ///
+    /// The message is always scoped to the [`error::NAMESPACE`]
+    pub(crate) fn send_ws_error(&mut self, error: SignalingError) {
+        let content = match serde_json::value::to_raw_value(&error) {
+            Ok(value) => value,
+            Err(err) => {
+                log::error!("Failed to serialize SignalingError type: {err}");
+                RawValue::from_string(r#"{"error": "internal"}"#.into()).unwrap()
+            }
+        };
+
+        let message = SignalingEvent {
+            namespace: error::NAMESPACE,
+            content,
+        };
+        self.messages.push((self.participant_id, message));
     }
 
     /// Spawns a new task that completes the given `future` and sends the result

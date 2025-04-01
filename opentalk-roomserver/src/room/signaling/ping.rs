@@ -71,7 +71,7 @@ impl SignalingModule for PingModule {
         content: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match content {
-            Command::Ping => ctx.send_ws_message(sender, Event::Pong).await?,
+            Command::Ping => ctx.send_ws_message(sender, Event::Pong)?,
             Command::BlockingDelayedPing => {
                 ctx.spawn_blocking(move || Self::handle_ping_delayed(sender));
             }
@@ -93,9 +93,7 @@ impl SignalingModule for PingModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        ctx.send_ws_message(event.0, Event::DelayedPong)
-            .await
-            .unwrap();
+        ctx.send_ws_message(event.0, Event::DelayedPong).unwrap();
         Ok(())
     }
 }

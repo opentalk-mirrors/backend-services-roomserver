@@ -153,8 +153,7 @@ where
 
                 ctx.send_ws_error(SignalingError::InvalidJson {
                     message: "failed to deserialize websocket message".into(),
-                })
-                .await;
+                });
 
                 return Ok(());
             }
@@ -198,12 +197,12 @@ where
                     "The '{}' module returned an internal error: {err:#?}",
                     M::NAMESPACE
                 );
-                ctx.send_ws_error(SignalingError::Internal).await;
+                ctx.send_ws_error(SignalingError::Internal);
             }
             SignalingModuleError::Module(err) => {
                 let msg = err.into();
 
-                ctx.send_ws_message(ctx.participant_id, msg).await?;
+                ctx.send_ws_message(ctx.participant_id, msg)?;
             }
         }
         Ok(())
@@ -220,9 +219,9 @@ where
         ctx: &mut DynModuleContext<'_>,
         event: DynEvent,
     ) -> Result<(), FatalError> {
-        let mut ctx = ModuleContext::<M>::new(ctx.reborrow());
+        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into();
 
-        if let Err(err) = self.handle_event(&mut ctx, event).await {
+        if let Err(err) = self.handle_event(&mut module_context, event).await {
             match err {
                 SignalingModuleError::Fatal(err) => return Err(err),
                 SignalingModuleError::Internal(err) => {
@@ -230,14 +229,18 @@ where
                         "The '{}' module returned an internal error: {err:#?}",
                         M::NAMESPACE
                     );
-                    ctx.send_ws_error(SignalingError::Internal).await;
+                    module_context.send_ws_error(SignalingError::Internal);
                 }
                 SignalingModuleError::Module(err) => {
                     let msg = err.into();
 
-                    ctx.send_ws_message(ctx.participant_id, msg).await?;
+                    module_context.send_ws_message(module_context.participant_id, msg)?;
                 }
             }
+        }
+
+        for (participant_id, message) in module_context.into_messages() {
+            ctx.message_router.send_event(participant_id, message).await;
         }
 
         Ok(())
@@ -248,10 +251,17 @@ where
         ctx: &mut DynModuleContext<'_>,
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError> {
-        let mut ctx = ModuleContext::<M>::new(ctx.reborrow());
+        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into();
 
-        if let Err(err) = self.handle_broadcast_event(&mut ctx, event).await {
-            return self.handle_error(&mut ctx, err).await;
+        if let Err(err) = self
+            .handle_broadcast_event(&mut module_context, event)
+            .await
+        {
+            return self.handle_error(&mut module_context, err).await;
+        }
+
+        for (participant_id, message) in module_context.into_messages() {
+            ctx.message_router.send_event(participant_id, message).await;
         }
 
         Ok(())
