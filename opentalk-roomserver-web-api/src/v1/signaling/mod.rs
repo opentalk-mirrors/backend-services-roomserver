@@ -18,7 +18,7 @@ use opentalk_roomserver_types::{
     client_parameters::ClientParameters, signaling_context::SignalingClientContext,
 };
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
-use tracing::Span;
+use tracing::{Instrument, Span};
 
 use super::Router;
 
@@ -59,8 +59,7 @@ async fn open_signaling_socket<B: SignalingBackend + 'static>(
     let span = Span::current();
     span.record("opentalk.room_id", room_id.to_string());
     Ok(ws.on_upgrade(move |socket| {
-        let _e = span.enter();
-        handle_socket(socket, ctx, room_id, signaling_context.client_parameters)
+        handle_socket(socket, ctx, room_id, signaling_context.client_parameters).instrument(span)
     }))
 }
 
