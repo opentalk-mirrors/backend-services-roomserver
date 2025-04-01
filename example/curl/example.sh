@@ -17,7 +17,7 @@ fi
 
 script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-HOST=${HOST:-"[::]:11311"}
+HOST=${HOST:-"[::]:11333"}
 ROOM_ID=${ROOM_ID:-"00000000-0000-0000-0001-000000000001"}
 API_TOKEN=${API_TOKEN:-"secret"}
 
@@ -37,6 +37,7 @@ token_response=$( curl -XPOST "http://$HOST/v1/rooms/$ROOM_ID/token" \
     -H "Authorization: bearer $API_TOKEN" \
     --data "@$script_dir/post_token.json" )
 
+echo "$token_response" | jq
 room_token=$( echo "$token_response" | jq -r ".token" )
 
 echo "Received room access token: '$room_token'"
