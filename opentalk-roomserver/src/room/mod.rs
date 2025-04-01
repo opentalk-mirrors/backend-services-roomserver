@@ -37,27 +37,30 @@ mod tests {
 
     const TIMEOUT: Duration = Duration::from_millis(500);
 
-    fn create_room_task() -> RoomTaskHandle<MockSocket> {
+    fn create_room_task() -> (RoomTaskHandle<MockSocket>, watch::Sender<ApplicationState>) {
         let id = RoomId::from_u128(0xc270ab35_5cdb_4614_b872_8dd66ceefc70);
         let params = RoomParameters::example_data();
         let task_registry = RoomTaskRegistry::new();
         let module_registry = Arc::new(ModuleRegistry::new());
-        let (_, state) = watch::channel(ApplicationState::Running);
+        let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
-        RoomTask::spawn_with_timeout(
-            id,
-            params,
-            task_registry,
-            state,
-            module_registry,
-            settings,
-            TIMEOUT,
+        (
+            RoomTask::spawn_with_timeout(
+                id,
+                params,
+                task_registry,
+                state,
+                module_registry,
+                settings,
+                TIMEOUT,
+            ),
+            sender,
         )
     }
 
     #[tokio::test]
     async fn timeout() {
-        let handle = create_room_task();
+        let (handle, _sender) = create_room_task();
         sleep(TIMEOUT - Duration::from_millis(100)).await;
         handle.refresh_idle_timeout().await.unwrap();
         sleep(TIMEOUT + Duration::from_millis(100)).await;
@@ -66,7 +69,7 @@ mod tests {
 
     #[tokio::test]
     async fn accept_signaling_socket() {
-        let handle = create_room_task();
+        let (handle, _sender) = create_room_task();
         let (socket, _) = create_participant_connection();
         let client_parameters = ClientParameters {
             client_id: "1234".into(),
