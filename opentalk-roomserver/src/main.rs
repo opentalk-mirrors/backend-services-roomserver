@@ -81,7 +81,7 @@ async fn run_app(config_file_name: &str) -> anyhow::Result<()> {
             start_service_probe(monitoring.clone(), app_state.subscribe())
                 .map_err(decorate_error("Service prove exited with error")),
         );
-    }
+    };
 
     let mut metric_layer = None;
     if let Some(metric) = &settings.metrics {

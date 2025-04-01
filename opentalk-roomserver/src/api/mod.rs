@@ -5,7 +5,10 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use axum::extract::ws::WebSocket;
+use axum::{
+    extract::{ws::WebSocket, MatchedPath},
+    http::Request,
+};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters, room_parameters::RoomParameters,
     signaling_context::SignalingClientContext,
@@ -16,6 +19,8 @@ use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use service_probe::{set_service_state, ServiceState};
 use token_store::TokenStore;
 use tokio::sync::{watch, Mutex};
+use tower_http::trace::TraceLayer;
+use tracing::info_span;
 use utoipa::{
     openapi::security::{Http, HttpAuthScheme},
     OpenApi,
@@ -122,7 +127,21 @@ where
     let mut router = Router::new()
         .nest("/v1", v1::routes(settings.http.api_token.clone()))
         .merge(v1::routes(settings.http.api_token.clone()))
-        .with_state(ctx);
+        .with_state(ctx)
+        .layer(
+            TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
+                let matched_path = request
+                    .extensions()
+                    .get::<MatchedPath>()
+                    .map(MatchedPath::as_str);
+
+                info_span!(
+                    "http_request",
+                    http.request.method = ?request.method(),
+                    http.route = matched_path,
+                )
+            }),
+        );
 
     if let Some(layer) = metric_layer {
         router = router.layer(layer);

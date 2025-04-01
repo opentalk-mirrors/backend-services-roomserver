@@ -6,6 +6,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use tokio::sync::{mpsc, oneshot};
+use tracing::Span;
 
 use super::RoomTaskApiError;
 
@@ -114,6 +115,9 @@ pub(super) struct TaskMessage<Socket: SignalingSocket> {
     pub request: Request<Socket>,
     /// A channel for the [`RoomTask`](super::RoomTask) to respond
     pub response_channel: oneshot::Sender<Result<(), RoomTaskApiError>>,
+
+    /// Parent span on the caller side, used to track spans across channels.
+    pub span: Span,
 }
 
 impl<Socket: SignalingSocket> TaskMessage<Socket> {
@@ -121,9 +125,11 @@ impl<Socket: SignalingSocket> TaskMessage<Socket> {
         request: Request<Socket>,
         response_channel: oneshot::Sender<Result<(), RoomTaskApiError>>,
     ) -> Self {
+        let span = tracing::Span::current();
         Self {
             request,
             response_channel,
+            span,
         }
     }
 }

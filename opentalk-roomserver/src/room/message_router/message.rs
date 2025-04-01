@@ -33,12 +33,14 @@ impl SignalingMessage {
         MessageEnvelope {
             participant_id,
             message: self,
+            span: tracing::Span::current(),
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct MessageEnvelope<RawMessage> {
     pub participant_id: ParticipantId,
     pub message: RawMessage,
+    pub span: tracing::Span,
 }

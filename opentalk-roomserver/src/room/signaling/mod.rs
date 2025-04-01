@@ -91,6 +91,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
     async fn handle_broadcast_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
@@ -134,6 +135,7 @@ where
 
     /// Resolves a generic JSON message that was received by [`ModuleHandle::on_event`] to the concrete
     /// [`SignalingModule::Incoming`] type.
+    #[tracing::instrument(skip_all, fields(opentalk.command.sender = %sender, opentalk.module = %M::NAMESPACE))]
     async fn handle_ws_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
@@ -166,6 +168,7 @@ where
 
     /// Resolves a dynamic loopback message that was received by [`ModuleHandle::on_event`] to the concrete
     /// [`SignalingModule::Loopback`] type.
+    #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
     async fn handle_loopback_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
@@ -182,6 +185,7 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
     async fn handle_error(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,

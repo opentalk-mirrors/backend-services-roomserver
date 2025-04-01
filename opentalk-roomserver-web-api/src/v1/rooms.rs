@@ -85,7 +85,7 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
         ("API-Token" = [])
     )
     )]
-#[tracing::instrument(level = "trace", skip(room_parameters), fields(room_id = %path.0))]
+#[tracing::instrument(level = "info", name = "/rooms/{room_id}", skip_all, fields(opentalk.room_id = %path.0))]
 pub(crate) async fn put_room<B: RoomBackend>(
     State(ctx): State<B>,
     path: Path<RoomId>,
@@ -120,7 +120,7 @@ pub(crate) async fn put_room<B: RoomBackend>(
         ("API-Token" = [])
     )
     )]
-#[tracing::instrument(level = "trace", skip(body), fields(room_id = %path.0))]
+#[tracing::instrument(level = "info", name = "/rooms/{room_id}/token", skip_all, fields(opentalk.room_id = %path.0, http.method = "PUT"))]
 pub(crate) async fn request_token<B: RoomBackend>(
     State(mut ctx): State<B>,
     path: Path<RoomId>,
