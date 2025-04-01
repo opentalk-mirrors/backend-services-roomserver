@@ -85,7 +85,7 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
 
     _settings: Arc<Settings>,
 
-    _app_state: watch::Receiver<ApplicationState>,
+    app_state: watch::Receiver<ApplicationState>,
 
     participants: HashSet<ParticipantId>,
 }
@@ -169,7 +169,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 message_router,
                 loopback_futures,
                 _settings: settings,
-                _app_state: app_state,
+                app_state,
                 participants: HashSet::default(),
             };
 
@@ -182,9 +182,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     async fn run(self, modules: Modules) {
+        let room_id = self.info.room_id;
+
         if let Err(e) = self.inner_run(modules).await {
             log::error!("RoomTask exited with error {e}");
         }
+
+        log::debug!("Closing room {room_id}");
     }
 
     async fn inner_run(mut self, mut modules: Modules) -> anyhow::Result<()> {
@@ -220,6 +224,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 () = self.idle_timeout.has_timed_out() => {
                     log::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
                     return Ok(());
+                }
+                result = self.app_state.changed() => {
+                    if result.is_err() || self.app_state.borrow().is_shutting_down() {
+                        log::debug!("Room task {} received shutdown signal, exiting", self.info.room_id);
+                        return Ok(())
+                    }
+
                 }
             };
         }

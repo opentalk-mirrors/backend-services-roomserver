@@ -42,5 +42,5 @@ room_token=$( echo "$token_response" | jq -r ".token" )
 
 echo "Received room access token: '$room_token'"
 
-websocat \
+websocat -v --exit-on-eof \
     "ws://$HOST/signaling/$room_token"
