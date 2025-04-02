@@ -29,7 +29,6 @@ use serde_json::value::RawValue;
 
 pub mod dyn_module_context;
 pub(crate) mod module_initializer;
-pub(crate) mod ping;
 
 /// Abstracted handle to a [`SignalingModule`]
 #[async_trait::async_trait]

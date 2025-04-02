@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk RoomServer Module Ping"
+edition = "2021"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-module-ping"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+log.workspace = true
+opentalk-roomserver-signaling.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+serde.workspace = true
+tokio.workspace = true

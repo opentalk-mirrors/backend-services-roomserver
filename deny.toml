@@ -74,6 +74,9 @@ exceptions = [
   ], name = "opentalk-roomserver-common" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-ping" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-signaling" },
   { allow = [
     "EUPL-1.2",

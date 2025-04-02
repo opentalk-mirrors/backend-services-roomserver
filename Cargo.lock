@@ -2338,6 +2338,7 @@ dependencies = [
  "futures",
  "log",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-module-ping",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
@@ -2391,6 +2392,19 @@ dependencies = [
  "config",
  "serde",
  "serde_path_to_error",
+]
+
+[[package]]
+name = "opentalk-roomserver-module-ping"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+ "log",
+ "opentalk-roomserver-signaling",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
+ "tokio",
 ]
 
 [[package]]

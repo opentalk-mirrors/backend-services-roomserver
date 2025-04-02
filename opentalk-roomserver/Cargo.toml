@@ -20,6 +20,7 @@ clap.workspace = true
 futures.workspace = true
 log.workspace = true
 opentalk-roomserver-common.workspace = true
+opentalk-roomserver-module-ping.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
