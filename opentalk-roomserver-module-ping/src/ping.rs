@@ -11,6 +11,7 @@ use opentalk_roomserver_signaling::{
         SignalingModuleInitData,
     },
 };
+use opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_types_common::modules::{module_id, ModuleId};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
@@ -38,15 +39,17 @@ impl SignalingModule for PingModule {
         Some(Self)
     }
 
-    async fn on_participant_connected(
+    async fn on_participant_joined(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
+        _connection_id: ConnectionId,
+        _is_first_connection: bool,
     ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
         log::info!("Participant {participant_id} connected");
         let mut join_info = JoinInfo::default();
 
-        for participant_id in ctx.participants.iter() {
+        for (participant_id, ..) in ctx.participants.connected() {
             join_info
                 .peer
                 .insert(*participant_id, format!("Hello {participant_id}"))?;
@@ -59,6 +62,7 @@ impl SignalingModule for PingModule {
         &mut self,
         _ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
+        _connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         log::info!("Participant {participant_id} disconnected");
         Ok(())
@@ -67,16 +71,17 @@ impl SignalingModule for PingModule {
     async fn on_websocket_message(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        sender: ParticipantId,
+        participant_id: ParticipantId,
+        _connection_id: ConnectionId,
         content: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match content {
-            Command::Ping => ctx.send_ws_message(sender, Event::Pong)?,
+            Command::Ping => ctx.send_ws_message(participant_id, Event::Pong)?,
             Command::BlockingDelayedPing => {
-                ctx.spawn_blocking(move || Self::handle_ping_delayed(sender));
+                ctx.spawn_blocking(move || Self::handle_ping_delayed(participant_id));
             }
             Command::AsyncDelayedPing => {
-                ctx.spawn(Self::handle_async_ping_delayed(sender));
+                ctx.spawn(Self::handle_async_ping_delayed(participant_id));
             }
             Command::PingError => Self::ping_error()?,
             Command::Die => {

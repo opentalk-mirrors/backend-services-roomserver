@@ -12,8 +12,9 @@ version.workspace = true
 
 [dependencies]
 chrono.workspace = true
+derive_more.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["serde", "utoipa"] }
-opentalk-types-common.workspace = true
+opentalk-types-common = { workspace = true, features = ["rand"] }
 opentalk-types-signaling.workspace = true
 pretty_assertions.workspace = true
 serde.workspace = true
@@ -23,6 +24,7 @@ utoipa = { workspace = true, features = [
   "url",
   "uuid",
 ], optional = true }
+uuid = { workspace = true, features = ["v4"] }
 
 [features]
 default = []

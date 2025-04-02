@@ -14,5 +14,6 @@ version.workspace = true
 [dependencies]
 anyhow.workspace = true
 config.workspace = true
+rand.workspace = true
 serde.workspace = true
 serde_path_to_error.workspace = true

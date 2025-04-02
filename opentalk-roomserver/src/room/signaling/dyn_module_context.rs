@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::HashSet;
-
 use anyhow::Context;
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
     loopback::LoopbackFuture,
     module_context::ModuleContext,
+    participant_state::Participants,
     room_info::RoomInfo,
     signaling_module::{FatalError, SignalingModule},
 };
 use opentalk_roomserver_types::{
+    connection_id::ConnectionId,
     error::{self, SignalingError},
     signaling::SignalingEvent,
 };
@@ -26,9 +26,10 @@ use crate::room::message_router::MessageRouter;
 pub struct DynModuleContext<'ctx> {
     pub room_id: RoomId,
     pub participant_id: ParticipantId,
+    pub connection_id: ConnectionId,
     pub room_info: &'ctx mut RoomInfo,
     pub message_router: &'ctx mut MessageRouter,
-    pub participants: &'ctx mut HashSet<ParticipantId>,
+    pub participants: &'ctx mut Participants,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
 }
 
@@ -36,14 +37,16 @@ impl<'ctx> DynModuleContext<'ctx> {
     pub(crate) fn new(
         room_id: RoomId,
         participant_id: ParticipantId,
+        connection_id: ConnectionId,
         room_info: &'ctx mut RoomInfo,
         message_router: &'ctx mut MessageRouter,
-        participants: &'ctx mut HashSet<ParticipantId>,
+        participants: &'ctx mut Participants,
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
     ) -> Self {
         Self {
             room_id,
             participant_id,
+            connection_id,
             room_info,
             message_router,
             participants,
@@ -56,6 +59,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         DynModuleContext {
             room_id: self.room_id,
             participant_id: self.participant_id,
+            connection_id: self.connection_id,
             room_info: self.room_info,
             message_router: self.message_router,
             participants: self.participants,
@@ -63,26 +67,18 @@ impl<'ctx> DynModuleContext<'ctx> {
         }
     }
 
-    /// Send a websocket message to the given participant
+    /// Send a websocket message to the given list of connections
     ///
     /// # Errors
     ///
     /// Returns a [`FatalError`] when the content fails to serialize
     pub(crate) async fn send_ws_message(
         &mut self,
-        participant_id: ParticipantId,
+        connections: impl IntoIterator<Item = ConnectionId>,
         namespace: ModuleId,
         content: impl Serialize,
     ) -> Result<(), FatalError> {
-        let content = serde_json::value::to_raw_value(&content)
-            .with_context(|| format!("Failed to serialize message for namespace '{namespace}'"))
-            .map_err(FatalError)?;
-
-        self.message_router
-            .send_event(participant_id, SignalingEvent { namespace, content })
-            .await;
-
-        Ok(())
+        send_ws_message(self.message_router, connections, namespace, content).await
     }
 
     /// Broadcast a websocket message to all participants
@@ -100,11 +96,10 @@ impl<'ctx> DynModuleContext<'ctx> {
         self.message_router
             .broadcast_event(SignalingEvent { namespace, content })
             .await;
-
         Ok(())
     }
 
-    /// Send a websocket error message of type [`SignalingError`] to the associated participant
+    /// Send a websocket error message of type [`SignalingError`] to the associated connection
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
     pub(crate) async fn send_ws_error(&mut self, error: SignalingError) {
@@ -118,7 +113,7 @@ impl<'ctx> DynModuleContext<'ctx> {
 
         self.message_router
             .send_event(
-                self.participant_id,
+                [self.connection_id],
                 SignalingEvent {
                     namespace: error::NAMESPACE,
                     content,
@@ -153,9 +148,27 @@ impl<'ctx, M: SignalingModule> From<DynModuleContext<'ctx>> for ModuleContext<'c
         ModuleContext::new(
             ctx.room_id,
             ctx.participant_id,
+            ctx.connection_id,
             ctx.room_info,
             ctx.participants,
             ctx.loopback_futures,
         )
     }
+}
+
+pub(crate) async fn send_ws_message(
+    message_router: &mut MessageRouter,
+    connections: impl IntoIterator<Item = ConnectionId>,
+    namespace: ModuleId,
+    content: impl Serialize,
+) -> Result<(), FatalError> {
+    let content = serde_json::value::to_raw_value(&content)
+        .with_context(|| format!("Failed to serialize message for namespace '{namespace}'"))
+        .map_err(FatalError)?;
+
+    message_router
+        .send_event(connections, SignalingEvent { namespace, content })
+        .await;
+
+    Ok(())
 }

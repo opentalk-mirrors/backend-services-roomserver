@@ -326,7 +326,7 @@ mod test {
 
     fn client_parameters2() -> ClientParameters {
         ClientParameters {
-            client_id: "1234".into(),
+            device_secret: "1234".into(),
             kind: ClientKind::Guest {
                 display_name: DisplayName::from_str_lossy("tester"),
             },
@@ -335,7 +335,7 @@ mod test {
 
     fn client_parameters1() -> ClientParameters {
         ClientParameters {
-            client_id: "1234".into(),
+            device_secret: "1234".into(),
             kind: ClientKind::Registered {
                 profile: PublicUserProfile {
                     id: UserId::nil(),

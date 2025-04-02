@@ -4,6 +4,8 @@
 use opentalk_roomserver_types::signaling::SignalingCommand;
 use opentalk_types_signaling::ParticipantId;
 
+use super::ConnectionId;
+
 /// The reason for the closed participant connection
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CloseReason {
@@ -29,9 +31,14 @@ pub enum SignalingMessage {
 }
 
 impl SignalingMessage {
-    pub fn into_envelope(self, participant_id: ParticipantId) -> MessageEnvelope<SignalingMessage> {
+    pub fn into_envelope(
+        self,
+        connection_id: ConnectionId,
+        participant_id: ParticipantId,
+    ) -> MessageEnvelope<SignalingMessage> {
         MessageEnvelope {
             participant_id,
+            connection_id,
             message: self,
             span: tracing::Span::current(),
         }
@@ -39,8 +46,9 @@ impl SignalingMessage {
 }
 
 #[derive(Debug)]
-pub struct MessageEnvelope<RawMessage> {
+pub struct MessageEnvelope<M> {
     pub participant_id: ParticipantId,
-    pub message: RawMessage,
+    pub connection_id: ConnectionId,
+    pub message: M,
     pub span: tracing::Span,
 }

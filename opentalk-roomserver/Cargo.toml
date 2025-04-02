@@ -16,6 +16,7 @@ anyhow.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 axum-prometheus.workspace = true
+blake3.workspace = true
 clap.workspace = true
 futures.workspace = true
 log.workspace = true

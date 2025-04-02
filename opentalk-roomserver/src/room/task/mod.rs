@@ -1,21 +1,27 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashSet, future::pending, sync::Arc, time::Duration};
+use std::{future::pending, sync::Arc, time::Duration};
 
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_signaling::{
     loopback::LoopbackFuture,
+    participant_state::{ParticipantKind, ParticipantState, Participants},
     room_info::RoomInfo,
     signaling_module::{FatalError, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, error::SignalingError, room_parameters::RoomParameters,
+    client_parameters::{ClientKind, ClientParameters},
+    connection_id::ConnectionId,
+    device_id::DeviceId,
+    error::SignalingError,
+    room_parameters::RoomParameters,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, watch};
+use uuid::Uuid;
 
 use super::{
     message_router::{AlreadyConnectedError, CloseReason},
@@ -68,11 +74,11 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
     /// Loopback futures that were created by signaling modules
     loopback_futures: FuturesUnordered<LoopbackFuture>,
 
-    _settings: Arc<Settings>,
+    settings: Arc<Settings>,
 
     app_state: watch::Receiver<ApplicationState>,
 
-    participants: HashSet<ParticipantId>,
+    participants: Participants,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -143,9 +149,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 idle_timeout: IdleTimeout::start_new(timeout),
                 message_router,
                 loopback_futures,
-                _settings: settings,
+                settings,
                 app_state,
-                participants: HashSet::default(),
+                participants: Participants::new(),
             };
 
             log::debug!("Spawn room with modules: {:?}", modules.keys());
@@ -191,7 +197,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         log::error!("Received loopback event for unknown module {}", msg.namespace);
                         continue;
                     };
-                    let mut ctx = self.context(msg.participant_id);
+                    let mut ctx = self.context(msg.participant_id, msg.connection_id);
                     if let Err(err) = module.on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value)).await {
                         handle_fatal_module_error(&mut ctx, &mut modules, msg.namespace, err).await;
                     }
@@ -258,7 +264,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         socket: Socket,
         client_parameters: ClientParameters,
     ) {
-        self.new_participant(socket, modules, client_parameters)
+        self.connect_participant(socket, modules, client_parameters)
             .await;
         self.idle_timeout.stop();
     }
@@ -269,6 +275,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         modules: &mut Modules,
         MessageEnvelope {
             participant_id,
+            connection_id,
             message,
             span,
         }: MessageEnvelope<SignalingMessage>,
@@ -276,7 +283,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         match message {
             SignalingMessage::Closed(close_reason) => {
                 log::trace!("Websocket closed for participant {participant_id}: {close_reason:?}");
-                self.remove_participant(modules, participant_id, close_reason)
+                self.disconnect_participant(modules, participant_id, connection_id, close_reason)
                     .await;
             }
 
@@ -284,18 +291,23 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 log::trace!("received signaling command: {signaling_command:?}");
 
                 let Some(module) = modules.get_mut(&signaling_command.namespace) else {
-                    self.handle_unknown_namespace(participant_id, signaling_command.namespace)
-                        .await;
+                    self.handle_unknown_namespace(
+                        participant_id,
+                        connection_id,
+                        signaling_command.namespace,
+                    )
+                    .await;
                     return Ok(());
                 };
 
-                let mut ctx = self.context(participant_id);
+                let mut ctx = self.context(participant_id, connection_id);
 
                 if let Err(err) = module
                     .on_event(
                         &mut ctx,
                         DynEvent::WebsocketMessage {
-                            sender: participant_id,
+                            participant_id,
+                            connection_id,
                             command: signaling_command.content,
                         },
                     )
@@ -310,27 +322,53 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         Ok(())
     }
 
-    async fn new_participant(
+    async fn connect_participant(
         &mut self,
         socket: Socket,
         modules: &mut Modules,
         client_parameters: ClientParameters,
     ) {
-        let participant_id = ParticipantId::generate();
+        let device_id = self.derive_device_id(&client_parameters.device_secret);
 
-        if self
+        let (participant_id, display_name, kind) = match &client_parameters.kind {
+            ClientKind::Registered { profile } => (
+                ParticipantId::from(Uuid::from(profile.id)),
+                profile.user_info.display_name.clone(),
+                ParticipantKind::User,
+            ),
+
+            ClientKind::Guest { display_name } => {
+                let participant_id = ParticipantId::from(Uuid::from(device_id));
+
+                (participant_id, display_name.clone(), ParticipantKind::Guest)
+            }
+        };
+
+        // If we ever run into the issue of an uuid collision, a guest could hijack a user session and vice versa. We'd
+        // rather decline the new connection when the participant id is known, but the participant kinds differ.
+        if let Some(existing_participant) = self.participants.all.get(&participant_id) {
+            if existing_participant.kind != kind {
+                log::error!("ParticipantId collision, dropping new participant ({participant_id})");
+                return;
+            }
+        };
+
+        let connection_id = match self
             .message_router
-            .register_participant(participant_id, socket)
+            .add_connection(participant_id, socket)
             .await
-            == Err(AlreadyConnectedError)
         {
-            log::debug!("rejecting participant connection: already connected");
-            return;
-        }
+            Ok(conn_id) => conn_id,
+            Err(AlreadyConnectedError) => {
+                log::debug!("rejecting participant connection: already connected");
+                return;
+            }
+        };
 
         if let Err(err) = core::participant_joined(
-            &mut self.context(participant_id),
+            &mut self.context(participant_id, connection_id),
             participant_id,
+            connection_id,
             modules,
             client_parameters,
         )
@@ -338,29 +376,52 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         {
             log::error!("failed to add participant to conference {err:#?}");
 
-            self.remove_participant(modules, participant_id, CloseReason::InternalError)
-                .await;
+            self.disconnect_participant(
+                modules,
+                participant_id,
+                connection_id,
+                CloseReason::InternalError,
+            )
+            .await;
         }
+
+        self.participants
+            .all
+            .entry(participant_id)
+            .or_insert_with(|| ParticipantState::new(display_name, kind))
+            .connections
+            .insert(connection_id, device_id);
     }
 
-    async fn remove_participant(
+    async fn disconnect_participant(
         &mut self,
         modules: &mut Modules,
         participant_id: ParticipantId,
+        connection_id: ConnectionId,
         reason: CloseReason,
     ) {
-        self.participants.remove(&participant_id);
+        let Some(state) = self.participants.all.get_mut(&participant_id) else {
+            log::error!("Attempted to disconnect participant who does not exist");
+            return;
+        };
+        state.connections.remove(&connection_id);
 
-        let ctx = &mut self.context(participant_id);
+        let ctx = &mut self.context(participant_id, connection_id);
 
         core::participant_disconnected(ctx, reason.into(), modules).await;
 
-        if self.participants.is_empty() {
+        // start idle timeout when no one is connected
+        if !self.participants.all.values().any(|s| s.is_connected()) {
             self.idle_timeout.start(IDLE_TIMEOUT);
         }
     }
 
-    async fn handle_unknown_namespace(&mut self, origin: ParticipantId, namespace: ModuleId) {
+    async fn handle_unknown_namespace(
+        &mut self,
+        origin: ParticipantId,
+        connection_id: ConnectionId,
+        namespace: ModuleId,
+    ) {
         log::debug!(
             "Received signaling message with unknown namespace: {}",
             &namespace
@@ -370,18 +431,46 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             invalid_namespace: namespace.to_string(),
         };
 
-        self.context(origin).send_ws_error(signaling_error).await;
+        self.context(origin, connection_id)
+            .send_ws_error(signaling_error)
+            .await;
     }
 
-    fn context(&mut self, participant_id: ParticipantId) -> DynModuleContext<'_> {
+    fn context(
+        &mut self,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+    ) -> DynModuleContext<'_> {
         DynModuleContext::new(
             self.info.room_id,
             participant_id,
+            connection_id,
             &mut self.info,
             &mut self.message_router,
             &mut self.participants,
             &self.loopback_futures,
         )
+    }
+
+    /// Generate a [`DeviceId`] from a device secret
+    ///
+    /// This function hashes the device secret and the salt that is configured for the roomserver. The first 128
+    /// bit of the output hash are then used as the uuid for the [`DeviceId`]. This is repeatable, the same device
+    /// secret will result in the same [`DeviceId`] until the salt changes because of a roomserver restart.
+    ///
+    /// Reusing the salt is fine in this case since the salt is private and the device secret already has a high entropy.
+    /// In contrast to a password salt, our salt needs to stay private.
+    fn derive_device_id(&self, device_secret: &str) -> DeviceId {
+        let mut hasher = blake3::Hasher::new();
+        let salt = self.settings.conference.signaling_salt.as_bytes();
+        hasher.update(salt);
+        hasher.update(device_secret.as_bytes());
+
+        let mut uuid_bytes = [0; 16];
+
+        hasher.finalize_xof().fill(&mut uuid_bytes);
+
+        DeviceId::from(Uuid::from_bytes(uuid_bytes))
     }
 }
 

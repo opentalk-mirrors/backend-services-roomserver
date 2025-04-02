@@ -72,7 +72,7 @@ mod tests {
         let (handle, _sender) = create_room_task();
         let (socket, _) = create_participant_connection();
         let client_parameters = ClientParameters {
-            client_id: "1234".into(),
+            device_secret: "1234".into(),
             kind: client_parameters::ClientKind::Guest {
                 display_name: DisplayName::from_str_lossy("tester"),
             },

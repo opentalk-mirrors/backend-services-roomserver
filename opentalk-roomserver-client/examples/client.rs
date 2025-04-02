@@ -41,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
         .request_token(
             room_id,
             ClientParameters {
-                client_id: "example_client".to_string(),
+                device_secret: "example_client".to_string(),
                 kind: ClientKind::Guest {
                     display_name: "Max Muster".parse().unwrap(),
                 },
