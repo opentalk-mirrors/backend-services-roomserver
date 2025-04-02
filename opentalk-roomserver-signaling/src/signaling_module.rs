@@ -7,13 +7,13 @@ use std::{
 };
 
 use anyhow::Context;
+use opentalk_roomserver_common::settings::Settings;
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::value::{to_raw_value, RawValue};
 
-use super::module_context::{DynModuleContext, ModuleContext};
-use crate::Settings;
+use super::module_context::ModuleContext;
 
 /// The trait that defines a signaling module
 ///
@@ -118,7 +118,7 @@ pub struct ParticipantInfo {}
 /// When a `Joined` message is sent to a participant, the participants associated [`SignalingModule::PeerJoinInfo`] will
 /// be attached to it.
 pub struct PeerJoinInfoMap<M: SignalingModule> {
-    pub(crate) map: BTreeMap<ParticipantId, SharedRawJson>,
+    pub map: BTreeMap<ParticipantId, SharedRawJson>,
     _m: PhantomData<M>,
 }
 
@@ -135,7 +135,7 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
     /// Attach the same [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) for all participants
     pub fn insert_for_all(
         &mut self,
-        ctx: &mut DynModuleContext<'_>,
+        ctx: &mut ModuleContext<'_, M>,
         info: M::PeerJoinInfo,
     ) -> Result<(), FatalError> {
         self.insert_for_matching(ctx, info, |_, _| true)
@@ -166,7 +166,7 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
     /// Attach [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) for all participants that match the given filter
     pub fn insert_for_matching<F>(
         &mut self,
-        ctx: &mut DynModuleContext<'_>,
+        ctx: &mut ModuleContext<'_, M>,
         info: M::PeerJoinInfo,
         mut filter: F,
     ) -> Result<(), FatalError>

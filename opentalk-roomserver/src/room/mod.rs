@@ -20,6 +20,7 @@ pub(crate) mod task;
 mod tests {
     use std::{sync::Arc, time::Duration};
 
+    use opentalk_roomserver_common::settings::Settings;
     use opentalk_roomserver_types::{
         client_parameters::{self, ClientParameters},
         room_parameters::RoomParameters,
@@ -31,7 +32,6 @@ mod tests {
     use crate::{
         mocking::{mock_socket::MockSocket, participant::create_participant_connection},
         room::{registry::RoomTaskRegistry, task::RoomTask},
-        settings::Settings,
         ApplicationState,
     };
 

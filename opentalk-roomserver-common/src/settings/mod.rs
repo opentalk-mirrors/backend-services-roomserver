@@ -12,22 +12,22 @@ pub mod telemetry;
 #[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
     /// HTTP web server settings
-    pub(crate) http: Http,
+    pub http: Http,
 
     #[serde(default)]
-    pub(crate) monitoring: Option<Monitoring>,
+    pub monitoring: Option<Monitoring>,
 
     #[serde(default)]
-    pub(crate) metrics: Option<Metrics>,
+    pub metrics: Option<Metrics>,
 
     #[serde(default)]
-    pub(crate) tracing: Option<Tracing>,
+    pub tracing: Option<Tracing>,
 }
 
 impl Settings {
     /// Creates a new Settings instance from the provided TOML file.
     /// Specific fields can be set or overwritten with environment variables (See struct level docs for more details).
-    pub(crate) fn load(file_name: &str) -> anyhow::Result<Self> {
+    pub fn load(file_name: &str) -> anyhow::Result<Self> {
         let config = Config::builder()
             .add_source(File::new(file_name, FileFormat::Toml))
             .add_source(
@@ -40,9 +40,11 @@ impl Settings {
         Ok(serde_path_to_error::deserialize(config)?)
     }
 
-    #[cfg(test)]
-    pub(crate) fn test_settings(api_token: String) -> Self {
-        Self {
+    /// Creates settings for testing
+    ///
+    /// Do not use in production
+    pub fn test_settings(api_token: String) -> Settings {
+        Settings {
             http: Http {
                 address: default_bind_address(),
                 port: default_port(),
@@ -58,22 +60,22 @@ impl Settings {
 
 /// Settings for the HTTP server
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct Http {
+pub struct Http {
     /// The IP address that the HTTP server should bind to
     #[serde(default = "default_bind_address")]
-    pub(crate) address: IpAddr,
+    pub address: IpAddr,
 
     /// The port that the HTTP server should use
     #[serde(default = "default_port")]
-    pub(crate) port: u16,
+    pub port: u16,
 
     /// The API token for service endpoints
-    pub(crate) api_token: String,
+    pub api_token: String,
 
     // Disable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
     // swagger endpoint under `/swagger`.
     #[serde(default)]
-    pub(crate) disable_openapi: bool,
+    pub disable_openapi: bool,
 }
 
 fn default_bind_address() -> IpAddr {

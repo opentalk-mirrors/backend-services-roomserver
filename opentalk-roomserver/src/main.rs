@@ -16,8 +16,8 @@ use clap::Parser;
 use cli::{Args, SubCommand};
 use futures::TryFutureExt;
 use metrics::MetricHandle;
+use opentalk_roomserver_common::settings::{telemetry::Monitoring, Settings};
 use service_probe::{start_probe, stop_probe, ServiceState};
-use settings::{telemetry::Monitoring, Settings};
 use tokio::{
     signal,
     sync::watch::{self, Receiver},
@@ -31,7 +31,6 @@ mod metrics;
 #[cfg(test)]
 mod mocking;
 pub mod room;
-pub(crate) mod settings;
 mod trace;
 
 const SHUTDOWN_GRACE_PERIOD: Duration = Duration::from_secs(42);

@@ -4,16 +4,16 @@
 //! TODO: PoC demo module, to be removed
 use std::{thread, time::Duration};
 
+use opentalk_roomserver_signaling::{
+    module_context::ModuleContext,
+    signaling_module::{
+        FatalError, JoinInfo, ModuleError, SignalingModule, SignalingModuleError,
+        SignalingModuleInitData,
+    },
+};
 use opentalk_types_common::modules::{module_id, ModuleId};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
-
-use super::{
-    signaling_module::{
-        FatalError, JoinInfo, ModuleError, SignalingModuleError, SignalingModuleInitData,
-    },
-    ModuleContext, SignalingModule,
-};
 
 const MODULE_ID: ModuleId = module_id!("ping");
 

@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{
-    any::Any,
-    collections::HashSet,
-    future::{pending, Future},
-    pin::Pin,
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashSet, future::pending, sync::Arc, time::Duration};
 
 use futures::stream::{FuturesUnordered, StreamExt};
+use opentalk_roomserver_signaling::{
+    loopback::LoopbackFuture,
+    room_info::RoomInfo,
+    signaling_module::{FatalError, SignalingModuleInitData},
+};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, error::SignalingError, room_parameters::RoomParameters,
 };
@@ -21,16 +19,13 @@ use tokio::sync::{mpsc, watch};
 
 use super::{
     message_router::{AlreadyConnectedError, CloseReason},
-    signaling::{
-        module_initializer::{ModuleRegistry, Modules},
-        signaling_module::{FatalError, SignalingModuleInitData},
-    },
+    signaling::module_initializer::{ModuleRegistry, Modules},
 };
 use crate::{
     room::{
         message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
         registry::RoomTaskRegistry,
-        signaling::{module_context::DynModuleContext, DynEvent},
+        signaling::{dyn_module_context::DynModuleContext, DynEvent},
         task::{
             handle::{Request, RoomTaskHandle, TaskMessage},
             idle_timeout::IdleTimeout,
@@ -56,17 +51,6 @@ pub enum RoomTaskApiError {
 /// expire before the signaling token does.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
-pub struct LoopbackMessage {
-    pub namespace: ModuleId,
-    /// TODO: this might need to be optional at some point
-    pub participant_id: ParticipantId,
-    pub value: Box<dyn Any + Send + 'static>,
-}
-
-/// A set of loopback futures that were created by signaling modules
-pub type LoopbackFutures =
-    FuturesUnordered<Pin<Box<dyn Future<Output = Option<LoopbackMessage>> + Send + Sync>>>;
-
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
@@ -81,23 +65,14 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
 
     message_router: MessageRouter,
 
-    loopback_futures: LoopbackFutures,
+    /// Loopback futures that were created by signaling modules
+    loopback_futures: FuturesUnordered<LoopbackFuture>,
 
     _settings: Arc<Settings>,
 
     app_state: watch::Receiver<ApplicationState>,
 
     participants: HashSet<ParticipantId>,
-}
-
-#[derive(Debug, Clone)]
-pub struct RoomInfo {
-    /// the identifier of the room
-    room_id: RoomId,
-    /// The start parameters for the room task
-    pub room: RoomParameters,
-    /// The time at which the room will close
-    pub closes_at: Option<Timestamp>,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -159,7 +134,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 room: room_parameters,
             };
 
-            let loopback_futures = LoopbackFutures::new();
+            let loopback_futures: FuturesUnordered<LoopbackFuture> = FuturesUnordered::new();
             loopback_futures.push(Box::pin(pending()));
 
             let room_task = RoomTask {
