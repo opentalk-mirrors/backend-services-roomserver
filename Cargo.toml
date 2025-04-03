@@ -46,7 +46,9 @@ axum-prometheus = "0.8.0"
 clap = { version = "4.5", features = ["derive"] }
 config = { version = "0.15", default-features = false, features = ["toml"] }
 futures = "0.3.31"
-http-request-derive = "0.3.2"
+http-request-derive = "0.4.0"
+http-request-derive-client = "0.1.0"
+http-request-derive-client-reqwest = "0.1.0"
 log = "0.4.22"
 
 chrono = "0.4"
