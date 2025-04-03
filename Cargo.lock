@@ -744,7 +744,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1640,15 +1640,14 @@ dependencies = [
 
 [[package]]
 name = "http-request-derive"
-version = "0.3.2"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d14a77f262e1137225c654d968001fbe6919505b64be306bd9b7a77fc3e11ae"
+checksum = "d3076872b277efd8eac5d6a302b585298ab272dd75ff0664b95e507d2007dc0a"
 dependencies = [
  "async-trait",
  "bytes",
  "http",
  "http-request-derive-macros",
- "reqwest",
  "serde",
  "serde_json",
  "serde_url_params",
@@ -1657,15 +1656,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "http-request-derive-macros"
-version = "0.1.3"
+name = "http-request-derive-client"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24844d42bba7b74332f013fd2eab0dab6cae859514e7609c6097723113278bd9"
+checksum = "4d1abdaaaa3fb1404482e695c82d2a780d96530012f99d123a9fd9e19584716e"
+dependencies = [
+ "async-trait",
+ "http-request-derive",
+]
+
+[[package]]
+name = "http-request-derive-client-reqwest"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "749e64af847b10354cb337f38a7b705c972b4e1d4befc89f838f858a15f419c0"
+dependencies = [
+ "async-trait",
+ "http",
+ "http-request-derive",
+ "http-request-derive-client",
+ "reqwest",
+ "snafu",
+ "url",
+]
+
+[[package]]
+name = "http-request-derive-macros"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3198ccc630b08dedb2e2fb86d7daf6a5fba43b2e722e1273afdf4cedb0b0db1"
 dependencies = [
  "darling",
  "proc-macro2",
  "quote",
- "strum 0.26.3",
+ "strum",
  "syn",
 ]
 
@@ -1998,7 +2022,7 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "serde",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2372,14 +2396,14 @@ dependencies = [
 name = "opentalk-roomserver-client"
 version = "0.0.0-dev"
 dependencies = [
- "async-trait",
  "http-request-derive",
+ "http-request-derive-client",
+ "http-request-derive-client-reqwest",
  "opentalk-roomserver-types",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "reqwest",
  "serde",
- "thiserror 2.0.12",
  "tokio-test",
  "url",
 ]
@@ -2492,7 +2516,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "snafu",
- "strum 0.27.1",
+ "strum",
  "url",
  "utoipa",
  "uuid",
@@ -2535,7 +2559,7 @@ dependencies = [
  "opentalk-types-common",
  "serde",
  "serde_json",
- "strum 0.27.1",
+ "strum",
  "uuid",
 ]
 
@@ -2925,7 +2949,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3204,7 +3228,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3217,7 +3241,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.3",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3632,33 +3656,11 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "strum"
-version = "0.26.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
-dependencies = [
- "strum_macros 0.26.4",
-]
-
-[[package]]
-name = "strum"
 version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f64def088c51c9510a8579e3c5d67c65349dcf755e5479ad3d010aa6454e2c32"
 dependencies = [
- "strum_macros 0.27.1",
-]
-
-[[package]]
-name = "strum_macros"
-version = "0.26.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c6bee85a5a24955dc440386795aa378cd9cf82acd5f764469152d2270e581be"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "rustversion",
- "syn",
+ "strum_macros",
 ]
 
 [[package]]
@@ -3742,7 +3744,7 @@ dependencies = [
  "getrandom 0.3.2",
  "once_cell",
  "rustix 1.0.3",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4547,7 +4549,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
