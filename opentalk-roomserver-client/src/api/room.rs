@@ -23,12 +23,6 @@ pub struct RoomsCreateRequest {
 pub struct RoomCreateResponse;
 
 #[derive(HttpRequest)]
-#[http_request(method = "GET", response = String, path = "/rooms/{room_id}/probe")]
-pub struct RoomsProbeRequest {
-    pub room_id: RoomId,
-}
-
-#[derive(HttpRequest)]
 #[http_request(method = "POST", response = TokenResponse, path = "/rooms/{room_id}/token")]
 pub struct TokenRequest {
     pub room_id: RoomId,
