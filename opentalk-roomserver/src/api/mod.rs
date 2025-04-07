@@ -7,7 +7,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use axum::{
     extract::{ws::WebSocket, MatchedPath},
-    http::Request,
+    http::{Request, Response},
 };
 use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_types::{
@@ -21,7 +21,7 @@ use service_probe::{set_service_state, ServiceState};
 use token_store::TokenStore;
 use tokio::sync::{watch, Mutex};
 use tower_http::trace::TraceLayer;
-use tracing::info_span;
+use tracing::{info_span, Span};
 use utoipa::{
     openapi::security::{Http, HttpAuthScheme},
     OpenApi,
@@ -129,18 +129,29 @@ where
         .merge(v1::routes(settings.http.api_token.clone()))
         .with_state(ctx)
         .layer(
-            TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
-                let matched_path = request
-                    .extensions()
-                    .get::<MatchedPath>()
-                    .map(MatchedPath::as_str);
+            TraceLayer::new_for_http()
+                .make_span_with(|request: &Request<_>| {
+                    let matched_path = request
+                        .extensions()
+                        .get::<MatchedPath>()
+                        .map(MatchedPath::as_str);
 
-                info_span!(
-                    "http_request",
-                    http.request.method = ?request.method(),
-                    http.route = matched_path,
-                )
-            }),
+                    info_span!(
+                        "http_request",
+                        http.request.method = ?request.method(),
+                        http.route = matched_path,
+                        http.status_code = tracing::field::Empty,
+                    )
+                })
+                .on_response(|response: &Response<_>, _duration, span: &Span| {
+                    span.record(
+                        "http.status_code",
+                        tracing::field::display(response.status()),
+                    );
+                })
+                .on_failure(|fail, _duration, _span: &Span| {
+                    tracing::warn!("request failed: {fail:?}");
+                }),
         );
 
     if let Some(layer) = metric_layer {
