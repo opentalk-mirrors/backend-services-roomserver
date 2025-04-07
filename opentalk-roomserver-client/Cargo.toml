@@ -11,16 +11,23 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+anyhow.workspace = true
+bytes.workspace = true
+http.workspace = true
 http-request-derive.workspace = true
+http-request-derive-client.workspace = true
+http-request-derive-client-reqwest.workspace = true
+log.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true
 reqwest = { workspace = true, features = ["json"] }
-serde.workspace = true
+url.workspace = true
 
 [dev-dependencies]
-http-request-derive-client.workspace = true
-http-request-derive-client-reqwest.workspace = true
+env_logger.workspace = true
+log.workspace = true
 opentalk-types-api-v1.workspace = true
+tokio.workspace = true
 tokio-test.workspace = true
 url.workspace = true
 
@@ -45,9 +52,6 @@ rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
 [package.metadata.cargo-machete]
 ignored = [
   # Used in doctests
-  "http-request-derive-client",
-  "http-request-derive-client-reqwest",
   "opentalk-types-api-v1",
   "tokio-test",
-  "url",
 ]
