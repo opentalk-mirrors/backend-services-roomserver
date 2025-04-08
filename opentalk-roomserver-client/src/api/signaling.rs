@@ -17,22 +17,7 @@ pub struct SignalingConnection {
 
 impl SignalingConnection {
     pub async fn connect(roomserver_url: Url, token: Token) -> anyhow::Result<Self> {
-        let mut url = roomserver_url
-            .join("signaling/")
-            .context("internal error, failed to append `signaling` path, invalid url")?
-            .join(&token.to_string())
-            .context("internal error, failed to append signaling token to path, invalid url")?;
-        match url.scheme() {
-            "https" => url
-                .set_scheme("wss")
-                .map_err(|_| anyhow!("failed to set scheme"))?,
-            "http" => url
-                .set_scheme("ws")
-                .map_err(|_| anyhow!("failed to set scheme"))?,
-            _ => bail!("unsupported url scheme"),
-        }
-        let uri = http::Uri::try_from(url.to_string())
-            .context("internal error, failed to convert url to uri")?;
+        let uri = build_signaling_socket_url(roomserver_url, token)?;
 
         log::debug!("connect signaling to url: {}", uri);
         let builder = ClientRequestBuilder::new(uri);
@@ -54,4 +39,27 @@ impl SignalingConnection {
 
         Ok(())
     }
+}
+
+fn build_signaling_socket_url(
+    roomserver_url: Url,
+    token: Token,
+) -> Result<http::Uri, anyhow::Error> {
+    let mut url = roomserver_url
+        .join("signaling/")
+        .context("internal error, failed to append `signaling` path, invalid url")?
+        .join(&token.to_string())
+        .context("internal error, failed to append signaling token to path, invalid url")?;
+    match url.scheme() {
+        "https" => url
+            .set_scheme("wss")
+            .map_err(|_| anyhow!("failed to set scheme"))?,
+        "http" => url
+            .set_scheme("ws")
+            .map_err(|_| anyhow!("failed to set scheme"))?,
+        _ => bail!("unsupported url scheme"),
+    }
+    let uri = http::Uri::try_from(url.to_string())
+        .context("internal error, failed to convert url to uri")?;
+    Ok(uri)
 }
