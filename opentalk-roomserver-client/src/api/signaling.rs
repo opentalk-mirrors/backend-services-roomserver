@@ -2,12 +2,13 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use anyhow::{anyhow, bail, Context as _};
+use futures::{SinkExt as _, StreamExt};
 use opentalk_types_common::roomserver::Token;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tungstenite::{
     protocol::{frame::coding::CloseCode, CloseFrame},
-    ClientRequestBuilder, Utf8Bytes,
+    ClientRequestBuilder, Message, Utf8Bytes,
 };
 use url::Url;
 
@@ -23,7 +24,7 @@ impl SignalingConnection {
         let builder = ClientRequestBuilder::new(uri);
         let (socket, _response) = connect_async(builder)
             .await
-            .context("failed to open signaling connection")?;
+            .context("Failed to open signaling connection")?;
 
         Ok(Self { socket })
     }
@@ -39,27 +40,52 @@ impl SignalingConnection {
 
         Ok(())
     }
+
+    pub async fn send_raw_message(&mut self, message: &str) -> anyhow::Result<()> {
+        log::debug!("send text message: {:?}", message);
+        self.socket
+            .send(Message::Text(message.into()))
+            .await
+            .context("Failed to send message")
+    }
+
+    pub async fn receive_raw_message(&mut self) -> anyhow::Result<String> {
+        let msg = self
+            .socket
+            .next()
+            .await
+            .context("Signaling socket unexpectedly closed")?
+            .context("Error while receiving signaling message")?;
+        log::debug!("received message: {:?}", msg);
+
+        match msg {
+            Message::Text(utf8_bytes) => Ok(utf8_bytes.to_string()),
+
+            // don't log the full message, just the type
+            Message::Binary(_) => bail!("Expected text messsage, got: Binary"),
+            Message::Ping(_) => bail!("Expected text messsage, got: Ping"),
+            Message::Pong(_) => bail!("Expected text messsage, got: Pong"),
+            Message::Close(_) => bail!("Expected text messsage, got: Close"),
+            Message::Frame(_) => bail!("Expected text messsage, got: Frame"),
+        }
+    }
 }
 
-fn build_signaling_socket_url(
-    roomserver_url: Url,
-    token: Token,
-) -> Result<http::Uri, anyhow::Error> {
+fn build_signaling_socket_url(roomserver_url: Url, token: Token) -> anyhow::Result<http::Uri> {
     let mut url = roomserver_url
         .join("signaling/")
-        .context("internal error, failed to append `signaling` path, invalid url")?
+        .context("Internal error, failed to append `signaling` path, invalid url")?
         .join(&token.to_string())
-        .context("internal error, failed to append signaling token to path, invalid url")?;
+        .context("Internal error, failed to append signaling token to path, invalid url")?;
     match url.scheme() {
         "https" => url
             .set_scheme("wss")
-            .map_err(|_| anyhow!("failed to set scheme"))?,
-        "http" => url
+            .map_err(|_| anyhow!("Failed to set scheme"))?,
+        _ => url
             .set_scheme("ws")
-            .map_err(|_| anyhow!("failed to set scheme"))?,
-        _ => bail!("unsupported url scheme"),
+            .map_err(|_| anyhow!("Failed to set scheme"))?,
     }
     let uri = http::Uri::try_from(url.to_string())
-        .context("internal error, failed to convert url to uri")?;
+        .context("Internal error, failed to convert url to uri")?;
     Ok(uri)
 }

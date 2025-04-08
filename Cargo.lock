@@ -2649,6 +2649,7 @@ dependencies = [
  "anyhow",
  "bytes",
  "env_logger",
+ "futures",
  "http",
  "http-request-derive",
  "http-request-derive-client",

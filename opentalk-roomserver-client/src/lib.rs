@@ -55,7 +55,7 @@ impl Client {
 
         match response {
             Ok(_) => Ok(()),
-            Err(e) => Err(e).context("received error response"),
+            Err(e) => Err(e).context("Received error response"),
         }
     }
 
@@ -77,7 +77,7 @@ impl Client {
             .reqwest_client
             .execute(request)
             .await
-            .context("token request failed")?;
+            .context("Token request failed")?;
         match response {
             TokenResponse::Token { token } => Ok(Some(token)),
             TokenResponse::UnknownRoom => Ok(None),
