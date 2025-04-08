@@ -5,11 +5,14 @@ use anyhow::{anyhow, bail, Context as _};
 use opentalk_types_common::roomserver::Token;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
-use tungstenite::ClientRequestBuilder;
+use tungstenite::{
+    protocol::{frame::coding::CloseCode, CloseFrame},
+    ClientRequestBuilder, Utf8Bytes,
+};
 use url::Url;
 
 pub struct SignalingConnection {
-    _socket: WebSocketStream<MaybeTlsStream<TcpStream>>,
+    socket: WebSocketStream<MaybeTlsStream<TcpStream>>,
 }
 
 impl SignalingConnection {
@@ -37,6 +40,18 @@ impl SignalingConnection {
             .await
             .context("failed to open signaling connection")?;
 
-        Ok(Self { _socket: socket })
+        Ok(Self { socket })
+    }
+
+    pub async fn close(mut self) -> anyhow::Result<()> {
+        self.socket
+            .close(Some(CloseFrame {
+                code: CloseCode::Away,
+                reason: Utf8Bytes::from_static(""),
+            }))
+            .await
+            .context("Failed to close signaling socket")?;
+
+        Ok(())
     }
 }

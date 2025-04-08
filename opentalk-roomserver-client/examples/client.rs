@@ -47,13 +47,16 @@ async fn main() -> anyhow::Result<()> {
             None,
         )
         .await
-        .context("Failed to request room token")?;
+        .context("Failed to request room token")?
+        .context("Room does not exist")?;
 
     log::info!("Received room token: {token:?}");
 
-    let _signaling_connection = client.open_signaling_connection(token).await?;
-
+    let signaling_connection = client.open_signaling_connection(token).await?;
     log::info!("Signaling connection open");
+
+    signaling_connection.close().await?;
+    log::info!("Signaling connection closed");
 
     Ok(())
 }
