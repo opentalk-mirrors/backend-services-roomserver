@@ -21,6 +21,9 @@ log.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true
 reqwest = { workspace = true, features = ["json"] }
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+tungstenite.workspace = true
 url.workspace = true
 
 [dev-dependencies]

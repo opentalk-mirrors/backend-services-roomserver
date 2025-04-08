@@ -6,7 +6,10 @@
 //! This crate provides the API requests to interact with the roomserver.
 
 use anyhow::Context;
-use api::room::{RoomsCreateRequest, TokenRequest};
+use api::{
+    room::{RoomsCreateRequest, TokenRequest},
+    signaling::SignalingConnection,
+};
 use http_request_derive_client::Client as _;
 use http_request_derive_client_reqwest::ReqwestClient;
 use opentalk_roomserver_types::{
@@ -20,15 +23,17 @@ use url::Url;
 pub mod api;
 
 pub struct Client {
+    base_url: Url,
     reqwest_client: ReqwestClient,
     api_token: String,
 }
 
 impl Client {
     pub fn new(base_url: Url, api_token: String) -> Client {
-        let reqwest_client = ReqwestClient::new(base_url);
+        let reqwest_client = ReqwestClient::new(base_url.clone());
 
         Self {
+            base_url,
             reqwest_client,
             api_token: format!("bearer {api_token}"),
         }
@@ -77,5 +82,12 @@ impl Client {
             TokenResponse::Token { token } => Ok(Some(token)),
             TokenResponse::UnknownRoom => Ok(None),
         }
+    }
+
+    pub async fn open_signaling_connection(
+        &self,
+        token: Token,
+    ) -> anyhow::Result<SignalingConnection> {
+        SignalingConnection::connect(self.base_url.clone(), token).await
     }
 }

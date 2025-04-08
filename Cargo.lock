@@ -2660,6 +2660,8 @@ dependencies = [
  "reqwest",
  "tokio",
  "tokio-test",
+ "tokio-tungstenite",
+ "tungstenite",
  "url",
 ]
 
