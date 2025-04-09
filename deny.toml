@@ -27,11 +27,7 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore = [
-  # | gitoxide uses SHA-1 hash implementations without any collision detection, leaving it vulnerable to hash collision attacks.
-  # Used in build dependencies.
-  "RUSTSEC-2025-0021",
-]
+ignore = []
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.
@@ -175,7 +171,6 @@ skip = [
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
   { name = "tower", version = "0.4" },
-  { name = "winnow", version = "0.6" },
   { name = "zerocopy", version = "0.7" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
