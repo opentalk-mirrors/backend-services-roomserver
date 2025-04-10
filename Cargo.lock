@@ -732,6 +732,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "env_filter"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "186e05a59d4c50738528153b83b0b0194d3a29507dfec16eccd4b342903397d0"
+dependencies = [
+ "log",
+ "regex",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.11.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13c863f0904021b108aa8b2f55046443e6b1ebde8fd4a15c399893aae4fa069f"
+dependencies = [
+ "anstream",
+ "anstyle",
+ "env_filter",
+ "jiff",
+ "log",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2409,14 +2432,19 @@ dependencies = [
 name = "opentalk-roomserver-client"
 version = "0.0.0-dev"
 dependencies = [
+ "anyhow",
+ "bytes",
+ "env_logger",
+ "http",
  "http-request-derive",
  "http-request-derive-client",
  "http-request-derive-client-reqwest",
+ "log",
  "opentalk-roomserver-types",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "reqwest",
- "serde",
+ "tokio",
  "tokio-test",
  "url",
 ]

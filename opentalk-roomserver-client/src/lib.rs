@@ -4,34 +4,78 @@
 //! # RoomServer API Requests
 //!
 //! This crate provides the API requests to interact with the roomserver.
-//!
-//! ## Example
-//!
-//! ```no_run
-//! # tokio_test::block_on(async {
-//! # use std::{ str::FromStr as _, {collections::{BTreeMap, BTreeSet}}};
-//! #
-//! # use http_request_derive_client_reqwest::ReqwestClient;
-//! # use http_request_derive_client::Client as _;
-//! # use opentalk_roomserver_client::{
-//! #     api::room::RoomsCreateRequest,
-//! # };
-//! # use opentalk_roomserver_types::room_parameters::RoomParameters;
-//! # use opentalk_types_common::rooms::RoomId;
-//! # use opentalk_types_common::utils::ExampleData;
-//! #
-//! let client = ReqwestClient::new("http://localhost:11333".parse().unwrap());
-//! let request = RoomsCreateRequest {
-//! #   room_id: RoomId::from_u128(0x8f96ada5_2660_4b4c_adb8_1b1794f51a24),
-//!     body: RoomParameters {
-//! // ...
-//! #       ..RoomParameters::example_data()
-//!     },
-//! };
-//!
-//! let response = client.execute(request).await.unwrap();
-//! println!("{:#?}", response);
-//! # })
-//! ```
+
+use anyhow::Context;
+use api::room::{RoomsCreateRequest, TokenRequest};
+use http_request_derive_client::Client as _;
+use http_request_derive_client_reqwest::ReqwestClient;
+use opentalk_roomserver_types::{
+    api::{TokenRequestBody, TokenResponse},
+    client_parameters::ClientParameters,
+    room_parameters::RoomParameters,
+};
+use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use url::Url;
 
 pub mod api;
+
+pub struct Client {
+    reqwest_client: ReqwestClient,
+    api_token: String,
+}
+
+impl Client {
+    pub fn new(base_url: Url, api_token: String) -> Client {
+        let reqwest_client = ReqwestClient::new(base_url);
+
+        Self {
+            reqwest_client,
+            api_token: format!("bearer {api_token}"),
+        }
+    }
+
+    pub async fn put_room(
+        &self,
+        room_id: RoomId,
+        parameters: RoomParameters,
+    ) -> anyhow::Result<()> {
+        let response = self
+            .reqwest_client
+            .execute(RoomsCreateRequest::new(
+                room_id,
+                parameters,
+                self.api_token.parse().context("Invalid api_token")?,
+            ))
+            .await;
+
+        match response {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e).context("received error response"),
+        }
+    }
+
+    pub async fn request_token(
+        &self,
+        room_id: RoomId,
+        client_parameters: ClientParameters,
+        room_parameters: Option<RoomParameters>,
+    ) -> anyhow::Result<Option<Token>> {
+        let request = TokenRequest::new(
+            room_id,
+            TokenRequestBody {
+                client_parameters,
+                room_parameters,
+            },
+            self.api_token.parse().context("Invalid api_token")?,
+        );
+        let response = self
+            .reqwest_client
+            .execute(request)
+            .await
+            .context("token request failed")?;
+        match response {
+            TokenResponse::Token { token } => Ok(Some(token)),
+            TokenResponse::UnknownRoom => Ok(None),
+        }
+    }
+}
