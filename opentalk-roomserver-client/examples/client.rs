@@ -18,6 +18,8 @@ const DEFAULT_ROOM_ID: RoomId = RoomId::from_u128(0x00000000_0000_0000_0000_0000
 const DEFAULT_HOST: &str = "http://localhost:11333";
 const DEFAULT_API_TOKEN: &str = "secret";
 
+const PING_CMD: &str = r#"{"namespace":"ping","content":{"action": "ping"}}"#;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -47,9 +49,23 @@ async fn main() -> anyhow::Result<()> {
             None,
         )
         .await
-        .context("Failed to request room token")?;
+        .context("Failed to request room token")?
+        .context("Room does not exist")?;
 
     log::info!("Received room token: {token:?}");
+
+    let mut signaling_connection = client.open_signaling_connection(token).await?;
+    log::info!("Signaling connection open");
+    let msg = signaling_connection.receive_raw_message().await?;
+    log::info!("join msg: {msg}");
+
+    signaling_connection.send_raw_message(PING_CMD).await?;
+    let msg = signaling_connection.receive_raw_message().await?;
+    log::info!("Received msg: {msg}");
+
+    signaling_connection.close().await?;
+    log::info!("Signaling connection closed");
+
     Ok(())
 }
 
@@ -59,7 +75,7 @@ fn room_id_from_env() -> anyhow::Result<Option<RoomId>> {
     };
     let room_id = room_id
         .parse()
-        .context("invalid room id provided via `RS_CLIENT_ROOM_ID` environment variable")?;
+        .context("Invalid room id provided via `RS_CLIENT_ROOM_ID` environment variable")?;
 
     Ok(Some(room_id))
 }

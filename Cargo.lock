@@ -2649,6 +2649,7 @@ dependencies = [
  "anyhow",
  "bytes",
  "env_logger",
+ "futures",
  "http",
  "http-request-derive",
  "http-request-derive-client",
@@ -2660,6 +2661,8 @@ dependencies = [
  "reqwest",
  "tokio",
  "tokio-test",
+ "tokio-tungstenite",
+ "tungstenite",
  "url",
 ]
 
