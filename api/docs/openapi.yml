@@ -95,6 +95,7 @@ paths:
     get:
       tags:
         - "v1::signaling"
+      summary: Opens a new signaling websocket connection.
       operationId: open_signaling_socket
       parameters:
         - name: token
@@ -254,32 +255,6 @@ components:
       format: uuid
       description: An invite code
       example: 00000000-0000-0000-0000-0000deadbeef
-    ModuleFeatureId:
-      anyOf:
-        - type: string
-          description: A feature identifier
-          examples:
-            - myfeature
-          maxLength: 255
-          minLength: 1
-          pattern: "^[-_0-9a-zA-Z]*$"
-        - type: string
-          description: A module feature identifier
-          examples:
-            - "mymodule::myfeature"
-          pattern: "^[-_0-9a-zA-Z]{1,255}::[-_0-9a-zA-Z]{1,255}$"
-      example: "mymodule::myfeature"
-    ModuleId:
-      anyOf:
-        - type: string
-          description: A module identifier
-          examples:
-            - mymodule
-          maxLength: 255
-          minLength: 1
-          pattern: "^[-_0-9a-zA-Z]*$"
-      default: core
-      example: mymodule
     NumericId:
       type: string
       description: A string containing number characters
