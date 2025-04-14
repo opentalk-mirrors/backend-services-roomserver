@@ -49,7 +49,8 @@ mod token_store;
         ),
         paths(
            v1::rooms::put_room,
-           v1::rooms::request_token
+           v1::rooms::request_token,
+           v1::signaling::open_signaling_socket
         ),
         components(
             schemas(
