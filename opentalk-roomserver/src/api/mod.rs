@@ -49,7 +49,8 @@ mod token_store;
         ),
         paths(
            v1::rooms::put_room,
-           v1::rooms::request_token
+           v1::rooms::request_token,
+           v1::signaling::open_signaling_socket
         ),
         components(
             schemas(
@@ -59,8 +60,6 @@ mod token_store;
                 opentalk_types_common::call_in::CallInPassword,
                 opentalk_types_common::call_in::NumericId,
                 opentalk_types_common::features::FeatureId,
-                opentalk_types_common::features::ModuleFeatureId,
-                opentalk_types_common::modules::ModuleId,
                 opentalk_types_common::rooms::RoomId,
                 opentalk_types_common::shared_folders::SharedFolder,
                 opentalk_types_common::shared_folders::SharedFolderAccess,

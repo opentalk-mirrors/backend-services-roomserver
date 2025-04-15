@@ -28,6 +28,7 @@ pub(crate) fn routes<B: SignalingBackend + 'static>() -> Router<B> {
     Router::new().route("/signaling/{token}", get(open_signaling_socket::<B>))
 }
 
+/// Opens a new signaling websocket connection.
 #[utoipa::path(
     get,
     path = "/signaling/{token}",

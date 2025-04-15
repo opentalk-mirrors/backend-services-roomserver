@@ -91,6 +91,27 @@ paths:
           description: An internal server error occurred
       security:
         - API-Token: []
+  "/signaling/{token}":
+    get:
+      tags:
+        - "v1::signaling"
+      summary: Opens a new signaling websocket connection.
+      operationId: open_signaling_socket
+      parameters:
+        - name: token
+          in: path
+          description: The UUID token that verifies the user
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+      responses:
+        "101":
+          description: Successfully upgraded connection to WebSocket
+        "404":
+          description: The requested room does not exist
+        "500":
+          description: An internal server error occurred
+      security: []
 components:
   schemas:
     CallInId:
@@ -234,32 +255,6 @@ components:
       format: uuid
       description: An invite code
       example: 00000000-0000-0000-0000-0000deadbeef
-    ModuleFeatureId:
-      anyOf:
-        - type: string
-          description: A feature identifier
-          examples:
-            - myfeature
-          maxLength: 255
-          minLength: 1
-          pattern: "^[-_0-9a-zA-Z]*$"
-        - type: string
-          description: A module feature identifier
-          examples:
-            - "mymodule::myfeature"
-          pattern: "^[-_0-9a-zA-Z]{1,255}::[-_0-9a-zA-Z]{1,255}$"
-      example: "mymodule::myfeature"
-    ModuleId:
-      anyOf:
-        - type: string
-          description: A module identifier
-          examples:
-            - mymodule
-          maxLength: 255
-          minLength: 1
-          pattern: "^[-_0-9a-zA-Z]*$"
-      default: core
-      example: mymodule
     NumericId:
       type: string
       description: A string containing number characters
