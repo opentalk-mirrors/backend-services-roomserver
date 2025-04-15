@@ -85,13 +85,8 @@ impl SignalingModule for PingModule {
             }
             Command::PingError => Self::ping_error()?,
             Command::Broadcast => {
-                for participant_id in ctx
-                    .participants
-                    .connected()
-                    .map(|(p, _)| *p)
-                    .collect::<Vec<ParticipantId>>()
-                {
-                    ctx.send_ws_message(participant_id, Event::Pong)?
+                for (participant_id, _) in ctx.participants.connected() {
+                    ctx.send_ws_message(*participant_id, Event::Pong)?
                 }
             }
             Command::Die => {

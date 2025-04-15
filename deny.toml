@@ -27,7 +27,14 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore = []
+ignore = [
+  # yaml-rust is unmaintained
+  # yaml-rust v0.4.5
+  # └── syntect v5.2.0
+  #     └── egui_extras v0.31.1
+  #         └── opentalk-roomserver-dui
+  "RUSTSEC-2024-0320",
+]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.
@@ -43,7 +50,7 @@ ignore = []
 # https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
 [licenses]
 version = 2
-# List of explictly allowed licenses
+# List of explicitly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
@@ -54,6 +61,8 @@ allow = [
   "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
+  "OFL-1.1",
+  "Ubuntu-font-1.0",
   "Unicode-3.0",
   "Zlib",
 ] # The confidence threshold for detecting a license from license text.
@@ -73,6 +82,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-common" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-dui" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-module-ping" },
@@ -160,10 +172,22 @@ allow = []
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
+  { name = "base64", version = "0.21" },
+  { name = "bincode", version = "1" },
+  { name = "bitflags", version = "1" },
+  { name = "faster-hex", version = "0.9.0" },
   { name = "getrandom", version = "0.2" },
+  { name = "gix-features", version = "0.41.1" },
+  { name = "gix-fs", version = "0.14.0" },
+  { name = "gix-hash", version = "0.17.0" },
+  { name = "gix-utils", version = "0.2.0" },
+  { name = "gix-validate", version = "0.9.4" },
   { name = "hashbrown", version = "0.14" },
   { name = "linux-raw-sys", version = "0.4" },
+  { name = "quick-xml", version = "0.30" },
+  { name = "quick-xml", version = "0.32" },
   { name = "rand", version = "0.8" },
+  { name = "rand_chacha", version = "0.3" },
   { name = "rand_core", version = "0.6" },
   { name = "regex-automata", version = "0.1" },
   { name = "regex-syntax", version = "0.6" },
@@ -172,13 +196,6 @@ skip = [
   { name = "thiserror-impl", version = "1" },
   { name = "tower", version = "0.4" },
   { name = "zerocopy", version = "0.7" },
-
-  { name = "faster-hex", version = "0.9.0" },
-  { name = "gix-features", version = "0.41.1" },
-  { name = "gix-fs", version = "0.14.0" },
-  { name = "gix-hash", version = "0.17.0" },
-  { name = "gix-utils", version = "0.2.0" },
-  { name = "gix-validate", version = "0.9.4" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
