@@ -28,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
     let host = std::env::var("RS_CLIENT_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
     let api_token =
         std::env::var("RS_CLIENT_API_TOKEN").unwrap_or_else(|_| DEFAULT_API_TOKEN.to_string());
-    let client = Client::new(host.parse().context("Invalid roomserver host")?, api_token);
+    let client = Client::new(host.parse().context("Invalid roomserver host")?, api_token)?;
 
     let room_id = room_id_from_env()?.unwrap_or(DEFAULT_ROOM_ID);
 

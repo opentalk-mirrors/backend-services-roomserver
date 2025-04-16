@@ -5,58 +5,73 @@
 //!
 //! This crate provides the API requests to interact with the roomserver.
 
-use anyhow::Context;
 use api::{
     room::{RoomsCreateRequest, TokenRequest},
-    signaling::SignalingConnection,
+    signaling::{SignalingConnection, SignalingError},
 };
+use http::{header::InvalidHeaderValue, HeaderValue};
 use http_request_derive_client::Client as _;
-use http_request_derive_client_reqwest::ReqwestClient;
+use http_request_derive_client_reqwest::{ReqwestClient, ReqwestClientError};
 use opentalk_roomserver_types::{
     api::{TokenRequestBody, TokenResponse},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
 };
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use thiserror::Error;
 use url::Url;
 
 pub mod api;
 
+/// The API token is invalid
+#[derive(Debug, Error)]
+#[error("invalid API token")]
+pub struct InvalidApiTokenError {
+    #[from]
+    source: InvalidHeaderValue,
+}
+
+/// The request to the RoomServer failed
+#[derive(Debug, Error)]
+#[error("request failed")]
+pub struct ServerError {
+    #[from]
+    source: ReqwestClientError,
+}
+
 pub struct Client {
     base_url: Url,
     reqwest_client: ReqwestClient,
-    api_token: String,
+    api_token: HeaderValue,
 }
 
 impl Client {
-    pub fn new(base_url: Url, api_token: String) -> Client {
+    pub fn new(base_url: Url, api_token: String) -> Result<Client, InvalidApiTokenError> {
         let reqwest_client = ReqwestClient::new(base_url.clone());
 
-        Self {
+        let api_token = format!("bearer {api_token}").parse()?;
+        Ok(Self {
             base_url,
             reqwest_client,
-            api_token: format!("bearer {api_token}"),
-        }
+            api_token,
+        })
     }
 
     pub async fn put_room(
         &self,
         room_id: RoomId,
         parameters: RoomParameters,
-    ) -> anyhow::Result<()> {
-        let response = self
+    ) -> Result<(), ServerError> {
+        let _response = self
             .reqwest_client
             .execute(RoomsCreateRequest::new(
                 room_id,
                 parameters,
-                self.api_token.parse().context("Invalid api_token")?,
+                self.api_token.clone(),
             ))
-            .await;
+            .await?;
 
-        match response {
-            Ok(_) => Ok(()),
-            Err(e) => Err(e).context("Received error response"),
-        }
+        Ok(())
     }
 
     pub async fn request_token(
@@ -64,20 +79,16 @@ impl Client {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-    ) -> anyhow::Result<Option<Token>> {
+    ) -> Result<Option<Token>, ServerError> {
         let request = TokenRequest::new(
             room_id,
             TokenRequestBody {
                 client_parameters,
                 room_parameters,
             },
-            self.api_token.parse().context("Invalid api_token")?,
+            self.api_token.clone(),
         );
-        let response = self
-            .reqwest_client
-            .execute(request)
-            .await
-            .context("Token request failed")?;
+        let response = self.reqwest_client.execute(request).await?;
         match response {
             TokenResponse::Token { token } => Ok(Some(token)),
             TokenResponse::UnknownRoom => Ok(None),
@@ -87,7 +98,7 @@ impl Client {
     pub async fn open_signaling_connection(
         &self,
         token: Token,
-    ) -> anyhow::Result<SignalingConnection> {
+    ) -> Result<SignalingConnection, SignalingError> {
         SignalingConnection::connect(self.base_url.clone(), token).await
     }
 }

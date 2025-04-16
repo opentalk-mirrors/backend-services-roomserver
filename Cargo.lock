@@ -2685,6 +2685,7 @@ dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "reqwest",
+ "thiserror 2.0.12",
  "tokio",
  "tokio-test",
  "tokio-tungstenite",
