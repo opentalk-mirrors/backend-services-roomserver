@@ -5,14 +5,24 @@
 
 use std::collections::{HashMap, hash_map::Entry};
 
+use anyhow::Context;
 use axum::extract::ws::{CloseFrame, close_code};
 use futures::SinkExt;
 pub use message::{CloseReason, MessageEnvelope, SignalingMessage};
 use opentalk_roomserver_common::application_state::ApplicationState;
-use opentalk_roomserver_signaling::signaling_module::SharedRawJson;
-use opentalk_roomserver_types::connection_id::ConnectionId;
+use opentalk_roomserver_signaling::{
+    signaling_event::SignalingEvent,
+    signaling_module::{FatalError, SharedRawJson},
+};
+use opentalk_roomserver_types::{
+    connection_id::ConnectionId,
+    error::{self, SignalingError},
+};
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
+use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
+use serde::Serialize;
+use serde_json::value::RawValue;
 use tokio::sync::{Mutex, mpsc, watch};
 
 use crate::message_router::participant_connection::ConnectionHandle;
@@ -95,7 +105,7 @@ impl MessageRouter {
         Ok(connection_id)
     }
 
-    /// Send a [`SignalingEvent`](opentalk_roomserver_signaling::signaling_event::SignalingEvent)
+    /// Send a [`SignalingEvent`]
     /// to a participant
     pub async fn send_event(
         &self,
@@ -117,14 +127,22 @@ impl MessageRouter {
         }
     }
 
-    /// Send a [`SignalingEvent`](opentalk_roomserver_signaling::signaling_event::SignalingEvent)
+    /// Send a [`SignalingEvent`]
     /// to **all** participants
-    pub async fn broadcast_event(&self, event: SharedRawJson) {
+    pub async fn broadcast_event(
+        &self,
+        event: SharedRawJson,
+        excluded_connections: &[ConnectionId],
+    ) {
         let mut connections = self.connections.lock().await;
 
         let mut send_futures = Vec::new();
 
         for (connection_id, connection_handle) in &mut *connections {
+            if excluded_connections.contains(connection_id) {
+                continue;
+            }
+
             let cloned_event = event.clone();
 
             send_futures.push(async move {
@@ -143,6 +161,125 @@ impl MessageRouter {
         for participant_id in stale_connections.iter().flatten() {
             connections.remove(participant_id);
         }
+    }
+
+    /// Send a websocket message to the given list of connections
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`FatalError`] when the content fails to serialize
+    pub(crate) async fn serialize_and_send(
+        &self,
+        connections: impl IntoIterator<Item = ConnectionId>,
+        namespace: ModuleId,
+        content: impl Serialize,
+    ) -> Result<(), FatalError> {
+        let event = SignalingEvent { namespace, content };
+        let shared_json = serde_json::value::to_raw_value(&event)
+            .with_context(|| {
+                format!(
+                    "Failed to serialize message for namespace '{}'",
+                    event.namespace
+                )
+            })
+            .map_err(FatalError)?
+            .into();
+
+        self.send_event(connections, shared_json).await;
+
+        Ok(())
+    }
+
+    /// Broadcast a websocket message to all participants
+    ///
+    /// Returns a [`FatalError`] when the content fails to serialize.
+    pub(crate) async fn serialize_and_broadcast(
+        &self,
+        namespace: ModuleId,
+        content: impl Serialize,
+    ) -> Result<(), FatalError> {
+        let event = SignalingEvent { namespace, content };
+        let shared_json = serde_json::value::to_raw_value(&event)
+            .with_context(|| {
+                format!(
+                    "Failed to serialize message for namespace '{}'",
+                    event.namespace
+                )
+            })
+            .map_err(FatalError)?
+            .into();
+
+        self.broadcast_event(shared_json, &[]).await;
+
+        Ok(())
+    }
+
+    /// Broadcast a websocket message to all participants
+    ///
+    /// Returns a [`FatalError`] when the content fails to serialize.
+    pub(crate) async fn serialize_and_broadcast_exclude_connections(
+        &self,
+        namespace: ModuleId,
+        content: impl Serialize,
+        excluded_connections: &[ConnectionId],
+    ) -> Result<(), FatalError> {
+        let event = SignalingEvent { namespace, content };
+        let shared_json = serde_json::value::to_raw_value(&event)
+            .with_context(|| {
+                format!(
+                    "Failed to serialize message for namespace '{}'",
+                    event.namespace
+                )
+            })
+            .map_err(FatalError)?
+            .into();
+
+        self.broadcast_event(shared_json, excluded_connections)
+            .await;
+
+        Ok(())
+    }
+
+    /// Send a websocket error message of type [`SignalingError`] to the associated connection
+    ///
+    /// The message is always scoped to the [`error::NAMESPACE`]
+    pub(crate) async fn send_error(&self, connection_id: ConnectionId, error: SignalingError) {
+        let event = SignalingEvent {
+            namespace: error::NAMESPACE,
+            content: error,
+        };
+        let shared_json = match serde_json::value::to_raw_value(&event) {
+            Ok(value) => value.into(),
+            Err(err) => {
+                log::error!("Failed to serialize SignalingError type: {err}");
+                RawValue::from_string(r#"{"error": "internal"}"#.into())
+                    .unwrap()
+                    .into()
+            }
+        };
+
+        self.send_event([connection_id], shared_json).await;
+    }
+
+    /// Send a websocket error message of type [`SignalingError`] to all participants
+    ///
+    /// The message is always scoped to the [`error::NAMESPACE`]
+    pub(crate) async fn broadcast_error(&self, error: SignalingError) {
+        let event = SignalingEvent {
+            namespace: error::NAMESPACE,
+            content: error,
+        };
+        let shared_json = match serde_json::value::to_raw_value(&event) {
+            Ok(value) => value.into(),
+            Err(err) => {
+                log::error!("Failed to serialize SignalingError type: {err}");
+                RawValue::from_string(r#"{"error": "internal"}"#.into())
+                    .unwrap()
+                    .into()
+            }
+        };
+
+        self.broadcast_event(shared_json, &[]).await;
     }
 
     /// Receive the next message from any connected participant

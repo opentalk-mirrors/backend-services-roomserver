@@ -34,7 +34,7 @@ impl SignalingModule for PingModule {
 
     type Error = PingError;
 
-    async fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
+    fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self)
     }
 

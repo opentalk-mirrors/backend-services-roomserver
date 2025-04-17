@@ -53,7 +53,7 @@ impl SignalingModule for ChatModule {
 
     type Error = ChatError;
 
-    async fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
+    fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self {
             enabled: true,
             history: HashMap::default(),

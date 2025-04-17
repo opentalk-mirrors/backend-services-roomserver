@@ -6,6 +6,7 @@
 //! Types required to develop signaling modules. Every module is required to
 //! implement the [`SignalingModule`](signaling_module::SignalingModule) trait.
 
+pub mod breakout;
 /// The `loopback` module is intended for internal use only
 #[doc(hidden)]
 pub mod loopback;

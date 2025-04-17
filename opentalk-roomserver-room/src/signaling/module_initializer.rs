@@ -102,9 +102,8 @@ impl<M: SignalingModule + Sync + 'static> ModuleInitializer for ModuleInitialize
         &self,
         init_data: SignalingModuleInitData,
     ) -> Option<Box<dyn ModuleHandle>> {
-        let dispatcher = ModuleDispatcher {
-            module: M::init(init_data).await?,
-        };
-        Some(Box::new(dispatcher))
+        Some(Box::new(ModuleDispatcher {
+            module: M::init(init_data)?,
+        }))
     }
 }

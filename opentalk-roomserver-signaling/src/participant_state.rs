@@ -4,15 +4,18 @@
 use std::collections::{BTreeSet, HashMap};
 
 use opentalk_roomserver_types::{
-    client_parameters::Role, connection_id::ConnectionId, device_id::DeviceId,
+    breakout_id::BreakoutId, client_parameters::Role, connection_id::ConnectionId,
+    device_id::DeviceId,
 };
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 
 #[derive(Debug, Default)]
 pub struct Participants {
-    /// Contains all connected and disconnected participants
-    pub all: HashMap<ParticipantId, ParticipantState>,
+    pub breakout_scope: Option<Option<BreakoutId>>,
+
+    /// Contains all connected and disconnected participants, even those outside of the current breakout scope
+    pub all_unfiltered: HashMap<ParticipantId, ParticipantState>,
 }
 
 impl Participants {
@@ -20,20 +23,47 @@ impl Participants {
         Self::default()
     }
 
-    pub fn connected(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> {
-        self.all.iter().filter(|(_, s)| s.is_connected())
+    pub fn all(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> {
+        self.all_unfiltered
+            .iter()
+            .filter(|(_, s)| self.breakout_filter(s))
     }
 
-    pub fn get_connected(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
-        self.all.get(participant_id).filter(|s| s.is_connected())
+    pub fn connected(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> {
+        self.all_unfiltered
+            .iter()
+            .filter(|(_, s)| self.breakout_filter(s) && s.is_connected())
     }
 
     pub fn disconnected(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> {
-        self.all.iter().filter(|(_, s)| !s.is_connected())
+        self.all_unfiltered
+            .iter()
+            .filter(|(_, s)| self.breakout_filter(s) && !s.is_connected())
+    }
+
+    pub fn get(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
+        self.all_unfiltered
+            .get(participant_id)
+            .filter(|s| self.breakout_filter(s))
+    }
+
+    pub fn get_connected(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
+        self.all_unfiltered
+            .get(participant_id)
+            .filter(|s| self.breakout_filter(s) && s.is_connected())
     }
 
     pub fn get_disconnected(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
-        self.all.get(participant_id).filter(|s| !s.is_connected())
+        self.all_unfiltered
+            .get(participant_id)
+            .filter(|s| self.breakout_filter(s) && !s.is_connected())
+    }
+
+    fn breakout_filter(&self, state: &ParticipantState) -> bool {
+        match self.breakout_scope {
+            Some(scope) => scope == state.breakout_room,
+            None => true,
+        }
     }
 }
 
@@ -41,6 +71,9 @@ impl Participants {
 pub struct ParticipantState {
     /// The participants display name
     pub display_name: DisplayName,
+
+    /// The breakout room of the participant. Is `None` when in the main room
+    pub breakout_room: Option<BreakoutId>,
 
     /// The kind of the participant
     pub kind: ParticipantKind,
@@ -62,6 +95,7 @@ impl ParticipantState {
     pub fn new(display_name: DisplayName, kind: ParticipantKind, role: Role) -> Self {
         Self {
             display_name,
+            breakout_room: None,
             kind,
             role,
             connections: HashMap::new(),
@@ -84,5 +118,9 @@ impl ParticipantState {
             devices.insert(*device);
         }
         devices
+    }
+
+    pub fn is_moderator(&self) -> bool {
+        matches!(self.role, Role::Moderator)
     }
 }
