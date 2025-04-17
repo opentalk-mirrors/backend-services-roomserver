@@ -5,8 +5,10 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use config::{Config, Environment, File, FileFormat};
 use serde::Deserialize;
+use signaling_salt::SignalingSalt;
 use telemetry::{Metrics, Monitoring, Tracing};
 
+pub mod signaling_salt;
 pub mod telemetry;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -22,6 +24,9 @@ pub struct Settings {
 
     #[serde(default)]
     pub tracing: Option<Tracing>,
+
+    #[serde(default)]
+    pub conference: Conference,
 }
 
 impl Settings {
@@ -54,6 +59,9 @@ impl Settings {
             monitoring: None,
             metrics: None,
             tracing: None,
+            conference: Conference {
+                signaling_salt: SignalingSalt("abcdefghijklmnopqrstuvwx".into()),
+            },
         }
     }
 }
@@ -84,4 +92,10 @@ fn default_bind_address() -> IpAddr {
 
 const fn default_port() -> u16 {
     11333
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Conference {
+    #[serde(default)]
+    pub signaling_salt: SignalingSalt,
 }

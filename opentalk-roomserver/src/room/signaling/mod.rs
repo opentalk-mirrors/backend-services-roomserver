@@ -22,7 +22,7 @@ use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{FatalError, SharedRawJson, SignalingModule, SignalingModuleError},
 };
-use opentalk_roomserver_types::error::SignalingError;
+use opentalk_roomserver_types::{connection_id::ConnectionId, error::SignalingError};
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use serde_json::value::RawValue;
@@ -52,19 +52,25 @@ pub trait ModuleHandle: Send {
 
 pub enum DynEvent {
     WebsocketMessage {
-        sender: ParticipantId,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
         command: Box<RawValue>,
     },
     LoopbackEvent(Box<dyn Any + Send + 'static>),
 }
 
 pub enum DynBroadcastEvent<'evt> {
-    Joined {
+    Connected {
         participant_id: ParticipantId,
+        connection_id: ConnectionId,
         module_data: &'evt mut ModuleData,
         peer_module_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedRawJson>>,
     },
-    Left(ParticipantId),
+
+    Disconnected {
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+    },
 }
 
 /// Resolves generic JSON messages into concrete types for the associated [`SignalingModule`]
@@ -85,8 +91,13 @@ where
         event: DynEvent,
     ) -> Result<(), SignalingModuleError<M::Error>> {
         match event {
-            DynEvent::WebsocketMessage { sender, command } => {
-                self.handle_ws_event(ctx, sender, command).await
+            DynEvent::WebsocketMessage {
+                participant_id: sender,
+                connection_id,
+                command,
+            } => {
+                self.handle_ws_event(ctx, sender, connection_id, command)
+                    .await
             }
             DynEvent::LoopbackEvent(result) => self.handle_loopback_event(ctx, result).await,
         }
@@ -99,14 +110,27 @@ where
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), SignalingModuleError<M::Error>> {
         match event {
-            DynBroadcastEvent::Joined {
+            DynBroadcastEvent::Connected {
                 participant_id,
+                connection_id,
                 module_data,
                 peer_module_data,
             } => {
+                let is_first_connection = ctx
+                    .participants
+                    .all
+                    .get(participant_id)
+                    .map(|s| s.connections.is_empty())
+                    .unwrap_or(true);
+
                 let join_info = self
                     .module
-                    .on_participant_connected(ctx, *participant_id)
+                    .on_participant_joined(
+                        ctx,
+                        *participant_id,
+                        *connection_id,
+                        is_first_connection,
+                    )
                     .await?;
 
                 if let Some(success_info) = join_info.join_success {
@@ -125,9 +149,12 @@ where
                         .insert(M::NAMESPACE, peer_join_info);
                 }
             }
-            DynBroadcastEvent::Left(participant_id) => {
+            DynBroadcastEvent::Disconnected {
+                participant_id,
+                connection_id,
+            } => {
                 self.module
-                    .on_participant_disconnected(ctx, *participant_id)
+                    .on_participant_disconnected(ctx, *participant_id, *connection_id)
                     .await?;
             }
         }
@@ -141,6 +168,7 @@ where
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         sender: ParticipantId,
+        connection_id: ConnectionId,
         command: Box<RawValue>,
     ) -> Result<(), SignalingModuleError<M::Error>> {
         let content = match serde_json::from_str(command.get()) {
@@ -161,7 +189,7 @@ where
         };
 
         self.module
-            .on_websocket_message(ctx, sender, content)
+            .on_websocket_message(ctx, sender, connection_id, content)
             .await?;
         Ok(())
     }
@@ -240,8 +268,10 @@ where
             }
         }
 
-        for (participant_id, message) in module_context.into_messages() {
-            ctx.message_router.send_event(participant_id, message).await;
+        for (connection_id, message) in module_context.into_messages() {
+            ctx.message_router
+                .send_event([connection_id], message)
+                .await;
         }
 
         Ok(())
@@ -261,8 +291,10 @@ where
             return self.handle_error(&mut module_context, err).await;
         }
 
-        for (participant_id, message) in module_context.into_messages() {
-            ctx.message_router.send_event(participant_id, message).await;
+        for (connection_id, message) in module_context.into_messages() {
+            ctx.message_router
+                .send_event([connection_id], message)
+                .await;
         }
 
         Ok(())

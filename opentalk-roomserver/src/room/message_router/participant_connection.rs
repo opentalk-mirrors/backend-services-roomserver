@@ -5,6 +5,7 @@ use std::{pin::Pin, time::Duration};
 
 use futures::{stream::Peekable, FutureExt, SinkExt as _, StreamExt as _};
 use opentalk_roomserver_types::{
+    connection_id::ConnectionId,
     error::SignalingError,
     signaling::{SignalingCommand, SignalingEvent},
 };
@@ -37,8 +38,8 @@ const EVENT_BUFFER_SIZE: usize = 32;
 /// Handle to the task that communicates with the participant ([`ParticipantConnectionTask`]).
 ///
 /// Dropping this handle will close the connection to the participant.
-#[derive(Debug)]
-pub struct ConnectionHandle {
+#[derive(Debug, Clone)]
+pub(crate) struct ConnectionHandle {
     /// Event channel to the [`ParticipantConnectionTask`].
     connection_task_event_sender: mpsc::Sender<SignalingEvent>,
 }
@@ -107,6 +108,7 @@ impl From<ExitReason> for CloseReason {
 /// Create a new [`ParticipantConnectionTask`]
 pub(super) fn create<Socket: SignalingSocket + 'static>(
     participant_id: ParticipantId,
+    connection_id: ConnectionId,
     socket: Socket,
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
     app_state: watch::Receiver<ApplicationState>,
@@ -116,6 +118,7 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
 
     spawn(
         participant_id,
+        connection_id,
         room_task_command_sender,
         socket,
         event_receiver,
@@ -129,6 +132,7 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
 
 fn spawn<Socket: SignalingSocket + 'static>(
     participant_id: ParticipantId,
+    connection_id: ConnectionId,
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
     socket: Socket,
     room_task_event_receiver: mpsc::Receiver<SignalingEvent>,
@@ -139,6 +143,7 @@ fn spawn<Socket: SignalingSocket + 'static>(
 
     let this = ParticipantConnectionTask {
         participant_id,
+        connection_id,
         room_task_command_sender,
         room_task_event_receiver,
         stream,
@@ -156,6 +161,8 @@ fn spawn<Socket: SignalingSocket + 'static>(
 pub(super) struct ParticipantConnectionTask<Stream: SignalingStream, Sink: SignalingSink> {
     /// The participant id that is used to tag messages that are send to the room task
     participant_id: ParticipantId,
+    /// The connection id of this specific websocket connection
+    connection_id: ConnectionId,
     /// The sender to communicate commands to the room task
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
     /// The participants websocket connection
@@ -187,14 +194,12 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             // branches of this select must NOT block
             tokio::select! {
                 allocated_msg = allocated_receive => {
-                    // check for error (either cl)
                     let (permit, msg) = match allocated_msg {
-                        Err(e) => return e,
                         Ok(allocated_msg) => allocated_msg,
+                        Err(exit_reason) => return exit_reason,
                     };
-                    let res = self.handle_websocket_frame(msg, permit).await;
-                    if let Err(e) = res {
-                        return e;
+                    if let Err(exit_reason) = self.handle_websocket_frame(msg, permit).await{
+                        return exit_reason;
                     }
                 },
                 event = self.room_task_event_receiver.recv() => {
@@ -285,7 +290,8 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                 return self.send_error(e).await;
             }
         };
-        let wrapped_cmd = SignalingMessage::Command(command).into_envelope(self.participant_id);
+        let wrapped_cmd = SignalingMessage::Command(command)
+            .into_envelope(self.connection_id, self.participant_id);
 
         permit.send(wrapped_cmd);
 
@@ -350,7 +356,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             let _ = room_task_command_sender
                 .send(
                     SignalingMessage::Closed(CloseReason::from(exit_reason))
-                        .into_envelope(participant_id),
+                        .into_envelope(self.connection_id, participant_id),
                 )
                 .await;
         }));
@@ -379,7 +385,7 @@ mod tests {
     use std::time::Duration;
 
     use futures::{pin_mut, StreamExt as _};
-    use opentalk_roomserver_types::signaling::SignalingCommand;
+    use opentalk_roomserver_types::{connection_id::ConnectionId, signaling::SignalingCommand};
     use tokio::sync::mpsc;
     use tracing::Span;
 
@@ -407,6 +413,7 @@ mod tests {
         while command_tx.capacity() > 0 {
             command_tx
                 .send(MessageEnvelope {
+                    connection_id: ConnectionId::nil(),
                     participant_id: p1.id,
                     message: crate::room::message_router::SignalingMessage::Command(
                         SignalingCommand::new(

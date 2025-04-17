@@ -5,6 +5,8 @@
 
 pub mod api;
 pub mod client_parameters;
+pub mod connection_id;
+pub mod device_id;
 pub mod error;
 pub mod room_parameters;
 pub mod signaling;

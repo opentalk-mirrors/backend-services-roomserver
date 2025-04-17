@@ -8,12 +8,14 @@ use std::{
 
 use anyhow::Context;
 use opentalk_roomserver_common::settings::Settings;
+use opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::value::{to_raw_value, RawValue};
 
 use super::module_context::ModuleContext;
+use crate::participant_state::ParticipantState;
 
 /// The trait that defines a signaling module
 ///
@@ -61,22 +63,26 @@ pub trait SignalingModule: Send + Sized {
     /// Creates an instance of the interface to access the module
     fn init(init_data: SignalingModuleInitData) -> impl Future<Output = Option<Self>> + Send;
 
-    fn on_participant_connected(
+    fn on_participant_joined(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
+        connection_id: ConnectionId,
+        is_first_connection: bool,
     ) -> impl Future<Output = Result<JoinInfo<Self>, SignalingModuleError<Self::Error>>> + Send;
 
     fn on_participant_disconnected(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
+        connection_id: ConnectionId,
     ) -> impl Future<Output = Result<(), SignalingModuleError<Self::Error>>> + Send;
 
     fn on_websocket_message(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
+        connection_id: ConnectionId,
         content: Self::Incoming,
     ) -> impl Future<Output = Result<(), SignalingModuleError<Self::Error>>> + Send;
 
@@ -97,6 +103,7 @@ pub trait SignalingModule: Send + Sized {
 pub struct JoinInfo<M: SignalingModule> {
     /// Module specific data that will be attached to the participants `JoinedSuccess` message
     pub join_success: Option<M::JoinInfo>,
+
     /// Module specific data that will be attached to other participants `Joined` message
     pub peer: PeerJoinInfoMap<M>,
 }
@@ -109,9 +116,6 @@ impl<M: SignalingModule> Default for JoinInfo<M> {
         }
     }
 }
-
-// TODO: placeholder participant info/state
-pub struct ParticipantInfo {}
 
 /// A map of participants and their [`SignalingModule::PeerJoinInfo`]
 ///
@@ -171,13 +175,13 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
         mut filter: F,
     ) -> Result<(), FatalError>
     where
-        F: FnMut(ParticipantId, &ParticipantInfo) -> bool,
+        F: FnMut(ParticipantId, &ParticipantState) -> bool,
     {
         // Lazily serialize the PeerJoinInfo into a json string
         let mut raw_value: Option<SharedRawJson> = None;
 
-        for participant in ctx.participants.iter() {
-            if !filter(*participant, &ParticipantInfo {}) {
+        for (participant_id, state) in ctx.participants.connected() {
+            if !filter(*participant_id, state) {
                 continue;
             }
 
@@ -196,7 +200,7 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
                 )),
             };
 
-            self.map.insert(*participant, raw_value.clone());
+            self.map.insert(*participant_id, raw_value.clone());
         }
 
         Ok(())

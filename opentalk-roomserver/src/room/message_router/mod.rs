@@ -8,7 +8,7 @@ use std::collections::{hash_map::Entry, HashMap};
 use axum::extract::ws::{close_code, CloseFrame};
 use futures::SinkExt;
 pub use message::{CloseReason, MessageEnvelope, SignalingMessage};
-use opentalk_roomserver_types::signaling::SignalingEvent;
+use opentalk_roomserver_types::{connection_id::ConnectionId, signaling::SignalingEvent};
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, watch};
@@ -33,8 +33,8 @@ pub struct MessageRouter {
     /// [`ParticipantConnectionTask`]: participant_connection::ParticipantConnectionTask
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
 
-    /// A map of participants and their associated websocket connection
-    connections: HashMap<ParticipantId, ConnectionHandle>,
+    /// A collection of active websocket connections
+    connections: HashMap<ConnectionId, ConnectionHandle>,
 
     /// The internal receiver for [`room_task_command_sender`](MessageRouter::room_task_command_sender) that contains
     /// messages for the room task. Can be read through the [`recv`](MessageRouter::recv) method.
@@ -53,21 +53,62 @@ impl MessageRouter {
 
         Self {
             room_task_command_sender: command_channel,
-            connections: Default::default(),
+            connections: HashMap::new(),
             room_task_command_receiver: command_egress,
             app_state,
         }
     }
 
-    /// Send a [`SignalingEvent`] to a participant
-    pub async fn send_event(&mut self, participant_id: ParticipantId, event: SignalingEvent) {
-        let Some(connection_handle) = self.connections.get(&participant_id) else {
-            return;
+    pub async fn add_connection<S: SignalingSocket + 'static>(
+        &mut self,
+        participant_id: ParticipantId,
+        mut websocket: S,
+    ) -> Result<ConnectionId, AlreadyConnectedError> {
+        let connection_id = ConnectionId::generate();
+
+        let entry = self.connections.entry(connection_id);
+        let Entry::Vacant(vacant) = entry else {
+            tokio::task::spawn(async move {
+                websocket
+                    .send(axum::extract::ws::Message::Close(Some(CloseFrame {
+                        code: close_code::ABNORMAL,
+                        reason: "UUID collision, please retry".into(),
+                    })))
+                    .await
+            });
+
+            return Err(AlreadyConnectedError);
         };
 
-        if connection_handle.send_event(event).await.is_err() {
-            log::debug!("Attempted to message participant who has already left");
-            self.connections.remove(&participant_id);
+        let task_handle = participant_connection::create(
+            participant_id,
+            connection_id,
+            websocket,
+            self.room_task_command_sender.clone(),
+            self.app_state.clone(),
+        );
+
+        vacant.insert(task_handle);
+
+        Ok(connection_id)
+    }
+
+    /// Send a [`SignalingEvent`] to a participant
+    pub async fn send_event(
+        &mut self,
+        connections: impl IntoIterator<Item = ConnectionId>,
+        event: SignalingEvent,
+    ) {
+        for id in connections {
+            let Some(handle) = self.connections.get(&id) else {
+                log::debug!("failed to get connection handle, connection does not exist");
+                continue;
+            };
+
+            if handle.send_event(event.clone()).await.is_err() {
+                log::debug!("failed to message participant, connection is closed");
+                self.connections.remove(&id);
+            }
         }
     }
 
@@ -75,13 +116,13 @@ impl MessageRouter {
     pub async fn broadcast_event(&mut self, event: SignalingEvent) {
         let mut send_futures = Vec::new();
 
-        for (participant_id, connection_handle) in &mut self.connections {
+        for (connection_id, connection_handle) in &mut self.connections {
             let cloned_event = event.clone();
 
             send_futures.push(async move {
                 if connection_handle.send_event(cloned_event).await.is_err() {
                     log::debug!("Attempted to message participant who has already left");
-                    return Some(*participant_id);
+                    return Some(*connection_id);
                 }
                 None
             });
@@ -106,52 +147,10 @@ impl MessageRouter {
             .expect("internal room_task_channel was closed");
 
         if matches!(msg.message, SignalingMessage::Closed(_)) {
-            self.connections.remove(&msg.participant_id);
+            self.connections.remove(&msg.connection_id);
         }
 
         msg
-    }
-
-    /// Register a new participant connection
-    ///
-    /// Spawns a new [`ParticipantConnectionTask`] that manages the websocket connection
-    ///
-    /// [`ParticipantConnectionTask`]: participant_connection::ParticipantConnectionTask
-    pub(crate) async fn register_participant<Socket: SignalingSocket + 'static>(
-        &mut self,
-        participant_id: ParticipantId,
-        mut websocket: Socket,
-    ) -> Result<(), AlreadyConnectedError> {
-        let entry = self.connections.entry(participant_id);
-        let Entry::Vacant(vacant) = entry else {
-            let _ = websocket
-                .send(axum::extract::ws::Message::Close(Some(CloseFrame {
-                    code: close_code::POLICY,
-                    reason: "user already connected".into(),
-                })))
-                .await;
-            return Err(AlreadyConnectedError);
-        };
-
-        let task_handle = participant_connection::create(
-            participant_id,
-            websocket,
-            self.room_task_command_sender.clone(),
-            self.app_state.clone(),
-        );
-
-        vacant.insert(task_handle);
-
-        Ok(())
-    }
-
-    /// Disconnect the participants websocket
-    ///
-    /// Returns `true` if the participant existed
-    #[allow(dead_code)]
-    pub(crate) fn disconnect_participant(&mut self, participant_id: ParticipantId) -> bool {
-        // Dropping the participants websocket task handle will signal the websocket task to disconnect
-        self.connections.remove(&participant_id).is_some()
     }
 }
 
@@ -177,32 +176,32 @@ mod tests {
         let mut router = MessageRouter::new(app_state_recv);
         let (p1_socket, mut p1) = create_participant_connection();
 
-        assert_eq!(Ok(()), router.register_participant(p1.id, p1_socket).await);
+        let connection = router.add_connection(p1.id, p1_socket).await.unwrap();
 
-        assert_eq!(
-            Ok(()),
-            p1.sender
-                .send(Ok(Message::Close(Some(CloseFrame {
-                    code: 1006,
-                    reason: "this is a test".to_string().into(),
-                }))))
-                .await
-        );
+        p1.sender
+            .send(Ok(Message::Close(Some(CloseFrame {
+                code: 1006,
+                reason: "this is a test".to_string().into(),
+            }))))
+            .await
+            .unwrap();
 
         let received = router.recv().await;
         assert!(matches!(
             received,
             MessageEnvelope {
                 participant_id,
+                connection_id,
                 message: SignalingMessage::Closed(
                     message_router::message::CloseReason::ParticipantClosed
                 ),
                 ..
-            } if participant_id == p1.id
+            } if participant_id == p1.id && connection_id == connection
         ));
+
         router
             .send_event(
-                p1.id,
+                [connection],
                 SignalingEvent {
                     namespace: module_id!("ping"),
                     content: to_raw_value(&json!({

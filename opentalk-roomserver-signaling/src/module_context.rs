@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashSet, future::Future, marker::PhantomData};
+use std::{future::Future, marker::PhantomData};
 
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_types::{
+    connection_id::ConnectionId,
     error::{self, SignalingError},
     signaling::SignalingEvent,
 };
@@ -15,6 +16,7 @@ use serde_json::value::RawValue;
 
 use crate::{
     loopback::{LoopbackFuture, LoopbackMessage},
+    participant_state::Participants,
     room_info::RoomInfo,
     signaling_module::{FatalError, SignalingModule},
 };
@@ -26,10 +28,13 @@ where
 {
     pub room_id: RoomId,
     pub participant_id: ParticipantId,
+    pub connection_id: ConnectionId,
     room_info: &'ctx mut RoomInfo,
     // TODO use `SharedRawJson` and implement functions to send messages to all/subset of participants without re-allocation
-    messages: Vec<(ParticipantId, SignalingEvent)>,
-    pub participants: &'ctx mut HashSet<ParticipantId>,
+    /// The websocket messages that are sent out after the module finished its event handling
+    messages: Vec<(ConnectionId, SignalingEvent)>,
+    /// Contains all participants including disconnected ones
+    pub participants: &'ctx mut Participants,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
     m: PhantomData<fn() -> M>,
 }
@@ -41,13 +46,16 @@ where
     pub fn new(
         room_id: RoomId,
         participant_id: ParticipantId,
+        connection_id: ConnectionId,
         room_info: &'ctx mut RoomInfo,
-        participants: &'ctx mut HashSet<ParticipantId>,
+        participants: &'ctx mut Participants,
+
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
     ) -> ModuleContext<'ctx, M> {
         Self {
             room_id,
             participant_id,
+            connection_id,
             room_info,
             messages: Vec::new(),
             participants,
@@ -60,7 +68,7 @@ where
         self.room_info
     }
 
-    pub fn into_messages(self) -> Vec<(ParticipantId, SignalingEvent)> {
+    pub fn into_messages(self) -> Vec<(ConnectionId, SignalingEvent)> {
         self.messages
     }
 
@@ -82,7 +90,18 @@ where
                 .context("Failed to serialize internal websocket payload type")
                 .map_err(FatalError)?,
         };
-        self.messages.push((participant_id, message));
+
+        let Some(state) = self.participants.get_connected(&participant_id) else {
+            log::error!(
+                "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
+                M::NAMESPACE
+            );
+            return Ok(());
+        };
+
+        for (connection_id, ..) in &state.connections {
+            self.messages.push((*connection_id, message.clone()));
+        }
 
         Ok(())
     }
@@ -103,7 +122,19 @@ where
             namespace: error::NAMESPACE,
             content,
         };
-        self.messages.push((self.participant_id, message));
+
+        let Some(state) = self.participants.get_connected(&self.participant_id) else {
+            log::error!(
+                "Module '{}' attempted to send a websocket error message to unknown participant {}",
+                M::NAMESPACE,
+                self.participant_id,
+            );
+            return;
+        };
+
+        for (connection_id, ..) in &state.connections {
+            self.messages.push((*connection_id, message.clone()));
+        }
     }
 
     /// Spawns a new task that completes the given `future` and sends the result
@@ -116,11 +147,13 @@ where
         F: Future<Output = M::Loopback> + Send + Sync + 'static,
     {
         let participant_id = self.participant_id;
+        let connection_id = self.connection_id;
 
         let future = Box::pin(async move {
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
                 participant_id,
+                connection_id,
                 value: Box::new(future.await),
             })
         });
@@ -138,6 +171,7 @@ where
         F: FnOnce() -> M::Loopback + Send + 'static,
     {
         let participant_id = self.participant_id;
+        let connection_id = self.connection_id;
         let join_handle = tokio::task::spawn_blocking(blocking_function);
 
         let future = Box::pin(async move {
@@ -149,6 +183,7 @@ where
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
                 participant_id,
+                connection_id,
                 value: Box::new(value),
             })
         });

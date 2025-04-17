@@ -119,7 +119,7 @@ mod tests {
         SignalingClientContext {
             room_id: RoomId::from_u128(i),
             client_parameters: ClientParameters {
-                client_id: i.to_string(),
+                device_secret: i.to_string(),
                 kind: ClientKind::Registered {
                     profile: PublicUserProfile {
                         id: UserId::from_u128(i),

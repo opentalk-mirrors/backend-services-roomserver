@@ -17,7 +17,7 @@ fi
 
 script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-HOST=${HOST:-"[::]:11333"}
+HOST=${HOST:-"localhost:11333"}
 ROOM_ID=${ROOM_ID:-"00000000-0000-0000-0001-000000000001"}
 API_TOKEN=${API_TOKEN:-"secret"}
 

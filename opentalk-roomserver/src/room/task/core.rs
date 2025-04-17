@@ -4,7 +4,10 @@
 use std::collections::BTreeMap;
 
 use opentalk_roomserver_signaling::signaling_module::{FatalError, SharedRawJson};
-use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters};
+use opentalk_roomserver_types::{
+    client_parameters::{ClientKind, ClientParameters},
+    connection_id::ConnectionId,
+};
 use opentalk_types_common::{
     events::{EventInfo, MeetingDetails},
     modules::{module_id, ModuleId},
@@ -16,7 +19,10 @@ use serde::{Deserialize, Serialize};
 use super::{handle_fatal_module_error, Modules};
 use crate::room::{
     message_router::CloseReason,
-    signaling::{dyn_module_context::DynModuleContext, DynBroadcastEvent},
+    signaling::{
+        dyn_module_context::{self, DynModuleContext},
+        DynBroadcastEvent,
+    },
 };
 
 pub const NAMESPACE: ModuleId = module_id!("core");
@@ -29,14 +35,17 @@ pub enum CoreEvent {
     JoinSuccess(JoinSuccess),
 
     /// Broadcast message sent to all participants when a new participant has joined
-    ParticipantJoined {
+    ParticipantConnected {
         participant_id: ParticipantId,
-        peer_join_info: BTreeMap<ModuleId, SharedRawJson>,
+        connection_id: ConnectionId,
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        peer_join_info: BTreeMap<ModuleId, SharedRawJson>, // TODO: find a better name
     },
 
     /// Broadcast message sent to all participants when a participant disconnected
     ParticipantDisconnected {
         participant_id: ParticipantId,
+        connection_id: ConnectionId,
         reason: DisconnectReason,
     },
 }
@@ -65,21 +74,24 @@ impl From<CloseReason> for DisconnectReason {
 /// A participant connected to the conference
 ///
 /// Sends the [`CoreEvent::JoinSuccess`] to the joining participant and notifies other participants with the
-/// [`CoreEvent::ParticipantJoined`] message.
+/// [`CoreEvent::ParticipantConnected`] message.
 pub(super) async fn participant_joined(
     ctx: &mut DynModuleContext<'_>,
     participant_id: ParticipantId,
+    connection_id: ConnectionId,
     modules: &mut Modules,
     client_parameters: ClientParameters,
 ) -> Result<(), FatalError> {
     let mut module_data = ModuleData::new();
+
     let mut peer_module_data = BTreeMap::new();
 
     broadcast_event_to_modules(
         ctx,
         modules,
-        DynBroadcastEvent::Joined {
+        DynBroadcastEvent::Connected {
             participant_id,
+            connection_id,
             module_data: &mut module_data,
             peer_module_data: &mut peer_module_data,
         },
@@ -88,22 +100,33 @@ pub(super) async fn participant_joined(
 
     let join_success_msg = build_join_success(ctx, participant_id, client_parameters, module_data);
     ctx.send_ws_message(
-        participant_id,
+        [connection_id],
         NAMESPACE,
         CoreEvent::JoinSuccess(join_success_msg),
     )
     .await?;
 
-    for (peer, module_data) in peer_module_data {
-        let joined_msg = CoreEvent::ParticipantJoined {
-            participant_id,
-            peer_join_info: module_data,
-        };
+    for (&peer_id, state) in ctx.participants.connected() {
+        let peer_join_info = peer_module_data.remove(&peer_id);
 
-        ctx.send_ws_message(peer, NAMESPACE, joined_msg).await?;
+        let connections = state
+            .connections
+            .keys()
+            .copied()
+            .filter(|&c| c != connection_id);
+
+        dyn_module_context::send_ws_message(
+            ctx.message_router,
+            connections,
+            NAMESPACE,
+            CoreEvent::ParticipantConnected {
+                participant_id,
+                connection_id,
+                peer_join_info: peer_join_info.unwrap_or_default(),
+            },
+        )
+        .await?;
     }
-
-    ctx.participants.insert(participant_id);
 
     Ok(())
 }
@@ -115,10 +138,19 @@ pub(super) async fn participant_disconnected(
     reason: DisconnectReason,
     modules: &mut Modules,
 ) {
-    broadcast_event_to_modules(ctx, modules, DynBroadcastEvent::Left(ctx.participant_id)).await;
+    broadcast_event_to_modules(
+        ctx,
+        modules,
+        DynBroadcastEvent::Disconnected {
+            participant_id: ctx.participant_id,
+            connection_id: ctx.connection_id,
+        },
+    )
+    .await;
 
     let content = CoreEvent::ParticipantDisconnected {
         participant_id: ctx.participant_id,
+        connection_id: ctx.connection_id,
         reason,
     };
 
@@ -135,10 +167,11 @@ fn build_join_success(
 ) -> JoinSuccess {
     let participants = ctx
         .participants
+        .all
         .iter()
-        .map(|id| Participant {
-            id: *id,
-            module_data: ModulePeerData::new(),
+        .map(|_id| Participant {
+            id: participant_id,
+            module_data: ModulePeerData::new(), // TODO: needs implementation in the signaling module
         })
         .collect();
 
@@ -210,6 +243,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use opentalk_roomserver_signaling::signaling_module::SharedRawJson;
+    use opentalk_roomserver_types::connection_id::ConnectionId;
     use opentalk_types_common::{
         modules::module_id,
         rooms::RoomId,
@@ -309,8 +343,9 @@ mod tests {
             ),
         );
 
-        let event = CoreEvent::ParticipantJoined {
+        let event = CoreEvent::ParticipantConnected {
             participant_id: ParticipantId::nil(),
+            connection_id: ConnectionId::nil(),
             peer_join_info,
         };
         let json = serde_json::to_value(&event).unwrap();
@@ -318,8 +353,9 @@ mod tests {
         assert_eq!(
             json,
             json!({
-              "participant_joined": {
+              "participant_connected": {
                 "participant_id": "00000000-0000-0000-0000-000000000000",
+                "connection_id": "00000000-0000-0000-0000-000000000000",
                 "peer_join_info": {
                   "test": {
                     "key": "value"
@@ -334,6 +370,7 @@ mod tests {
     fn serialize_core_event_disconnected() {
         let event = CoreEvent::ParticipantDisconnected {
             participant_id: ParticipantId::nil(),
+            connection_id: ConnectionId::nil(),
             reason: DisconnectReason::ConnectionLost,
         };
 
@@ -344,6 +381,7 @@ mod tests {
             json!({
               "participant_disconnected": {
                 "participant_id": "00000000-0000-0000-0000-000000000000",
+                "connection_id": "00000000-0000-0000-0000-000000000000",
                 "reason": "connection_lost"
               }
             })
