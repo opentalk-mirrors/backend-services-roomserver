@@ -164,7 +164,6 @@ skip = [
   { name = "hashbrown", version = "0.14" },
   { name = "linux-raw-sys", version = "0.4" },
   { name = "rand", version = "0.8" },
-  { name = "rand_chacha", version = "0.3" },
   { name = "rand_core", version = "0.6" },
   { name = "regex-automata", version = "0.1" },
   { name = "regex-syntax", version = "0.6" },
