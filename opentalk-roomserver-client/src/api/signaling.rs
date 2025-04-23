@@ -58,23 +58,22 @@ impl SignalingConnection {
         Ok(())
     }
 
-    pub async fn receive_raw_message(&mut self) -> Result<String, SignalingError> {
-        let msg = self
-            .socket
-            .next()
-            .await
-            .context("Signaling socket unexpectedly closed")?
-            .context("Error while receiving signaling message")?;
+    pub async fn receive_raw_message(&mut self) -> Result<Option<String>, SignalingError> {
+        let Some(msg) = self.socket.next().await else {
+            return Ok(None);
+        };
+        let msg = msg.context("receive error")?;
+
         log::debug!("received message: {:?}", msg);
 
         match msg {
-            Message::Text(utf8_bytes) => Ok(utf8_bytes.to_string()),
+            Message::Text(utf8_bytes) => Ok(Some(utf8_bytes.to_string())),
 
             // don't log the full message, just the type
             Message::Binary(_) => Err(anyhow!("Expected text messsage, got: Binary").into()),
             Message::Ping(_) => Err(anyhow!("Expected text messsage, got: Ping").into()),
             Message::Pong(_) => Err(anyhow!("Expected text messsage, got: Pong").into()),
-            Message::Close(_) => Err(anyhow!("Expected text messsage, got: Close").into()),
+            Message::Close(_) => Ok(None),
             Message::Frame(_) => Err(anyhow!("Expected text messsage, got: Frame").into()),
         }
     }
