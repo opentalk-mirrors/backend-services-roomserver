@@ -84,6 +84,16 @@ impl SignalingModule for PingModule {
                 ctx.spawn(Self::handle_async_ping_delayed(participant_id));
             }
             Command::PingError => Self::ping_error()?,
+            Command::Broadcast => {
+                for participant_id in ctx
+                    .participants
+                    .connected()
+                    .map(|(p, _)| *p)
+                    .collect::<Vec<ParticipantId>>()
+                {
+                    ctx.send_ws_message(participant_id, Event::Pong)?
+                }
+            }
             Command::Die => {
                 return Err(
                     FatalError(anyhow::anyhow!("Dying as requested, cya later alligator")).into(),
@@ -130,6 +140,8 @@ pub enum Command {
     AsyncDelayedPing,
     /// A ping that will result in a [`PingError`]
     PingError,
+    /// Ping all participants
+    Broadcast,
     /// Request the ping module to die by returning a [`FatalError`]
     Die,
 }
