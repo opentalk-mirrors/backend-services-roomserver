@@ -248,7 +248,7 @@ where
         ctx: &mut DynModuleContext<'_>,
         event: DynEvent,
     ) -> Result<(), FatalError> {
-        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into();
+        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into_typed_context();
 
         if let Err(err) = self.handle_event(&mut module_context, event).await {
             match err {
@@ -282,7 +282,7 @@ where
         ctx: &mut DynModuleContext<'_>,
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError> {
-        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into();
+        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into_typed_context();
 
         if let Err(err) = self
             .handle_broadcast_event(&mut module_context, event)

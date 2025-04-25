@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{future::Future, marker::PhantomData};
+use std::{cell::RefCell, future::Future, marker::PhantomData};
 
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
@@ -32,10 +32,11 @@ where
     room_info: &'ctx mut RoomInfo,
     // TODO use `SharedRawJson` and implement functions to send messages to all/subset of participants without re-allocation
     /// The websocket messages that are sent out after the module finished its event handling
-    messages: Vec<(ConnectionId, SignalingEvent)>,
+    messages: RefCell<Vec<(ConnectionId, SignalingEvent)>>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
+
     m: PhantomData<fn() -> M>,
 }
 
@@ -49,7 +50,6 @@ where
         connection_id: ConnectionId,
         room_info: &'ctx mut RoomInfo,
         participants: &'ctx mut Participants,
-
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
     ) -> ModuleContext<'ctx, M> {
         Self {
@@ -57,19 +57,19 @@ where
             participant_id,
             connection_id,
             room_info,
-            messages: Vec::new(),
+            messages: RefCell::new(Vec::new()),
             participants,
             loopback_futures,
             m: PhantomData,
         }
     }
 
-    pub fn room_info(&self) -> &RoomInfo {
-        self.room_info
+    pub fn into_messages(self) -> Vec<(ConnectionId, SignalingEvent)> {
+        self.messages.into_inner()
     }
 
-    pub fn into_messages(self) -> Vec<(ConnectionId, SignalingEvent)> {
-        self.messages
+    pub fn room_info(&self) -> &RoomInfo {
+        self.room_info
     }
 
     /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given `participant_id`
@@ -80,7 +80,7 @@ where
     ///
     /// Returns `Err` when the [`SignalingModule::Outgoing`] type failed to be serialized.
     pub fn send_ws_message(
-        &mut self,
+        &self,
         participant_id: ParticipantId,
         msg: M::Outgoing,
     ) -> Result<(), FatalError> {
@@ -98,9 +98,10 @@ where
             );
             return Ok(());
         };
+        let mut messages = self.messages.borrow_mut();
 
         for (connection_id, ..) in &state.connections {
-            self.messages.push((*connection_id, message.clone()));
+            messages.push((*connection_id, message.clone()));
         }
 
         Ok(())
@@ -109,7 +110,7 @@ where
     /// Send a websocket error message of type [`SignalingError`] to the associated participant
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
-    pub fn send_ws_error(&mut self, error: SignalingError) {
+    pub fn send_ws_error(&self, error: SignalingError) {
         let content = match serde_json::value::to_raw_value(&error) {
             Ok(value) => value,
             Err(err) => {
@@ -132,8 +133,10 @@ where
             return;
         };
 
+        let mut messages = self.messages.borrow_mut();
+
         for (connection_id, ..) in &state.connections {
-            self.messages.push((*connection_id, message.clone()));
+            messages.push((*connection_id, message.clone()));
         }
     }
 

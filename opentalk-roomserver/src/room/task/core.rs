@@ -7,7 +7,9 @@ use opentalk_roomserver_signaling::signaling_module::{FatalError, SharedRawJson}
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
+    error::SignalingError,
 };
+use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{
     events::{EventInfo, MeetingDetails},
     modules::{module_id, ModuleId},
@@ -16,13 +18,10 @@ use opentalk_types_signaling::{ModuleData, ModulePeerData, Participant, Particip
 use opentalk_types_signaling_control::{event::JoinSuccess, room::RoomInfo};
 use serde::{Deserialize, Serialize};
 
-use super::{handle_fatal_module_error, Modules};
+use super::{Modules, RoomTask};
 use crate::room::{
     message_router::CloseReason,
-    signaling::{
-        dyn_module_context::{self, DynModuleContext},
-        DynBroadcastEvent,
-    },
+    signaling::{dyn_module_context::DynModuleContext, DynBroadcastEvent},
 };
 
 pub const NAMESPACE: ModuleId = module_id!("core");
@@ -71,92 +70,154 @@ impl From<CloseReason> for DisconnectReason {
     }
 }
 
-/// A participant connected to the conference
-///
-/// Sends the [`CoreEvent::JoinSuccess`] to the joining participant and notifies other participants with the
-/// [`CoreEvent::ParticipantConnected`] message.
-pub(super) async fn participant_joined(
-    ctx: &mut DynModuleContext<'_>,
-    participant_id: ParticipantId,
-    connection_id: ConnectionId,
-    modules: &mut Modules,
-    client_parameters: ClientParameters,
-) -> Result<(), FatalError> {
-    let mut module_data = ModuleData::new();
+impl<Socket: SignalingSocket> RoomTask<Socket> {
+    /// A participant connected to the conference
+    ///
+    /// Sends the [`CoreEvent::JoinSuccess`] to the joining participant and notifies other participants with the
+    /// [`CoreEvent::ParticipantConnected`] message.
+    pub(super) async fn participant_joined(
+        &mut self,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+        modules: &mut Modules,
+        client_parameters: ClientParameters,
+    ) -> Result<(), FatalError> {
+        let mut module_data = ModuleData::new();
 
-    let mut peer_module_data = BTreeMap::new();
+        let mut peer_module_data = BTreeMap::new();
 
-    broadcast_event_to_modules(
-        ctx,
-        modules,
-        DynBroadcastEvent::Connected {
+        self.broadcast_event_to_modules(
             participant_id,
             connection_id,
-            module_data: &mut module_data,
-            peer_module_data: &mut peer_module_data,
-        },
-    )
-    .await;
-
-    let join_success_msg = build_join_success(ctx, participant_id, client_parameters, module_data);
-    ctx.send_ws_message(
-        [connection_id],
-        NAMESPACE,
-        CoreEvent::JoinSuccess(join_success_msg),
-    )
-    .await?;
-
-    for (&peer_id, state) in ctx.participants.connected() {
-        let peer_join_info = peer_module_data.remove(&peer_id);
-
-        let connections = state
-            .connections
-            .keys()
-            .copied()
-            .filter(|&c| c != connection_id);
-
-        dyn_module_context::send_ws_message(
-            ctx.message_router,
-            connections,
-            NAMESPACE,
-            CoreEvent::ParticipantConnected {
+            modules,
+            DynBroadcastEvent::Connected {
                 participant_id,
                 connection_id,
-                peer_join_info: peer_join_info.unwrap_or_default(),
+                module_data: &mut module_data,
+                peer_module_data: &mut peer_module_data,
             },
         )
+        .await;
+
+        let join_success_msg = build_join_success(
+            &self.context(participant_id, connection_id),
+            participant_id,
+            client_parameters,
+            module_data,
+        );
+        self.serialize_and_send(
+            [connection_id],
+            NAMESPACE,
+            CoreEvent::JoinSuccess(join_success_msg),
+        )
         .await?;
+
+        for (&peer_id, state) in self.participants.connected() {
+            let peer_join_info = peer_module_data.remove(&peer_id);
+
+            let connections = state
+                .connections
+                .keys()
+                .copied()
+                .filter(|&c| c != connection_id);
+
+            self.serialize_and_send(
+                connections,
+                NAMESPACE,
+                CoreEvent::ParticipantConnected {
+                    participant_id,
+                    connection_id,
+                    peer_join_info: peer_join_info.unwrap_or_default(),
+                },
+            )
+            .await?;
+        }
+
+        Ok(())
     }
 
-    Ok(())
-}
+    /// Inform modules that the participant has left the conference and broadcast [`CoreEvent::ParticipantDisconnected`]
+    /// to all participants
+    pub(super) async fn participant_disconnected(
+        &mut self,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+        reason: DisconnectReason,
+        modules: &mut Modules,
+    ) {
+        self.broadcast_event_to_modules(
+            participant_id,
+            connection_id,
+            modules,
+            DynBroadcastEvent::Disconnected {
+                participant_id,
+                connection_id,
+            },
+        )
+        .await;
 
-/// Inform modules that the participant has left the conference and broadcast [`CoreEvent::ParticipantDisconnected`]
-/// to all participants
-pub(super) async fn participant_disconnected(
-    ctx: &mut DynModuleContext<'_>,
-    reason: DisconnectReason,
-    modules: &mut Modules,
-) {
-    broadcast_event_to_modules(
-        ctx,
-        modules,
-        DynBroadcastEvent::Disconnected {
-            participant_id: ctx.participant_id,
-            connection_id: ctx.connection_id,
-        },
-    )
-    .await;
+        let content = CoreEvent::ParticipantDisconnected {
+            participant_id,
+            connection_id,
+            reason,
+        };
 
-    let content = CoreEvent::ParticipantDisconnected {
-        participant_id: ctx.participant_id,
-        connection_id: ctx.connection_id,
-        reason,
-    };
+        self.serialize_and_broadcast(NAMESPACE, content)
+            .await
+            .expect("CoreEvent::ParticipantDisconnected must be serializable");
+    }
 
-    ctx.broadcast_ws_message(NAMESPACE, content)
-        .await
-        .expect("CoreEvent::ParticipantDisconnected must be serializable");
+    /// Broadcast the [`DynBroadcastEvent`] to all modules
+    pub(crate) async fn broadcast_event_to_modules(
+        &mut self,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+        modules: &mut Modules,
+        mut event: DynBroadcastEvent<'_>,
+    ) {
+        let mut errors = Vec::new();
+        for (namespace, module) in modules.iter_mut() {
+            if let Err(err) = module
+                .on_broadcast_event(&mut self.context(participant_id, connection_id), &mut event)
+                .await
+            {
+                errors.push((namespace.clone(), err));
+            }
+        }
+
+        for (namespace, err) in errors {
+            self.handle_fatal_module_error(&mut *modules, namespace, err)
+                .await;
+        }
+    }
+
+    /// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
+    ///
+    /// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
+    pub(crate) async fn handle_fatal_module_error(
+        &mut self,
+        modules: &mut Modules,
+        namespace: ModuleId,
+        err: FatalError,
+    ) {
+        log::error!(
+            "The {namespace} module caused a fatal error and will be shut down: {:#?}",
+            err.0
+        );
+
+        let Some(module) = modules.remove(&namespace) else {
+            log::error!("Attempted to remove non-existent module {namespace}");
+            return;
+        };
+
+        module.destroy().await;
+
+        // Remove the module from the room state
+        self.info.room.tariff.modules.remove(&namespace);
+
+        self.broadcast_error(SignalingError::FatalModuleError { namespace })
+            .await;
+    }
 }
 
 fn build_join_success(
@@ -217,24 +278,6 @@ fn build_join_success(
         },
         is_room_owner,
         module_data,
-    }
-}
-
-/// Broadcast the [`DynBroadcastEvent`] to all modules
-async fn broadcast_event_to_modules(
-    ctx: &mut DynModuleContext<'_>,
-    modules: &mut Modules,
-    mut event: DynBroadcastEvent<'_>,
-) {
-    let mut errors = Vec::new();
-    for (namespace, module) in modules.iter_mut() {
-        if let Err(err) = module.on_broadcast_event(ctx, &mut event).await {
-            errors.push((namespace.clone(), err));
-        }
-    }
-
-    for (namespace, err) in errors {
-        handle_fatal_module_error(ctx, &mut *modules, namespace, err).await;
     }
 }
 

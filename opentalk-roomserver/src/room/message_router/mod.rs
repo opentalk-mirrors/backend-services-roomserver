@@ -11,7 +11,7 @@ pub use message::{CloseReason, MessageEnvelope, SignalingMessage};
 use opentalk_roomserver_types::{connection_id::ConnectionId, signaling::SignalingEvent};
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_signaling::ParticipantId;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{mpsc, watch, Mutex};
 
 use crate::{room::message_router::participant_connection::ConnectionHandle, ApplicationState};
 
@@ -34,7 +34,7 @@ pub struct MessageRouter {
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
 
     /// A collection of active websocket connections
-    connections: HashMap<ConnectionId, ConnectionHandle>,
+    connections: Mutex<HashMap<ConnectionId, ConnectionHandle>>,
 
     /// The internal receiver for [`room_task_command_sender`](MessageRouter::room_task_command_sender) that contains
     /// messages for the room task. Can be read through the [`recv`](MessageRouter::recv) method.
@@ -53,7 +53,7 @@ impl MessageRouter {
 
         Self {
             room_task_command_sender: command_channel,
-            connections: HashMap::new(),
+            connections: Mutex::new(HashMap::new()),
             room_task_command_receiver: command_egress,
             app_state,
         }
@@ -66,7 +66,7 @@ impl MessageRouter {
     ) -> Result<ConnectionId, AlreadyConnectedError> {
         let connection_id = ConnectionId::generate();
 
-        let entry = self.connections.entry(connection_id);
+        let entry = self.connections.get_mut().entry(connection_id);
         let Entry::Vacant(vacant) = entry else {
             tokio::task::spawn(async move {
                 websocket
@@ -95,28 +95,32 @@ impl MessageRouter {
 
     /// Send a [`SignalingEvent`] to a participant
     pub async fn send_event(
-        &mut self,
-        connections: impl IntoIterator<Item = ConnectionId>,
+        &self,
+        participant_connections: impl IntoIterator<Item = ConnectionId>,
         event: SignalingEvent,
     ) {
-        for id in connections {
-            let Some(handle) = self.connections.get(&id) else {
+        let mut connections = self.connections.lock().await;
+
+        for id in participant_connections {
+            let Some(handle) = connections.get(&id) else {
                 log::debug!("failed to get connection handle, connection does not exist");
                 continue;
             };
 
             if handle.send_event(event.clone()).await.is_err() {
                 log::debug!("failed to message participant, connection is closed");
-                self.connections.remove(&id);
+                connections.remove(&id);
             }
         }
     }
 
     /// Send a [`SignalingEvent`] to **all** participants
-    pub async fn broadcast_event(&mut self, event: SignalingEvent) {
+    pub async fn broadcast_event(&self, event: SignalingEvent) {
+        let mut connections = self.connections.lock().await;
+
         let mut send_futures = Vec::new();
 
-        for (connection_id, connection_handle) in &mut self.connections {
+        for (connection_id, connection_handle) in &mut *connections {
             let cloned_event = event.clone();
 
             send_futures.push(async move {
@@ -133,7 +137,7 @@ impl MessageRouter {
 
         // remove all stale connections
         for participant_id in stale_connections.iter().flatten() {
-            self.connections.remove(participant_id);
+            connections.remove(participant_id);
         }
     }
 
@@ -147,7 +151,7 @@ impl MessageRouter {
             .expect("internal room_task_channel was closed");
 
         if matches!(msg.message, SignalingMessage::Closed(_)) {
-            self.connections.remove(&msg.connection_id);
+            self.connections.get_mut().remove(&msg.connection_id);
         }
 
         msg
