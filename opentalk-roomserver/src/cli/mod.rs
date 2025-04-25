@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use clap::{ArgAction, Parser, Subcommand};
+use build_info::BuildInfo;
+use clap::{Parser, Subcommand};
+use opentalk_version::InfoArgs;
 
+mod license;
 pub(crate) mod openapi;
-mod version;
+
+opentalk_version::build_info!();
 
 /// Whether the program should start or exit
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,9 +42,8 @@ pub(crate) struct Args {
     )]
     pub(crate) config: String,
 
-    /// Print long version description and exit.
-    #[clap(short('V'), long, action=ArgAction::SetTrue, help = "Print version information")]
-    pub(crate) version: bool,
+    #[command(flatten)]
+    pub(crate) info: InfoArgs,
 
     #[clap(subcommand)]
     pub(crate) cmd: Option<SubCommand>,
@@ -51,12 +54,14 @@ impl Args {
     ///
     /// When [`ProgramFlow::Exit`] is returned, the program should exit, otherwise the program should continue.
     pub(crate) fn run_tasks(&self) -> ProgramFlow {
-        if self.version {
-            version::print_version();
-            ProgramFlow::Exit
-        } else {
-            ProgramFlow::Continue
+        if !self.info.should_print() {
+            return ProgramFlow::Continue;
         }
+        let build_info = BuildInfo::with_license(license::LICENSE.to_owned());
+        if let Some(text) = build_info.format(&self.info) {
+            println!("{text}");
+        }
+        ProgramFlow::Exit
     }
 }
 

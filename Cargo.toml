@@ -56,7 +56,7 @@ http-request-derive = "0.4.0"
 http-request-derive-client = "0.1.0"
 http-request-derive-client-reqwest = "0.1.0"
 log = "0.4.22"
-opentalk-version = "0.1.1"
+opentalk-version = "0.2.0"
 opentelemetry = "0.29.0"
 opentelemetry-otlp = { version = "0.29.0", features = ["grpc-tonic"] }
 opentelemetry_sdk = { version = "0.29.0", features = [
