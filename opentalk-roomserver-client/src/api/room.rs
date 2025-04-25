@@ -27,7 +27,7 @@ impl RoomsCreateRequest {
     pub(crate) fn new(room_id: RoomId, parameter: RoomParameters, api_token: HeaderValue) -> Self {
         let mut headers: HeaderMap = HeaderMap::new();
         headers.append(AUTHORIZATION, api_token);
-        log::debug!("create room header: {headers:?}");
+
         Self {
             body: parameter,
             room_id,

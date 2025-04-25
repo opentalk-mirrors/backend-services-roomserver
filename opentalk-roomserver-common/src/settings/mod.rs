@@ -3,13 +3,22 @@
 
 use std::net::{IpAddr, Ipv4Addr};
 
+use anyhow::Context;
 use config::{Config, Environment, File, FileFormat};
 use serde::Deserialize;
 use signaling_salt::SignalingSalt;
 use telemetry::{Metrics, Monitoring, Tracing};
+use thiserror::Error;
 
 pub mod signaling_salt;
 pub mod telemetry;
+
+#[derive(Debug, Error)]
+#[error("Settings error")]
+pub struct Error {
+    #[from]
+    source: anyhow::Error,
+}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
@@ -32,7 +41,7 @@ pub struct Settings {
 impl Settings {
     /// Creates a new Settings instance from the provided TOML file.
     /// Specific fields can be set or overwritten with environment variables (See struct level docs for more details).
-    pub fn load(file_name: &str) -> anyhow::Result<Self> {
+    pub fn load(file_name: &str) -> Result<Self, Error> {
         let config = Config::builder()
             .add_source(File::new(file_name, FileFormat::Toml))
             .add_source(
@@ -40,9 +49,10 @@ impl Settings {
                     .prefix_separator("_")
                     .separator("__"),
             )
-            .build()?;
+            .build()
+            .context("failed to build settings loader")?;
 
-        Ok(serde_path_to_error::deserialize(config)?)
+        Ok(serde_path_to_error::deserialize(config).context("invalid configuration")?)
     }
 
     /// Creates settings for testing
