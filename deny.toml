@@ -51,9 +51,9 @@ allow = [
   "BSD-2-Clause",
   "BSD-3-Clause",
   "BSL-1.0",
+  "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
-  "MPL-2.0",
   "Unicode-3.0",
   "Zlib",
 ] # The confidence threshold for detecting a license from license text.
@@ -172,6 +172,13 @@ skip = [
   { name = "thiserror-impl", version = "1" },
   { name = "tower", version = "0.4" },
   { name = "zerocopy", version = "0.7" },
+
+  { name = "faster-hex", version = "0.9.0" },
+  { name = "gix-features", version = "0.41.1" },
+  { name = "gix-fs", version = "0.14.0" },
+  { name = "gix-hash", version = "0.17.0" },
+  { name = "gix-utils", version = "0.2.0" },
+  { name = "gix-validate", version = "0.9.4" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
