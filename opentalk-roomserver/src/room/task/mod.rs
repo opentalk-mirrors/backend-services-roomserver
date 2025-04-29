@@ -8,7 +8,7 @@ use opentalk_roomserver_signaling::{
     loopback::LoopbackFuture,
     participant_state::{ParticipantKind, ParticipantState, Participants},
     room_info::RoomInfo,
-    signaling_module::{FatalError, SignalingModuleInitData},
+    signaling_module::SignalingModuleInitData,
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters},
@@ -43,6 +43,7 @@ use crate::{
 pub(crate) mod core;
 pub(crate) mod handle;
 mod idle_timeout;
+pub(crate) mod websocket;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
@@ -199,7 +200,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     };
                     let mut ctx = self.context(msg.participant_id, msg.connection_id);
                     if let Err(err) = module.on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value)).await {
-                        handle_fatal_module_error(&mut ctx, &mut modules, msg.namespace, err).await;
+                        self.handle_fatal_module_error(&mut modules, msg.namespace, err).await;
                     }
                 },
                 () = self.idle_timeout.has_timed_out() => {
@@ -291,12 +292,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 log::trace!("received signaling command: {signaling_command:?}");
 
                 let Some(module) = modules.get_mut(&signaling_command.namespace) else {
-                    self.handle_unknown_namespace(
-                        participant_id,
-                        connection_id,
-                        signaling_command.namespace,
-                    )
-                    .await;
+                    self.handle_unknown_namespace(connection_id, signaling_command.namespace)
+                        .await;
                     return Ok(());
                 };
 
@@ -313,7 +310,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     )
                     .await
                 {
-                    handle_fatal_module_error(&mut ctx, modules, signaling_command.namespace, err)
+                    self.handle_fatal_module_error(modules, signaling_command.namespace, err)
                         .await;
                 }
             }
@@ -365,14 +362,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
-        if let Err(err) = core::participant_joined(
-            &mut self.context(participant_id, connection_id),
-            participant_id,
-            connection_id,
-            modules,
-            client_parameters,
-        )
-        .await
+        if let Err(err) = self
+            .participant_joined(participant_id, connection_id, modules, client_parameters)
+            .await
         {
             log::error!("failed to add participant to conference {err:#?}");
 
@@ -406,9 +398,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
         state.connections.remove(&connection_id);
 
-        let ctx = &mut self.context(participant_id, connection_id);
-
-        core::participant_disconnected(ctx, reason.into(), modules).await;
+        self.participant_disconnected(participant_id, connection_id, reason.into(), modules)
+            .await;
 
         // start idle timeout when no one is connected
         if !self.participants.all.values().any(|s| s.is_connected()) {
@@ -416,12 +407,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    async fn handle_unknown_namespace(
-        &mut self,
-        origin: ParticipantId,
-        connection_id: ConnectionId,
-        namespace: ModuleId,
-    ) {
+    async fn handle_unknown_namespace(&mut self, origin: ConnectionId, namespace: ModuleId) {
         log::debug!(
             "Received signaling message with unknown namespace: {}",
             &namespace
@@ -431,9 +417,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             invalid_namespace: namespace.to_string(),
         };
 
-        self.context(origin, connection_id)
-            .send_ws_error(signaling_error)
-            .await;
+        self.send_error(origin, signaling_error).await;
     }
 
     fn context(
@@ -472,32 +456,4 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         DeviceId::from(Uuid::from_bytes(uuid_bytes))
     }
-}
-
-/// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
-///
-/// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
-pub(crate) async fn handle_fatal_module_error(
-    ctx: &mut DynModuleContext<'_>,
-    modules: &mut Modules,
-    namespace: ModuleId,
-    err: FatalError,
-) {
-    log::error!(
-        "The {namespace} module caused a fatal error and will be shut down: {:#?}",
-        err.0
-    );
-
-    let Some(module) = modules.remove(&namespace) else {
-        log::error!("Attempted to remove non-existent module {namespace}");
-        return;
-    };
-
-    module.destroy().await;
-
-    // Remove the module from the room state
-    ctx.room_info.room.tariff.modules.remove(&namespace);
-
-    ctx.broadcast_ws_error(SignalingError::FatalModuleError { namespace })
-        .await;
 }
