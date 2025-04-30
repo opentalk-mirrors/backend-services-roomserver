@@ -123,15 +123,12 @@ where
                     .map(|s| s.connections.is_empty())
                     .unwrap_or(true);
 
-                let join_info = self
-                    .module
-                    .on_participant_joined(
-                        ctx,
-                        *participant_id,
-                        *connection_id,
-                        is_first_connection,
-                    )
-                    .await?;
+                let join_info = self.module.on_participant_joined(
+                    ctx,
+                    *participant_id,
+                    *connection_id,
+                    is_first_connection,
+                )?;
 
                 if let Some(success_info) = join_info.join_success {
                     module_data
@@ -154,8 +151,7 @@ where
                 connection_id,
             } => {
                 self.module
-                    .on_participant_disconnected(ctx, *participant_id, *connection_id)
-                    .await?;
+                    .on_participant_disconnected(ctx, *participant_id, *connection_id)?;
             }
         }
         Ok(())
@@ -189,8 +185,7 @@ where
         };
 
         self.module
-            .on_websocket_message(ctx, sender, connection_id, content)
-            .await?;
+            .on_websocket_message(ctx, sender, connection_id, content)?;
         Ok(())
     }
 
@@ -209,7 +204,7 @@ where
             )
         })?;
 
-        self.module.on_loopback_event(ctx, *event).await?;
+        self.module.on_loopback_event(ctx, *event)?;
         Ok(())
     }
 
