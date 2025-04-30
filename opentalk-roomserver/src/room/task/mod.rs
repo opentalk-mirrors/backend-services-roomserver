@@ -5,7 +5,7 @@ use std::{future::pending, sync::Arc, time::Duration};
 
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_signaling::{
-    loopback::LoopbackFuture,
+    loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantKind, ParticipantState, Participants},
     room_info::RoomInfo,
     signaling_module::SignalingModuleInitData,
@@ -67,6 +67,7 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
 
     /// The receiver for web server API request that target this room
     api_rx: mpsc::Receiver<TaskMessage<Socket>>,
+
     /// The rooms idle timeout, only active when no participants are in the room.
     idle_timeout: IdleTimeout,
 
@@ -193,26 +194,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     let _ = self.handle_message(msg).await;
                 }
                 Some(msg) = self.loopback_futures.next() => {
-                    let Some(msg) = msg else {
-                        log::error!("Signaling module channel was dropped");
-                        continue;
-                    };
-                    let Some(module) = self.modules.get_mut(&msg.namespace) else {
-                        log::error!("Received loopback event for unknown module {}", msg.namespace);
-                        continue;
-                    };
-                    let mut ctx = DynModuleContext::new(
-                        self.info.room_id,
-                        msg.participant_id,
-                        msg.connection_id,
-                        &mut self.info,
-                        &mut self.message_router,
-                        &mut self.participants,
-                        &self.loopback_futures,
-                    );
-                    if let Err(err) = module.on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value)).await {
-                        self.handle_fatal_module_error(msg.namespace, err).await;
-                    }
+                    self.handle_loopback(msg).await;
                 },
                 () = self.idle_timeout.has_timed_out() => {
                     log::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
@@ -252,6 +234,36 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let _ = msg.response_channel.send(api_response);
 
         Ok(())
+    }
+
+    #[tracing::instrument(skip_all, fields(opentalk.room_id = %self.info.room_id))]
+    async fn handle_loopback(&mut self, msg: Option<LoopbackMessage>) {
+        let Some(msg) = msg else {
+            log::error!("Signaling module channel was dropped");
+            return;
+        };
+        let Some(module) = self.modules.get_mut(&msg.namespace) else {
+            log::error!(
+                "Received loopback event for unknown module {}",
+                msg.namespace
+            );
+            return;
+        };
+        let mut ctx = DynModuleContext::new(
+            self.info.room_id,
+            msg.participant_id,
+            msg.connection_id,
+            &mut self.info,
+            &mut self.message_router,
+            &mut self.participants,
+            &self.loopback_futures,
+        );
+        if let Err(err) = module
+            .on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value))
+            .await
+        {
+            self.handle_fatal_module_error(msg.namespace, err).await;
+        }
     }
 
     #[tracing::instrument(level = "info", skip_all)]
