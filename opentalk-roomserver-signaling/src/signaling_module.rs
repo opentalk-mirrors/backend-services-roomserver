@@ -23,7 +23,7 @@ use crate::participant_state::ParticipantState;
 /// with the corresponding [`SignalingModule::NAMESPACE`]. All event calls are handled in sequence on the same task.
 /// Signaling modules are expected to spawn separate tasks when compute intense or long-running operations need to be
 /// executed (See [`SignalingModule::Loopback`] for more details).
-pub trait SignalingModule: Send + Sized {
+pub trait SignalingModule: Send + Sync + Sized {
     /// The unique namespace for the module
     ///
     /// This is used as a general identifier to dispatch incoming signaling messages to the correct module.
@@ -69,14 +69,14 @@ pub trait SignalingModule: Send + Sized {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         is_first_connection: bool,
-    ) -> impl Future<Output = Result<JoinInfo<Self>, SignalingModuleError<Self::Error>>> + Send;
+    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>>;
 
     fn on_participant_disconnected(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
-    ) -> impl Future<Output = Result<(), SignalingModuleError<Self::Error>>> + Send;
+    ) -> Result<(), SignalingModuleError<Self::Error>>;
 
     fn on_websocket_message(
         &mut self,
@@ -84,13 +84,13 @@ pub trait SignalingModule: Send + Sized {
         sender: ParticipantId,
         connection_id: ConnectionId,
         content: Self::Incoming,
-    ) -> impl Future<Output = Result<(), SignalingModuleError<Self::Error>>> + Send;
+    ) -> Result<(), SignalingModuleError<Self::Error>>;
 
     fn on_loopback_event(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
-    ) -> impl Future<Output = Result<(), SignalingModuleError<Self::Error>>> + Send;
+    ) -> Result<(), SignalingModuleError<Self::Error>>;
 
     /// Destroy the module and remove all associated resources
     ///

@@ -18,7 +18,7 @@ use opentalk_types_signaling::{ModuleData, ModulePeerData, Participant, Particip
 use opentalk_types_signaling_control::{event::JoinSuccess, room::RoomInfo};
 use serde::{Deserialize, Serialize};
 
-use super::{Modules, RoomTask};
+use super::RoomTask;
 use crate::room::{
     message_router::CloseReason,
     signaling::{dyn_module_context::DynModuleContext, DynBroadcastEvent},
@@ -79,7 +79,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
-        modules: &mut Modules,
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
         let mut module_data = ModuleData::new();
@@ -89,7 +88,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.broadcast_event_to_modules(
             participant_id,
             connection_id,
-            modules,
             DynBroadcastEvent::Connected {
                 participant_id,
                 connection_id,
@@ -143,12 +141,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         reason: DisconnectReason,
-        modules: &mut Modules,
     ) {
         self.broadcast_event_to_modules(
             participant_id,
             connection_id,
-            modules,
             DynBroadcastEvent::Disconnected {
                 participant_id,
                 connection_id,
@@ -172,13 +168,23 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
-        modules: &mut Modules,
         mut event: DynBroadcastEvent<'_>,
     ) {
         let mut errors = Vec::new();
-        for (namespace, module) in modules.iter_mut() {
+        for (namespace, module) in self.modules.iter_mut() {
             if let Err(err) = module
-                .on_broadcast_event(&mut self.context(participant_id, connection_id), &mut event)
+                .on_broadcast_event(
+                    &mut DynModuleContext::new(
+                        self.info.room_id,
+                        participant_id,
+                        connection_id,
+                        &mut self.info,
+                        &mut self.message_router,
+                        &mut self.participants,
+                        &self.loopback_futures,
+                    ),
+                    &mut event,
+                )
                 .await
             {
                 errors.push((namespace.clone(), err));
@@ -186,26 +192,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         for (namespace, err) in errors {
-            self.handle_fatal_module_error(&mut *modules, namespace, err)
-                .await;
+            self.handle_fatal_module_error(namespace, err).await;
         }
     }
 
     /// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
     ///
     /// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
-    pub(crate) async fn handle_fatal_module_error(
-        &mut self,
-        modules: &mut Modules,
-        namespace: ModuleId,
-        err: FatalError,
-    ) {
+    pub(crate) async fn handle_fatal_module_error(&mut self, namespace: ModuleId, err: FatalError) {
         log::error!(
             "The {namespace} module caused a fatal error and will be shut down: {:#?}",
             err.0
         );
 
-        let Some(module) = modules.remove(&namespace) else {
+        let Some(module) = self.modules.remove(&namespace) else {
             log::error!("Attempted to remove non-existent module {namespace}");
             return;
         };

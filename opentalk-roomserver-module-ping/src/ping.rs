@@ -39,7 +39,7 @@ impl SignalingModule for PingModule {
         Some(Self)
     }
 
-    async fn on_participant_joined(
+    fn on_participant_joined(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
@@ -58,7 +58,7 @@ impl SignalingModule for PingModule {
         Ok(join_info)
     }
 
-    async fn on_participant_disconnected(
+    fn on_participant_disconnected(
         &mut self,
         _ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
@@ -68,7 +68,7 @@ impl SignalingModule for PingModule {
         Ok(())
     }
 
-    async fn on_websocket_message(
+    fn on_websocket_message(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
@@ -93,7 +93,7 @@ impl SignalingModule for PingModule {
         Ok(())
     }
 
-    async fn on_loopback_event(
+    fn on_loopback_event(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
