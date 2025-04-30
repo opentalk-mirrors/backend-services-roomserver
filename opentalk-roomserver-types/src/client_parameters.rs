@@ -15,6 +15,9 @@ pub struct ClientParameters {
     /// Information about a registered user
     #[serde(flatten)]
     pub kind: ClientKind,
+
+    /// The role that the client assumes in the meeting.
+    pub role: Role,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -23,6 +26,7 @@ pub struct ClientParameters {
 pub enum ClientKind {
     /// A registered user
     Registered { profile: PublicUserProfile },
+
     /// A guest participant
     Guest { display_name: DisplayName },
 }
@@ -34,8 +38,17 @@ impl ExampleData for ClientParameters {
             kind: ClientKind::Registered {
                 profile: PublicUserProfile::example_data(),
             },
+            role: Role::Moderator,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum Role {
+    User,
+    Moderator,
 }
 
 #[cfg(test)]
@@ -45,7 +58,7 @@ mod tests {
     use serde_json::json;
 
     use super::ClientKind;
-    use crate::client_parameters::ClientParameters;
+    use crate::client_parameters::{ClientParameters, Role};
 
     #[test]
     fn guest() {
@@ -54,6 +67,7 @@ mod tests {
             kind: ClientKind::Guest {
                 display_name: DisplayName::from_str_lossy("test"),
             },
+            role: Role::User,
         })
         .unwrap();
 
@@ -61,6 +75,7 @@ mod tests {
             value,
             json!(
                 {
+                    "role": "user",
                     "device_secret": "1234",
                     "kind": "guest",
                     "display_name": "test"
@@ -76,6 +91,7 @@ mod tests {
             kind: ClientKind::Registered {
                 profile: PublicUserProfile::example_data(),
             },
+            role: Role::User,
         })
         .unwrap();
 
@@ -85,6 +101,7 @@ mod tests {
                 {
                     "device_secret": "1234",
                     "kind": "registered",
+                    "role": "user",
                     "profile": {
                         "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060",
                         "display_name": "Alice Adams",

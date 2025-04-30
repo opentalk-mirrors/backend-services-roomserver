@@ -3,7 +3,9 @@
 
 use std::collections::{BTreeSet, HashMap};
 
-use opentalk_roomserver_types::{connection_id::ConnectionId, device_id::DeviceId};
+use opentalk_roomserver_types::{
+    client_parameters::Role, connection_id::ConnectionId, device_id::DeviceId,
+};
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 
@@ -40,7 +42,12 @@ pub struct ParticipantState {
     /// The participants display name
     pub display_name: DisplayName,
 
+    /// The kind of the participant
     pub kind: ParticipantKind,
+
+    /// The role that the participant assumes in the meeting.
+    pub role: Role,
+
     /// All connections and their associated device
     pub connections: HashMap<ConnectionId, DeviceId>,
 }
@@ -52,10 +59,11 @@ pub enum ParticipantKind {
 }
 
 impl ParticipantState {
-    pub fn new(display_name: DisplayName, kind: ParticipantKind) -> Self {
+    pub fn new(display_name: DisplayName, kind: ParticipantKind, role: Role) -> Self {
         Self {
             display_name,
             kind,
+            role,
             connections: HashMap::new(),
         }
     }

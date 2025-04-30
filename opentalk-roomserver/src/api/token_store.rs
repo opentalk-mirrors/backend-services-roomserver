@@ -104,7 +104,7 @@ mod tests {
         time::{Duration, Instant},
     };
 
-    use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters};
+    use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters, Role};
     use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{
         rooms::RoomId,
@@ -135,6 +135,7 @@ mod tests {
                         },
                     },
                 },
+                role: Role::User,
             },
         }
     }
