@@ -1,6 +1,41 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+//! The [`RoomTask`] is the central component of a meeting room. It initializes
+//! the [`MessageRouter`] and [`SignalingModule`]s. The [`RoomTask`] also
+//! * accepts new participants and adds them to the [`MessageRouter`]
+//! * forwards messages from the [`MessageRouter`] to the [`SignalingModule`]s
+//! * forwards [`LoopbackMessage`]s between the [`SignalingModule`]s
+//!
+//! ```text
+//! ┌──────────┐
+//! │ RoomTask │
+//! └──┬─┬─────┘
+//!    │ └──────────────┐
+//!    │                │
+//! ┌──▼────────────┐ ┌─▼───────┐
+//! │ MessageRouter │ │ Modules │
+//! └───────────────┘ └─┬───────┘
+//!                     │
+//!                   ┌─▼────────────┐
+//!                   │   <Trait>    │
+//!                   │ ModuleHandle │
+//!                   └─▲ ───────────┘
+//!                     │
+//!                    Implements
+//!                     │
+//!                   ┌─┴────────────────┐
+//!                   │ ModuleDispatcher │
+//!                   └─┬────────────────┘
+//!                     │
+//!                   ┌─▼───────────────┐
+//!                   │     <Trait>     │
+//!                   │ SignalingModule │
+//!                   └─────────────────┘
+//! ```
+//!
+//! [`SignalingModule`]: opentalk_roomserver_signaling::signaling_module::SignalingModule
+
 use std::{future::pending, sync::Arc, time::Duration};
 
 use futures::stream::{FuturesUnordered, StreamExt};
