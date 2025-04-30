@@ -80,6 +80,8 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
     app_state: watch::Receiver<ApplicationState>,
 
     participants: Participants,
+
+    modules: Modules,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -153,27 +155,28 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 settings,
                 app_state,
                 participants: Participants::new(),
+                modules,
             };
 
-            log::debug!("Spawn room with modules: {:?}", modules.keys());
-            room_task.run(modules).await;
+            room_task.run().await;
             task_registry.remove_room(room_id).await;
         });
 
         RoomTaskHandle { sender: tx }
     }
 
-    async fn run(self, modules: Modules) {
+    async fn run(self) {
+        log::debug!("Spawn room with modules: {:?}", self.modules.keys());
         let room_id = self.info.room_id;
 
-        if let Err(e) = self.inner_run(modules).await {
+        if let Err(e) = self.inner_run().await {
             log::error!("RoomTask exited with error {e}");
         }
 
         log::debug!("Closing room {room_id}");
     }
 
-    async fn inner_run(mut self, mut modules: Modules) -> anyhow::Result<()> {
+    async fn inner_run(mut self) -> anyhow::Result<()> {
         loop {
             tokio::select! {
                 msg = self.api_rx.recv() => {
@@ -183,24 +186,32 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         return Ok(());
                     };
 
-                    self.handle_api_request(&mut modules, msg).await?;
+                    self.handle_api_request(msg).await?;
                 },
                 msg = self.message_router.recv() => {
                     log::trace!("received {msg:?}");
-                    let _ = self.handle_message(&mut modules, msg).await;
+                    let _ = self.handle_message(msg).await;
                 }
                 Some(msg) = self.loopback_futures.next() => {
                     let Some(msg) = msg else {
                         log::error!("Signaling module channel was dropped");
                         continue;
                     };
-                    let Some(module) = modules.get_mut(&msg.namespace) else {
+                    let Some(module) = self.modules.get_mut(&msg.namespace) else {
                         log::error!("Received loopback event for unknown module {}", msg.namespace);
                         continue;
                     };
-                    let mut ctx = self.context(msg.participant_id, msg.connection_id);
+                    let mut ctx = DynModuleContext::new(
+                        self.info.room_id,
+                        msg.participant_id,
+                        msg.connection_id,
+                        &mut self.info,
+                        &mut self.message_router,
+                        &mut self.participants,
+                        &self.loopback_futures,
+                    );
                     if let Err(err) = module.on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value)).await {
-                        self.handle_fatal_module_error(&mut modules, msg.namespace, err).await;
+                        self.handle_fatal_module_error(msg.namespace, err).await;
                     }
                 },
                 () = self.idle_timeout.has_timed_out() => {
@@ -219,11 +230,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(skip_all, parent = &msg.span, fields(opentalk.room_id = %self.info.room_id))]
-    async fn handle_api_request(
-        &mut self,
-        modules: &mut Modules,
-        msg: TaskMessage<Socket>,
-    ) -> anyhow::Result<()> {
+    async fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> anyhow::Result<()> {
         let api_response = match msg.request {
             Request::RefreshIdleTimeout => {
                 self.refresh_idle_timeout();
@@ -237,7 +244,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 socket,
                 client_parameters,
             } => {
-                self.ws_join(modules, socket, client_parameters).await;
+                self.ws_join(socket, client_parameters).await;
                 Ok(())
             }
         };
@@ -259,21 +266,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(level = "info", skip_all)]
-    async fn ws_join(
-        &mut self,
-        modules: &mut Modules,
-        socket: Socket,
-        client_parameters: ClientParameters,
-    ) {
-        self.connect_participant(socket, modules, client_parameters)
-            .await;
+    async fn ws_join(&mut self, socket: Socket, client_parameters: ClientParameters) {
+        self.connect_participant(socket, client_parameters).await;
         self.idle_timeout.stop();
     }
 
     #[tracing::instrument(level = "info", skip_all, parent = &span, fields(participant_id = %participant_id))]
     async fn handle_message(
         &mut self,
-        modules: &mut Modules,
         MessageEnvelope {
             participant_id,
             connection_id,
@@ -284,21 +284,28 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         match message {
             SignalingMessage::Closed(close_reason) => {
                 log::trace!("Websocket closed for participant {participant_id}: {close_reason:?}");
-                self.disconnect_participant(modules, participant_id, connection_id, close_reason)
+                self.disconnect_participant(participant_id, connection_id, close_reason)
                     .await;
             }
 
             SignalingMessage::Command(signaling_command) => {
                 log::trace!("received signaling command: {signaling_command:?}");
 
-                let Some(module) = modules.get_mut(&signaling_command.namespace) else {
+                let Some(module) = self.modules.get_mut(&signaling_command.namespace) else {
                     self.handle_unknown_namespace(connection_id, signaling_command.namespace)
                         .await;
                     return Ok(());
                 };
 
-                let mut ctx = self.context(participant_id, connection_id);
-
+                let mut ctx = DynModuleContext::new(
+                    self.info.room_id,
+                    participant_id,
+                    connection_id,
+                    &mut self.info,
+                    &mut self.message_router,
+                    &mut self.participants,
+                    &self.loopback_futures,
+                );
                 if let Err(err) = module
                     .on_event(
                         &mut ctx,
@@ -310,7 +317,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     )
                     .await
                 {
-                    self.handle_fatal_module_error(modules, signaling_command.namespace, err)
+                    self.handle_fatal_module_error(signaling_command.namespace, err)
                         .await;
                 }
             }
@@ -319,12 +326,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         Ok(())
     }
 
-    async fn connect_participant(
-        &mut self,
-        socket: Socket,
-        modules: &mut Modules,
-        client_parameters: ClientParameters,
-    ) {
+    async fn connect_participant(&mut self, socket: Socket, client_parameters: ClientParameters) {
         let device_id = self.derive_device_id(&client_parameters.device_secret);
         let role = client_parameters.role;
 
@@ -363,18 +365,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         if let Err(err) = self
-            .participant_joined(participant_id, connection_id, modules, client_parameters)
+            .participant_joined(participant_id, connection_id, client_parameters)
             .await
         {
             log::error!("failed to add participant to conference {err:#?}");
 
-            self.disconnect_participant(
-                modules,
-                participant_id,
-                connection_id,
-                CloseReason::InternalError,
-            )
-            .await;
+            self.disconnect_participant(participant_id, connection_id, CloseReason::InternalError)
+                .await;
         }
 
         self.participants
@@ -387,7 +384,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     async fn disconnect_participant(
         &mut self,
-        modules: &mut Modules,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         reason: CloseReason,
@@ -398,7 +394,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
         state.connections.remove(&connection_id);
 
-        self.participant_disconnected(participant_id, connection_id, reason.into(), modules)
+        self.participant_disconnected(participant_id, connection_id, reason.into())
             .await;
 
         // start idle timeout when no one is connected

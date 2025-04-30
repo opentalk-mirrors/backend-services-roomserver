@@ -32,7 +32,7 @@ pub(crate) mod module_initializer;
 
 /// Abstracted handle to a [`SignalingModule`]
 #[async_trait::async_trait]
-pub trait ModuleHandle: Send {
+pub trait ModuleHandle: Send + Sync {
     /// Invokes an event in the associated [`SignalingModule`]
     async fn on_event(
         &mut self,
