@@ -76,6 +76,7 @@ mod tests {
             kind: client_parameters::ClientKind::Guest {
                 display_name: DisplayName::from_str_lossy("tester"),
             },
+            role: client_parameters::Role::Moderator,
         };
 
         handle

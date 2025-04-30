@@ -4,7 +4,7 @@
 use anyhow::Context;
 use opentalk_roomserver_client::Client;
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, ClientParameters},
+    client_parameters::{ClientKind, ClientParameters, Role},
     room_parameters::RoomParameters,
 };
 use opentalk_types_common::{
@@ -45,6 +45,7 @@ async fn main() -> anyhow::Result<()> {
                 kind: ClientKind::Guest {
                     display_name: "Max Muster".parse().unwrap(),
                 },
+                role: Role::User,
             },
             None,
         )

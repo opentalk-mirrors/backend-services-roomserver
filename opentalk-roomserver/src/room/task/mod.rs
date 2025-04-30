@@ -326,6 +326,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         client_parameters: ClientParameters,
     ) {
         let device_id = self.derive_device_id(&client_parameters.device_secret);
+        let role = client_parameters.role;
 
         let (participant_id, display_name, kind) = match &client_parameters.kind {
             ClientKind::Registered { profile } => (
@@ -333,7 +334,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 profile.user_info.display_name.clone(),
                 ParticipantKind::User,
             ),
-
             ClientKind::Guest { display_name } => {
                 let participant_id = ParticipantId::from(Uuid::from(device_id));
 
@@ -380,7 +380,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.participants
             .all
             .entry(participant_id)
-            .or_insert_with(|| ParticipantState::new(display_name, kind))
+            .or_insert_with(|| ParticipantState::new(display_name, kind, role))
             .connections
             .insert(connection_id, device_id);
     }

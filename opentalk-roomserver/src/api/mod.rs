@@ -301,7 +301,7 @@ impl RoomBackend for Context {
 mod test {
     use std::sync::Arc;
 
-    use opentalk_roomserver_types::client_parameters::ClientKind;
+    use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
     use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{
         tariffs::TariffResource,
@@ -330,6 +330,7 @@ mod test {
             kind: ClientKind::Guest {
                 display_name: DisplayName::from_str_lossy("tester"),
             },
+            role: Role::User,
         }
     }
 
@@ -349,6 +350,7 @@ mod test {
                     },
                 },
             },
+            role: Role::Moderator,
         }
     }
 
