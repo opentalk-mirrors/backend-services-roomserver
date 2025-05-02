@@ -4304,6 +4304,7 @@ dependencies = [
  "futures",
  "log",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-module-chat",
  "opentalk-roomserver-module-ping",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -4393,6 +4394,19 @@ dependencies = [
  "tokio",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "opentalk-roomserver-module-chat"
+version = "0.0.0-dev"
+dependencies = [
+ "log",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "opentalk-types-signaling-chat",
+ "serde",
 ]
 
 [[package]]
@@ -4540,6 +4554,19 @@ dependencies = [
  "serde",
  "serde_json",
  "strum 0.27.1",
+ "uuid",
+]
+
+[[package]]
+name = "opentalk-types-signaling-chat"
+version = "0.35.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b37986d20982e41bd08b37dfe186b5b92fd1e8abc32fecc26312360fe5147764"
+dependencies = [
+ "derive_more",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
  "uuid",
 ]
 

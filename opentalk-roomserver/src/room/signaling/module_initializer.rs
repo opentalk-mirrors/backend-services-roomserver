@@ -3,6 +3,7 @@
 
 use std::{collections::HashMap, marker::PhantomData};
 
+use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_module_ping::ping::PingModule;
 use opentalk_roomserver_signaling::signaling_module::{SignalingModule, SignalingModuleInitData};
 use opentalk_types_common::modules::ModuleId;
@@ -22,6 +23,7 @@ impl ModuleRegistry {
         let mut registry = Self { modules };
 
         registry.add_module::<PingModule>();
+        registry.add_module::<ChatModule>();
 
         registry
     }
