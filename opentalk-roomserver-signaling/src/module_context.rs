@@ -6,6 +6,7 @@ use std::{cell::RefCell, future::Future, marker::PhantomData};
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_types::{
+    client_parameters::Role,
     connection_id::ConnectionId,
     error::{self, SignalingError},
 };
@@ -15,7 +16,7 @@ use serde_json::value::RawValue;
 
 use crate::{
     loopback::{LoopbackFuture, LoopbackMessage},
-    participant_state::Participants,
+    participant_state::{ParticipantState, Participants},
     room_info::RoomInfo,
     signaling_event::SignalingEvent,
     signaling_module::{FatalError, SharedRawJson, SignalingModule},
@@ -238,5 +239,19 @@ where
         });
 
         self.loopback_futures.push(future);
+    }
+
+    pub fn participant_state(&self, participant_id: ParticipantId) -> Option<&ParticipantState> {
+        self.participants.all.get(&participant_id)
+    }
+
+    pub fn participant_role(&self, participant_id: ParticipantId) -> Option<Role> {
+        self.participant_state(participant_id).map(|p| p.role)
+    }
+
+    pub fn is_moderator(&self, participant_id: ParticipantId) -> bool {
+        self.participant_role(participant_id)
+            .map(|r| r == Role::Moderator)
+            .unwrap_or(false)
     }
 }
