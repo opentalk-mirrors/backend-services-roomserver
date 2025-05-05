@@ -39,6 +39,9 @@ pub struct SignalingView {
     /// to the front of the history.
     historic_message_state: Option<HistorySelectState>,
 
+    /// Force focus to the message input.
+    force_focus: bool,
+
     show_history_panel: bool,
 }
 
@@ -49,6 +52,7 @@ impl SignalingView {
             edit_message: String::new(),
             historic_message_state: None,
             show_history_panel: true,
+            force_focus: true,
         }
     }
     pub fn menu_ui(
@@ -166,6 +170,10 @@ impl SignalingView {
             let button_res = ui.add_enabled(signaling_state.is_connected(), button);
             let res = json_editor(ui, &mut self.edit_message);
 
+            if self.force_focus {
+                ui.memory_mut(|memory| memory.request_focus(res.id));
+                self.force_focus = false;
+            }
             // If we edit the message that was shown, we remove the "select history message" context
             // The message that was edited before searching the history will be lost.
             if self.historic_message_state.is_some() && res.changed() {
