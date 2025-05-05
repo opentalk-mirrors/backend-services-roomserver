@@ -4,10 +4,9 @@
 use std::{pin::Pin, time::Duration};
 
 use futures::{stream::Peekable, FutureExt, SinkExt as _, StreamExt as _};
+use opentalk_roomserver_signaling::signaling_module::SharedRawJson;
 use opentalk_roomserver_types::{
-    connection_id::ConnectionId,
-    error::SignalingError,
-    signaling::{SignalingCommand, SignalingEvent},
+    connection_id::ConnectionId, error::SignalingError, signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
     CloseFrame, Message, SignalingSink, SignalingSocket, SignalingStream,
@@ -41,7 +40,7 @@ const EVENT_BUFFER_SIZE: usize = 32;
 #[derive(Debug, Clone)]
 pub(crate) struct ConnectionHandle {
     /// Event channel to the [`ParticipantConnectionTask`].
-    connection_task_event_sender: mpsc::Sender<SignalingEvent>,
+    connection_task_event_sender: mpsc::Sender<SharedRawJson>,
 }
 
 impl ConnectionHandle {
@@ -54,7 +53,7 @@ impl ConnectionHandle {
     ///
     /// Sending an event will fail after 1 second. If the participant is
     /// congested, the event is dropped.
-    pub async fn send_event(&self, event: SignalingEvent) -> anyhow::Result<()> {
+    pub async fn send_event(&self, event: SharedRawJson) -> anyhow::Result<()> {
         self.connection_task_event_sender
             .send_timeout(event, SEND_TIMEOUT)
             .await?;
@@ -135,7 +134,7 @@ fn spawn<Socket: SignalingSocket + 'static>(
     connection_id: ConnectionId,
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
     socket: Socket,
-    room_task_event_receiver: mpsc::Receiver<SignalingEvent>,
+    room_task_event_receiver: mpsc::Receiver<SharedRawJson>,
     app_state: watch::Receiver<ApplicationState>,
 ) -> JoinHandle<()> {
     let (sink, stream) = socket.split();
@@ -169,7 +168,7 @@ pub(super) struct ParticipantConnectionTask<Stream: SignalingStream, Sink: Signa
     stream: Peekable<Stream>,
     sink: Sink,
     /// The receiver to communicate events from the room task
-    room_task_event_receiver: mpsc::Receiver<SignalingEvent>,
+    room_task_event_receiver: mpsc::Receiver<SharedRawJson>,
     /// The application state watch
     app_state: watch::Receiver<ApplicationState>,
 }
@@ -314,8 +313,9 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         Ok(())
     }
 
-    /// Parse the [`SignalingEvent`] and send it over the websocket
-    async fn send_event_to_websocket(&mut self, event: &SignalingEvent) -> anyhow::Result<()> {
+    /// Parse the [`SignalingEvent`](opentalk_roomserver_signaling::signaling_event::SignalingEvent)
+    /// and send it over the websocket
+    async fn send_event_to_websocket(&mut self, event: &SharedRawJson) -> anyhow::Result<()> {
         let message = match serde_json::to_string(event) {
             Ok(message) => message,
             Err(e) => {

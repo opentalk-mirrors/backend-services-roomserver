@@ -8,7 +8,6 @@ use futures::stream::FuturesUnordered;
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     error::{self, SignalingError},
-    signaling::SignalingEvent,
 };
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
@@ -18,7 +17,8 @@ use crate::{
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::Participants,
     room_info::RoomInfo,
-    signaling_module::{FatalError, SignalingModule},
+    signaling_event::SignalingEvent,
+    signaling_module::{FatalError, SharedRawJson, SignalingModule},
 };
 
 /// Contains the room state and provides an interface to send websocket messages.
@@ -30,9 +30,9 @@ where
     pub participant_id: ParticipantId,
     pub connection_id: ConnectionId,
     room_info: &'ctx mut RoomInfo,
-    // TODO use `SharedRawJson` and implement functions to send messages to all/subset of participants without re-allocation
+    // TODO implement functions to send messages to all/subset of participants without re-allocation
     /// The websocket messages that are sent out after the module finished its event handling
-    messages: RefCell<Vec<(ConnectionId, SignalingEvent)>>,
+    messages: RefCell<Vec<(ConnectionId, SharedRawJson)>>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
@@ -64,7 +64,7 @@ where
         }
     }
 
-    pub fn into_messages(self) -> Vec<(ConnectionId, SignalingEvent)> {
+    pub fn into_messages(self) -> Vec<(ConnectionId, SharedRawJson)> {
         self.messages.into_inner()
     }
 
@@ -84,12 +84,14 @@ where
         participant_id: ParticipantId,
         msg: M::Outgoing,
     ) -> Result<(), FatalError> {
-        let message = SignalingEvent {
+        let event = SignalingEvent {
             namespace: M::NAMESPACE,
-            content: serde_json::value::to_raw_value(&msg)
-                .context("Failed to serialize internal websocket payload type")
-                .map_err(FatalError)?,
+            content: msg,
         };
+        let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
+            .context("Failed to serialize internal websocket payload type")
+            .map_err(FatalError)?
+            .into();
 
         let Some(state) = self.participants.get_connected(&participant_id) else {
             log::error!(
@@ -101,7 +103,7 @@ where
         let mut messages = self.messages.borrow_mut();
 
         for (connection_id, ..) in &state.connections {
-            messages.push((*connection_id, message.clone()));
+            messages.push((*connection_id, shared_json.clone()));
         }
 
         Ok(())
@@ -136,32 +138,35 @@ where
                 "Module '{}' attempted to replicate a command to unknown participant {sender}",
                 M::NAMESPACE
             );
-            return;
+            return Ok(());
         };
         let mut messages = self.messages.borrow_mut();
 
         for connection_id in state.connections.keys().copied() {
-            if connection_id != sending_connection {
-                messages.push((connection_id, message.clone()));
+            if connection_id != source_connection {
+                messages.push((connection_id, shared_json.clone()));
             }
         }
+
+        Ok(())
     }
 
     /// Send a websocket error message of type [`SignalingError`] to the associated participant
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
     pub fn send_ws_error(&self, error: SignalingError) {
-        let content = match serde_json::value::to_raw_value(&error) {
-            Ok(value) => value,
+        let event = SignalingEvent {
+            namespace: error::NAMESPACE,
+            content: error,
+        };
+        let shared_json: SharedRawJson = match serde_json::value::to_raw_value(&event) {
+            Ok(value) => value.into(),
             Err(err) => {
                 log::error!("Failed to serialize SignalingError type: {err}");
-                RawValue::from_string(r#"{"error": "internal"}"#.into()).unwrap()
+                RawValue::from_string(r#"{"error": "internal"}"#.into())
+                    .unwrap()
+                    .into()
             }
-        };
-
-        let message = SignalingEvent {
-            namespace: error::NAMESPACE,
-            content,
         };
 
         let Some(state) = self.participants.get_connected(&self.participant_id) else {
@@ -176,7 +181,7 @@ where
         let mut messages = self.messages.borrow_mut();
 
         for (connection_id, ..) in &state.connections {
-            messages.push((*connection_id, message.clone()));
+            messages.push((*connection_id, shared_json.clone()));
         }
     }
 

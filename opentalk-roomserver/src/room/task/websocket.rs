@@ -2,11 +2,12 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use anyhow::Context;
-use opentalk_roomserver_signaling::signaling_module::FatalError;
+use opentalk_roomserver_signaling::{
+    signaling_event::SignalingEvent, signaling_module::FatalError,
+};
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     error::{self, SignalingError},
-    signaling::SignalingEvent,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::modules::ModuleId;
@@ -27,12 +28,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         namespace: ModuleId,
         content: impl Serialize,
     ) -> Result<(), FatalError> {
-        let content = serde_json::value::to_raw_value(&content)
-            .with_context(|| format!("Failed to serialize message for namespace '{namespace}'"))
-            .map_err(FatalError)?;
+        let event = SignalingEvent { namespace, content };
+        let shared_json = serde_json::value::to_raw_value(&event)
+            .with_context(|| {
+                format!(
+                    "Failed to serialize message for namespace '{}'",
+                    event.namespace
+                )
+            })
+            .map_err(FatalError)?
+            .into();
 
         self.message_router
-            .send_event(connections, SignalingEvent { namespace, content })
+            .send_event(connections, shared_json)
             .await;
 
         Ok(())
@@ -46,13 +54,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         namespace: ModuleId,
         content: impl Serialize,
     ) -> Result<(), FatalError> {
-        let content = serde_json::value::to_raw_value(&content)
-            .with_context(|| format!("Failed to serialize message for namespace '{namespace}'"))
-            .map_err(FatalError)?;
+        let event = SignalingEvent { namespace, content };
+        let shared_json = serde_json::value::to_raw_value(&event)
+            .with_context(|| {
+                format!(
+                    "Failed to serialize message for namespace '{}'",
+                    event.namespace
+                )
+            })
+            .map_err(FatalError)?
+            .into();
 
-        self.message_router
-            .broadcast_event(SignalingEvent { namespace, content })
-            .await;
+        self.message_router.broadcast_event(shared_json).await;
         Ok(())
     }
 
@@ -60,22 +73,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
     pub(crate) async fn send_error(&self, connection_id: ConnectionId, error: SignalingError) {
-        let content = match serde_json::value::to_raw_value(&error) {
-            Ok(value) => value,
+        let event = SignalingEvent {
+            namespace: error::NAMESPACE,
+            content: error,
+        };
+        let shared_json = match serde_json::value::to_raw_value(&event) {
+            Ok(value) => value.into(),
             Err(err) => {
                 log::error!("Failed to serialize SignalingError type: {err}");
-                RawValue::from_string(r#"{"error": "internal"}"#.into()).unwrap()
+                RawValue::from_string(r#"{"error": "internal"}"#.into())
+                    .unwrap()
+                    .into()
             }
         };
 
         self.message_router
-            .send_event(
-                [connection_id],
-                SignalingEvent {
-                    namespace: error::NAMESPACE,
-                    content,
-                },
-            )
+            .send_event([connection_id], shared_json)
             .await;
     }
 
@@ -83,19 +96,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
     pub(crate) async fn broadcast_error(&self, error: SignalingError) {
-        let content = match serde_json::value::to_raw_value(&error) {
-            Ok(value) => value,
+        let event = SignalingEvent {
+            namespace: error::NAMESPACE,
+            content: error,
+        };
+        let shared_json = match serde_json::value::to_raw_value(&event) {
+            Ok(value) => value.into(),
             Err(err) => {
                 log::error!("Failed to serialize SignalingError type: {err}");
-                RawValue::from_string(r#"{"error": "internal"}"#.into()).unwrap()
+                RawValue::from_string(r#"{"error": "internal"}"#.into())
+                    .unwrap()
+                    .into()
             }
         };
 
-        self.message_router
-            .broadcast_event(SignalingEvent {
-                namespace: error::NAMESPACE,
-                content,
-            })
-            .await;
+        self.message_router.broadcast_event(shared_json).await;
     }
 }
