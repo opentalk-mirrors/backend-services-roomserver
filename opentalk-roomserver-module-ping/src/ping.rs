@@ -77,7 +77,7 @@ impl SignalingModule for PingModule {
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match content {
             Command::Ping | Command::ReplicatedPing => {
-                ctx.send_ws_message(participant_id, Event::Pong)?
+                ctx.send_ws_message([participant_id], Event::Pong)?
             }
             Command::BlockingDelayedPing => {
                 ctx.spawn_blocking(move || Self::handle_ping_delayed(participant_id));
@@ -87,9 +87,7 @@ impl SignalingModule for PingModule {
             }
             Command::PingError => Self::ping_error()?,
             Command::Broadcast => {
-                for (participant_id, _) in ctx.participants.connected() {
-                    ctx.send_ws_message(*participant_id, Event::Pong)?
-                }
+                ctx.send_ws_message(ctx.participants.connected().map(|(id, _)| *id), Event::Pong)?
             }
             Command::Die => {
                 return Err(
@@ -105,7 +103,7 @@ impl SignalingModule for PingModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        ctx.send_ws_message(event.0, Event::DelayedPong).unwrap();
+        ctx.send_ws_message([event.0], Event::DelayedPong).unwrap();
         Ok(())
     }
 }

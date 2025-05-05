@@ -233,7 +233,7 @@ where
             SignalingModuleError::Module(err) => {
                 let msg = err.into();
 
-                ctx.send_ws_message(ctx.participant_id, msg)?;
+                ctx.send_ws_message([ctx.participant_id], msg)?;
             }
         }
         Ok(())
@@ -265,7 +265,7 @@ where
                 SignalingModuleError::Module(err) => {
                     let msg = err.into();
 
-                    module_context.send_ws_message(module_context.participant_id, msg)?;
+                    module_context.send_ws_message([module_context.participant_id], msg)?;
                 }
             }
         }

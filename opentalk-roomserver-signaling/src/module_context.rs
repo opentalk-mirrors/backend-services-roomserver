@@ -30,7 +30,6 @@ where
     pub participant_id: ParticipantId,
     pub connection_id: ConnectionId,
     room_info: &'ctx mut RoomInfo,
-    // TODO implement functions to send messages to all/subset of participants without re-allocation
     /// The websocket messages that are sent out after the module finished its event handling
     messages: RefCell<Vec<(ConnectionId, SharedRawJson)>>,
     /// Contains all participants including disconnected ones
@@ -72,7 +71,7 @@ where
         self.room_info
     }
 
-    /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given `participant_id`
+    /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given `participant_ids`
     ///
     /// The message is always scoped to the [`SignalingModule::NAMESPACE`]
     ///
@@ -81,7 +80,7 @@ where
     /// Returns `Err` when the [`SignalingModule::Outgoing`] type failed to be serialized.
     pub fn send_ws_message(
         &self,
-        participant_id: ParticipantId,
+        participant_ids: impl IntoIterator<Item = ParticipantId>,
         msg: M::Outgoing,
     ) -> Result<(), FatalError> {
         let event = SignalingEvent {
@@ -93,17 +92,19 @@ where
             .map_err(FatalError)?
             .into();
 
-        let Some(state) = self.participants.get_connected(&participant_id) else {
-            log::error!(
-                "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
-                M::NAMESPACE
-            );
-            return Ok(());
-        };
-        let mut messages = self.messages.borrow_mut();
+        for participant_id in participant_ids {
+            let Some(state) = self.participants.get_connected(&participant_id) else {
+                log::error!(
+                    "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
+                    M::NAMESPACE
+                );
+                return Ok(());
+            };
+            let mut messages = self.messages.borrow_mut();
 
-        for (connection_id, ..) in &state.connections {
-            messages.push((*connection_id, shared_json.clone()));
+            for (connection_id, ..) in &state.connections {
+                messages.push((*connection_id, shared_json.clone()));
+            }
         }
 
         Ok(())
