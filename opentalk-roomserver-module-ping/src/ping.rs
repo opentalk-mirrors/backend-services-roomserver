@@ -7,7 +7,7 @@ use std::{thread, time::Duration};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        FatalError, JoinInfo, ModuleError, SignalingModule, SignalingModuleError,
+        CreateReplica, FatalError, JoinInfo, ModuleError, SignalingModule, SignalingModuleError,
         SignalingModuleInitData,
     },
 };
@@ -76,7 +76,9 @@ impl SignalingModule for PingModule {
         content: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match content {
-            Command::Ping => ctx.send_ws_message(participant_id, Event::Pong)?,
+            Command::Ping | Command::ReplicatedPing => {
+                ctx.send_ws_message(participant_id, Event::Pong)?
+            }
             Command::BlockingDelayedPing => {
                 ctx.spawn_blocking(move || Self::handle_ping_delayed(participant_id));
             }
@@ -139,6 +141,17 @@ pub enum Command {
     Broadcast,
     /// Request the ping module to die by returning a [`FatalError`]
     Die,
+    /// A ping where the command gets replicated
+    ReplicatedPing,
+}
+
+impl CreateReplica<Event> for Command {
+    fn replicate(&self) -> Option<Event> {
+        match self {
+            Command::ReplicatedPing => Some(Event::Replication(Replication::ReplicatedPing)),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -147,6 +160,13 @@ pub enum Event {
     Pong,
     DelayedPong,
     Error(PingError),
+    Replication(Replication),
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(tag = "replicated_command", rename_all = "snake_case")]
+pub enum Replication {
+    ReplicatedPing,
 }
 
 impl From<PingError> for Event {

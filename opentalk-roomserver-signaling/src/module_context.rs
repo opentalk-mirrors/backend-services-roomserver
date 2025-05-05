@@ -107,6 +107,46 @@ where
         Ok(())
     }
 
+    /// Send a websocket command received from one `source_connection` to all
+    /// other connections of the same participant.
+    ///
+    /// The message is always scoped to the [`SignalingModule::NAMESPACE`]
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FatalError`] when the [`SignalingEvent`] type failed to be serialized.
+    pub fn send_replica(
+        &self,
+        sender: ParticipantId,
+        source_connection: ConnectionId,
+        replication_event: M::Outgoing,
+    ) -> Result<(), FatalError> {
+        let event = SignalingEvent {
+            namespace: M::NAMESPACE,
+            content: replication_event,
+        };
+
+        let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
+            .context("Failed to serialize internal websocket payload type")
+            .map_err(FatalError)?
+            .into();
+
+        let Some(state) = self.participants.get_connected(&sender) else {
+            log::error!(
+                "Module '{}' attempted to replicate a command to unknown participant {sender}",
+                M::NAMESPACE
+            );
+            return;
+        };
+        let mut messages = self.messages.borrow_mut();
+
+        for connection_id in state.connections.keys().copied() {
+            if connection_id != sending_connection {
+                messages.push((connection_id, message.clone()));
+            }
+        }
+    }
+
     /// Send a websocket error message of type [`SignalingError`] to the associated participant
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]

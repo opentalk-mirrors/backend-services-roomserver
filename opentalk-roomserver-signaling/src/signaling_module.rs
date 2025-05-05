@@ -30,7 +30,7 @@ pub trait SignalingModule: Send + Sync + Sized {
     const NAMESPACE: ModuleId;
 
     /// The incoming websocket payload which is received as in [`SignalingModule::on_websocket_message`]
-    type Incoming: for<'de> Deserialize<'de> + Send;
+    type Incoming: for<'de> Deserialize<'de> + Send + CreateReplica<Self::Outgoing>;
 
     /// The outgoing websocket payload that is sent to the clients
     type Outgoing: Serialize + PartialEq + Debug + From<Self::Error> + Send;
@@ -98,6 +98,10 @@ pub trait SignalingModule: Send + Sync + Sized {
     fn destroy(self) -> impl Future<Output = ()> + Send {
         async {}
     }
+}
+
+pub trait CreateReplica<T> {
+    fn replicate(&self) -> Option<T>;
 }
 
 pub struct JoinInfo<M: SignalingModule> {
