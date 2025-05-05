@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use egui::RichText;
+use egui::{style::ScrollAnimation, Response, RichText};
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver, UnboundedSender};
 
+use super::shortcuts::{PREVIOUS_SHORTCUT, SUCCESSOR_SHORTCUT, TOGGLE_HISTORY_PANEL_SHORTCUT};
 use crate::{
     app::{
         error::RunnerGoneError,
@@ -13,14 +14,32 @@ use crate::{
         TransitionToView,
     },
     client::{RunnerCommand, RunnerEvent, SignalingState},
-    settings::DuiSettings,
+    settings::{DuiSettings, HistoryEntry, MessageHistory},
 };
+
+#[derive(Debug)]
+pub struct HistorySelectState {
+    /// The content of the message edit field before entering history-select-state
+    unsent_message: String,
+    history_index: usize,
+}
 
 #[derive(Debug)]
 pub struct SignalingView {
     messages: Vec<EventWidget>,
 
     edit_message: String,
+
+    /// Indicates if we are in history-select-state.
+    ///
+    /// While in this state, we search previously sent messages. This state is automatically exited
+    /// when the currently displayed message is edited or when a message is send.
+    ///
+    /// In case that a message is send while in history-select-state, the selected message is moved
+    /// to the front of the history.
+    historic_message_state: Option<HistorySelectState>,
+
+    show_history_panel: bool,
 }
 
 impl SignalingView {
@@ -28,6 +47,8 @@ impl SignalingView {
         Self {
             messages: Vec::new(),
             edit_message: String::new(),
+            historic_message_state: None,
+            show_history_panel: true,
         }
     }
     pub fn menu_ui(
@@ -36,12 +57,30 @@ impl SignalingView {
         ui: &mut egui::Ui,
         command_tx: &UnboundedSender<RunnerCommand>,
         signaling_state: SignalingState,
+        settings: &DuiSettings,
     ) -> Result<Option<TransitionToView>, RunnerGoneError> {
-        let button =
-            egui::Button::new("Clear Messages").shortcut_text(ctx.format_shortcut(&CLEAR_SHORTCUT));
-        if ui.add(button).clicked() {
-            self.clear_messages(ctx);
-        }
+        ui.menu_button("Message", |ui| {
+            let btn_clear =
+                egui::Button::new("Clear").shortcut_text(ctx.format_shortcut(&CLEAR_SHORTCUT));
+            if ui.add(btn_clear).clicked() {
+                self.clear_messages(ctx);
+            }
+
+            let btn_previous = egui::Button::new("Previous")
+                .shortcut_text(ctx.format_shortcut(&PREVIOUS_SHORTCUT));
+            if ui.add(btn_previous).clicked() {
+                self.load_previous_message(&settings.history);
+            }
+
+            let btn_successor =
+                egui::Button::new("Successor").shortcut_text(ctx.format_shortcut(&CLEAR_SHORTCUT));
+            if ui
+                .add_enabled(self.historic_message_state.is_some(), btn_successor)
+                .clicked()
+            {
+                self.load_successor_message(&settings.history);
+            }
+        });
 
         match signaling_state {
             SignalingState::Connected => {
@@ -65,16 +104,31 @@ impl SignalingView {
             }
         }
 
+        let show_history_txt = if self.show_history_panel {
+            "Hide History Panel"
+        } else {
+            "Show History Panel"
+        };
+        let btn_show_history = egui::Button::new(show_history_txt)
+            .shortcut_text(ctx.format_shortcut(&TOGGLE_HISTORY_PANEL_SHORTCUT));
+        if ui.add(btn_show_history).clicked()
+            || ctx.input_mut(|i| i.consume_shortcut(&TOGGLE_HISTORY_PANEL_SHORTCUT))
+        {
+            self.show_history_panel = !self.show_history_panel;
+        }
+
         if ctx.input_mut(|i| i.consume_shortcut(&CLEAR_SHORTCUT)) {
             self.clear_messages(ctx);
         }
 
-        Ok(None)
-    }
+        if ctx.input_mut(|i| i.consume_shortcut(&PREVIOUS_SHORTCUT)) {
+            self.load_previous_message(&settings.history);
+        }
+        if ctx.input_mut(|i| i.consume_shortcut(&SUCCESSOR_SHORTCUT)) {
+            self.load_successor_message(&settings.history);
+        }
 
-    fn clear_messages(&mut self, ctx: &egui::Context) {
-        self.messages.clear();
-        ctx.request_repaint();
+        Ok(None)
     }
 
     pub fn center_ui(
@@ -96,8 +150,103 @@ impl SignalingView {
                     msg.ui(ui, &settings.event_widget_layout);
                 }
             });
-
         None
+    }
+
+    pub fn bottom_ui(
+        &mut self,
+        ui: &mut egui::Ui,
+        command_tx: &UnboundedSender<RunnerCommand>,
+        signaling_state: SignalingState,
+        history: &mut MessageHistory,
+    ) -> Result<(), RunnerGoneError> {
+        ui.horizontal(|ui| {
+            let button =
+                egui::Button::new("Send").shortcut_text(ui.ctx().format_shortcut(&SEND_SHORTCUT));
+            let button_res = ui.add_enabled(signaling_state.is_connected(), button);
+            let res = json_editor(ui, &mut self.edit_message);
+
+            // If we edit the message that was shown, we remove the "select history message" context
+            // The message that was edited before searching the history will be lost.
+            if self.historic_message_state.is_some() && res.changed() {
+                self.historic_message_state.take();
+            }
+
+            if button_res.clicked() || ui.input_mut(|i| i.consume_shortcut(&SEND_SHORTCUT)) {
+                self.record_sent_message(history);
+                self.send_websocket_message(command_tx)
+            } else {
+                Ok(())
+            }
+        })
+        .inner
+    }
+
+    pub fn left_panel_ui(
+        &mut self,
+        ui: &mut egui::Ui,
+        command_tx: &UnboundedSender<RunnerCommand>,
+        history: &mut MessageHistory,
+    ) -> Result<(), RunnerGoneError> {
+        ui.heading("Message History");
+        let mut delete_entry = None;
+        egui::ScrollArea::vertical()
+            .show(ui, |ui| {
+                for (index, msg) in history.iter().enumerate().rev() {
+                    ui.horizontal_wrapped(|ui| {
+                        if ui.button("send").clicked() {
+                            self.set_historic_state(history, index);
+                            self.send_websocket_message(command_tx)?;
+                        }
+                        if ui.button("X").clicked() {
+                            delete_entry.replace(index);
+                        }
+
+                        let res = self.history_item_ui(index, msg, ui);
+                        if res.clicked() {
+                            self.set_historic_state(history, index);
+                        }
+                        Ok::<(), RunnerGoneError>(())
+                    })
+                    .inner?;
+                    ui.separator();
+                }
+
+                if let Some(index) = delete_entry {
+                    history.remove(index);
+                    if let Some(state) = self.historic_message_state.as_mut() {
+                        if state.history_index > index {
+                            state.history_index -= 1;
+                        }
+                    }
+                }
+                Ok(())
+            })
+            .inner
+    }
+
+    fn history_item_ui(&mut self, index: usize, msg: &HistoryEntry, ui: &mut egui::Ui) -> Response {
+        let text = RichText::new(msg.text());
+
+        let highlight = self
+            .historic_message_state
+            .as_ref()
+            .map(|state| state.history_index == index)
+            .unwrap_or_default();
+        let mut res = ui.label(text);
+        if highlight || res.hovered() {
+            res = res.highlight();
+        }
+        if highlight {
+            res.scroll_to_me_animation(None, ScrollAnimation::duration(0.1));
+        }
+        res
+    }
+
+    fn clear_messages(&mut self, ctx: &egui::Context) {
+        self.messages.clear();
+        self.historic_message_state.take();
+        ctx.request_repaint();
     }
 
     fn receive_runner_events(
@@ -127,25 +276,66 @@ impl SignalingView {
         Ok(())
     }
 
-    pub(crate) fn bottom_ui(
-        &mut self,
-        ui: &mut egui::Ui,
-        command_tx: &UnboundedSender<RunnerCommand>,
-        signaling_state: SignalingState,
-    ) -> Result<(), RunnerGoneError> {
-        ui.horizontal(|ui| {
-            let button =
-                egui::Button::new("Send").shortcut_text(ui.ctx().format_shortcut(&SEND_SHORTCUT));
-            let button_res = ui.add_enabled(signaling_state.is_connected(), button);
-            json_editor(ui, &mut self.edit_message);
+    /// Record the current [Self::edit_message] in history and leave the history-select-state
+    /// if necessary.
+    fn record_sent_message(&mut self, history: &mut MessageHistory) {
+        if let Some(historic) = self.historic_message_state.take() {
+            history.move_front(historic.history_index);
+        } else {
+            history.push(self.edit_message.clone());
+        }
+    }
 
-            if button_res.clicked() || ui.input_mut(|i| i.consume_shortcut(&SEND_SHORTCUT)) {
-                self.send_websocket_message(command_tx)
-            } else {
-                Ok(())
-            }
-        })
-        .inner
+    pub fn show_side_panel(&self) -> bool {
+        self.show_history_panel
+    }
+
+    fn load_previous_message(&mut self, history: &MessageHistory) {
+        let new_previous_index = self
+            .historic_message_state
+            .as_ref()
+            .map(|history_state| history_state.history_index + 1)
+            .unwrap_or(0);
+
+        self.set_historic_state(history, new_previous_index);
+    }
+
+    fn load_successor_message(&mut self, history: &MessageHistory) {
+        // subtract 1 from the history-message-index. If we go below 0 or we
+        // are not in history-select-state, this is none.
+        let successor_index = self
+            .historic_message_state
+            .as_ref()
+            .and_then(|history_state| history_state.history_index.checked_sub(1));
+
+        if let Some(successor_index) = successor_index {
+            self.set_historic_state(history, successor_index);
+        } else {
+            self.restore_edit_state();
+        }
+    }
+
+    fn set_historic_state(&mut self, history: &MessageHistory, history_index: usize) {
+        let Some(new_historic) = history.get(history_index) else {
+            return;
+        };
+
+        let history_state = self
+            .historic_message_state
+            .get_or_insert_with(|| HistorySelectState {
+                unsent_message: self.edit_message.clone(),
+                history_index: 0,
+            });
+
+        history_state.history_index = history_index;
+        self.edit_message = new_historic.text().to_string();
+    }
+
+    // leave history-select-state and restore the message that was edited before entering the state
+    fn restore_edit_state(&mut self) {
+        if let Some(historic_state) = self.historic_message_state.take() {
+            self.edit_message = historic_state.unsent_message;
+        }
     }
 }
 

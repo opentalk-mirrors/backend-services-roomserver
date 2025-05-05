@@ -41,6 +41,9 @@ impl SettingsView {
 
         ui.add_space(SECTION_SPACE_HIGHT);
         self.event_widget_layout(ui, settings);
+
+        ui.add_space(SECTION_SPACE_HIGHT);
+        self.message_history(ui, &mut settings.history);
     }
 
     fn server(&mut self, ui: &mut egui::Ui, settings: &mut DuiSettings, valid_url: bool) {
@@ -106,6 +109,21 @@ impl SettingsView {
                     .fixed_decimals(0),
             )
             .on_hover_text("Drag to set the level of expansion");
+        });
+    }
+
+    fn message_history(&self, ui: &mut egui::Ui, history: &mut crate::settings::MessageHistory) {
+        ui.heading("Message History");
+        ui.horizontal(|ui| {
+            let label = ui.label("Number of stored messages");
+            ui.add(
+                egui::DragValue::new(&mut history.limit)
+                    .speed(1)
+                    .range(1..=10000)
+                    .fixed_decimals(0),
+            )
+            .on_hover_text("Drag to set the level of expansion")
+            .labelled_by(label.id);
         });
     }
 }

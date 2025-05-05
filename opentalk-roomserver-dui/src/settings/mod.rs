@@ -11,6 +11,10 @@ use url::Url;
 
 use crate::app::event_widget::EventWidgetLayout;
 
+mod message_history;
+
+pub use message_history::{HistoryEntry, MessageHistory};
+
 const SETTINGS_KEY: &str = "settings";
 
 /// Settings for the application.
@@ -29,13 +33,19 @@ pub struct DuiSettings {
     /// URL of the room server.
     pub roomserver_url: Url,
 
-    #[serde(default)]
     /// API token for the room server.
+    #[serde(default)]
     pub roomserver_api_token: String,
 
-    #[serde(default)]
     /// Layout of the event widget.
+    #[serde(default)]
     pub event_widget_layout: EventWidgetLayout,
+
+    /// Message history
+    ///
+    /// Every new message that is sent will be recorded here.
+    #[serde(default)]
+    pub history: MessageHistory,
 }
 
 impl Default for DuiSettings {
@@ -46,6 +56,7 @@ impl Default for DuiSettings {
             roomserver_api_token: String::new(),
             event_widget_layout: EventWidgetLayout::new(),
             is_default: true,
+            history: MessageHistory::default(),
         }
     }
 }
