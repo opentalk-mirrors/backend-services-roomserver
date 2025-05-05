@@ -29,11 +29,8 @@ tungstenite.workspace = true
 url.workspace = true
 
 [dev-dependencies]
-env_logger.workspace = true
 log.workspace = true
-opentalk-types-api-v1.workspace = true
 tokio.workspace = true
-tokio-test.workspace = true
 url.workspace = true
 
 [features]
@@ -53,10 +50,3 @@ rustls-tls-manual-roots-no-provider = [
 ]
 rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
 rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
-
-[package.metadata.cargo-machete]
-ignored = [
-  # Used in doctests
-  "opentalk-types-api-v1",
-  "tokio-test",
-]

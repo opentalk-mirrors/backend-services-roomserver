@@ -19,6 +19,8 @@ pub struct SignalingError {
     #[from]
     source: anyhow::Error,
 }
+
+#[derive(Debug)]
 pub struct SignalingConnection {
     socket: WebSocketStream<MaybeTlsStream<TcpStream>>,
 }

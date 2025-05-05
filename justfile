@@ -39,3 +39,6 @@ update-frontend-api:
 update-docs: _check_ci_doc_updater
     #!/usr/bin/env bash
     ./ci/docs-update-generated-parts.sh
+
+run-dui *ARGS:
+    RUST_LOG=opentalk=debug cargo run -p opentalk-roomserver-dui -- {{ ARGS }}

@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+edition = "2021"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-dui"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+clap = { workspace = true, features = ["derive"] }
+eframe = { workspace = true, features = ["persistence"] }
+egui = { workspace = true, features = ["persistence"] }
+egui_extras = { workspace = true, features = ["syntect"] }
+egui_json_tree.workspace = true
+env_logger.workspace = true
+log.workspace = true
+opentalk-roomserver-client.workspace = true
+opentalk-roomserver-common.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-types-api-v1 = { workspace = true }
+opentalk-types-common.workspace = true
+opentalk-version.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
+url.workspace = true
+uuid.workspace = true
+
+[build-dependencies]
+anyhow.workspace = true
+opentalk-version.workspace = true

@@ -39,6 +39,7 @@ pub struct ServerError {
     source: ReqwestClientError,
 }
 
+#[derive(Debug)]
 pub struct Client {
     base_url: Url,
     reqwest_client: ReqwestClient,

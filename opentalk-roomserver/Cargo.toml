@@ -3,6 +3,7 @@
 
 [package]
 authors.workspace = true
+default-run = "opentalk-roomserver"
 description = "OpenTalk RoomServer"
 edition = "2021"
 homepage.workspace = true
