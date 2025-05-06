@@ -150,9 +150,16 @@ impl SignalingView {
         egui::ScrollArea::vertical()
             .stick_to_bottom(true)
             .show(ui, |ui| {
-                for msg in &self.messages {
-                    msg.ui(ui, &settings.event_widget_layout);
-                }
+                egui::Grid::new("Message Grid")
+                    .striped(true)
+                    .num_columns(2)
+                    .show(ui, |ui| {
+                        for msg in &mut self.messages {
+                            msg.control_ui(ui);
+                            msg.content_ui(ui, &settings.event_widget_layout);
+                            ui.end_row();
+                        }
+                    });
             });
         None
     }
@@ -199,6 +206,7 @@ impl SignalingView {
         ui.heading("Message History");
         let mut delete_entry = None;
         egui::ScrollArea::vertical()
+            .stick_to_bottom(true)
             .show(ui, |ui| {
                 for (index, msg) in history.iter().enumerate().rev() {
                     ui.horizontal_wrapped(|ui| {
