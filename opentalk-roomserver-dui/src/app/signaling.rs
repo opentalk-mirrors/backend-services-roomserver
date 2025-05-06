@@ -208,35 +208,39 @@ impl SignalingView {
         egui::ScrollArea::vertical()
             .stick_to_bottom(true)
             .show(ui, |ui| {
-                for (index, msg) in history.iter().enumerate().rev() {
-                    ui.horizontal_wrapped(|ui| {
-                        if ui.button("send").clicked() {
-                            self.set_historic_state(history, index);
-                            self.send_websocket_message(command_tx)?;
-                        }
-                        if ui.button("X").clicked() {
-                            delete_entry.replace(index);
+                egui::Grid::new("Message Grid")
+                    .striped(true)
+                    .num_columns(3)
+                    .min_col_width(15.)
+                    .show(ui, |ui| {
+                        for (index, msg) in history.iter().enumerate().rev() {
+                            if ui.button("send").clicked() {
+                                // we don't want to mess with the "history-select-state" or the message
+                                // input. Just send it!
+                                let message = msg.text().to_string();
+                                command_tx.send(RunnerCommand::Send { message })?;
+                            }
+                            if ui.button("X").clicked() {
+                                delete_entry.replace(index);
+                            }
+                            let res = ui.vertical(|ui| self.history_item_ui(index, msg, ui)).inner;
+                            if res.clicked() {
+                                self.set_historic_state(history, index);
+                            }
+                            ui.end_row();
                         }
 
-                        let res = self.history_item_ui(index, msg, ui);
-                        if res.clicked() {
-                            self.set_historic_state(history, index);
+                        if let Some(index) = delete_entry {
+                            history.remove(index);
+                            if let Some(state) = self.historic_message_state.as_mut() {
+                                if state.history_index > index {
+                                    state.history_index -= 1;
+                                }
+                            }
                         }
-                        Ok::<(), RunnerGoneError>(())
+                        Ok(())
                     })
-                    .inner?;
-                    ui.separator();
-                }
-
-                if let Some(index) = delete_entry {
-                    history.remove(index);
-                    if let Some(state) = self.historic_message_state.as_mut() {
-                        if state.history_index > index {
-                            state.history_index -= 1;
-                        }
-                    }
-                }
-                Ok(())
+                    .inner
             })
             .inner
     }
