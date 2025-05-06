@@ -95,6 +95,7 @@ impl SignalingState {
 
 #[derive(Debug)]
 pub struct RoomServerRunner {
+    egui_ctx: egui::Context,
     client: Client,
 
     connection: Option<SignalingConnection>,
@@ -107,6 +108,7 @@ pub struct RoomServerRunner {
 impl RoomServerRunner {
     pub fn spawn(
         runtime: &Runtime,
+        egui_ctx: egui::Context,
         roomserver_url: Url,
         api_token: String,
     ) -> anyhow::Result<(
@@ -125,6 +127,7 @@ impl RoomServerRunner {
             event_tx,
             command_rx,
             signaling_state_tx,
+            egui_ctx,
         };
 
         runtime.spawn(this.run());
@@ -147,6 +150,8 @@ impl RoomServerRunner {
                     self.process_signaling_message(message).await?;
                 }
             }
+            // request a repaint of the UI each time something happened.
+            self.egui_ctx.request_repaint();
         }
     }
 
