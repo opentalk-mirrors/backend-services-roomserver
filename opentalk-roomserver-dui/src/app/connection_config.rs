@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use egui::{Button, Label, RichText, TextEdit};
-use egui_extras::{Column, StripBuilder, TableBuilder};
+use egui_extras::{Column, Size, StripBuilder, TableBuilder};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
@@ -20,6 +20,8 @@ pub struct ConnectionConfigView {
     new_room_id: String,
     new_room_id_name: String,
 
+    new_room_parameters_name: String,
+    selected_room_parameters_index: usize,
     room_parameters: String,
     client_parameters: String,
 }
@@ -31,6 +33,8 @@ impl ConnectionConfigView {
             new_room_id: RoomId::generate().to_string(),
             new_room_id_name: String::new(),
 
+            new_room_parameters_name: String::new(),
+            selected_room_parameters_index: 0,
             room_parameters: serde_json::to_string_pretty(&settings.default_room_parameters())
                 .expect("RoomParameters are serializable"),
             client_parameters: serde_json::to_string_pretty(&settings.default_client_parameters())
@@ -58,8 +62,8 @@ impl ConnectionConfigView {
                     self.room_id_ui(settings, ui);
                 });
 
-                strip.cell(|ui| {
-                    self.room_parameter_ui(&room_parameters, ui);
+                strip.strip(|builder| {
+                    self.room_parameter_ui(&room_parameters, settings, builder);
                 });
 
                 strip.cell(|ui| {
@@ -206,17 +210,112 @@ impl ConnectionConfigView {
     fn room_parameter_ui(
         &mut self,
         room_parameters: &Result<RoomParameters, serde_json::Error>,
-        ui: &mut egui::Ui,
+        settings: &mut DuiSettings,
+        builder: StripBuilder<'_>,
     ) {
-        ui.horizontal(|ui| {
-            ui.heading("Room Parameters:");
+        builder
+            .size(egui_extras::Size::initial(20.))
+            .size(Size::remainder())
+            .vertical(|mut strip| {
+                strip.cell(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.heading("Room Parameters");
+                        ui.add(
+                            TextEdit::singleline(&mut self.new_room_parameters_name)
+                                .hint_text("Room Name"),
+                        );
 
-            if let Some(e) = room_parameters.as_ref().err() {
-                let err_text = RichText::new(e.to_string()).invalid_input_style();
-                ui.label(err_text);
+                        if ui
+                            .add_enabled(room_parameters.is_ok(), egui::Button::new("save"))
+                            .clicked()
+                        {
+                            if let Ok(parameters) = room_parameters {
+                                settings.room_parameters.push((
+                                    self.new_room_parameters_name.clone(),
+                                    parameters.clone(),
+                                ));
+                                self.new_room_parameters_name.clear();
+                                self.selected_room_parameters_index =
+                                    settings.room_parameters.len() - 1;
+                            }
+                        }
+                        if let Some(e) = room_parameters.as_ref().err() {
+                            let err_text = RichText::new(e.to_string()).invalid_input_style();
+                            ui.label(err_text);
+                        }
+                    });
+                });
+
+                strip.strip(|builder| {
+                    builder
+                        .size(Size::relative(0.2))
+                        .size(Size::remainder())
+                        .horizontal(|mut strip| {
+                            strip.cell(|ui| {
+                                self.room_parameter_table_ui(settings, ui);
+                            });
+
+                            strip.cell(|ui| {
+                                json_editor(ui, &mut self.room_parameters);
+                            });
+                        });
+                });
+            });
+    }
+
+    fn room_parameter_table_ui(&mut self, settings: &mut DuiSettings, ui: &mut egui::Ui) {
+        let available_height = ui.available_height();
+
+        let text_height = egui::TextStyle::Body
+            .resolve(ui.style())
+            .size
+            .max(ui.spacing().interact_size.y);
+
+        let mut delete_index = None;
+        TableBuilder::new(ui)
+            .striped(true)
+            .sense(egui::Sense::click())
+            .max_scroll_height(available_height)
+            .auto_shrink(false)
+            .column(Column::auto())
+            .column(Column::remainder())
+            .body(|body| {
+                body.rows(text_height, settings.room_parameters.len(), |mut row| {
+                    let row_index = row.index();
+                    let Some((name, _)) = settings.room_parameters.get(row_index) else {
+                        return;
+                    };
+
+                    row.set_selected(self.selected_room_parameters_index == row_index);
+
+                    row.col(|ui| {
+                        if ui.button("❌").clicked() {
+                            delete_index = Some(row_index);
+                        }
+                    });
+
+                    row.col(|ui| {
+                        ui.label(name);
+                    });
+
+                    if row.response().clicked() {
+                        self.selected_room_parameters_index = row_index;
+                        if let Some((_, room_parameters)) = settings.room_parameters.get(row_index)
+                        {
+                            self.room_parameters = serde_json::to_string_pretty(&room_parameters)
+                                .expect("RoomParameters are serializable");
+                        }
+                    }
+                });
+            });
+
+        if let Some(index) = delete_index {
+            settings.room_parameters.remove(index);
+            if self.selected_room_parameters_index > index {
+                self.selected_room_parameters_index =
+                    self.selected_room_parameters_index.saturating_sub(1);
             }
-        });
-
-        json_editor(ui, &mut self.room_parameters);
+            ui.ctx().request_repaint();
+        }
     }
 }
