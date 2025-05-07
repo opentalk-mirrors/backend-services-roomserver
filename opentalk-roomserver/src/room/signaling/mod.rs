@@ -20,7 +20,9 @@ use anyhow::Context;
 use dyn_module_context::DynModuleContext;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{FatalError, SharedRawJson, SignalingModule, SignalingModuleError},
+    signaling_module::{
+        CreateReplica, FatalError, SharedRawJson, SignalingModule, SignalingModuleError,
+    },
 };
 use opentalk_roomserver_types::{connection_id::ConnectionId, error::SignalingError};
 use opentalk_types_common::modules::ModuleId;
@@ -167,7 +169,7 @@ where
         connection_id: ConnectionId,
         command: Box<RawValue>,
     ) -> Result<(), SignalingModuleError<M::Error>> {
-        let content = match serde_json::from_str(command.get()) {
+        let content: <M as SignalingModule>::Incoming = match serde_json::from_str(command.get()) {
             Ok(content) => content,
             Err(err) => {
                 log::debug!(
@@ -184,8 +186,13 @@ where
             }
         };
 
+        if let Some(replication_event) = content.replicate() {
+            ctx.send_replica(sender, connection_id, replication_event)?;
+        }
+
         self.module
             .on_websocket_message(ctx, sender, connection_id, content)?;
+
         Ok(())
     }
 
@@ -226,7 +233,7 @@ where
             SignalingModuleError::Module(err) => {
                 let msg = err.into();
 
-                ctx.send_ws_message(ctx.participant_id, msg)?;
+                ctx.send_ws_message([ctx.participant_id], msg)?;
             }
         }
         Ok(())
@@ -258,7 +265,7 @@ where
                 SignalingModuleError::Module(err) => {
                     let msg = err.into();
 
-                    module_context.send_ws_message(module_context.participant_id, msg)?;
+                    module_context.send_ws_message([module_context.participant_id], msg)?;
                 }
             }
         }

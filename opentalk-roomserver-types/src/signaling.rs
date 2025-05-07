@@ -6,17 +6,9 @@ use std::collections::BTreeSet;
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
-use serde_json::value::RawValue;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SignalingEvent {
-    pub namespace: ModuleId,
-    pub content: Box<RawValue>,
-}
 
 pub enum MessageTarget {
     AllParticipantsInRoom,
-    // Group(GroupName),
     Participant(ParticipantId),
     Participants(BTreeSet<ParticipantId>),
 }

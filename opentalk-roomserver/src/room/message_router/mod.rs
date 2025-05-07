@@ -8,7 +8,8 @@ use std::collections::{hash_map::Entry, HashMap};
 use axum::extract::ws::{close_code, CloseFrame};
 use futures::SinkExt;
 pub use message::{CloseReason, MessageEnvelope, SignalingMessage};
-use opentalk_roomserver_types::{connection_id::ConnectionId, signaling::SignalingEvent};
+use opentalk_roomserver_signaling::signaling_module::SharedRawJson;
+use opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, watch, Mutex};
@@ -93,11 +94,12 @@ impl MessageRouter {
         Ok(connection_id)
     }
 
-    /// Send a [`SignalingEvent`] to a participant
+    /// Send a [`SignalingEvent`](opentalk_roomserver_signaling::signaling_event::SignalingEvent)
+    /// to a participant
     pub async fn send_event(
         &self,
         participant_connections: impl IntoIterator<Item = ConnectionId>,
-        event: SignalingEvent,
+        event: SharedRawJson,
     ) {
         let mut connections = self.connections.lock().await;
 
@@ -114,8 +116,9 @@ impl MessageRouter {
         }
     }
 
-    /// Send a [`SignalingEvent`] to **all** participants
-    pub async fn broadcast_event(&self, event: SignalingEvent) {
+    /// Send a [`SignalingEvent`](opentalk_roomserver_signaling::signaling_event::SignalingEvent)
+    /// to **all** participants
+    pub async fn broadcast_event(&self, event: SharedRawJson) {
         let mut connections = self.connections.lock().await;
 
         let mut send_futures = Vec::new();
@@ -162,7 +165,7 @@ impl MessageRouter {
 mod tests {
     use axum::extract::ws::CloseFrame;
     use futures::SinkExt;
-    use opentalk_roomserver_types::signaling::SignalingEvent;
+    use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_web_api::v1::signaling::websocket::Message;
     use opentalk_types_common::modules::module_id;
     use serde_json::{json, value::to_raw_value};
@@ -203,18 +206,16 @@ mod tests {
             } if participant_id == p1.id && connection_id == connection
         ));
 
-        router
-            .send_event(
-                [connection],
-                SignalingEvent {
-                    namespace: module_id!("ping"),
-                    content: to_raw_value(&json!({
-                        "cool": 12,
-                        "thing": true,
-                    }))
-                    .unwrap(),
-                },
-            )
-            .await;
+        let event = SignalingEvent {
+            namespace: module_id!("ping"),
+            content: to_raw_value(&json!({
+                "cool": 12,
+                "thing": true,
+            }))
+            .unwrap(),
+        };
+        let shared_json = serde_json::value::to_raw_value(&event).unwrap().into();
+
+        router.send_event([connection], shared_json).await;
     }
 }
