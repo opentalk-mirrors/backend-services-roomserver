@@ -60,6 +60,7 @@ impl RoomServerApp {
 
         let (event_rx, command_tx, signaling_state_rx) = RoomServerRunner::spawn(
             &runtime,
+            cc.egui_ctx.clone(),
             settings.roomserver_url.clone(),
             settings.roomserver_api_token.clone(),
         )?;
