@@ -6,12 +6,18 @@ use std::{net::IpAddr, path::Path};
 use eframe::CreationContext;
 use egui::ThemePreference;
 use opentalk_roomserver_common::settings::Settings;
+use opentalk_roomserver_types::{
+    client_parameters::ClientParameters, room_parameters::RoomParameters,
+};
+use opentalk_types_common::rooms::RoomId;
+use room::{default_client_parameters, default_room_parameters};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::app::event_widget::EventWidgetLayout;
 
 mod message_history;
+mod room;
 
 pub use message_history::{HistoryEntry, MessageHistory};
 
@@ -46,6 +52,15 @@ pub struct DuiSettings {
     /// Every new message that is sent will be recorded here.
     #[serde(default)]
     pub history: MessageHistory,
+
+    #[serde(default)]
+    pub room_ids: Vec<(String, RoomId)>,
+
+    #[serde(default)]
+    pub room_parameters: Vec<(String, RoomParameters)>,
+
+    #[serde(default)]
+    pub client_parameters: Vec<(String, ClientParameters)>,
 }
 
 impl Default for DuiSettings {
@@ -57,6 +72,14 @@ impl Default for DuiSettings {
             event_widget_layout: EventWidgetLayout::new(),
             is_default: true,
             history: MessageHistory::default(),
+            room_ids: [
+                ("Room-1".to_string(), RoomId::from_u128(1)),
+                ("Room-2".to_string(), RoomId::from_u128(2)),
+                ("Room-3".to_string(), RoomId::from_u128(3)),
+            ]
+            .to_vec(),
+            room_parameters: [("Default".to_string(), default_room_parameters())].to_vec(),
+            client_parameters: [("Default".to_string(), default_client_parameters())].to_vec(),
         }
     }
 }
@@ -67,6 +90,20 @@ impl DuiSettings {
             SETTINGS_KEY,
             serde_json::to_string(&self).expect("Settings are serializable"),
         );
+    }
+
+    pub fn default_room_parameters(&self) -> RoomParameters {
+        self.room_parameters
+            .first()
+            .map(|(_, params)| params.clone())
+            .unwrap_or_else(default_room_parameters)
+    }
+
+    pub fn default_client_parameters(&self) -> ClientParameters {
+        self.client_parameters
+            .first()
+            .map(|(_, params)| params.clone())
+            .unwrap_or_else(default_client_parameters)
     }
 
     pub fn load(

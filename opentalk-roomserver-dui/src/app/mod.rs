@@ -75,6 +75,8 @@ impl RoomServerApp {
             None
         };
 
+        let view = CentralAppView::ConnectionConfig(Box::new(ConnectionConfigView::new(&settings)));
+
         Ok(Self {
             _runtime: runtime,
             settings,
@@ -83,7 +85,7 @@ impl RoomServerApp {
             command_tx,
             signaling_state_rx,
 
-            view: CentralAppView::ConnectionConfig(Box::default()),
+            view,
             settings_view,
         })
     }
@@ -109,7 +111,7 @@ impl RoomServerApp {
 
     fn central_panel_ui(&mut self, ui: &mut egui::Ui) {
         let request = match &mut self.view {
-            CentralAppView::ConnectionConfig(view) => view.ui(ui),
+            CentralAppView::ConnectionConfig(view) => view.ui(&mut self.settings, ui),
             CentralAppView::Connecting(view) => view.ui(ui, &self.command_tx, &self.settings),
             CentralAppView::Signaling(signaling_view) => {
                 signaling_view.center_ui(ui, &mut self.event_rx, &self.settings)
@@ -172,7 +174,9 @@ impl RoomServerApp {
     fn transition_to_view(&mut self, request: TransitionToView) {
         match request {
             TransitionToView::ConnectionConfig => {
-                self.view = CentralAppView::ConnectionConfig(Box::default())
+                self.view = CentralAppView::ConnectionConfig(Box::new(ConnectionConfigView::new(
+                    &self.settings,
+                )))
             }
             TransitionToView::Connecting {
                 room_id,
