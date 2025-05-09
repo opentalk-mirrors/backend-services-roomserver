@@ -153,8 +153,8 @@ impl RoomServerApp {
                     ui.separator();
                 });
 
-                if let CentralAppView::Signaling(signaling_view) = &mut self.view {
-                    let request = signaling_view
+                let request = match &mut self.view {
+                    CentralAppView::Signaling(signaling_view) => signaling_view
                         .menu_ui(
                             ctx,
                             ui,
@@ -162,10 +162,15 @@ impl RoomServerApp {
                             self.signaling_state_rx.borrow().to_owned(),
                             &self.settings,
                         )
-                        .expect("Fatal Error");
-                    if let Some(request) = request {
-                        self.transition_to_view(request);
+                        .expect("Fatal Error"),
+                    CentralAppView::ConnectionConfig(view) => {
+                        view.menu_ui(ui);
+                        None
                     }
+                    _ => None,
+                };
+                if let Some(request) = request {
+                    self.transition_to_view(request);
                 }
             })
         });

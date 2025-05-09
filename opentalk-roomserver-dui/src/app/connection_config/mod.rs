@@ -13,13 +13,7 @@ use super::{
     shortcuts::SUBMIT_SHORTCUT,
     style::{InvalidInputStyle as _, delete_btn, delete_mode_btn},
 };
-use crate::{
-    app::connection_config::parameter_widget::ParameterWidget,
-    settings::{
-        DuiSettings,
-        room::{default_client_parameters, default_room_parameters},
-    },
-};
+use crate::{app::connection_config::parameter_widget::ParameterWidget, settings::DuiSettings};
 
 mod parameter_widget;
 
@@ -31,6 +25,9 @@ pub struct ConnectionConfigView {
 
     room_parameters_select: ParameterWidget<RoomParameters>,
     client_parameters_select: ParameterWidget<ClientParameters>,
+
+    // wether or not to show delete buttons
+    delete_mode: bool,
 }
 
 impl ConnectionConfigView {
@@ -50,7 +47,13 @@ impl ConnectionConfigView {
                 serde_json::to_string_pretty(&settings.default_client_parameters())
                     .expect("ClientParameters are serializable"),
             ),
+
+            delete_mode: false,
         }
+    }
+
+    pub fn menu_ui(&mut self, ui: &mut egui::Ui) {
+        delete_mode_btn(ui, &mut self.delete_mode);
     }
 
     pub(crate) fn ui(
@@ -70,13 +73,19 @@ impl ConnectionConfigView {
                 });
 
                 strip.strip(|builder| {
-                    self.room_parameters_select
-                        .ui(&mut settings.room_parameters, builder);
+                    self.room_parameters_select.ui(
+                        &mut settings.room_parameters,
+                        self.delete_mode,
+                        builder,
+                    );
                 });
 
                 strip.strip(|builder| {
-                    self.client_parameters_select
-                        .ui(&mut settings.client_parameters, builder);
+                    self.client_parameters_select.ui(
+                        &mut settings.client_parameters,
+                        self.delete_mode,
+                        builder,
+                    );
                 });
 
                 strip.cell(|ui| {
@@ -140,7 +149,7 @@ impl ConnectionConfigView {
                     row.set_selected(self.selected_room_id_index == row_index);
 
                     row.col(|ui| {
-                        if ui.button("❌").clicked() {
+                        if delete_btn(ui, self.delete_mode).clicked() {
                             delete_room_id = Some(row_index);
                         }
                     });
