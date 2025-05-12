@@ -370,7 +370,7 @@ components:
               features: []
             core:
               features: []
-            media:
+            livekit:
               features: []
             moderation:
               features: []
@@ -507,7 +507,7 @@ components:
             features: []
           core:
             features: []
-          media:
+          livekit:
             features: []
           moderation:
             features: []
@@ -585,7 +585,7 @@ components:
                 features: []
               core:
                 features: []
-              media:
+              livekit:
                 features: []
               moderation:
                 features: []

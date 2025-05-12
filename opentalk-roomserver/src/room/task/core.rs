@@ -342,7 +342,7 @@ mod tests {
                             "core": {
                                 "features": []
                             },
-                            "media": {
+                            "livekit": {
                                 "features": []
                             },
                             "moderation": {
