@@ -3,6 +3,7 @@
 This project contains the crates that implement the OpenTalk RoomServer.
 
 - [OpenTalk RoomServer](opentalk-roomserver/src/main.rs) – The crate which produces the actual RoomServer executable
+- [OpenTalk RoomServer Common](opentalk-roomserver-common/src/lib.rs) – Types that are shared between the OpenTalk RoomServer and Signaling Modules
 - [OpenTalk RoomServer Client](./opentalk-roomserver-client/src/lib.rs) – HTTP-Client which can be used to communicate with the OpenTalk RoomServer using the _OpenTalk RoomServer Web API_
 - [OpenTalk RoomServer Types](./opentalk-roomserver-types/src/lib.rs) – Types that are send over the wire. These types are used in the HTTP-API and used in both the RoomServer-Client and RoomServer-Web-API.
 - [OpenTalk RoomServer Web API](./opentalk-roomserver-web-api/src/lib.rs) – HTTP-API endpoints written with Axum. This crate defines the API but does not implement any logic. All requests are forwarded to trait implementations.
