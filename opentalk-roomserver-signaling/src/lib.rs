@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+//! # RoomServer Signaling
+//!
+//! Types required to develop signaling modules. Every module is required to
+//! implement the [`SignalingModule`](signaling_module::SignalingModule) trait.
+
 /// The `loopback` module is intended for internal use only
 #[doc(hidden)]
 pub mod loopback;
