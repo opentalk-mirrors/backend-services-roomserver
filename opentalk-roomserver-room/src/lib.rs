@@ -42,7 +42,7 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{mock_socket::MockSocket, participant::create_participant_connection},
-        {registry::RoomTaskRegistry, task::RoomTask},
+        task::RoomTask,
     };
 
     const TIMEOUT: Duration = Duration::from_millis(500);
@@ -50,7 +50,6 @@ mod tests {
     fn create_room_task() -> (RoomTaskHandle<MockSocket>, watch::Sender<ApplicationState>) {
         let id = RoomId::from_u128(0xc270ab35_5cdb_4614_b872_8dd66ceefc70);
         let params = RoomParameters::example_data();
-        let task_registry = RoomTaskRegistry::new();
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
@@ -58,12 +57,12 @@ mod tests {
             RoomTask::spawn_with_timeout(
                 id,
                 params,
-                task_registry,
                 state,
                 module_registry,
                 settings,
                 TIMEOUT,
-            ),
+            )
+            .0,
             sender,
         )
     }

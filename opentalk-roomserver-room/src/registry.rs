@@ -7,7 +7,10 @@ use opentalk_roomserver_common::{application_state::ApplicationState, settings::
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
 use opentalk_types_common::rooms::RoomId;
-use tokio::sync::{RwLock, watch};
+use tokio::{
+    sync::{RwLock, watch},
+    task::JoinHandle,
+};
 
 use super::signaling::module_initializer::ModuleRegistry;
 use crate::task::{
@@ -55,25 +58,39 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> Result<(RoomAction, RoomTaskHandle<Socket>), RoomTaskHandleError<Socket>> {
-        let mut registry = self.inner.write().await;
+        let registry = self.inner.write().await;
 
         if let Some(task_handle) = registry.get(&room_id) {
             task_handle.update_parameter(room_parameters).await?;
             return Ok((RoomAction::Updated, task_handle.clone()));
         }
 
-        let task_handle = RoomTask::spawn(
+        let (task_handle, join_handle) = RoomTask::spawn(
             room_id,
             room_parameters,
-            self.clone(),
             module_registry,
             settings,
             app_state,
         );
 
-        registry.insert(room_id, task_handle.clone());
+        self.insert(room_id, registry, &task_handle, join_handle);
 
         Ok((RoomAction::Created, task_handle))
+    }
+
+    fn insert(
+        &self,
+        room_id: RoomId,
+        mut registry: tokio::sync::RwLockWriteGuard<'_, HashMap<RoomId, RoomTaskHandle<Socket>>>,
+        task_handle: &RoomTaskHandle<Socket>,
+        join_handle: JoinHandle<()>,
+    ) {
+        registry.insert(room_id, task_handle.clone());
+        let this = self.clone();
+        tokio::spawn(async move {
+            let _ = join_handle.await;
+            this.remove_room(room_id).await;
+        });
     }
 
     /// Spawns a new room task or returns the [`RoomTaskHandle`] if the room task is already running.
@@ -87,22 +104,20 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> Option<RoomTaskHandle<Socket>> {
-        let mut registry = self.inner.write().await;
+        let registry = self.inner.write().await;
 
         if let Some(task_handle) = registry.get(&room_id) {
             return Some(task_handle.clone());
         }
 
-        let task_handle = RoomTask::spawn(
+        let (task_handle, join_handle) = RoomTask::spawn(
             room_id,
             room_parameters,
-            self.clone(),
             module_registry,
             settings,
             app_state,
         );
-
-        registry.insert(room_id, task_handle);
+        self.insert(room_id, registry, &task_handle, join_handle);
 
         None
     }

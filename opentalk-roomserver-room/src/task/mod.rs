@@ -56,7 +56,10 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
-use tokio::sync::{mpsc, watch};
+use tokio::{
+    sync::{mpsc, watch},
+    task::JoinHandle,
+};
 use uuid::Uuid;
 
 use super::{
@@ -65,7 +68,6 @@ use super::{
 };
 use crate::{
     message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
-    registry::RoomTaskRegistry,
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
@@ -124,15 +126,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(super) fn spawn(
         room_id: RoomId,
         room_parameters: RoomParameters,
-        task_registry: RoomTaskRegistry<Socket>,
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
-    ) -> RoomTaskHandle<Socket> {
+    ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
         Self::spawn_with_timeout(
             room_id,
             room_parameters,
-            task_registry,
             app_state,
             module_registry,
             settings,
@@ -145,17 +145,16 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(super) fn spawn_with_timeout(
         room_id: RoomId,
         mut room_parameters: RoomParameters,
-        task_registry: RoomTaskRegistry<Socket>,
         app_state: watch::Receiver<ApplicationState>,
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
         timeout: Duration,
-    ) -> RoomTaskHandle<Socket> {
+    ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
         let (tx, rx) = mpsc::channel(20);
 
         let message_router = MessageRouter::new(app_state.clone());
 
-        tokio::task::spawn(async move {
+        let join_handle = tokio::task::spawn(async move {
             let (modules, uninitialized) = module_registry
                 .initialize_modules(
                     room_parameters.tariff.modules.keys(),
@@ -193,10 +192,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             };
 
             room_task.run().await;
-            task_registry.remove_room(room_id).await;
         });
 
-        RoomTaskHandle { sender: tx }
+        (RoomTaskHandle { sender: tx }, join_handle)
     }
 
     async fn run(self) {
