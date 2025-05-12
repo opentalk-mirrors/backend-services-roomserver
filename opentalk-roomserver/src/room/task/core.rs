@@ -296,6 +296,7 @@ mod tests {
     };
     use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
     use opentalk_types_signaling_control::{event::JoinSuccess, room::RoomInfo};
+    use pretty_assertions::assert_eq;
     use serde_json::{json, value::to_raw_value};
 
     use super::{CoreEvent, DisconnectReason};

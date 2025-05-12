@@ -308,6 +308,7 @@ mod test {
         users::{DisplayName, UserId, UserInfo, UserTitle},
         utils::ExampleData,
     };
+    use pretty_assertions::assert_eq;
 
     use super::*;
 
