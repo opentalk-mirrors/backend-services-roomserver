@@ -7,6 +7,16 @@ This project contains the crates that implement the OpenTalk RoomServer.
 - [OpenTalk RoomServer Types](./opentalk-roomserver-types/src/lib.rs) – HTTP-Client which can be used to communicate with the OpenTalk RoomServer using the _OpenTalk RoomServer Web API_
 - [OpenTalk RoomServer Web API](./opentalk-roomserver-web-api/src/lib.rs) – HTTP-API endpoints written with Axum. This crate defines the API but does not implement any logic. All requests are forwarded to trait implementations.
 
+## Developer UI
+
+The RoomServer DUI is used to debug the signaling interface.
+
+You can execute it using:
+
+```bash
+just run-dui
+```
+
 ## Documentation
 
 Documentation for the RoomServer is build in [the unified documentation project](https://git.opentalk.dev/opentalk/backend/docs).
