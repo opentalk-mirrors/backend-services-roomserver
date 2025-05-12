@@ -10,6 +10,9 @@ use axum::{
     http::{Request, Response},
 };
 use opentalk_roomserver_common::settings::Settings;
+use opentalk_roomserver_module_chat::ChatModule;
+use opentalk_roomserver_module_ping::ping::PingModule;
+use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters, room_parameters::RoomParameters,
     signaling_context::SignalingClientContext,
@@ -28,10 +31,7 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{
-    room::{registry::RoomTaskRegistry, signaling::module_initializer::ModuleRegistry},
-    wait_shutdown, ApplicationState,
-};
+use crate::{wait_shutdown, ApplicationState};
 
 pub(crate) type Router = axum::Router<Context>;
 
@@ -115,11 +115,14 @@ where
     <L::Service as tower::Service<axum::extract::Request>>::Future: Send + 'static,
 {
     let app_state_subscriber = app_state.subscribe();
+
+    let module_registry = setup_registry();
+
     let ctx = Context {
         settings: Arc::clone(&settings),
         room_tasks: RoomTaskRegistry::new(),
         token_store: Arc::new(Mutex::new(TokenStore::new())),
-        module_registry: Arc::new(ModuleRegistry::new()),
+        module_registry: Arc::new(module_registry),
         app_state,
     };
 
@@ -175,6 +178,14 @@ where
         .await?;
 
     Ok(())
+}
+
+/// Initialize the registry with all modules that are available for meetingsz
+fn setup_registry() -> ModuleRegistry {
+    let mut module_registry = ModuleRegistry::new();
+    module_registry.add_module::<PingModule>();
+    module_registry.add_module::<ChatModule>();
+    module_registry
 }
 
 /// Context for the API endpoints

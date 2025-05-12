@@ -10,7 +10,7 @@ use opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
 
-use crate::room::message_router::MessageRouter;
+use crate::message_router::MessageRouter;
 
 /// Contains the state of the [`RoomTask`](super::super::task::RoomTask) that is accessible to all [`SignalingModule`]s
 pub struct DynModuleContext<'ctx> {

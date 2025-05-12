@@ -12,16 +12,16 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{
     events::{EventInfo, MeetingDetails},
-    modules::{module_id, ModuleId},
+    modules::{ModuleId, module_id},
 };
 use opentalk_types_signaling::{ModuleData, ModulePeerData, Participant, ParticipantId, Role};
 use opentalk_types_signaling_control::{event::JoinSuccess, room::RoomInfo};
 use serde::{Deserialize, Serialize};
 
 use super::RoomTask;
-use crate::room::{
+use crate::{
     message_router::CloseReason,
-    signaling::{dyn_module_context::DynModuleContext, DynBroadcastEvent},
+    signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext},
 };
 
 pub const NAMESPACE: ModuleId = module_id!("core");

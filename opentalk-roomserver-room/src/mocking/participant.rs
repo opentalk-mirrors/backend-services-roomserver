@@ -3,8 +3,8 @@
 
 use axum::extract::ws::Message;
 use futures::{
-    channel::mpsc::{self, SendError},
     SinkExt as _, StreamExt,
+    channel::mpsc::{self, SendError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket;
 use opentalk_types_signaling::ParticipantId;

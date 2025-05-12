@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use axum::extract::ws::Message;
-use futures::{channel::mpsc, Sink, SinkExt, Stream, TryStreamExt};
+use futures::{Sink, SinkExt, Stream, TryStreamExt, channel::mpsc};
 use opentalk_roomserver_web_api::v1::signaling::websocket::{self, SignalingSink, SignalingStream};
 
 #[derive(Debug)]

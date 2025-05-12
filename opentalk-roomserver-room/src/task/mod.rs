@@ -39,6 +39,7 @@
 use std::{future::pending, sync::Arc, time::Duration};
 
 use futures::stream::{FuturesUnordered, StreamExt};
+use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantKind, ParticipantState, Participants},
@@ -63,22 +64,19 @@ use super::{
     signaling::module_initializer::{ModuleRegistry, Modules},
 };
 use crate::{
-    room::{
-        message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
-        registry::RoomTaskRegistry,
-        signaling::{dyn_module_context::DynModuleContext, DynEvent},
-        task::{
-            handle::{Request, RoomTaskHandle, TaskMessage},
-            idle_timeout::IdleTimeout,
-        },
+    message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
+    registry::RoomTaskRegistry,
+    signaling::{DynEvent, dyn_module_context::DynModuleContext},
+    task::{
+        handle::{Request, RoomTaskHandle, TaskMessage},
+        idle_timeout::IdleTimeout,
     },
-    ApplicationState, Settings,
 };
 
-pub(crate) mod core;
-pub(crate) mod handle;
-mod idle_timeout;
-pub(crate) mod websocket;
+pub mod core;
+pub mod handle;
+pub mod idle_timeout;
+pub mod websocket;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
@@ -97,7 +95,7 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 ///
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
 /// exits.
-pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
+pub struct RoomTask<Socket: SignalingSocket + 'static> {
     info: RoomInfo,
 
     /// The receiver for web server API request that target this room

@@ -7,4 +7,5 @@
 //! module crates are placed here. They can't be part of the `opentalk-roomserver`
 //! since this would create a dependency cycle.
 
+pub mod application_state;
 pub mod settings;

@@ -5,22 +5,33 @@
 //!
 //! The room state is managed by the [`task::RoomTask`], where each room has its own [`tokio::task`] with an instance of
 //! a [`RoomTask`](task::RoomTask). The [`RoomTasks`](task::RoomTask) have a channel interface that is exposed via the
-//! [`RoomTaskHandle`](task::handle::RoomTaskHandle) through which the web api can send requests to each
+//! [`RoomTaskHandle`] through which the web api can send requests to each
 //! individual room.
 //!
-//! The active rooms are created and tracked with the [`RoomTaskRegistry`](registry::RoomTaskRegistry). When a
-//! [`task::RoomTask`] gets destroyed, it removes itself from the [`RoomTaskRegistry`](registry::RoomTaskRegistry).
+//! The active rooms are created and tracked with the [`RoomTaskRegistry`]. When a
+//! [`task::RoomTask`] gets destroyed, it removes itself from the [`RoomTaskRegistry`].
 
-mod message_router;
-pub(crate) mod registry;
+pub mod message_router;
+#[cfg(test)]
+pub mod mocking;
+pub mod registry;
 pub mod signaling;
-pub(crate) mod task;
+pub mod task;
+
+pub use crate::{
+    registry::RoomTaskRegistry,
+    signaling::module_initializer::ModuleRegistry,
+    task::{
+        RoomTaskApiError,
+        handle::{Request, RoomTaskHandle, RoomTaskHandleError},
+    },
+};
 
 #[cfg(test)]
 mod tests {
     use std::{sync::Arc, time::Duration};
 
-    use opentalk_roomserver_common::settings::Settings;
+    use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
     use opentalk_roomserver_types::{
         client_parameters::{self, ClientParameters},
         room_parameters::RoomParameters,
@@ -31,8 +42,7 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{mock_socket::MockSocket, participant::create_participant_connection},
-        room::{registry::RoomTaskRegistry, task::RoomTask},
-        ApplicationState,
+        {registry::RoomTaskRegistry, task::RoomTask},
     };
 
     const TIMEOUT: Duration = Duration::from_millis(500);

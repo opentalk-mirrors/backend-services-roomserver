@@ -5,13 +5,14 @@ use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
+use opentalk_types_api_v1::error::ApiError;
 use tokio::sync::{mpsc, oneshot};
 use tracing::Span;
 
 use super::RoomTaskApiError;
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum RoomTaskHandleError<Socket: SignalingSocket> {
+pub enum RoomTaskHandleError<Socket: SignalingSocket> {
     /// The room task is gone.
     ///
     /// If the room task received the request, [`request`](RoomTaskHandleError::Gone::request) will be `None`.
@@ -26,12 +27,27 @@ pub(crate) enum RoomTaskHandleError<Socket: SignalingSocket> {
     ApiError(#[from] RoomTaskApiError),
 }
 
+impl<Socket: SignalingSocket> From<RoomTaskHandleError<Socket>> for ApiError {
+    fn from(error: RoomTaskHandleError<Socket>) -> Self {
+        match error {
+            RoomTaskHandleError::Gone { request: _ } => {
+                Self::not_found().with_message("The requested room could not be found")
+            }
+            RoomTaskHandleError::ApiError(ref room_task_api_error) => match room_task_api_error {
+                RoomTaskApiError::NotImplemented => {
+                    ApiError::internal().with_message(error.to_string())
+                }
+            },
+        }
+    }
+}
+
 impl<Socket: SignalingSocket> RoomTaskHandleError<Socket> {
     /// Take the request from the error.
     ///
     /// If the message could not be delivered to the room task, the request
     /// might be required for error handling (e.g. closing the WebSocket).
-    pub(crate) fn take_request(&mut self) -> Option<Request<Socket>> {
+    pub fn take_request(&mut self) -> Option<Request<Socket>> {
         match self {
             RoomTaskHandleError::Gone { request } => request.take(),
             RoomTaskHandleError::ApiError(_) => None,
@@ -43,7 +59,7 @@ impl<Socket: SignalingSocket> RoomTaskHandleError<Socket> {
 ///
 /// Is used for communication between the room task and the web server API
 #[derive(Debug)]
-pub(crate) struct RoomTaskHandle<Socket: SignalingSocket> {
+pub struct RoomTaskHandle<Socket: SignalingSocket> {
     pub(super) sender: mpsc::Sender<TaskMessage<Socket>>,
 }
 
@@ -83,12 +99,12 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
     /// Refresh the room idle timeout to its original duration
     ///
     /// This can only fail if the room has reached its idle timeout or been removed by a user
-    pub(crate) async fn refresh_idle_timeout(&self) -> Result<(), RoomTaskHandleError<Socket>> {
+    pub async fn refresh_idle_timeout(&self) -> Result<(), RoomTaskHandleError<Socket>> {
         self.send_request(Request::RefreshIdleTimeout).await
     }
 
     /// Update the parameters for the room
-    pub(crate) async fn update_parameter(
+    pub async fn update_parameter(
         &self,
         parameter: RoomParameters,
     ) -> Result<(), RoomTaskHandleError<Socket>> {
@@ -96,7 +112,7 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
             .await
     }
 
-    pub(crate) async fn accept_signaling_socket(
+    pub async fn accept_signaling_socket(
         &self,
         socket: Socket,
         client_parameters: ClientParameters,
@@ -138,7 +154,7 @@ impl<Socket: SignalingSocket> TaskMessage<Socket> {
 
 /// A request to a [`RoomTask`](super::RoomTask)
 #[derive(Debug)]
-pub(crate) enum Request<Socket: SignalingSocket> {
+pub enum Request<Socket: SignalingSocket> {
     /// Refresh the room tasks idle timeout
     RefreshIdleTimeout,
 

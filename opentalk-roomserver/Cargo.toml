@@ -17,28 +17,22 @@ anyhow.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 axum-prometheus.workspace = true
-blake3.workspace = true
 clap.workspace = true
 futures.workspace = true
 log.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-module-chat.workspace = true
 opentalk-roomserver-module-ping.workspace = true
-opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
-opentalk-types-signaling = { workspace = true, features = ["rand"] }
-opentalk-types-signaling-control = { workspace = true, features = ["serde"] }
 opentalk-version.workspace = true
 opentelemetry.workspace = true
 opentelemetry-otlp.workspace = true
 opentelemetry_sdk.workspace = true
-serde.workspace = true
-serde_json = { workspace = true, features = ["raw_value"] }
 service-probe.workspace = true
-thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "signal"] }
 tower.workspace = true
 tower-http = { workspace = true, features = ["trace"] }
