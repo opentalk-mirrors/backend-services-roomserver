@@ -35,10 +35,10 @@ opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0
 opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.0-dev" }
 opentalk-roomserver-module-ping = { path = "opentalk-roomserver-module-ping", version = "0.0.0-dev" }
 opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.0-dev" }
-opentalk-types-api-v1 = { version = "0.35", features = ["axum"] }
-opentalk-types-common = { version = "0.32.2", features = ["serde", "utoipa"] }
-opentalk-types-signaling = { version = "0.33", features = ["serde"] }
-opentalk-types-signaling-control = { version = "0.33", features = ["serde"] }
+opentalk-types-api-v1 = { version = "0.37.0", features = ["axum"] }
+opentalk-types-common = { version = "0.34.0", features = ["serde", "utoipa"] }
+opentalk-types-signaling = { version = "0.35.0", features = ["serde"] }
+opentalk-types-signaling-control = { version = "0.35.0", features = ["serde"] }
 
 anyhow = "1"
 async-trait = "0.1"

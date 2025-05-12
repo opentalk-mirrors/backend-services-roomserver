@@ -111,6 +111,7 @@ mod tests {
         roomserver::Token,
         users::{UserId, UserInfo},
     };
+    use pretty_assertions::assert_eq;
 
     use super::{TokenExpiry, TokenStore};
     use crate::api::token_store::SignalingClientContext;

@@ -50,6 +50,7 @@ uuid = { workspace = true, features = ["v4"] }
 yaml-rust2.workspace = true
 
 [dev-dependencies]
+pretty_assertions.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
 
 [build-dependencies]
