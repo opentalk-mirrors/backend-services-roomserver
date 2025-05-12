@@ -123,7 +123,7 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Spawns a new [`RoomTask`]
     #[tracing::instrument(level = "debug", skip_all, fields(opentalk.room_id = %room_id))]
-    pub(super) fn spawn(
+    pub fn spawn(
         room_id: RoomId,
         room_parameters: RoomParameters,
         module_registry: Arc<ModuleRegistry>,
@@ -142,7 +142,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     /// Spawns a new [`RoomTask`] with a specific timeout
     #[tracing::instrument(level = "info", skip_all, fields(opentalk.room_id = %room_id))]
-    pub(super) fn spawn_with_timeout(
+    pub fn spawn_with_timeout(
         room_id: RoomId,
         mut room_parameters: RoomParameters,
         app_state: watch::Receiver<ApplicationState>,
