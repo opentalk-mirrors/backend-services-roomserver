@@ -5,6 +5,7 @@ use connecting::ConnectingView;
 use connection_config::ConnectionConfigView;
 use eframe::CreationContext;
 use egui::{menu, Button, RichText};
+use error::RunnerGoneError;
 use error_view::ErrorView;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
@@ -85,6 +86,25 @@ impl RoomServerApp {
         })
     }
 
+    fn left_panel_ui(&mut self, ctx: &egui::Context) -> Result<(), RunnerGoneError> {
+        match &mut self.view {
+            CentralAppView::Signaling(signaling_view) if signaling_view.show_side_panel() => {
+                egui::SidePanel::left("Message Side Panel")
+                    .show(ctx, |ui| {
+                        signaling_view.left_panel_ui(
+                            ui,
+                            &self.command_tx,
+                            &mut self.settings.history,
+                        )
+                    })
+                    .inner?;
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
     fn central_panel_ui(&mut self, ui: &mut egui::Ui) {
         let request = match &mut self.view {
             CentralAppView::ConnectionConfig(view) => view.ui(ui),
@@ -136,6 +156,7 @@ impl RoomServerApp {
                             ui,
                             &self.command_tx,
                             self.signaling_state_rx.borrow().to_owned(),
+                            &self.settings,
                         )
                         .expect("Fatal Error");
                     if let Some(request) = request {
@@ -178,6 +199,7 @@ impl RoomServerApp {
                     ui,
                     &self.command_tx,
                     self.signaling_state_rx.borrow().to_owned(),
+                    &mut self.settings.history,
                 )
                 .expect("Fatal error");
         };
@@ -191,6 +213,12 @@ impl eframe::App for RoomServerApp {
         egui::TopBottomPanel::bottom("bottom-view").show(ctx, |ui| {
             self.bottom_panel_ui(ui);
         });
+
+        if let Err(RunnerGoneError) = self.left_panel_ui(ctx) {
+            self.transition_to_view(TransitionToView::Error {
+                message: RichText::new("Runner is gone"),
+            });
+        }
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.central_panel_ui(ui);
