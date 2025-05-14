@@ -6,21 +6,74 @@ use futures::{
     SinkExt as _, StreamExt,
     channel::mpsc::{self, SendError},
 };
+use opentalk_roomserver_signaling::{
+    signaling_event::SignalingEvent, signaling_module::SignalingModule,
+};
+use opentalk_roomserver_types::signaling::SignalingCommand;
 use opentalk_roomserver_web_api::v1::signaling::websocket;
 use opentalk_types_signaling::ParticipantId;
-use serde_json::json;
+use opentalk_types_signaling_control::event::JoinSuccess;
+use serde::{Serialize, de::DeserializeOwned};
+use serde_json::{json, value::to_raw_value};
 
-use super::mock_socket::MockSocket;
+use super::socket::MockSocket;
+use crate::task::core::CoreEvent;
 
 #[derive(Debug)]
-pub struct MockParticipant {
-    pub sender: mpsc::Sender<Result<Message, websocket::Error>>,
-    #[allow(dead_code)]
-    pub receiver: mpsc::Receiver<Message>,
-    pub id: ParticipantId,
+pub enum ReceiveError {
+    Closed,
+    InvalidJson(serde_json::Error),
+    UnexpectedMessage(Message),
 }
 
-impl MockParticipant {
+pub type MockParticipantJoining = MockParticipant<()>;
+pub type MockParticipantJoined = MockParticipant<JoinSuccess>;
+
+#[derive(Debug)]
+pub struct MockParticipant<S> {
+    pub(crate) sender: mpsc::Sender<Result<Message, websocket::Error>>,
+    pub(crate) receiver: mpsc::Receiver<Message>,
+    pub(crate) state: S,
+}
+
+impl MockParticipant<()> {
+    pub(crate) async fn join_success(
+        mut self,
+    ) -> Result<MockParticipant<JoinSuccess>, ReceiveError> {
+        let Some(received) = self.receiver.next().await else {
+            return Err(ReceiveError::Closed);
+        };
+        match received {
+            Message::Text(text) => {
+                let event: SignalingEvent<CoreEvent> =
+                    serde_json::from_str(&text).map_err(ReceiveError::InvalidJson)?;
+
+                if let CoreEvent::JoinSuccess(msg) = event.content {
+                    Ok(MockParticipant {
+                        sender: self.sender,
+                        receiver: self.receiver,
+                        state: *msg,
+                    })
+                } else {
+                    Err(ReceiveError::UnexpectedMessage(Message::Text(text)))
+                }
+            }
+            other => Err(ReceiveError::UnexpectedMessage(other)),
+        }
+    }
+}
+
+impl MockParticipant<JoinSuccess> {
+    pub fn join_success(&self) -> &JoinSuccess {
+        &self.state
+    }
+
+    pub fn id(&self) -> ParticipantId {
+        self.state.id
+    }
+}
+
+impl<S> MockParticipant<S> {
     async fn static_send_ping(
         sender: &mut mpsc::Sender<Result<Message, websocket::Error>>,
     ) -> Result<(), SendError> {
@@ -35,10 +88,6 @@ impl MockParticipant {
             )))
             .await
     }
-    #[allow(dead_code)]
-    pub async fn send_ping(&mut self) -> Result<(), SendError> {
-        Self::static_send_ping(&mut self.sender).await
-    }
 
     pub fn queue_send_ping(&self) {
         let mut sender = self.sender.clone();
@@ -49,21 +98,68 @@ impl MockParticipant {
         });
     }
 
-    #[allow(dead_code)]
-    pub async fn receive_event(&mut self) -> Option<Message> {
-        self.receiver.next().await
+    pub async fn send_command<M>(&mut self, command: M::Incoming) -> Result<(), SendError>
+    where
+        M: SignalingModule,
+        M::Incoming: Serialize,
+    {
+        let command = SignalingCommand {
+            namespace: M::NAMESPACE,
+            transaction_id: None,
+            content: to_raw_value(&command).expect("Command must be Serializable"),
+        };
+        self.sender
+            .send(Ok(Message::Text(
+                serde_json::to_string(&command)
+                    .expect("SignalingCommand is serializable")
+                    .into(),
+            )))
+            .await
+    }
+
+    pub async fn receive_event<M>(&mut self) -> Result<M::Outgoing, ReceiveError>
+    where
+        M: SignalingModule,
+        M::Outgoing: DeserializeOwned,
+    {
+        let Some(received) = self.receiver.next().await else {
+            return Err(ReceiveError::Closed);
+        };
+        match received {
+            Message::Text(text) => {
+                let event: SignalingEvent<M::Outgoing> =
+                    serde_json::from_str(&text).map_err(ReceiveError::InvalidJson)?;
+                Ok(event.content)
+            }
+            other => Err(ReceiveError::UnexpectedMessage(other)),
+        }
+    }
+
+    pub async fn receive_core(&mut self) -> Result<CoreEvent, ReceiveError> {
+        let Some(received) = self.receiver.next().await else {
+            return Err(ReceiveError::Closed);
+        };
+        match received {
+            Message::Text(text) => {
+                let event: SignalingEvent<CoreEvent> =
+                    serde_json::from_str(&text).map_err(ReceiveError::InvalidJson)?;
+
+                Ok(event.content)
+            }
+            other => Err(ReceiveError::UnexpectedMessage(other)),
+        }
     }
 }
 
-pub fn create_participant_connection() -> (MockSocket, MockParticipant) {
+pub(crate) fn create_participant_connection() -> (MockSocket, MockParticipantJoining) {
     let websocket_in = mpsc::channel(1);
     let websocket_out = mpsc::channel(1);
     (
         MockSocket::new(websocket_in.1, websocket_out.0),
-        MockParticipant {
+        MockParticipantJoining {
             sender: websocket_in.0,
             receiver: websocket_out.1,
-            id: ParticipantId::generate(),
+            state: (),
         },
     )
 }

@@ -170,6 +170,7 @@ mod tests {
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_web_api::v1::signaling::websocket::Message;
     use opentalk_types_common::modules::module_id;
+    use opentalk_types_signaling::ParticipantId;
     use serde_json::{json, value::to_raw_value};
     use tokio::sync::watch;
 
@@ -183,8 +184,9 @@ mod tests {
         let (_app_state_send, app_state_recv) = watch::channel(ApplicationState::Running);
         let mut router = MessageRouter::new(app_state_recv);
         let (p1_socket, mut p1) = create_participant_connection();
+        let p1_id = ParticipantId::from_u128(1);
 
-        let connection = router.add_connection(p1.id, p1_socket).await.unwrap();
+        let connection = router.add_connection(p1_id, p1_socket).await.unwrap();
 
         p1.sender
             .send(Ok(Message::Close(Some(CloseFrame {
@@ -204,7 +206,7 @@ mod tests {
                     message_router::message::CloseReason::ParticipantClosed
                 ),
                 ..
-            } if participant_id == p1.id && connection_id == connection
+            } if participant_id == p1_id && connection_id == connection
         ));
 
         let event = SignalingEvent {

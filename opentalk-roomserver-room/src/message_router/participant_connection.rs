@@ -386,12 +386,13 @@ mod tests {
 
     use futures::{StreamExt as _, pin_mut};
     use opentalk_roomserver_types::{connection_id::ConnectionId, signaling::SignalingCommand};
+    use opentalk_types_signaling::ParticipantId;
     use tokio::sync::mpsc;
     use tracing::Span;
 
     use crate::{
         message_router::{MessageEnvelope, participant_connection::ParticipantConnectionTask},
-        mocking::{mock_socket::MockSocket, participant::create_participant_connection},
+        mocking::{participant::create_participant_connection, socket::MockSocket},
     };
 
     /// Test that the receive future is cancel safe.
@@ -412,7 +413,7 @@ mod tests {
             command_tx
                 .send(MessageEnvelope {
                     connection_id: ConnectionId::nil(),
-                    participant_id: p1.id,
+                    participant_id: ParticipantId::from_u128(1),
                     message: crate::message_router::SignalingMessage::Command(
                         SignalingCommand::new(
                             "ping".parse().unwrap(),

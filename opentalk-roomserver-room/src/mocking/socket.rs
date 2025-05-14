@@ -12,6 +12,7 @@ pub struct MockSocket {
 }
 
 impl MockSocket {
+    #[must_use]
     pub fn new(
         receiver: mpsc::Receiver<Result<Message, websocket::Error>>,
         sender: mpsc::Sender<Message>,
