@@ -2,10 +2,6 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use axum::extract::ws::Message;
-use futures::{
-    SinkExt as _, StreamExt,
-    channel::mpsc::{self, SendError},
-};
 use opentalk_roomserver_signaling::{
     signaling_event::SignalingEvent, signaling_module::SignalingModule,
 };
@@ -15,6 +11,7 @@ use opentalk_types_signaling::ParticipantId;
 use opentalk_types_signaling_control::event::JoinSuccess;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{json, value::to_raw_value};
+use tokio::sync::mpsc;
 
 use super::socket::MockSocket;
 use crate::task::core::CoreEvent;
@@ -24,6 +21,19 @@ pub enum ReceiveError {
     Closed,
     InvalidJson(serde_json::Error),
     UnexpectedMessage(Message),
+}
+
+#[derive(Debug)]
+pub enum SendError {
+    Closed,
+    InvalidJson(serde_json::Error),
+    UnexpectedMessage(Message),
+}
+
+impl<T> From<mpsc::error::SendError<T>> for SendError {
+    fn from(_: mpsc::error::SendError<T>) -> Self {
+        SendError::Closed
+    }
 }
 
 pub type MockParticipantJoining = MockParticipant<()>;
@@ -40,7 +50,7 @@ impl MockParticipant<()> {
     pub(crate) async fn join_success(
         mut self,
     ) -> Result<MockParticipant<JoinSuccess>, ReceiveError> {
-        let Some(received) = self.receiver.next().await else {
+        let Some(received) = self.receiver.recv().await else {
             return Err(ReceiveError::Closed);
         };
         match received {
@@ -86,7 +96,8 @@ impl<S> MockParticipant<S> {
                 .to_string()
                 .into(),
             )))
-            .await
+            .await?;
+        Ok(())
     }
 
     pub fn queue_send_ping(&self) {
@@ -114,7 +125,8 @@ impl<S> MockParticipant<S> {
                     .expect("SignalingCommand is serializable")
                     .into(),
             )))
-            .await
+            .await?;
+        Ok(())
     }
 
     pub async fn receive_event<M>(&mut self) -> Result<M::Outgoing, ReceiveError>
@@ -122,7 +134,7 @@ impl<S> MockParticipant<S> {
         M: SignalingModule,
         M::Outgoing: DeserializeOwned,
     {
-        let Some(received) = self.receiver.next().await else {
+        let Some(received) = self.receiver.recv().await else {
             return Err(ReceiveError::Closed);
         };
         match received {
@@ -136,7 +148,7 @@ impl<S> MockParticipant<S> {
     }
 
     pub async fn receive_core(&mut self) -> Result<CoreEvent, ReceiveError> {
-        let Some(received) = self.receiver.next().await else {
+        let Some(received) = self.receiver.recv().await else {
             return Err(ReceiveError::Closed);
         };
         match received {

@@ -165,7 +165,6 @@ impl MessageRouter {
 #[cfg(test)]
 mod tests {
     use axum::extract::ws::CloseFrame;
-    use futures::SinkExt;
     use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_web_api::v1::signaling::websocket::Message;
@@ -183,7 +182,7 @@ mod tests {
     async fn participant_lifecycle() {
         let (_app_state_send, app_state_recv) = watch::channel(ApplicationState::Running);
         let mut router = MessageRouter::new(app_state_recv);
-        let (p1_socket, mut p1) = create_participant_connection();
+        let (p1_socket, p1) = create_participant_connection();
         let p1_id = ParticipantId::from_u128(1);
 
         let connection = router.add_connection(p1_id, p1_socket).await.unwrap();

@@ -2,13 +2,15 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use axum::extract::ws::Message;
-use futures::{Sink, SinkExt, Stream, TryStreamExt, channel::mpsc};
+use futures::{Sink, SinkExt, Stream};
 use opentalk_roomserver_web_api::v1::signaling::websocket::{self, SignalingSink, SignalingStream};
+use tokio::sync::mpsc;
+use tokio_util::sync::PollSender;
 
 #[derive(Debug)]
 pub struct MockSocket {
     receiver: mpsc::Receiver<Result<Message, websocket::Error>>,
-    sender: mpsc::Sender<Message>,
+    sender: PollSender<Message>,
 }
 
 impl MockSocket {
@@ -17,7 +19,10 @@ impl MockSocket {
         receiver: mpsc::Receiver<Result<Message, websocket::Error>>,
         sender: mpsc::Sender<Message>,
     ) -> MockSocket {
-        MockSocket { receiver, sender }
+        MockSocket {
+            receiver,
+            sender: PollSender::new(sender),
+        }
     }
 }
 
@@ -28,7 +33,7 @@ impl Stream for MockSocket {
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
-        self.receiver.try_poll_next_unpin(cx)
+        self.receiver.poll_recv(cx)
     }
 }
 
