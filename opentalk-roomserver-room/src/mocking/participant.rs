@@ -161,6 +161,15 @@ impl<S> MockParticipant<S> {
             other => Err(ReceiveError::UnexpectedMessage(other)),
         }
     }
+
+    pub fn received_nothing(&mut self) -> bool {
+        self.receiver.is_empty()
+    }
+
+    pub fn disconnect(self) {
+        // Dropping the sender will result in a disconnect
+        drop(self.sender);
+    }
 }
 
 pub(crate) fn create_participant_connection() -> (MockSocket, MockParticipantJoining) {

@@ -4416,13 +4416,19 @@ dependencies = [
 name = "opentalk-roomserver-module-chat"
 version = "0.0.0-dev"
 dependencies = [
+ "chrono",
+ "env_logger",
  "log",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-chat",
+ "pretty_assertions",
  "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
