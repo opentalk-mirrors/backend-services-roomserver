@@ -87,6 +87,9 @@ exceptions = [
   ], name = "opentalk-roomserver-dui" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-chat" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-ping" },
   { allow = [
     "EUPL-1.2",
@@ -112,6 +115,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-signaling" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-signaling-chat" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-signaling-control" },
