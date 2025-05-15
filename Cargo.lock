@@ -4559,9 +4559,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-chat"
-version = "0.35.0"
+version = "0.35.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b37986d20982e41bd08b37dfe186b5b92fd1e8abc32fecc26312360fe5147764"
+checksum = "ccb2cb500f082edbee89399b49aecb19629e6ce363b2bc56057b9124e1e8dbb1"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
