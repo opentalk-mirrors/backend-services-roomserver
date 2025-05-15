@@ -237,7 +237,6 @@ test:cargo_test:
     - rustup component add rustfmt llvm-tools-preview
     # libxml2-utils contains the xmllint command used below
     - apt-get update && apt-get install -y libxml2-utils
-    - cargo install diesel_cli --version ~2 --no-default-features --features="postgres"
   script:
     - RUSTFLAGS="-C instrument-coverage -C link-arg=-fuse-ld=lld"
       LLVM_PROFILE_FILE="$(pwd)/target/coverage/raw/coverage-%p-%m.profraw"
