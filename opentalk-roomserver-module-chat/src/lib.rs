@@ -15,7 +15,7 @@ use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use opentalk_types_signaling_chat::{
     MODULE_ID, MessageId, Scope,
-    command::SendMessage,
+    command::{SendMessage, SetLastSeenTimestamp},
     event::{ChatDisabled, ChatEnabled, HistoryCleared, MessageSent},
     peer_state::ChatPeerState,
     state::{ChatState, PrivateHistory, StoredMessage},
@@ -119,6 +119,7 @@ impl SignalingModule for ChatModule {
             }
             ChatCommand::SetLastSeenTimestamp(set_last_seen_timestamp) => {
                 self.set_last_seen_timestamp(
+                    ctx,
                     participant_id,
                     set_last_seen_timestamp.scope,
                     set_last_seen_timestamp.timestamp,
@@ -329,16 +330,21 @@ impl ChatModule {
 
     fn set_last_seen_timestamp(
         &mut self,
+        ctx: &mut ModuleContext<'_, ChatModule>,
         participant_id: ParticipantId,
         scope: Scope,
         timestamp: Timestamp,
     ) -> Result<(), SignalingModuleError<<ChatModule as SignalingModule>::Error>> {
-        let chat_id = ChatId::from_scope_and_source(scope, participant_id);
+        let chat_id = ChatId::from_scope_and_source(scope.clone(), participant_id);
         self.chat_state
             .entry(participant_id)
             .or_default()
             .insert(chat_id, Some(timestamp));
 
+        ctx.send_ws_message(
+            ctx.participants.connected().map(|(id, _)| *id),
+            ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp { scope, timestamp }),
+        )?;
         Ok(())
     }
 }
