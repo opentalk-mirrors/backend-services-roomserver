@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_signaling::signaling_module::ModuleError;
-use opentalk_types_signaling_chat::event::{
-    ChatDisabled, ChatEnabled, HistoryCleared, MessageSent,
+use opentalk_types_signaling_chat::{
+    command::SetLastSeenTimestamp,
+    event::{ChatDisabled, ChatEnabled, HistoryCleared, MessageSent},
 };
 
 /// A chat event which occurred
@@ -21,6 +22,9 @@ pub enum ChatEvent {
 
     /// Chat event where history was cleared see [HistoryCleared]
     HistoryCleared(HistoryCleared),
+
+    /// Chat event when last seen timestamp was set.
+    SetLastSeenTimestamp(SetLastSeenTimestamp),
 
     /// Chat event which errored see [ChatError]
     Error(ChatError),
@@ -53,6 +57,12 @@ impl From<HistoryCleared> for ChatEvent {
 impl From<ChatError> for ChatEvent {
     fn from(value: ChatError) -> Self {
         Self::Error(value)
+    }
+}
+
+impl From<SetLastSeenTimestamp> for ChatEvent {
+    fn from(value: SetLastSeenTimestamp) -> Self {
+        Self::SetLastSeenTimestamp(value)
     }
 }
 
