@@ -162,7 +162,7 @@ impl ConnectingView {
                 let command = RunnerCommand::RequestToken {
                     response_tx: tx,
                     room_id: self.room_id,
-                    room_parameters: Some(self.room_parameters.clone()),
+                    room_parameters: Box::new(Some(self.room_parameters.clone())),
                     client_parameters: self.client_parameters.clone(),
                 };
                 if command_tx.send(command).is_ok() {

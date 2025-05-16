@@ -81,7 +81,7 @@ impl RoomServerApp {
             command_tx,
             signaling_state_rx,
 
-            view: CentralAppView::ConnectionConfig(ConnectionConfigView::new()),
+            view: CentralAppView::ConnectionConfig(Box::default()),
             settings_view,
         })
     }
@@ -170,18 +170,18 @@ impl RoomServerApp {
     fn transition_to_view(&mut self, request: TransitionToView) {
         match request {
             TransitionToView::ConnectionConfig => {
-                self.view = CentralAppView::ConnectionConfig(ConnectionConfigView::new())
+                self.view = CentralAppView::ConnectionConfig(Box::default())
             }
             TransitionToView::Connecting {
                 room_id,
                 client_parameters,
                 room_parameters,
             } => {
-                self.view = CentralAppView::Connecting(ConnectingView::new(
+                self.view = CentralAppView::Connecting(Box::new(ConnectingView::new(
                     room_id,
                     *client_parameters,
                     *room_parameters,
-                ))
+                )))
             }
             TransitionToView::Signaling => {
                 self.view = CentralAppView::Signaling(SignalingView::new())
@@ -255,8 +255,8 @@ impl eframe::App for RoomServerApp {
 
 #[derive(Debug)]
 pub enum CentralAppView {
-    ConnectionConfig(ConnectionConfigView),
-    Connecting(ConnectingView),
+    ConnectionConfig(Box<ConnectionConfigView>),
+    Connecting(Box<ConnectingView>),
     Signaling(SignalingView),
     Error(ErrorView),
 }

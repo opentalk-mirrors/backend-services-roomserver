@@ -37,7 +37,7 @@ pub enum RunnerCommand {
         response_tx: tokio::sync::oneshot::Sender<Result<Token, String>>,
         room_id: RoomId,
         client_parameters: ClientParameters,
-        room_parameters: Option<RoomParameters>,
+        room_parameters: Box<Option<RoomParameters>>,
     },
 
     ConnectSignaling {
@@ -208,7 +208,7 @@ impl RoomServerRunner {
                 client_parameters,
                 room_parameters,
             } => {
-                self.request_token(room_id, client_parameters, room_parameters, response_tx)
+                self.request_token(room_id, client_parameters, *room_parameters, response_tx)
                     .await;
             }
             RunnerCommand::ConnectSignaling { response_tx, token } => {
