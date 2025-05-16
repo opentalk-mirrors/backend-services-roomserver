@@ -180,14 +180,12 @@ impl ChatModule {
     }
 
     fn last_seen_global(&mut self, participant: ParticipantId) -> Option<Timestamp> {
-        let last_seen_timestamp_global = self
-            .chat_state
+        self.chat_state
             .entry(participant)
             .or_default()
             .get(&ChatId::Global)
             .copied()
-            .flatten();
-        last_seen_timestamp_global
+            .flatten()
     }
 
     fn private_history(

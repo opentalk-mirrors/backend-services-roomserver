@@ -19,7 +19,7 @@ pub(crate) enum RoomTaskHandleError<Socket: SignalingSocket> {
     #[error("The room task is no longer available")]
     Gone {
         /// If the request couldn't be dispatched to the room task, it's returned here.
-        request: Option<Request<Socket>>,
+        request: Box<Option<Request<Socket>>>,
     },
 
     #[error("API request failed: {0}")]
@@ -70,11 +70,12 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
             .send(msg)
             .await
             .map_err(|e| RoomTaskHandleError::Gone {
-                request: Some(e.0.request),
+                request: Box::new(Some(e.0.request)),
             })?;
 
-        rx.await
-            .map_err(|_| RoomTaskHandleError::Gone { request: None })??;
+        rx.await.map_err(|_| RoomTaskHandleError::Gone {
+            request: Box::new(None),
+        })??;
 
         Ok(())
     }
@@ -91,7 +92,8 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         &self,
         parameter: RoomParameters,
     ) -> Result<(), RoomTaskHandleError<Socket>> {
-        self.send_request(Request::UpdateParameter(parameter)).await
+        self.send_request(Request::UpdateParameter(Box::new(parameter)))
+            .await
     }
 
     pub(crate) async fn accept_signaling_socket(
@@ -141,7 +143,7 @@ pub(crate) enum Request<Socket: SignalingSocket> {
     RefreshIdleTimeout,
 
     /// Update the parameters for the room
-    UpdateParameter(RoomParameters),
+    UpdateParameter(Box<RoomParameters>),
 
     /// Join the room with a given websocket stream and sink
     WsJoin {

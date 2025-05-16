@@ -254,7 +254,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 Ok(())
             }
             Request::UpdateParameter(room_parameters) => {
-                self.update_parameter(room_parameters);
+                self.update_parameter(*room_parameters);
                 Err(RoomTaskApiError::NotImplemented)
             }
             Request::WsJoin {

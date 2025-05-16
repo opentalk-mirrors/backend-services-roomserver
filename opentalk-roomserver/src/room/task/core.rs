@@ -31,7 +31,7 @@ pub const NAMESPACE: ModuleId = module_id!("core");
 #[serde(rename_all = "snake_case")]
 pub enum CoreEvent {
     /// Message sent to a participant on a successful join
-    JoinSuccess(JoinSuccess),
+    JoinSuccess(Box<JoinSuccess>),
 
     /// Broadcast message sent to all participants when a new participant has joined
     ParticipantConnected {
@@ -106,7 +106,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.serialize_and_send(
             [connection_id],
             NAMESPACE,
-            CoreEvent::JoinSuccess(join_success_msg),
+            CoreEvent::JoinSuccess(Box::new(join_success_msg)),
         )
         .await?;
 
@@ -320,7 +320,7 @@ mod tests {
             },
             is_room_owner: false,
         };
-        let event = CoreEvent::JoinSuccess(join_success);
+        let event = CoreEvent::JoinSuccess(Box::new(join_success));
         let json = serde_json::to_value(&event).unwrap();
 
         assert_eq!(
