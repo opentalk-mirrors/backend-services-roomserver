@@ -20,3 +20,9 @@ opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 serde.workspace = true
 tokio.workspace = true
+
+[dev-dependencies]
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+pretty_assertions.workspace = true
+test-log.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }

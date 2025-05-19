@@ -4444,7 +4444,6 @@ dependencies = [
  "opentalk-types-signaling",
  "pretty_assertions",
  "serde",
- "serde_json",
  "test-log",
  "tokio",
 ]
