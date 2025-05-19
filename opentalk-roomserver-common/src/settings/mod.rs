@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::net::{IpAddr, Ipv4Addr};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    path::Path,
+};
 
 use anyhow::Context;
 use config::{Config, Environment, File, FileFormat};
@@ -41,9 +44,9 @@ pub struct Settings {
 impl Settings {
     /// Creates a new Settings instance from the provided TOML file.
     /// Specific fields can be set or overwritten with environment variables (See struct level docs for more details).
-    pub fn load(file_name: &str) -> Result<Self, Error> {
+    pub fn load(file_path: &Path) -> Result<Self, Error> {
         let config = Config::builder()
-            .add_source(File::new(file_name, FileFormat::Toml))
+            .add_source(File::from(file_path).format(FileFormat::Toml))
             .add_source(
                 Environment::with_prefix("OT_ROOMSERVER")
                     .prefix_separator("_")

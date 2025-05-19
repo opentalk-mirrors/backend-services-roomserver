@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::path::PathBuf;
+
 use clap::Parser;
 use opentalk_version::InfoArgs;
 
@@ -10,7 +12,7 @@ opentalk_version::build_info!();
 #[command(about)]
 pub(crate) struct Args {
     #[clap(short, long, help = "Specify path to configuration file")]
-    pub(crate) config: Option<String>,
+    pub(crate) config: Option<PathBuf>,
 
     #[command(flatten)]
     pub(crate) info: InfoArgs,

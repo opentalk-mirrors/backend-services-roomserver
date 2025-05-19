@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::net::IpAddr;
+use std::{net::IpAddr, path::Path};
 
 use eframe::CreationContext;
 use egui::ThemePreference;
@@ -71,7 +71,7 @@ impl DuiSettings {
 
     pub fn load(
         cc: &CreationContext<'_>,
-        roomserver_config: Option<&str>,
+        roomserver_config: Option<&Path>,
     ) -> Result<DuiSettings, anyhow::Error> {
         let mut settings = if let Some(raw_settings) = cc
             .storage
