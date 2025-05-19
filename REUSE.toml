@@ -23,7 +23,7 @@ path = [
   "ci/spectral/*.yml",
   "docs/**.md",
   "example/**.json",
-  "example/config.toml",
+  "example/roomserver.toml",
   "renovate.json",
 ]
 precedence = "aggregate"

@@ -19,9 +19,9 @@ OT_ROOMSERVER_<field>__<nested-field>…
 
 ## Example configuration file
 
-This file can be found in the source code distribution under `example/config.toml`
+This file can be found in the source code distribution under `example/roomserver.toml`
 
-<!-- begin:fromfile:example/config.toml.md -->
+<!-- begin:fromfile:example/roomserver.toml.md -->
 
 ```toml
 [http]
@@ -68,4 +68,4 @@ api_token = "secret"
 #otlp_tracing_endpoint = "http://localhost:4317"
 ```
 
-<!-- end:fromfile:example/config.toml.md -->
+<!-- end:fromfile:example/roomserver.toml.md -->

@@ -27,7 +27,7 @@ RUN mkdir /opentalk-roomserver
 WORKDIR /opentalk-roomserver
 
 COPY --from=builder /opentalk-roomserver/target/release/opentalk-roomserver .
-COPY --from=builder /opentalk-roomserver/example/config.toml config.toml
+COPY --from=builder /opentalk-roomserver/example/roomserver.toml roomserver.toml
 
 USER $USERID:$GROUPID
 
