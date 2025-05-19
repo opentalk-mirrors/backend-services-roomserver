@@ -74,7 +74,6 @@ run-dui *ARGS:
 generate-deps-graph: _check_jq _check_cargo_depgraph _check_dot
     #!/usr/bin/env bash
     set -euo pipefail
-    WORKSPACE_CRATES=`cargo metadata --format-version 1 --no-deps | jq -r '.packages[].name' | awk -c '{printf $0","}'`
     OUT_PATH=`mktemp --suffix=.png`
-    cargo depgraph --include $WORKSPACE_CRATES | dot -Tpng > $OUT_PATH
+    cargo depgraph --workspace-only --all-deps | dot -Tpng > $OUT_PATH
     echo "Created dependency graph at $OUT_PATH"
