@@ -232,13 +232,13 @@ impl<S> MockParticipant<S> {
         }
     }
 
-    pub async fn receive_core(&mut self) -> Result<CoreEvent, ReceiveError> {
+    pub async fn receive<E: DeserializeOwned>(&mut self) -> Result<E, ReceiveError> {
         let Some(received) = self.receiver.recv().await else {
             return Err(ReceiveError::Closed);
         };
         match received {
             Message::Text(text) => {
-                let event: SignalingEvent<CoreEvent> =
+                let event: SignalingEvent<E> =
                     serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
                         error,
                         message: Message::Text(text),
