@@ -3,10 +3,10 @@
 
 use std::{
     net::{IpAddr, Ipv4Addr},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use config::{Config, Environment, File, FileFormat};
 use serde::Deserialize;
 use signaling_salt::SignalingSalt;
@@ -44,7 +44,7 @@ pub struct Settings {
 impl Settings {
     /// Creates a new Settings instance from the provided TOML file.
     /// Specific fields can be set or overwritten with environment variables (See struct level docs for more details).
-    pub fn load(file_path: &Path) -> Result<Self, Error> {
+    pub fn load_from_path(file_path: &Path) -> Result<Self, Error> {
         let config = Config::builder()
             .add_source(File::from(file_path).format(FileFormat::Toml))
             .add_source(
@@ -56,6 +56,44 @@ impl Settings {
             .context("failed to build settings loader")?;
 
         Ok(serde_path_to_error::deserialize(config).context("invalid configuration")?)
+    }
+
+    /// Creates a new Settings instance from the provided TOML file if provided
+    /// or from the first available standard path otherwise.
+    /// Specific fields can be set or overwritten with environment variables (See struct level docs for more details).
+    pub fn load(file_path: Option<&Path>) -> Result<Settings, Error> {
+        if let Some(path) = file_path {
+            return Self::load_from_path(path);
+        }
+
+        let paths = Self::build_standard_search_paths();
+        for path in &paths {
+            if path.exists() {
+                return Self::load_from_path(path);
+            }
+        }
+
+        Err(anyhow!(
+            "Couldn't find a configuration file. Searched: {}.",
+            paths
+                .iter()
+                .map(|path| format!("\"{}\"", path.to_string_lossy()))
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+        .into())
+    }
+
+    fn build_standard_search_paths() -> Vec<PathBuf> {
+        let mut paths = vec!["roomserver.toml".into()];
+
+        if let Some(config_dir) = dirs::config_dir() {
+            paths.push(config_dir.join("opentalk/roomserver.toml"));
+        }
+
+        paths.push("/etc/opentalk/roomserver.toml".into());
+
+        paths
     }
 
     /// Creates settings for testing

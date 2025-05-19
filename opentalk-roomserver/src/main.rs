@@ -63,10 +63,9 @@ pub fn decorate_error(decoration: &'static str) -> impl Fn(anyhow::Error) -> any
     move |err| err.context(decoration)
 }
 
-async fn run_app(config_file_path: &Path) -> anyhow::Result<()> {
+async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
     let (app_state, _) = watch::channel(ApplicationState::Running);
-    let settings =
-        Arc::new(Settings::load(config_file_path).context("Failed to load configuration")?);
+    let settings = Arc::new(Settings::load(config_file_path)?);
     let mut set = JoinSet::new();
 
     set.spawn(
@@ -230,7 +229,7 @@ async fn main() -> anyhow::Result<()> {
         Some(SubCommand::Openapi(command)) => {
             cli::openapi::handle_command(command).await?;
         }
-        None => run_app(&args.config).await?,
+        None => run_app(args.config.as_deref()).await?,
     }
 
     Ok(())
