@@ -10,6 +10,8 @@ mod event_widget_layout;
 
 pub use event_widget_layout::{EventWidgetLayout, Expand};
 
+use super::signaling::filtered_vec::{Filter, Filterable};
+
 #[derive(Debug)]
 pub(crate) struct EventWidget {
     event: RunnerEvent,
@@ -72,6 +74,7 @@ impl EventWidget {
         &mut self,
         ui: &mut egui::Ui,
         layout: &event_widget_layout::EventWidgetLayout,
+        show_plain: bool,
     ) {
         ui.vertical(|ui| {
             match &self.event.event_type {
@@ -82,8 +85,8 @@ impl EventWidget {
                     ui.label(RichText::new("Connected").color(Color32::GREEN));
                 }
                 RunnerEventType::Received { message }
-                | RunnerEventType::SendSuccess { message } => {
-                    if let Some(json) = &self.json {
+                | RunnerEventType::SendSuccess { message } => match &self.json {
+                    Some(json) if !show_plain => {
                         let res = JsonTree::new((&self.timestamp, message), json)
                             .style(
                                 JsonTreeStyle::new()
@@ -95,10 +98,11 @@ impl EventWidget {
                             res.reset_expanded(ui);
                             self.reset_expanded = false;
                         }
-                    } else {
+                    }
+                    _ => {
                         ui.code(message);
                     }
-                }
+                },
                 RunnerEventType::ReceiveError { error } => {
                     ui.label(error.to_string());
                 }
@@ -117,5 +121,20 @@ impl EventWidget {
 impl From<RunnerEvent> for EventWidget {
     fn from(value: RunnerEvent) -> Self {
         Self::new(value)
+    }
+}
+
+impl Filterable for EventWidget {
+    fn apply(&self, filter: &mut Filter) -> bool {
+        match &self.event.event_type {
+            RunnerEventType::Disconnected => true,
+            RunnerEventType::Connected => true,
+            RunnerEventType::ReceiveError { .. } => true,
+            RunnerEventType::SendError { .. } => true,
+
+            RunnerEventType::SendSuccess { message } | RunnerEventType::Received { message } => {
+                filter.apply(message)
+            }
+        }
     }
 }

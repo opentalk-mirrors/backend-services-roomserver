@@ -3,7 +3,7 @@
 
 use egui::{Color32, RichText, TextEdit};
 
-use super::shortcuts::DELETE_MODE_SHORTCUT;
+use crate::app::shortcuts::DELETE_MODE_SHORTCUT;
 
 pub const SECTION_SPACE_HIGHT: f32 = 20.;
 

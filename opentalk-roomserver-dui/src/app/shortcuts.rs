@@ -21,3 +21,6 @@ pub const SUCCESSOR_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL, Key::ArrowDown);
 pub const TOGGLE_HISTORY_PANEL_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL, Key::H);
+pub const FILTER_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::F);
+pub const FOCUS_MESSAGE_INPUT_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::CTRL, Key::M);
