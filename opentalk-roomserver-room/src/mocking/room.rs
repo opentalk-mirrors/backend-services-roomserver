@@ -9,19 +9,12 @@ use opentalk_roomserver_common::{
 };
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, ClientParameters, Role},
-    room_parameters::RoomParameters,
+    client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
-use opentalk_types_api_v1::users::PublicUserProfile;
-use opentalk_types_common::{
-    rooms::RoomId,
-    tariffs::TariffModuleResource,
-    users::{UserId, UserInfo},
-    utils::ExampleData,
-};
+use opentalk_types_common::{rooms::RoomId, tariffs::TariffModuleResource, utils::ExampleData};
 use tokio::sync::watch;
 
-use super::participant::{MockParticipantJoined, ReceiveError};
+use super::participant::{MockParticipantJoined, MockParticipantJoining, ReceiveError};
 use crate::{
     ModuleRegistry, RoomTaskHandle, RoomTaskHandleError,
     mocking::{participant::create_participant_connection, socket::MockSocket},
@@ -163,76 +156,18 @@ impl TestRoom {
     }
 
     pub async fn join_alice_moderator(&mut self) -> MockParticipantJoined {
-        let profile = PublicUserProfile {
-            id: UserId::from_u128(0x1),
-            email: "alice@example.com".to_string(),
-            user_info: UserInfo {
-                title: "M.Sc.".parse().expect("Valid title"),
-                firstname: "Alice".to_string(),
-                lastname: "Aal".to_string(),
-                display_name: "Alice the angry".parse().expect("Valid DisplayName"),
-                avatar_url: "https://example.com/avatar-of-alice".to_string(),
-            },
-        };
-
-        let parameters = ClientParameters {
-            device_secret: "Alice Device".to_string(),
-            kind: ClientKind::Registered { profile },
-            role: Role::Moderator,
-        };
-        self.join_participant(parameters).await.unwrap()
+        MockParticipantJoining::alice().join(self).await.unwrap()
     }
 
     pub async fn join_bob(&mut self) -> MockParticipantJoined {
-        let profile = PublicUserProfile {
-            id: UserId::from_u128(0x2),
-            email: "bob@example.com".to_string(),
-            user_info: UserInfo {
-                title: "".parse().expect("Valid title"),
-                firstname: "Bob".to_string(),
-                lastname: "Barsch".to_string(),
-                display_name: "Bob the bold".parse().expect("Valid DisplayName"),
-                avatar_url: "https://example.com/avatar-of-bob".to_string(),
-            },
-        };
-
-        let parameters = ClientParameters {
-            device_secret: "Bob Device".to_string(),
-            kind: ClientKind::Registered { profile },
-            role: Role::User,
-        };
-        self.join_participant(parameters).await.unwrap()
+        MockParticipantJoining::bob().join(self).await.unwrap()
     }
 
     pub async fn join_charlie(&mut self) -> MockParticipantJoined {
-        let profile = PublicUserProfile {
-            id: UserId::from_u128(0x3),
-            email: "charlie@example.com".to_string(),
-            user_info: UserInfo {
-                title: "".parse().expect("Valid title"),
-                firstname: "Charlie".to_string(),
-                lastname: "Clownfisch".to_string(),
-                display_name: "Charlie the charming".parse().expect("Valid DisplayName"),
-                avatar_url: "https://example.com/avatar-of-alice".to_string(),
-            },
-        };
-
-        let parameters = ClientParameters {
-            device_secret: "Charlie Device".to_string(),
-            kind: ClientKind::Registered { profile },
-            role: Role::User,
-        };
-        self.join_participant(parameters).await.unwrap()
+        MockParticipantJoining::charlie().join(self).await.unwrap()
     }
 
     pub async fn join_gustav_guest(&mut self) -> MockParticipantJoined {
-        let parameters = ClientParameters {
-            device_secret: "Gustav Device".to_string(),
-            kind: ClientKind::Guest {
-                display_name: "Gustav the great".parse().expect("Valid DisplayName"),
-            },
-            role: Role::User,
-        };
-        self.join_participant(parameters).await.unwrap()
+        MockParticipantJoining::gustav().join(self).await.unwrap()
     }
 }

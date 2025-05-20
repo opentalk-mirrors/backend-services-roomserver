@@ -37,16 +37,14 @@ macro_rules! assert_message_eq {
 }
 
 /// Once the chat is disabled, messages cannot be sent.
-#[tokio::test]
+#[test_log::test(tokio::test)]
 async fn chat_is_disabled() {
-    let _ = env_logger::try_init();
-
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
     let mut alice = room.join_alice_moderator().await;
     let mut bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive_core().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap(),
         CoreEvent::ParticipantConnected { .. }
     ));
 
@@ -111,17 +109,15 @@ async fn chat_is_disabled() {
 }
 
 /// The chat should work after disabling and enabling it again.
-#[tokio::test]
+#[test_log::test(tokio::test)]
 async fn chat_works_after_enabling() {
-    let _ = env_logger::try_init();
-
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
     let mut alice = room.join_alice_moderator().await;
 
     let mut bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive_core().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap(),
         CoreEvent::ParticipantConnected { .. }
     ));
 
@@ -205,27 +201,25 @@ async fn chat_works_after_enabling() {
 }
 
 /// Private messages should not be received by participants that are not invited.
-#[tokio::test]
+#[test_log::test(tokio::test)]
 async fn private_messages_are_private() {
-    let _ = env_logger::try_init();
-
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
     let mut alice = room.join_alice_moderator().await;
 
     let mut bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive_core().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap(),
         CoreEvent::ParticipantConnected { .. }
     ));
 
     let mut charlie = room.join_charlie().await;
     assert!(matches!(
-        alice.receive_core().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap(),
         CoreEvent::ParticipantConnected { .. }
     ));
     assert!(matches!(
-        bob.receive_core().await.unwrap(),
+        bob.receive::<CoreEvent>().await.unwrap(),
         CoreEvent::ParticipantConnected { .. }
     ));
 
@@ -259,10 +253,8 @@ async fn private_messages_are_private() {
 /// 3. Alice sends a private message
 /// 4. Alice clears the chat
 /// 5. Bob leaves and rejoins, the JoinSuccess should only contain the private message
-#[tokio::test]
+#[test_log::test(tokio::test)]
 async fn global_chat_is_cleared() {
-    let _ = env_logger::try_init();
-
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
     // Alice joins
@@ -271,7 +263,7 @@ async fn global_chat_is_cleared() {
     // Bob joins
     let mut bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive_core().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap(),
         CoreEvent::ParticipantConnected { .. }
     ));
 
@@ -343,7 +335,7 @@ async fn global_chat_is_cleared() {
     bob.disconnect();
     let bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive_core().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap(),
         CoreEvent::ParticipantConnected { .. }
     ));
     let chat_state = bob
@@ -378,10 +370,8 @@ async fn global_chat_is_cleared() {
 /// 1. Alice join the room
 /// 2. Alice sets last seen timestamp for global and private chat
 /// 3. Alice rejoins, the JoinSuccess should contain the last seen timestamps
-#[tokio::test]
+#[test_log::test(tokio::test)]
 async fn last_seen_timestamp_should_be_stored() {
-    let _ = env_logger::try_init();
-
     let timestamp = Timestamp::now();
     let other_participant = ParticipantId::generate();
 

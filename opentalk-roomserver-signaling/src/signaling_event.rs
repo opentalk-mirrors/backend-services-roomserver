@@ -5,7 +5,7 @@ use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SignalingEvent<C: Serialize> {
+pub struct SignalingEvent<C> {
     pub namespace: ModuleId,
     pub content: C,
 }

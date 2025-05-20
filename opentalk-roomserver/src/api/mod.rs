@@ -11,7 +11,7 @@ use axum::{
 };
 use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_module_chat::ChatModule;
-use opentalk_roomserver_module_ping::ping::PingModule;
+use opentalk_roomserver_module_ping::PingModule;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters, room_parameters::RoomParameters,
