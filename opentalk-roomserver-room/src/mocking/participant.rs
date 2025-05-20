@@ -19,7 +19,10 @@ use crate::task::core::CoreEvent;
 #[derive(Debug)]
 pub enum ReceiveError {
     Closed,
-    InvalidJson(serde_json::Error),
+    InvalidJson {
+        error: serde_json::Error,
+        message: Message,
+    },
     UnexpectedMessage(Message),
 }
 
@@ -56,7 +59,10 @@ impl MockParticipant<()> {
         match received {
             Message::Text(text) => {
                 let event: SignalingEvent<CoreEvent> =
-                    serde_json::from_str(&text).map_err(ReceiveError::InvalidJson)?;
+                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
+                        error,
+                        message: Message::Text(text.clone()),
+                    })?;
 
                 if let CoreEvent::JoinSuccess(msg) = event.content {
                     Ok(MockParticipant {
@@ -140,7 +146,10 @@ impl<S> MockParticipant<S> {
         match received {
             Message::Text(text) => {
                 let event: SignalingEvent<M::Outgoing> =
-                    serde_json::from_str(&text).map_err(ReceiveError::InvalidJson)?;
+                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
+                        error,
+                        message: Message::Text(text),
+                    })?;
                 Ok(event.content)
             }
             other => Err(ReceiveError::UnexpectedMessage(other)),
@@ -154,7 +163,10 @@ impl<S> MockParticipant<S> {
         match received {
             Message::Text(text) => {
                 let event: SignalingEvent<CoreEvent> =
-                    serde_json::from_str(&text).map_err(ReceiveError::InvalidJson)?;
+                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
+                        error,
+                        message: Message::Text(text),
+                    })?;
 
                 Ok(event.content)
             }
