@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::path::Path;
+
 use connecting::ConnectingView;
 use connection_config::ConnectionConfigView;
 use eframe::CreationContext;
@@ -52,7 +54,7 @@ pub struct RoomServerApp {
 }
 
 impl RoomServerApp {
-    pub fn new(cc: &CreationContext, roomserver_config: Option<&str>) -> anyhow::Result<Self> {
+    pub fn new(cc: &CreationContext, roomserver_config: Option<&Path>) -> anyhow::Result<Self> {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()?;

@@ -27,7 +27,7 @@ The content is copied from `<roomserver-project-root>/docs` and placed in the do
 ### Copy files outside of `docs/`
 
 The documentation contains verbatim copies of files outside the `docs/` folder
-(e.g. `examples/config.toml`). The [`ci-docs-updater`](https://git.opentalk.dev/opentalk/tools/opentalk-ci-doc-updater) is used to ensure that the documentation stays in sync with the original files.
+(e.g. `examples/roomserver.toml`). The [`ci-docs-updater`](https://git.opentalk.dev/opentalk/tools/opentalk-ci-doc-updater) is used to ensure that the documentation stays in sync with the original files.
 
 You can update the documentation running:
 
@@ -35,9 +35,9 @@ You can update the documentation running:
 just update-docs
 ```
 
-### Style of `examples/config.toml`
+### Style of `examples/roomserver.toml`
 
-The `config.toml` is exposed in our documentation. It should therefore follow some styling rules to make it easier to use.
+The `roomserver.toml` is exposed in our documentation. It should therefore follow some styling rules to make it easier to use.
 
 #### Example
 
