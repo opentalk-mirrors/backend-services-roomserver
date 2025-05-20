@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use egui::{Button, Label, RichText, TextEdit};
+use egui::{Button, Label, RichText, TextEdit, Widget};
 use egui_extras::{Column, StripBuilder, TableBuilder};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
@@ -56,17 +56,11 @@ impl ConnectionConfigView {
         delete_mode_btn(ui, &mut self.delete_mode);
     }
 
-    pub(crate) fn ui(
-        &mut self,
-        settings: &mut DuiSettings,
-        ui: &mut egui::Ui,
-    ) -> Option<TransitionToView> {
-        let mut transition_request = None;
+    pub fn center_ui(&mut self, settings: &mut DuiSettings, ui: &mut egui::Ui) {
         StripBuilder::new(ui)
             .size(egui_extras::Size::relative(0.2))
-            .size(egui_extras::Size::relative(0.35))
-            .size(egui_extras::Size::relative(0.35))
-            .size(egui_extras::Size::remainder())
+            .size(egui_extras::Size::relative(0.4))
+            .size(egui_extras::Size::relative(0.4))
             .vertical(|mut strip| {
                 strip.cell(|ui| {
                     self.room_id_ui(settings, ui);
@@ -87,32 +81,37 @@ impl ConnectionConfigView {
                         builder,
                     );
                 });
-
-                strip.cell(|ui| {
-                    let connect_btn = Button::new("Connect")
-                        .shortcut_text(ui.ctx().format_shortcut(&SUBMIT_SHORTCUT));
-                    if let (Some(room_id), Ok(room_parameters), Ok(client_parameters)) = (
-                        settings
-                            .room_ids
-                            .get(self.selected_room_id_index)
-                            .map(|(_, r)| *r),
-                        &self.room_parameters_select.parsed,
-                        &self.client_parameters_select.parsed,
-                    ) {
-                        if ui.add(connect_btn).clicked()
-                            || ui.ctx().input_mut(|i| i.consume_shortcut(&SUBMIT_SHORTCUT))
-                        {
-                            transition_request = Some(TransitionToView::Connecting {
-                                room_id,
-                                client_parameters: client_parameters.clone().into(),
-                                room_parameters: room_parameters.clone().into(),
-                            });
-                        }
-                    } else {
-                        ui.add_enabled(false, connect_btn);
-                    }
-                });
             });
+    }
+
+    pub fn ui_bottom(
+        &mut self,
+        ui: &mut egui::Ui,
+        settings: &mut DuiSettings,
+    ) -> Option<TransitionToView> {
+        let mut transition_request = None;
+        let connect_btn =
+            Button::new("Connect").shortcut_text(ui.ctx().format_shortcut(&SUBMIT_SHORTCUT));
+        if let (Some(room_id), Ok(room_parameters), Ok(client_parameters)) = (
+            settings
+                .room_ids
+                .get(self.selected_room_id_index)
+                .map(|(_, r)| *r),
+            &self.room_parameters_select.parsed,
+            &self.client_parameters_select.parsed,
+        ) {
+            if ui.add(connect_btn).clicked()
+                || ui.ctx().input_mut(|i| i.consume_shortcut(&SUBMIT_SHORTCUT))
+            {
+                transition_request = Some(TransitionToView::Connecting {
+                    room_id,
+                    client_parameters: client_parameters.clone().into(),
+                    room_parameters: room_parameters.clone().into(),
+                });
+            }
+        } else {
+            ui.add_enabled(false, connect_btn);
+        }
 
         transition_request
     }
@@ -155,13 +154,12 @@ impl ConnectionConfigView {
                     });
 
                     row.col(|ui| {
-                        ui.add(Label::new(RichText::new(room_id.to_string()).monospace()));
+                        Label::new(RichText::new(room_id.to_string()).monospace()).ui(ui);
                     });
 
                     row.col(|ui| {
                         ui.label(name);
                     });
-
                     if row.response().clicked() {
                         self.selected_room_id_index = row_index;
                     }

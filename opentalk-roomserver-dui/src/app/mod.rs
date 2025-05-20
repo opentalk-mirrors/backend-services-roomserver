@@ -111,7 +111,10 @@ impl RoomServerApp {
 
     fn central_panel_ui(&mut self, ui: &mut egui::Ui) {
         let request = match &mut self.view {
-            CentralAppView::ConnectionConfig(view) => view.ui(&mut self.settings, ui),
+            CentralAppView::ConnectionConfig(view) => {
+                view.center_ui(&mut self.settings, ui);
+                None
+            }
             CentralAppView::Connecting(view) => view.ui(ui, &self.command_tx, &self.settings),
             CentralAppView::Signaling(signaling_view) => {
                 signaling_view.center_ui(ui, &mut self.event_rx, &self.settings)
@@ -204,15 +207,24 @@ impl RoomServerApp {
     }
 
     fn bottom_panel_ui(&mut self, ui: &mut egui::Ui) {
-        if let CentralAppView::Signaling(signaling_view) = &mut self.view {
-            signaling_view
-                .bottom_ui(
-                    ui,
-                    &self.command_tx,
-                    self.signaling_state_rx.borrow().to_owned(),
-                    &mut self.settings.history,
-                )
-                .expect("Fatal error");
+        match &mut self.view {
+            CentralAppView::Signaling(signaling_view) => {
+                signaling_view
+                    .bottom_ui(
+                        ui,
+                        &self.command_tx,
+                        self.signaling_state_rx.borrow().to_owned(),
+                        &mut self.settings.history,
+                    )
+                    .expect("Fatal error");
+            }
+            CentralAppView::ConnectionConfig(view) => {
+                let req = view.ui_bottom(ui, &mut self.settings);
+                if let Some(transition) = req {
+                    self.transition_to_view(transition);
+                }
+            }
+            _ => (),
         };
     }
 }

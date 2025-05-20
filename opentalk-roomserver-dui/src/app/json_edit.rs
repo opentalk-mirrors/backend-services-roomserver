@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use egui::Widget;
+
 pub(crate) fn json_editor(ui: &mut egui::Ui, text: &mut String) -> egui::Response {
     let theme = egui_extras::syntax_highlighting::CodeTheme::from_memory(ui.ctx(), ui.style());
 
@@ -14,14 +16,13 @@ pub(crate) fn json_editor(ui: &mut egui::Ui, text: &mut String) -> egui::Respons
     egui::ScrollArea::vertical()
         .max_height(f32::INFINITY)
         .show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(text)
-                    .font(egui::TextStyle::Monospace)
-                    .code_editor()
-                    .lock_focus(true)
-                    .desired_width(f32::INFINITY)
-                    .layouter(&mut layouter),
-            )
+            egui::TextEdit::multiline(text)
+                .font(egui::TextStyle::Monospace)
+                .code_editor()
+                .lock_focus(true)
+                .desired_width(f32::INFINITY)
+                .layouter(&mut layouter)
+                .ui(ui)
         })
         .inner
 }

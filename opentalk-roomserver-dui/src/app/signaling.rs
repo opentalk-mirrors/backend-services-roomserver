@@ -188,7 +188,7 @@ impl SignalingView {
             let res = json_editor(ui, &mut self.edit_message);
 
             if self.force_focus {
-                ui.memory_mut(|memory| memory.request_focus(res.id));
+                res.request_focus();
                 self.force_focus = false;
             }
             // If we edit the message that was shown, we remove the "select history message" context
