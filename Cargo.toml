@@ -8,6 +8,7 @@ members = [
   "opentalk-roomserver-client",
   "opentalk-roomserver-dui",
   "opentalk-roomserver-module-chat",
+  "opentalk-roomserver-room",
   "opentalk-roomserver-types",
   "opentalk-roomserver-web-api",
 ]
@@ -27,16 +28,16 @@ repository = "https://gitlab.opencode.de/opentalk/roomserver"
 version = "0.0.0-dev"
 
 [workspace.dependencies]
-opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev", features = [
-  "utoipa",
-] }
-opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
-
 opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.0-dev" }
 opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.0-dev" }
 opentalk-roomserver-module-chat = { path = "opentalk-roomserver-module-chat", version = "0.0.0-dev" }
 opentalk-roomserver-module-ping = { path = "opentalk-roomserver-module-ping", version = "0.0.0-dev" }
+opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.0-dev" }
 opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.0-dev" }
+opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev", features = [
+  "utoipa",
+] }
+opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 opentalk-types-api-v1 = { version = "0.37.0", features = ["axum"] }
 opentalk-types-common = { version = "0.34.0", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.35.0", features = ["serde"] }
@@ -80,8 +81,8 @@ serde_path_to_error = "0.1.16"
 service-probe = "0.2.0"
 thiserror = "2.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-tokio-test = "0.4"
 tokio-tungstenite = "0.26.2"
+tokio-util = "0.7.15"
 tower = "0.5"
 tower-http = "0.6.2"
 tracing = "0.1"

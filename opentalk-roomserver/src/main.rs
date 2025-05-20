@@ -16,7 +16,10 @@ use clap::Parser;
 use cli::{Args, SubCommand};
 use futures::TryFutureExt;
 use metrics::MetricHandle;
-use opentalk_roomserver_common::settings::{telemetry::Monitoring, Settings};
+use opentalk_roomserver_common::{
+    application_state::ApplicationState,
+    settings::{telemetry::Monitoring, Settings},
+};
 use service_probe::{start_probe, stop_probe, ServiceState};
 use tokio::{
     signal,
@@ -28,29 +31,10 @@ use tokio::{
 mod api;
 mod cli;
 mod metrics;
-#[cfg(test)]
-mod mocking;
-pub mod room;
+
 mod trace;
 
 const SHUTDOWN_GRACE_PERIOD: Duration = Duration::from_secs(42);
-
-#[derive(Debug, Clone, Copy, Default)]
-pub enum ApplicationState {
-    #[default]
-    Running,
-
-    ShuttingDown,
-}
-
-impl ApplicationState {
-    /// Returns `true` if the application state is [`ShuttingDown`].
-    ///
-    /// [`ShuttingDown`]: ApplicationState::ShuttingDown
-    pub fn is_shutting_down(&self) -> bool {
-        matches!(self, Self::ShuttingDown)
-    }
-}
 
 pub(crate) async fn wait_shutdown(mut app_state: watch::Receiver<ApplicationState>) {
     let res = app_state.wait_for(ApplicationState::is_shutting_down).await;

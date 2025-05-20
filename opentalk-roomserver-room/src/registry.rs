@@ -3,25 +3,26 @@
 
 use std::{collections::HashMap, sync::Arc};
 
+use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_types::room_parameters::RoomParameters;
-use opentalk_roomserver_web_api::v1::{signaling::websocket::SignalingSocket, RoomAction};
+use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
 use opentalk_types_common::rooms::RoomId;
-use tokio::sync::{watch, RwLock};
+use tokio::{
+    sync::{RwLock, watch},
+    task::JoinHandle,
+};
 
 use super::signaling::module_initializer::ModuleRegistry;
-use crate::{
-    room::task::{
-        handle::{RoomTaskHandle, RoomTaskHandleError},
-        RoomTask,
-    },
-    ApplicationState, Settings,
+use crate::task::{
+    RoomTask,
+    handle::{RoomTaskHandle, RoomTaskHandleError},
 };
 
 /// The room task registry
 ///
 /// Holds a list over all active rooms and their [`RoomTaskHandle`].
 #[derive(Default, Debug)]
-pub(crate) struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
+pub struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
     inner: Arc<RwLock<HashMap<RoomId, RoomTaskHandle<Socket>>>>,
 }
 
@@ -49,7 +50,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     ///
     /// [`Created`]: RoomAction::Created
     /// [`Updated`]: RoomAction::Updated
-    pub(crate) async fn put_room(
+    pub async fn put_room(
         &self,
         room_id: RoomId,
         room_parameters: RoomParameters,
@@ -57,31 +58,45 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> Result<(RoomAction, RoomTaskHandle<Socket>), RoomTaskHandleError<Socket>> {
-        let mut registry = self.inner.write().await;
+        let registry = self.inner.write().await;
 
         if let Some(task_handle) = registry.get(&room_id) {
             task_handle.update_parameter(room_parameters).await?;
             return Ok((RoomAction::Updated, task_handle.clone()));
         }
 
-        let task_handle = RoomTask::spawn(
+        let (task_handle, join_handle) = RoomTask::spawn(
             room_id,
             room_parameters,
-            self.clone(),
             module_registry,
             settings,
             app_state,
         );
 
-        registry.insert(room_id, task_handle.clone());
+        self.insert(room_id, registry, &task_handle, join_handle);
 
         Ok((RoomAction::Created, task_handle))
+    }
+
+    fn insert(
+        &self,
+        room_id: RoomId,
+        mut registry: tokio::sync::RwLockWriteGuard<'_, HashMap<RoomId, RoomTaskHandle<Socket>>>,
+        task_handle: &RoomTaskHandle<Socket>,
+        join_handle: JoinHandle<()>,
+    ) {
+        registry.insert(room_id, task_handle.clone());
+        let this = self.clone();
+        tokio::spawn(async move {
+            let _ = join_handle.await;
+            this.remove_room(room_id).await;
+        });
     }
 
     /// Spawns a new room task or returns the [`RoomTaskHandle`] if the room task is already running.
     ///
     /// Returns [`None`] when the room was created.
-    pub(crate) async fn create_or_get(
+    pub async fn create_or_get(
         &self,
         room_id: RoomId,
         room_parameters: RoomParameters,
@@ -89,28 +104,26 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> Option<RoomTaskHandle<Socket>> {
-        let mut registry = self.inner.write().await;
+        let registry = self.inner.write().await;
 
         if let Some(task_handle) = registry.get(&room_id) {
             return Some(task_handle.clone());
         }
 
-        let task_handle = RoomTask::spawn(
+        let (task_handle, join_handle) = RoomTask::spawn(
             room_id,
             room_parameters,
-            self.clone(),
             module_registry,
             settings,
             app_state,
         );
-
-        registry.insert(room_id, task_handle);
+        self.insert(room_id, registry, &task_handle, join_handle);
 
         None
     }
 
     /// Checks if the requested room id exists and refreshes the idle timeout if it does
-    pub(crate) async fn ensure_room_exists(&self, room_id: &RoomId) -> bool {
+    pub async fn ensure_room_exists(&self, room_id: &RoomId) -> bool {
         let registry = self.inner.read().await;
 
         let Some(handle) = registry.get(room_id) else {
@@ -128,14 +141,14 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     }
 
     /// Get the [`RoomTaskHandle`] for the specified [`RoomId`]
-    pub(crate) async fn get_task_handle(&self, room_id: &RoomId) -> Option<RoomTaskHandle<Socket>> {
+    pub async fn get_task_handle(&self, room_id: &RoomId) -> Option<RoomTaskHandle<Socket>> {
         self.inner.read().await.get(room_id).cloned()
     }
 
     /// Removes the room from the registry
     ///
     /// This will also destroy the related [`RoomTask`]
-    pub(crate) async fn remove_room(&self, room_id: RoomId) {
+    pub async fn remove_room(&self, room_id: RoomId) {
         let mut room_list = self.inner.write().await;
 
         log::trace!("Remove room task handle from registry: {room_id}");

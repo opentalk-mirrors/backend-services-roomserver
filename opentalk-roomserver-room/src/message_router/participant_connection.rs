@@ -3,7 +3,8 @@
 //! Manages the websocket connection for a single participant
 use std::{pin::Pin, time::Duration};
 
-use futures::{stream::Peekable, FutureExt, SinkExt as _, StreamExt as _};
+use futures::{FutureExt, SinkExt as _, StreamExt as _, stream::Peekable};
+use opentalk_roomserver_common::application_state::ApplicationState;
 use opentalk_roomserver_signaling::signaling_module::SharedRawJson;
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, error::SignalingError, signaling::SignalingCommand,
@@ -21,7 +22,6 @@ use tokio::{
 };
 
 use super::message::{CloseReason, MessageEnvelope, SignalingMessage};
-use crate::ApplicationState;
 
 /// The duration the participant has to respond with a close frame after a close
 /// frame is sent by the server. If the participant does not send a close frame
@@ -384,16 +384,15 @@ async fn wait_close<Stream: SignalingStream>(mut stream: Stream) {
 mod tests {
     use std::time::Duration;
 
-    use futures::{pin_mut, StreamExt as _};
+    use futures::{StreamExt as _, pin_mut};
     use opentalk_roomserver_types::{connection_id::ConnectionId, signaling::SignalingCommand};
+    use opentalk_types_signaling::ParticipantId;
     use tokio::sync::mpsc;
     use tracing::Span;
 
     use crate::{
-        mocking::{mock_socket::MockSocket, participant::create_participant_connection},
-        room::message_router::{
-            participant_connection::ParticipantConnectionTask, MessageEnvelope,
-        },
+        message_router::{MessageEnvelope, participant_connection::ParticipantConnectionTask},
+        mocking::{participant::create_participant_connection, socket::MockSocket},
     };
 
     /// Test that the receive future is cancel safe.
@@ -414,8 +413,8 @@ mod tests {
             command_tx
                 .send(MessageEnvelope {
                     connection_id: ConnectionId::nil(),
-                    participant_id: p1.id,
-                    message: crate::room::message_router::SignalingMessage::Command(
+                    participant_id: ParticipantId::from_u128(1),
+                    message: crate::message_router::SignalingMessage::Command(
                         SignalingCommand::new(
                             "ping".parse().unwrap(),
                             None,

@@ -3,18 +3,19 @@
 
 //! Manage participant connection tasks
 
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{HashMap, hash_map::Entry};
 
-use axum::extract::ws::{close_code, CloseFrame};
+use axum::extract::ws::{CloseFrame, close_code};
 use futures::SinkExt;
 pub use message::{CloseReason, MessageEnvelope, SignalingMessage};
+use opentalk_roomserver_common::application_state::ApplicationState;
 use opentalk_roomserver_signaling::signaling_module::SharedRawJson;
 use opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_signaling::ParticipantId;
-use tokio::sync::{mpsc, watch, Mutex};
+use tokio::sync::{Mutex, mpsc, watch};
 
-use crate::{room::message_router::participant_connection::ConnectionHandle, ApplicationState};
+use crate::message_router::participant_connection::ConnectionHandle;
 
 mod message;
 mod participant_connection;
@@ -164,26 +165,27 @@ impl MessageRouter {
 #[cfg(test)]
 mod tests {
     use axum::extract::ws::CloseFrame;
-    use futures::SinkExt;
+    use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_web_api::v1::signaling::websocket::Message;
     use opentalk_types_common::modules::module_id;
+    use opentalk_types_signaling::ParticipantId;
     use serde_json::{json, value::to_raw_value};
     use tokio::sync::watch;
 
     use crate::{
+        message_router::{self, MessageEnvelope, MessageRouter, SignalingMessage},
         mocking::participant::create_participant_connection,
-        room::message_router::{self, MessageEnvelope, MessageRouter, SignalingMessage},
-        ApplicationState,
     };
 
     #[tokio::test]
     async fn participant_lifecycle() {
         let (_app_state_send, app_state_recv) = watch::channel(ApplicationState::Running);
         let mut router = MessageRouter::new(app_state_recv);
-        let (p1_socket, mut p1) = create_participant_connection();
+        let (p1_socket, p1) = create_participant_connection();
+        let p1_id = ParticipantId::from_u128(1);
 
-        let connection = router.add_connection(p1.id, p1_socket).await.unwrap();
+        let connection = router.add_connection(p1_id, p1_socket).await.unwrap();
 
         p1.sender
             .send(Ok(Message::Close(Some(CloseFrame {
@@ -203,7 +205,7 @@ mod tests {
                     message_router::message::CloseReason::ParticipantClosed
                 ),
                 ..
-            } if participant_id == p1.id && connection_id == connection
+            } if participant_id == p1_id && connection_id == connection
         ));
 
         let event = SignalingEvent {

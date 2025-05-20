@@ -86,7 +86,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_chat_id_global() {
+    fn chat_id_global() {
         let scope = Scope::Global;
         let source = ParticipantId::from_u128(0x1);
         let chat_id = ChatId::from_scope_and_source(scope, source);
@@ -95,7 +95,7 @@ mod tests {
     }
 
     #[test]
-    fn test_chat_id_group() {
+    fn chat_id_group() {
         let group_name = GroupName::from("group_name".to_string());
         let scope = Scope::Group(group_name.clone());
         let source = ParticipantId::from_u128(0x1);
@@ -105,7 +105,7 @@ mod tests {
     }
 
     #[test]
-    fn test_chat_id_private() {
+    fn chat_id_private() {
         let source = ParticipantId::from_u128(0x1);
         let participant = ParticipantId::from_u128(0x2);
         let scope = Scope::Private(participant);
@@ -117,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn test_chat_id_private_order_independence() {
+    fn chat_id_private_order_independence() {
         let participant_a = ParticipantId::from_u128(0x2);
         let participant_b = ParticipantId::from_u128(0x1);
 

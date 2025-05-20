@@ -4320,29 +4320,23 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-prometheus",
- "blake3",
  "clap",
  "futures",
  "log",
  "opentalk-roomserver-common",
  "opentalk-roomserver-module-chat",
  "opentalk-roomserver-module-ping",
- "opentalk-roomserver-signaling",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-types-api-v1",
  "opentalk-types-common",
- "opentalk-types-signaling",
- "opentalk-types-signaling-control",
  "opentalk-version",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "pretty_assertions",
- "serde",
- "serde_json",
  "service-probe",
- "thiserror 2.0.12",
  "tokio",
  "tower 0.5.2",
  "tower-http",
@@ -4422,13 +4416,19 @@ dependencies = [
 name = "opentalk-roomserver-module-chat"
 version = "0.0.0-dev"
 dependencies = [
+ "chrono",
+ "env_logger",
  "log",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-chat",
+ "pretty_assertions",
  "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -4443,6 +4443,34 @@ dependencies = [
  "opentalk-types-signaling",
  "serde",
  "tokio",
+]
+
+[[package]]
+name = "opentalk-roomserver-room"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "blake3",
+ "futures",
+ "log",
+ "opentalk-roomserver-common",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-web-api",
+ "opentalk-types-api-v1",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "opentalk-types-signaling-control",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

@@ -3,8 +3,6 @@
 
 use std::{collections::HashMap, marker::PhantomData};
 
-use opentalk_roomserver_module_chat::ChatModule;
-use opentalk_roomserver_module_ping::ping::PingModule;
 use opentalk_roomserver_signaling::signaling_module::{SignalingModule, SignalingModuleInitData};
 use opentalk_types_common::modules::ModuleId;
 
@@ -13,19 +11,15 @@ use super::{ModuleDispatcher, ModuleHandle};
 /// A set of initialized modules that can used through their [`ModuleHandle`]
 pub type Modules = HashMap<ModuleId, Box<dyn ModuleHandle>>;
 
-pub(crate) struct ModuleRegistry {
+pub struct ModuleRegistry {
     modules: HashMap<ModuleId, Box<dyn ModuleInitializer>>,
 }
 
 impl ModuleRegistry {
-    pub(crate) fn new() -> Self {
-        let modules = HashMap::new();
-        let mut registry = Self { modules };
-
-        registry.add_module::<PingModule>();
-        registry.add_module::<ChatModule>();
-
-        registry
+    pub fn new() -> Self {
+        Self {
+            modules: HashMap::new(),
+        }
     }
 
     async fn init_module(
@@ -36,7 +30,7 @@ impl ModuleRegistry {
         self.modules.get(module_id)?.init_module(init_data).await
     }
 
-    fn add_module<M: SignalingModule + Sync + 'static>(&mut self) {
+    pub fn add_module<M: SignalingModule + Sync + 'static>(&mut self) {
         self.modules
             .insert(M::NAMESPACE, Box::new(ModuleInitializerImpl::<M>::new()));
     }
@@ -73,6 +67,12 @@ impl ModuleRegistry {
         }
 
         (modules, uninitialized)
+    }
+}
+
+impl Default for ModuleRegistry {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

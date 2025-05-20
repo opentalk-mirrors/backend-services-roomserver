@@ -39,6 +39,7 @@
 use std::{future::pending, sync::Arc, time::Duration};
 
 use futures::stream::{FuturesUnordered, StreamExt};
+use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantKind, ParticipantState, Participants},
@@ -55,7 +56,10 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
-use tokio::sync::{mpsc, watch};
+use tokio::{
+    sync::{mpsc, watch},
+    task::JoinHandle,
+};
 use uuid::Uuid;
 
 use super::{
@@ -63,22 +67,18 @@ use super::{
     signaling::module_initializer::{ModuleRegistry, Modules},
 };
 use crate::{
-    room::{
-        message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
-        registry::RoomTaskRegistry,
-        signaling::{dyn_module_context::DynModuleContext, DynEvent},
-        task::{
-            handle::{Request, RoomTaskHandle, TaskMessage},
-            idle_timeout::IdleTimeout,
-        },
+    message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
+    signaling::{DynEvent, dyn_module_context::DynModuleContext},
+    task::{
+        handle::{Request, RoomTaskHandle, TaskMessage},
+        idle_timeout::IdleTimeout,
     },
-    ApplicationState, Settings,
 };
 
-pub(crate) mod core;
-pub(crate) mod handle;
-mod idle_timeout;
-pub(crate) mod websocket;
+pub mod core;
+pub mod handle;
+pub mod idle_timeout;
+pub mod websocket;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
@@ -97,7 +97,7 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 ///
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
 /// exits.
-pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
+pub struct RoomTask<Socket: SignalingSocket + 'static> {
     info: RoomInfo,
 
     /// The receiver for web server API request that target this room
@@ -123,18 +123,16 @@ pub(super) struct RoomTask<Socket: SignalingSocket + 'static> {
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Spawns a new [`RoomTask`]
     #[tracing::instrument(level = "debug", skip_all, fields(opentalk.room_id = %room_id))]
-    pub(super) fn spawn(
+    pub fn spawn(
         room_id: RoomId,
         room_parameters: RoomParameters,
-        task_registry: RoomTaskRegistry<Socket>,
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
-    ) -> RoomTaskHandle<Socket> {
+    ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
         Self::spawn_with_timeout(
             room_id,
             room_parameters,
-            task_registry,
             app_state,
             module_registry,
             settings,
@@ -144,20 +142,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     /// Spawns a new [`RoomTask`] with a specific timeout
     #[tracing::instrument(level = "info", skip_all, fields(opentalk.room_id = %room_id))]
-    pub(super) fn spawn_with_timeout(
+    pub fn spawn_with_timeout(
         room_id: RoomId,
         mut room_parameters: RoomParameters,
-        task_registry: RoomTaskRegistry<Socket>,
         app_state: watch::Receiver<ApplicationState>,
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
         timeout: Duration,
-    ) -> RoomTaskHandle<Socket> {
+    ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
         let (tx, rx) = mpsc::channel(20);
 
         let message_router = MessageRouter::new(app_state.clone());
 
-        tokio::task::spawn(async move {
+        let join_handle = tokio::task::spawn(async move {
             let (modules, uninitialized) = module_registry
                 .initialize_modules(
                     room_parameters.tariff.modules.keys(),
@@ -195,10 +192,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             };
 
             room_task.run().await;
-            task_registry.remove_room(room_id).await;
         });
 
-        RoomTaskHandle { sender: tx }
+        (RoomTaskHandle { sender: tx }, join_handle)
     }
 
     async fn run(self) {

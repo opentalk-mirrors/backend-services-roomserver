@@ -12,16 +12,16 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{
     events::{EventInfo, MeetingDetails},
-    modules::{module_id, ModuleId},
+    modules::{ModuleId, module_id},
 };
 use opentalk_types_signaling::{ModuleData, ModulePeerData, Participant, ParticipantId, Role};
 use opentalk_types_signaling_control::{event::JoinSuccess, room::RoomInfo};
 use serde::{Deserialize, Serialize};
 
 use super::RoomTask;
-use crate::room::{
+use crate::{
     message_router::CloseReason,
-    signaling::{dyn_module_context::DynModuleContext, DynBroadcastEvent},
+    signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext},
 };
 
 pub const NAMESPACE: ModuleId = module_id!("core");
@@ -285,7 +285,9 @@ fn build_join_success(
 mod tests {
     use std::collections::BTreeMap;
 
-    use opentalk_roomserver_signaling::signaling_module::SharedRawJson;
+    use opentalk_roomserver_signaling::{
+        signaling_event::SignalingEvent, signaling_module::SharedRawJson,
+    };
     use opentalk_roomserver_types::connection_id::ConnectionId;
     use opentalk_types_common::{
         modules::module_id,
@@ -300,6 +302,154 @@ mod tests {
     use serde_json::{json, value::to_raw_value};
 
     use super::{CoreEvent, DisconnectReason};
+    use crate::task::core::NAMESPACE;
+
+    #[test]
+    fn serialize_signaling_event_success() {
+        let join_success = JoinSuccess {
+            id: ParticipantId::nil(),
+            display_name: DisplayName::example_data(),
+            avatar_url: None,
+            role: Role::Guest,
+            closes_at: None,
+            tariff: Box::new(TariffResource::example_data()),
+            module_data: ModuleData::new(),
+            participants: vec![],
+            event_info: None,
+            room_info: RoomInfo {
+                id: RoomId::nil(),
+                password: None,
+                created_by: UserInfo::example_data(),
+            },
+            is_room_owner: false,
+        };
+        let event = SignalingEvent {
+            namespace: NAMESPACE,
+            content: CoreEvent::JoinSuccess(join_success.into()),
+        };
+        let json = serde_json::to_value(&event).unwrap();
+
+        assert_eq!(
+            json,
+            json!({
+                "namespace": "core",
+                "content": {
+                    "join_success": {
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "display_name": "Alice Adams",
+                        "role": "guest",
+                        "tariff": {
+                            "id": "00000000-0000-0000-0000-000000000000",
+                            "name": "Starter tariff",
+                            "quotas": {
+                                "max_storage": 50000
+                            },
+                            "modules": {
+                                "chat": {
+                                    "features": []
+                                },
+                                "core": {
+                                    "features": []
+                                },
+                                "livekit": {
+                                    "features": []
+                                },
+                                "moderation": {
+                                    "features": []
+                                },
+                                "recording": {
+                                    "features": [
+                                        "record"
+                                    ]
+                                }
+                            }
+                        },
+                        "participants": [],
+                        "event_info": null,
+                        "room_info": {
+                            "id": "00000000-0000-0000-0000-000000000000",
+                            "created_by": {
+                                "title": "",
+                                "firstname": "Alice",
+                                "lastname": "Adams",
+                                "display_name": "Alice Adams",
+                                "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+                            }
+                        },
+                        "is_room_owner": false
+                    }
+                }
+            })
+        );
+
+        let raw = r#"{
+    "namespace": "core",
+    "content": {
+        "join_success": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "display_name": "Alice the angry",
+            "avatar_url": "https://example.com/avatar-of-alice",
+            "role": "user",
+            "tariff": {
+                "id": "00000000-0000-0000-0000-000000000000",
+                "name": "Starter tariff",
+                "quotas": {
+                    "max_storage": 50000
+                },
+                "modules": {
+                    "chat": {
+                        "features": []
+                    }
+                }
+            },
+            "chat": {
+                "enabled": true,
+                "room_history": [],
+                "groups_history": [],
+                "private_history": [],
+                "last_seen_timestamp_global": null,
+                "last_seen_timestamps_private": {},
+                "last_seen_timestamps_group": {}
+            },
+            "participants": [],
+            "event_info": {
+                "id": "00000000-0000-0000-0000-004433221100",
+                "room_id": "00000000-0000-0000-0000-000000000001",
+                "title": "Team Event",
+                "is_adhoc": false,
+                "meeting_details": {
+                    "invite_code_id": "00000000-0000-0000-0000-0000deadbeef",
+                    "call_in": {
+                        "tel": "+555-123-456-789",
+                        "id": "1234567890",
+                        "password": "0987654321"
+                    },
+                    "streaming_links": [
+                        {
+                            "name": "My OwnCast Stream",
+                            "url": "https://owncast.example.com/mystream"
+                        }
+                    ]
+                },
+                "e2e_encryption": false
+            },
+            "room_info": {
+                "id": "00000000-0000-0000-0000-000000000001",
+                "password": "1234",
+                "created_by": {
+                    "title": "",
+                    "firstname": "Alice",
+                    "lastname": "Adams",
+                    "display_name": "Alice Adams",
+                    "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+                }
+            },
+            "is_room_owner": false
+        }
+    }
+}"#;
+        let _: SignalingEvent<CoreEvent> = serde_json::from_str(raw).unwrap();
+    }
 
     #[test]
     fn serialize_core_event_success() {
