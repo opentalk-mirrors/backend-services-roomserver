@@ -9,7 +9,7 @@ use opentalk_roomserver_types::{
     room_parameters::RoomParameters,
 };
 use opentalk_types_common::rooms::RoomId;
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
 
 #[derive(HttpRequest)]
 #[http_request(method = "PUT", response = RoomCreateResponse, path = "/rooms/{room_id}")]

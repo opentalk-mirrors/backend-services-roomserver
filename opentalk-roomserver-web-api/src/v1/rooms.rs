@@ -5,11 +5,11 @@ use std::fmt::Debug;
 
 use async_trait::async_trait;
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{post, put},
-    Json,
 };
 use opentalk_roomserver_types::{
     api::{TokenRequestBody, TokenResponse},

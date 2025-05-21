@@ -8,9 +8,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{ensure, Context};
+use anyhow::{Context, ensure};
 use clap::{Subcommand, ValueEnum};
-use utoipa::{openapi::Server, OpenApi};
+use utoipa::{OpenApi, openapi::Server};
 use yaml_rust2::{YamlEmitter, YamlLoader};
 
 #[derive(Subcommand, Debug, Clone)]

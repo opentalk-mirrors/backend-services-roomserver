@@ -6,7 +6,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
 use axum::{
-    extract::{ws::WebSocket, MatchedPath},
+    extract::{MatchedPath, ws::WebSocket},
     http::{Request, Response},
 };
 use opentalk_roomserver_common::settings::Settings;
@@ -20,18 +20,18 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
-use service_probe::{set_service_state, ServiceState};
+use service_probe::{ServiceState, set_service_state};
 use token_store::TokenStore;
-use tokio::sync::{watch, Mutex};
+use tokio::sync::{Mutex, watch};
 use tower_http::trace::TraceLayer;
-use tracing::{info_span, Span};
+use tracing::{Span, info_span};
 use utoipa::{
-    openapi::security::{Http, HttpAuthScheme},
     OpenApi,
+    openapi::security::{Http, HttpAuthScheme},
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{wait_shutdown, ApplicationState};
+use crate::{ApplicationState, wait_shutdown};
 
 pub(crate) type Router = axum::Router<Context>;
 

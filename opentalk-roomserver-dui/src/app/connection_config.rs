@@ -15,10 +15,10 @@ use opentalk_types_common::{
 };
 
 use super::{
+    TransitionToView,
     json_edit::json_editor,
     shortcuts::SUBMIT_SHORTCUT,
     style::{InvalidInputStyle, SECTION_SPACE_HIGHT},
-    TransitionToView,
 };
 
 fn alice_profile() -> PublicUserProfile {

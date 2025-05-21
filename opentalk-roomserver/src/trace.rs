@@ -4,18 +4,18 @@
 
 use anyhow::Context;
 use opentalk_roomserver_common::settings::telemetry::Tracing;
-use opentelemetry::{trace::TracerProvider as _, KeyValue};
+use opentelemetry::{KeyValue, trace::TracerProvider as _};
 use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
 use opentelemetry_sdk::{
-    trace::{SdkTracerProvider, Tracer},
     Resource,
+    trace::{SdkTracerProvider, Tracer},
 };
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{
+    EnvFilter, Registry,
     fmt::Layer,
     layer::{Layered, SubscriberExt},
     util::SubscriberInitExt,
-    EnvFilter, Registry,
 };
 use uuid::Uuid;
 

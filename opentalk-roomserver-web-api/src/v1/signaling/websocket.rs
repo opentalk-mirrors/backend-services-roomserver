@@ -3,12 +3,12 @@
 
 use axum::extract::ws::WebSocket;
 pub use axum::{
-    extract::ws::{CloseCode, CloseFrame, Message},
     Error,
+    extract::ws::{CloseCode, CloseFrame, Message},
 };
 use futures::{
-    stream::{Peekable, SplitSink, SplitStream},
     Sink, Stream,
+    stream::{Peekable, SplitSink, SplitStream},
 };
 
 /// A stream of messages for a single signaling connection

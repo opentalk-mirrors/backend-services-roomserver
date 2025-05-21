@@ -5,7 +5,7 @@
 authors.workspace = true
 default-run = "opentalk-roomserver"
 description = "OpenTalk RoomServer"
-edition = "2021"
+edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver"

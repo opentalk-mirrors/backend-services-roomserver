@@ -6,7 +6,7 @@ use std::path::Path;
 use connecting::ConnectingView;
 use connection_config::ConnectionConfigView;
 use eframe::CreationContext;
-use egui::{menu, Button, RichText};
+use egui::{Button, RichText, menu};
 use error::RunnerGoneError;
 use error_view::ErrorView;
 use opentalk_roomserver_types::{

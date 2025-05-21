@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use async_trait::async_trait;
-use axum::extract::ws::{close_code, CloseFrame, WebSocket};
+use axum::extract::ws::{CloseFrame, WebSocket, close_code};
 use opentalk_roomserver_room::Request;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, signaling_context::SignalingClientContext,

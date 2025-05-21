@@ -4,7 +4,7 @@
 [package]
 authors.workspace = true
 description = "OpenTalk RoomServer Common"
-edition = "2021"
+edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-common"

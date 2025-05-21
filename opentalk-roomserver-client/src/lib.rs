@@ -9,7 +9,7 @@ use api::{
     room::{RoomsCreateRequest, TokenRequest},
     signaling::{SignalingConnection, SignalingError},
 };
-use http::{header::InvalidHeaderValue, HeaderValue};
+use http::{HeaderValue, header::InvalidHeaderValue};
 use http_request_derive_client::Client as _;
 use http_request_derive_client_reqwest::{ReqwestClient, ReqwestClientError};
 use opentalk_roomserver_types::{

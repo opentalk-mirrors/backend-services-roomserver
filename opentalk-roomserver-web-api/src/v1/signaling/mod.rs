@@ -8,8 +8,8 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use axum::{
     extract::{
-        ws::{WebSocket, WebSocketUpgrade},
         Path, State,
+        ws::{WebSocket, WebSocketUpgrade},
     },
     response::{IntoResponse, Response},
     routing::get,

@@ -9,7 +9,7 @@ use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use tokio::sync::{mpsc::UnboundedSender, oneshot::Receiver};
 use url::Url;
 
-use super::{error::RunnerGoneError, shortcuts::SUBMIT_SHORTCUT, TransitionToView};
+use super::{TransitionToView, error::RunnerGoneError, shortcuts::SUBMIT_SHORTCUT};
 use crate::{client::RunnerCommand, settings::DuiSettings};
 
 type RunnerResponse<T> = Receiver<Result<T, String>>;
