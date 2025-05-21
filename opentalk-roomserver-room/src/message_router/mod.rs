@@ -172,9 +172,14 @@ impl MessageRouter {
         &self,
         connections: impl IntoIterator<Item = ConnectionId>,
         namespace: ModuleId,
+        transaction_id: Option<u64>,
         content: impl Serialize,
     ) -> Result<(), FatalError> {
-        let event = SignalingEvent { namespace, content };
+        let event = SignalingEvent {
+            namespace,
+            transaction_id,
+            content,
+        };
         let shared_json = serde_json::value::to_raw_value(&event)
             .with_context(|| {
                 format!(
@@ -196,9 +201,14 @@ impl MessageRouter {
     pub(crate) async fn serialize_and_broadcast(
         &self,
         namespace: ModuleId,
+        transaction_id: Option<u64>,
         content: impl Serialize,
     ) -> Result<(), FatalError> {
-        let event = SignalingEvent { namespace, content };
+        let event = SignalingEvent {
+            namespace,
+            transaction_id,
+            content,
+        };
         let shared_json = serde_json::value::to_raw_value(&event)
             .with_context(|| {
                 format!(
@@ -220,10 +230,15 @@ impl MessageRouter {
     pub(crate) async fn serialize_and_broadcast_exclude_connections(
         &self,
         namespace: ModuleId,
+        transaction_id: Option<u64>,
         content: impl Serialize,
         excluded_connections: &[ConnectionId],
     ) -> Result<(), FatalError> {
-        let event = SignalingEvent { namespace, content };
+        let event = SignalingEvent {
+            namespace,
+            transaction_id,
+            content,
+        };
         let shared_json = serde_json::value::to_raw_value(&event)
             .with_context(|| {
                 format!(
@@ -243,9 +258,15 @@ impl MessageRouter {
     /// Send a websocket error message of type [`SignalingError`] to the associated connection
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
-    pub(crate) async fn send_error(&self, connection_id: ConnectionId, error: SignalingError) {
+    pub(crate) async fn send_error(
+        &self,
+        connection_id: ConnectionId,
+        transaction_id: Option<u64>,
+        error: SignalingError,
+    ) {
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
+            transaction_id,
             content: error,
         };
         let shared_json = match serde_json::value::to_raw_value(&event) {
@@ -264,9 +285,10 @@ impl MessageRouter {
     /// Send a websocket error message of type [`SignalingError`] to all participants
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
-    pub(crate) async fn broadcast_error(&self, error: SignalingError) {
+    pub(crate) async fn broadcast_error(&self, transaction_id: Option<u64>, error: SignalingError) {
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
+            transaction_id,
             content: error,
         };
         let shared_json = match serde_json::value::to_raw_value(&event) {
@@ -347,6 +369,7 @@ mod tests {
 
         let event = SignalingEvent {
             namespace: module_id!("ping"),
+            transaction_id: None,
             content: to_raw_value(&json!({
                 "cool": 12,
                 "thing": true,

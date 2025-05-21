@@ -298,12 +298,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.message_router,
             &mut self.participants,
             &self.loopback_futures,
+            msg.transaction_id,
         );
         if let Err(err) = module
             .on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value))
             .await
         {
-            self.handle_fatal_module_error(msg.namespace, err).await;
+            self.handle_fatal_module_error(msg.namespace, msg.transaction_id, err)
+                .await;
         }
     }
 
@@ -353,7 +355,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     // This scenario should never occur because we never delete known participants. We still attempt to
                     // send an error to the non-existent connection in a best-effort approach.
                     self.message_router
-                        .send_error(connection_id, SignalingError::Internal)
+                        .send_error(
+                            connection_id,
+                            signaling_command.transaction_id,
+                            SignalingError::Internal,
+                        )
                         .await;
 
                     return;
@@ -383,6 +389,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 let Some(module) = self.modules.get_mut(&signaling_command.namespace) else {
                     self.handle_unknown_namespace(
                         connection_id,
+                        signaling_command.transaction_id,
                         signaling_command.namespace.to_string(),
                     )
                     .await;
@@ -399,6 +406,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     &mut self.message_router,
                     &mut self.participants,
                     &self.loopback_futures,
+                    signaling_command.transaction_id,
                 );
 
                 if let Err(err) = module
@@ -412,8 +420,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     )
                     .await
                 {
-                    self.handle_fatal_module_error(signaling_command.namespace, err)
-                        .await;
+                    self.handle_fatal_module_error(
+                        signaling_command.namespace,
+                        signaling_command.transaction_id,
+                        err,
+                    )
+                    .await;
                 }
             }
         }
@@ -504,7 +516,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    async fn handle_unknown_namespace(&mut self, origin: ConnectionId, namespace: String) {
+    async fn handle_unknown_namespace(
+        &mut self,
+        origin: ConnectionId,
+        transaction_id: Option<u64>,
+        namespace: String,
+    ) {
         log::debug!(
             "Received signaling message with unknown namespace: {}",
             &namespace
@@ -515,7 +532,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         self.message_router
-            .send_error(origin, signaling_error)
+            .send_error(origin, transaction_id, signaling_error)
             .await;
     }
 
@@ -534,6 +551,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.message_router,
             &mut self.participants,
             &self.loopback_futures,
+            None,
         )
     }
 

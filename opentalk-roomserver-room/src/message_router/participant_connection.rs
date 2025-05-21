@@ -5,7 +5,9 @@ use std::{pin::Pin, time::Duration};
 
 use futures::{FutureExt, SinkExt as _, StreamExt as _, stream::Peekable};
 use opentalk_roomserver_common::application_state::ApplicationState;
-use opentalk_roomserver_signaling::signaling_module::SharedRawJson;
+use opentalk_roomserver_signaling::{
+    signaling_event::SignalingEvent, signaling_module::SharedRawJson,
+};
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, error::SignalingError, signaling::SignalingCommand,
 };
@@ -286,7 +288,8 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             Ok(cmd) => cmd,
             Err(e) => {
                 log::debug!("Error parsing signaling command: {e}");
-                return self.send_error(e).await;
+                let transaction_id = Self::parse_transaction_id(&msg);
+                return self.send_error(e, transaction_id).await;
             }
         };
         let wrapped_cmd = SignalingMessage::Command(command)
@@ -297,8 +300,32 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         Ok(())
     }
 
-    async fn send_error(&mut self, error: impl Into<SignalingError>) -> Result<(), ExitReason> {
-        let error_message = serde_json::to_string(&error.into())
+    /// Tries to parse only the transaction id of a serialized message
+    ///
+    /// Returns `None` when the transaction_id is missing or the message could
+    /// not be parsed at all.
+    fn parse_transaction_id(message: &str) -> Option<u64> {
+        // Try to parse only the transaction id from the command
+        #[derive(serde::Deserialize)]
+        struct TransactionId {
+            transaction_id: Option<u64>,
+        }
+        serde_json::from_str::<TransactionId>(message)
+            .ok()
+            .and_then(|id| id.transaction_id)
+    }
+
+    async fn send_error(
+        &mut self,
+        error: impl Into<SignalingError>,
+        transaction_id: Option<u64>,
+    ) -> Result<(), ExitReason> {
+        let event: SignalingEvent<SignalingError> = SignalingEvent {
+            namespace: opentalk_roomserver_types::error::NAMESPACE,
+            transaction_id,
+            content: error.into(),
+        };
+        let error_message = serde_json::to_string(&event)
             .unwrap_or_else(|_| r#"{"error": "internal"}"#.into())
             .into();
 

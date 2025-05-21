@@ -16,6 +16,7 @@ pub enum MessageTarget {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalingCommand {
     pub namespace: ModuleId,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<u64>,
     pub content: Box<serde_json::value::RawValue>,
 }

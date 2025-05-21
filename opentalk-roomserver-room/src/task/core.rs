@@ -104,6 +104,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.broadcast_event_to_modules(
             participant_id,
             connection_id,
+            None,
             current_breakout_room,
             DynBroadcastEvent::Connected {
                 participant_id,
@@ -127,6 +128,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .serialize_and_send(
                 [connection_id],
                 NAMESPACE,
+                None,
                 CoreEvent::JoinSuccess(Box::new(join_success_msg)),
             )
             .await?;
@@ -144,6 +146,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .serialize_and_send(
                     connections,
                     NAMESPACE,
+                    None,
                     CoreEvent::ParticipantConnected {
                         participant_id,
                         connection_id,
@@ -168,6 +171,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.broadcast_event_to_modules(
             participant_id,
             connection_id,
+            None,
             breakout_room,
             DynBroadcastEvent::Disconnected {
                 participant_id,
@@ -183,7 +187,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         self.message_router
-            .serialize_and_broadcast(NAMESPACE, content)
+            .serialize_and_broadcast(NAMESPACE, None, content)
             .await
             .expect("CoreEvent::ParticipantDisconnected must be serializable");
     }
@@ -193,6 +197,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        transaction_id: Option<u64>,
         room_scope: Option<BreakoutId>,
         mut event: DynBroadcastEvent<'_>,
     ) {
@@ -209,6 +214,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         &mut self.message_router,
                         &mut self.participants,
                         &self.loopback_futures,
+                        transaction_id,
                     ),
                     &mut event,
                 )
@@ -219,14 +225,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         for (namespace, err) in errors {
-            self.handle_fatal_module_error(namespace, err).await;
+            self.handle_fatal_module_error(namespace, transaction_id, err)
+                .await;
         }
     }
 
     /// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
     ///
     /// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
-    pub(crate) async fn handle_fatal_module_error(&mut self, namespace: ModuleId, err: FatalError) {
+    pub(crate) async fn handle_fatal_module_error(
+        &mut self,
+        namespace: ModuleId,
+        transaction_id: Option<u64>,
+        err: FatalError,
+    ) {
         log::error!(
             "The {namespace} module caused a fatal error and will be shut down: {:#?}",
             err.0
@@ -243,7 +255,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.info.room.tariff.modules.remove(&namespace);
 
         self.message_router
-            .broadcast_error(SignalingError::FatalModuleError { namespace })
+            .broadcast_error(
+                transaction_id,
+                SignalingError::FatalModuleError { namespace },
+            )
             .await;
     }
 }
@@ -365,6 +380,7 @@ mod tests {
         let event = SignalingEvent {
             namespace: NAMESPACE,
             content: CoreEvent::JoinSuccess(join_success.into()),
+            transaction_id: Some(0),
         };
         let json = serde_json::to_value(&event).unwrap();
 
@@ -372,6 +388,7 @@ mod tests {
             json,
             json!({
                 "namespace": "core",
+                "transaction_id": 0,
                 "content": {
                     "join_success": {
                         "id": "00000000-0000-0000-0000-000000000000",

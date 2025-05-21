@@ -38,6 +38,7 @@ where
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
+    transaction_id: Option<u64>,
 
     m: PhantomData<fn() -> M>,
 }
@@ -56,6 +57,7 @@ where
         messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
         participants: &'ctx mut Participants,
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
+        transaction_id: Option<u64>,
     ) -> ModuleContext<'ctx, M> {
         Self {
             room_id,
@@ -66,6 +68,7 @@ where
             messages,
             participants,
             loopback_futures,
+            transaction_id,
             m: PhantomData,
         }
     }
@@ -80,6 +83,7 @@ where
             messages: self.messages,
             participants: self.participants,
             loopback_futures: self.loopback_futures,
+            transaction_id: self.transaction_id,
             m: PhantomData,
         }
     }
@@ -102,6 +106,7 @@ where
     ) -> Result<(), FatalError> {
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
+            transaction_id: self.transaction_id,
             content: msg,
         };
         let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
@@ -143,6 +148,7 @@ where
     ) -> Result<(), FatalError> {
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
+            transaction_id: self.transaction_id,
             content: replication_event,
         };
 
@@ -175,6 +181,7 @@ where
     pub fn send_ws_error(&self, error: SignalingError) {
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
+            transaction_id: self.transaction_id,
             content: error,
         };
         let shared_json: SharedRawJson = match serde_json::value::to_raw_value(&event) {
@@ -216,6 +223,7 @@ where
         let connection_id = self.connection_id;
         let breakout_room = self.breakout_room;
 
+        let transaction_id = self.transaction_id;
         let future = Box::pin(async move {
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
@@ -223,6 +231,7 @@ where
                 connection_id,
                 breakout_room,
                 value: Box::new(future.await),
+                transaction_id,
             })
         });
 
@@ -243,6 +252,7 @@ where
         let breakout_room = self.breakout_room;
         let join_handle = tokio::task::spawn_blocking(blocking_function);
 
+        let transaction_id = self.transaction_id;
         let future = Box::pin(async move {
             let Ok(value) = join_handle.await else {
                 log::error!("module {} panicked in loopback task", M::NAMESPACE);
@@ -255,6 +265,7 @@ where
                 connection_id,
                 breakout_room,
                 value: Box::new(value),
+                transaction_id,
             })
         });
 

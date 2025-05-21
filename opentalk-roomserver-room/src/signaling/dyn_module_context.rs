@@ -27,6 +27,7 @@ pub struct DynModuleContext<'ctx> {
     pub message_router: &'ctx mut MessageRouter,
     pub participants: &'ctx mut Participants,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
+    transaction_id: Option<u64>,
 }
 
 impl<'ctx> DynModuleContext<'ctx> {
@@ -40,6 +41,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         message_router: &'ctx mut MessageRouter,
         participants: &'ctx mut Participants,
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
+        transaction_id: Option<u64>,
     ) -> Self {
         Self {
             room_id,
@@ -50,6 +52,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             message_router,
             participants,
             loopback_futures,
+            transaction_id,
         }
     }
 
@@ -64,6 +67,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             message_router: self.message_router,
             participants: self.participants,
             loopback_futures: self.loopback_futures,
+            transaction_id: self.transaction_id,
         }
     }
 
@@ -80,6 +84,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             messages,
             self.participants,
             self.loopback_futures,
+            self.transaction_id,
         )
     }
 }
