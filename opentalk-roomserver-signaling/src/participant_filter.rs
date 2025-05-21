@@ -1,0 +1,140 @@
+// SPDX-License-Identifier: EUPL-1.2
+// SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+use opentalk_roomserver_types::breakout_id::BreakoutId;
+use opentalk_types_signaling::ParticipantId;
+
+use crate::participant_state::{ParticipantState, Participants};
+
+/// The filter methods used by [`ParticipantsFiltered`] and [`ParticipantsFilteredMut`]
+macro_rules! impl_filter_functions {
+    () => {
+        /// Filter by connected participants
+        pub fn connected(mut self) -> Self {
+            self.filter.connected = Some(true);
+            self
+        }
+
+        /// Filter by disconnected participants
+        pub fn disconnected(mut self) -> Self {
+            self.filter.connected = Some(false);
+            self
+        }
+
+        /// Filter by the participants breakout room
+        pub fn breakout_room(mut self, breakout_room: Option<BreakoutId>) -> Self {
+            self.filter.breakout = Some(breakout_room);
+            self
+        }
+    };
+}
+
+#[derive(Default, Clone, Copy)]
+struct ParticipantStateFilter {
+    breakout: Option<Option<BreakoutId>>,
+    connected: Option<bool>,
+}
+
+impl ParticipantStateFilter {
+    fn apply(&self, state: &ParticipantState) -> bool {
+        if let Some(connected) = self.connected {
+            if state.is_connected() != connected {
+                return false;
+            }
+        }
+
+        if let Some(breakout_room) = self.breakout {
+            if state.breakout_room != breakout_room {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
+/// Holds a mutable reference to [Participants`] and provides various filter functions to access it
+pub struct ParticipantsFilteredMut<'a> {
+    inner: &'a mut Participants,
+    filter: ParticipantStateFilter,
+}
+
+impl<'a> ParticipantsFilteredMut<'a> {
+    pub(crate) fn new(participants: &'a mut Participants) -> Self {
+        Self {
+            inner: participants,
+            filter: ParticipantStateFilter::default(),
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> + use<'_> {
+        let filter = self.filter;
+
+        self.inner
+            .all_unfiltered
+            .iter()
+            .filter(move |(_, s)| filter.apply(s))
+    }
+
+    pub fn iter_mut(
+        &mut self,
+    ) -> impl Iterator<Item = (&ParticipantId, &mut ParticipantState)> + use<'_> {
+        let filter = self.filter;
+
+        self.inner
+            .all_unfiltered
+            .iter_mut()
+            .filter(move |(_, s)| filter.apply(s))
+    }
+
+    pub fn get(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
+        self.inner
+            .all_unfiltered
+            .get(participant_id)
+            .filter(|s| self.filter.apply(s))
+    }
+
+    pub fn get_mut(&mut self, participant_id: &ParticipantId) -> Option<&mut ParticipantState> {
+        let filter = self.filter;
+
+        self.inner
+            .all_unfiltered
+            .get_mut(participant_id)
+            .filter(|s| filter.apply(s))
+    }
+
+    impl_filter_functions!();
+}
+
+/// Holds a reference to [Participants`] and provides various filter functions to access it
+pub struct ParticipantsFiltered<'a> {
+    inner: &'a Participants,
+    filter: ParticipantStateFilter,
+}
+
+impl<'a> ParticipantsFiltered<'a> {
+    pub(crate) fn new(participants: &'a Participants) -> Self {
+        Self {
+            inner: participants,
+            filter: ParticipantStateFilter::default(),
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> + use<'_> {
+        let filter = self.filter;
+
+        self.inner
+            .all_unfiltered
+            .iter()
+            .filter(move |(_, s)| filter.apply(s))
+    }
+
+    pub fn get(&self, participant_id: &ParticipantId) -> Option<&'a ParticipantState> {
+        self.inner
+            .all_unfiltered
+            .get(participant_id)
+            .filter(|s| self.filter.apply(s))
+    }
+
+    impl_filter_functions!();
+}

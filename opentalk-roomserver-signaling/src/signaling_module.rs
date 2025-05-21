@@ -220,7 +220,7 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
         // Lazily serialize the PeerJoinInfo into a json string
         let mut raw_value: Option<SharedRawJson> = None;
 
-        for (participant_id, state) in ctx.participants.connected() {
+        for (participant_id, state) in ctx.participants.connected().iter() {
             if !filter(*participant_id, state) {
                 continue;
             }

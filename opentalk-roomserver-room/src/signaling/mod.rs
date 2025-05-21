@@ -139,9 +139,10 @@ where
             } => {
                 let is_first_connection = ctx
                     .participants
+                    .all_unfiltered
                     .get(participant_id)
-                    .map(|s| s.connections.is_empty())
-                    .unwrap_or(true);
+                    .map(|s| s.connections.len() == 1)
+                    .context("new participant not in participant set")?;
 
                 let join_info = self.module.on_participant_joined(
                     ctx,

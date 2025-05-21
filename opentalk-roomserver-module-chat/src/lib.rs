@@ -73,7 +73,7 @@ impl SignalingModule for ChatModule {
             ..Default::default()
         };
 
-        for (p_other, _) in ctx.participants.connected() {
+        for (p_other, _) in ctx.participants.connected().iter() {
             join_info
                 .peer
                 .insert(*p_other, ChatPeerState { groups: Vec::new() })?;
@@ -232,7 +232,7 @@ impl ChatModule {
             })
         };
 
-        ctx.send_ws_message(ctx.participants.connected().map(|(id, _)| *id), msg)?;
+        ctx.send_ws_message(ctx.participants.connected().iter().map(|(id, _)| *id), msg)?;
         Ok(())
     }
 
@@ -286,7 +286,7 @@ impl ChatModule {
         match &chat_id {
             ChatId::Global => {
                 ctx.send_ws_message(
-                    ctx.participants.connected().map(|(id, _)| *id),
+                    ctx.participants.connected().iter().map(|(id, _)| *id),
                     ChatEvent::MessageSent(out_message),
                 )?;
             }
@@ -320,7 +320,7 @@ impl ChatModule {
         self.history.remove(&ChatId::Global);
 
         ctx.send_ws_message(
-            ctx.participants.connected().map(|(id, _)| *id),
+            ctx.participants.connected().iter().map(|(id, _)| *id),
             ChatEvent::HistoryCleared(HistoryCleared {
                 issued_by: participant,
             }),
@@ -342,7 +342,7 @@ impl ChatModule {
             .insert(chat_id, Some(timestamp));
 
         ctx.send_ws_message(
-            ctx.participants.connected().map(|(id, _)| *id),
+            ctx.participants.connected().iter().map(|(id, _)| *id),
             ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp { scope, timestamp }),
         )?;
         Ok(())

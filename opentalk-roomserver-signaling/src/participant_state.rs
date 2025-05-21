@@ -10,10 +10,10 @@ use opentalk_roomserver_types::{
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 
+use crate::participant_filter::{ParticipantsFiltered, ParticipantsFilteredMut};
+
 #[derive(Debug, Default)]
 pub struct Participants {
-    pub breakout_scope: Option<Option<BreakoutId>>,
-
     /// Contains all connected and disconnected participants, even those outside of the current breakout scope
     pub all_unfiltered: HashMap<ParticipantId, ParticipantState>,
 }
@@ -23,47 +23,24 @@ impl Participants {
         Self::default()
     }
 
-    pub fn all(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> {
-        self.all_unfiltered
-            .iter()
-            .filter(|(_, s)| self.breakout_filter(s))
+    pub fn connected(&self) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).connected()
     }
 
-    pub fn connected(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> {
-        self.all_unfiltered
-            .iter()
-            .filter(|(_, s)| self.breakout_filter(s) && s.is_connected())
+    pub fn disconnected(&self) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).disconnected()
     }
 
-    pub fn disconnected(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> {
-        self.all_unfiltered
-            .iter()
-            .filter(|(_, s)| self.breakout_filter(s) && !s.is_connected())
+    pub fn in_breakout_room(&self, breakout_room: Option<BreakoutId>) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).breakout_room(breakout_room)
     }
 
-    pub fn get(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
-        self.all_unfiltered
-            .get(participant_id)
-            .filter(|s| self.breakout_filter(s))
+    pub fn filter(&self) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self)
     }
 
-    pub fn get_connected(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
-        self.all_unfiltered
-            .get(participant_id)
-            .filter(|s| self.breakout_filter(s) && s.is_connected())
-    }
-
-    pub fn get_disconnected(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
-        self.all_unfiltered
-            .get(participant_id)
-            .filter(|s| self.breakout_filter(s) && !s.is_connected())
-    }
-
-    fn breakout_filter(&self, state: &ParticipantState) -> bool {
-        match self.breakout_scope {
-            Some(scope) => scope == state.breakout_room,
-            None => true,
-        }
+    pub fn filter_mut(&mut self) -> ParticipantsFilteredMut {
+        ParticipantsFilteredMut::new(self)
     }
 }
 

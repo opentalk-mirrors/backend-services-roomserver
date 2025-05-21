@@ -92,6 +92,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let Some(current_breakout_room) = self
             .participants
+            .all_unfiltered
             .get(&participant_id)
             .map(|s| s.breakout_room)
         else {
@@ -130,7 +131,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )
             .await?;
 
-        for (&peer_id, state) in self.participants.connected() {
+        for (&peer_id, state) in self.participants.connected().iter() {
             let peer_join_info = peer_module_data.remove(&peer_id);
 
             let connections = state

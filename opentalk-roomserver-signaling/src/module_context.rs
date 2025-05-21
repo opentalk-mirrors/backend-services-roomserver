@@ -110,7 +110,7 @@ where
             .into();
 
         for participant_id in participant_ids {
-            let Some(state) = self.participants.get_connected(&participant_id) else {
+            let Some(state) = self.participants.connected().get(&participant_id) else {
                 log::error!(
                     "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
                     M::NAMESPACE
@@ -151,7 +151,7 @@ where
             .map_err(FatalError)?
             .into();
 
-        let Some(state) = self.participants.get_connected(&sender) else {
+        let Some(state) = self.participants.connected().get(&sender) else {
             log::error!(
                 "Module '{}' attempted to replicate a command to unknown participant {sender}",
                 M::NAMESPACE
@@ -187,7 +187,7 @@ where
             }
         };
 
-        let Some(state) = self.participants.get_connected(&self.participant_id) else {
+        let Some(state) = self.participants.connected().get(&self.participant_id) else {
             log::error!(
                 "Module '{}' attempted to send a websocket error message to unknown participant {}",
                 M::NAMESPACE,

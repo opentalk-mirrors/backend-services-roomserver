@@ -11,6 +11,7 @@ pub mod breakout;
 #[doc(hidden)]
 pub mod loopback;
 pub mod module_context;
+pub mod participant_filter;
 pub mod participant_state;
 pub mod room_info;
 pub mod signaling_event;

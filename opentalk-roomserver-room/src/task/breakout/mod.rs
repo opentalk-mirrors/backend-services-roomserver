@@ -126,6 +126,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         let participants_state = self
             .participants
+            .all_unfiltered
             .get(&participant_id)
             .context("received message from unknown participant")?;
 
@@ -177,7 +178,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         )
         .await;
 
-        for (p, state) in self.participants.connected() {
+        for (p, state) in self.participants.connected().iter() {
             let breakout_started = BreakoutEvent::Started {
                 started_by: participant_id,
                 rooms: breakout_rooms.clone(),
@@ -205,6 +206,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         let participants_state = self
             .participants
+            .all_unfiltered
             .get(&participant_id)
             .context("received message from unknown participant")?;
 
