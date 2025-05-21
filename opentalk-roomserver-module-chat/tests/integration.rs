@@ -44,24 +44,24 @@ async fn chat_is_disabled() {
     let mut alice = room.join_alice_moderator().await;
     let mut bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap().content,
         CoreEvent::ParticipantConnected { .. }
     ));
 
     alice
-        .send_command::<ChatModule>(ChatCommand::DisableChat)
+        .send_command::<ChatModule>(ChatCommand::DisableChat, None)
         .await
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap(),
+        alice.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::ChatDisabled(ChatDisabled {
             issued_by: alice.id()
         })
     );
 
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap(),
+        bob.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::ChatDisabled(ChatDisabled {
             issued_by: alice.id()
         })
@@ -69,41 +69,50 @@ async fn chat_is_disabled() {
 
     // Alice cannot send a global message
     alice
-        .send_command::<ChatModule>(ChatCommand::SendMessage(SendMessage {
-            content: "Hi there".to_string(),
-            scope: Scope::Global,
-        }))
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: "Hi there".to_string(),
+                scope: Scope::Global,
+            }),
+            None,
+        )
         .await
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap(),
+        alice.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::Error(opentalk_roomserver_module_chat::event::ChatError::ChatDisabled)
     );
 
     // Alice cannot send a private message
     alice
-        .send_command::<ChatModule>(ChatCommand::SendMessage(SendMessage {
-            content: "Hi there".to_string(),
-            scope: Scope::Private(bob.id()),
-        }))
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: "Hi there".to_string(),
+                scope: Scope::Private(bob.id()),
+            }),
+            None,
+        )
         .await
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap(),
+        alice.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::Error(opentalk_roomserver_module_chat::event::ChatError::ChatDisabled)
     );
 
     // Bob cannot send a private message
-    bob.send_command::<ChatModule>(ChatCommand::SendMessage(SendMessage {
-        content: "Hi there".to_string(),
-        scope: Scope::Private(alice.id()),
-    }))
+    bob.send_command::<ChatModule>(
+        ChatCommand::SendMessage(SendMessage {
+            content: "Hi there".to_string(),
+            scope: Scope::Private(alice.id()),
+        }),
+        None,
+    )
     .await
     .unwrap();
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap(),
+        bob.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::Error(opentalk_roomserver_module_chat::event::ChatError::ChatDisabled)
     );
 }
@@ -117,23 +126,23 @@ async fn chat_works_after_enabling() {
 
     let mut bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap().content,
         CoreEvent::ParticipantConnected { .. }
     ));
 
     // Disabling the chat should broadcast the ChatDisabled event
     alice
-        .send_command::<ChatModule>(ChatCommand::DisableChat)
+        .send_command::<ChatModule>(ChatCommand::DisableChat, None)
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap(),
+        alice.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::ChatDisabled(ChatDisabled {
             issued_by: alice.id()
         })
     );
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap(),
+        bob.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::ChatDisabled(ChatDisabled {
             issued_by: alice.id()
         })
@@ -141,17 +150,17 @@ async fn chat_works_after_enabling() {
 
     // Enabling the chat should broadcast the ChatEnabled event
     alice
-        .send_command::<ChatModule>(ChatCommand::EnableChat)
+        .send_command::<ChatModule>(ChatCommand::EnableChat, None)
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap(),
+        alice.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::ChatEnabled(ChatEnabled {
             issued_by: alice.id()
         })
     );
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap(),
+        bob.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::ChatEnabled(ChatEnabled {
             issued_by: alice.id()
         })
@@ -159,44 +168,50 @@ async fn chat_works_after_enabling() {
 
     // Alice can send a global message, bob and alice should receive the message
     alice
-        .send_command::<ChatModule>(ChatCommand::SendMessage(SendMessage {
-            content: "Hi there".to_string(),
-            scope: Scope::Global,
-        }))
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: "Hi there".to_string(),
+                scope: Scope::Global,
+            }),
+            None,
+        )
         .await
         .unwrap();
     assert_message_eq!(
         &Scope::Global,
         "Hi there",
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap(),
+        &alice.receive_event::<ChatModule>().await.unwrap().content,
     );
     assert_message_eq!(
         &Scope::Global,
         "Hi there",
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap(),
+        &bob.receive_event::<ChatModule>().await.unwrap().content,
     );
 
     // Alice can send a private message, bob and alice should receive the message
     alice
-        .send_command::<ChatModule>(ChatCommand::SendMessage(SendMessage {
-            content: "Hi there".to_string(),
-            scope: Scope::Private(bob.id()),
-        }))
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: "Hi there".to_string(),
+                scope: Scope::Private(bob.id()),
+            }),
+            None,
+        )
         .await
         .unwrap();
     assert_message_eq!(
         &Scope::Private(bob.id()),
         "Hi there",
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap(),
+        &alice.receive_event::<ChatModule>().await.unwrap().content,
     );
     assert_message_eq!(
         &Scope::Private(alice.id()),
         "Hi there",
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap(),
+        &bob.receive_event::<ChatModule>().await.unwrap().content,
     );
 }
 
@@ -209,39 +224,42 @@ async fn private_messages_are_private() {
 
     let mut bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap().content,
         CoreEvent::ParticipantConnected { .. }
     ));
 
     let mut charlie = room.join_charlie().await;
     assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap().content,
         CoreEvent::ParticipantConnected { .. }
     ));
     assert!(matches!(
-        bob.receive::<CoreEvent>().await.unwrap(),
+        bob.receive::<CoreEvent>().await.unwrap().content,
         CoreEvent::ParticipantConnected { .. }
     ));
 
     // Private messages should not be received by third parties
     alice
-        .send_command::<ChatModule>(ChatCommand::SendMessage(SendMessage {
-            content: "Hi there".to_string(),
-            scope: Scope::Private(bob.id()),
-        }))
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: "Hi there".to_string(),
+                scope: Scope::Private(bob.id()),
+            }),
+            None,
+        )
         .await
         .unwrap();
     assert_message_eq!(
         &Scope::Private(bob.id()),
         "Hi there",
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap(),
+        &alice.receive_event::<ChatModule>().await.unwrap().content,
     );
     assert_message_eq!(
         &Scope::Private(alice.id()),
         "Hi there",
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap(),
+        &bob.receive_event::<ChatModule>().await.unwrap().content,
     );
     assert!(charlie.received_nothing());
 }
@@ -263,7 +281,7 @@ async fn global_chat_is_cleared() {
     // Bob joins
     let mut bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap().content,
         CoreEvent::ParticipantConnected { .. }
     ));
 
@@ -272,60 +290,66 @@ async fn global_chat_is_cleared() {
     // Alice can send a global message, bob and alice should receive the message
     let global_message = "Hi there";
     alice
-        .send_command::<ChatModule>(ChatCommand::SendMessage(SendMessage {
-            content: global_message.to_string(),
-            scope: Scope::Global,
-        }))
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: global_message.to_string(),
+                scope: Scope::Global,
+            }),
+            None,
+        )
         .await
         .unwrap();
     assert_message_eq!(
         &Scope::Global,
         global_message,
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap(),
+        &alice.receive_event::<ChatModule>().await.unwrap().content,
     );
     assert_message_eq!(
         &Scope::Global,
         global_message,
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap(),
+        &bob.receive_event::<ChatModule>().await.unwrap().content,
     );
 
     // Alice can send a private message, bob and alice should receive the message
     let private_message = "Hi there from alice";
     alice
-        .send_command::<ChatModule>(ChatCommand::SendMessage(SendMessage {
-            content: private_message.to_string(),
-            scope: Scope::Private(bob.id()),
-        }))
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: private_message.to_string(),
+                scope: Scope::Private(bob.id()),
+            }),
+            None,
+        )
         .await
         .unwrap();
     assert_message_eq!(
         &Scope::Private(bob.id()),
         private_message,
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap(),
+        &alice.receive_event::<ChatModule>().await.unwrap().content,
     );
     assert_message_eq!(
         &Scope::Private(alice.id()),
         private_message,
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap(),
+        &bob.receive_event::<ChatModule>().await.unwrap().content,
     );
 
     // clear the chat
     alice
-        .send_command::<ChatModule>(ChatCommand::ClearHistory)
+        .send_command::<ChatModule>(ChatCommand::ClearHistory, None)
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap(),
+        alice.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::HistoryCleared(HistoryCleared {
             issued_by: alice.id()
         })
     );
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap(),
+        bob.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::HistoryCleared(HistoryCleared {
             issued_by: alice.id()
         })
@@ -335,7 +359,7 @@ async fn global_chat_is_cleared() {
     bob.disconnect();
     let bob = room.join_bob().await;
     assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap(),
+        alice.receive::<CoreEvent>().await.unwrap().content,
         CoreEvent::ParticipantConnected { .. }
     ));
     let chat_state = bob
@@ -382,14 +406,17 @@ async fn last_seen_timestamp_should_be_stored() {
 
     // set global last seen timestamp
     alice
-        .send_command::<ChatModule>(ChatCommand::SetLastSeenTimestamp(SetLastSeenTimestamp {
-            scope: Scope::Global,
-            timestamp,
-        }))
+        .send_command::<ChatModule>(
+            ChatCommand::SetLastSeenTimestamp(SetLastSeenTimestamp {
+                scope: Scope::Global,
+                timestamp,
+            }),
+            None,
+        )
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap(),
+        alice.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp {
             scope: Scope::Global,
             timestamp,
@@ -398,14 +425,17 @@ async fn last_seen_timestamp_should_be_stored() {
 
     // set private last seen timestamp
     alice
-        .send_command::<ChatModule>(ChatCommand::SetLastSeenTimestamp(SetLastSeenTimestamp {
-            scope: Scope::Private(other_participant),
-            timestamp,
-        }))
+        .send_command::<ChatModule>(
+            ChatCommand::SetLastSeenTimestamp(SetLastSeenTimestamp {
+                scope: Scope::Private(other_participant),
+                timestamp,
+            }),
+            None,
+        )
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap(),
+        alice.receive_event::<ChatModule>().await.unwrap().content,
         ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp {
             scope: Scope::Private(other_participant),
             timestamp,
