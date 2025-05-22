@@ -16,4 +16,5 @@ pub struct LoopbackMessage {
     pub connection_id: ConnectionId,
     pub breakout_room: Option<BreakoutId>,
     pub value: Box<dyn Any + Send + 'static>,
+    pub transaction_id: Option<u64>,
 }

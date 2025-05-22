@@ -7,5 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalingEvent<C> {
     pub namespace: ModuleId,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transaction_id: Option<u64>,
     pub content: C,
 }

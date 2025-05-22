@@ -191,27 +191,35 @@ impl<S> MockParticipant<S> {
         });
     }
 
-    pub async fn send_command<M>(&mut self, command: M::Incoming) -> Result<(), SendError>
+    pub async fn send_command<M>(
+        &self,
+        command: M::Incoming,
+        transaction_id: Option<u64>,
+    ) -> Result<(), SendError>
     where
         M: SignalingModule,
         M::Incoming: Serialize,
     {
         let command = SignalingCommand {
             namespace: M::NAMESPACE,
-            transaction_id: None,
+            transaction_id,
             content: to_raw_value(&command).expect("Command must be Serializable"),
         };
+        let value = serde_json::to_value(&command).expect("SignalingCommand is serializable");
+        self.send_command_raw(value).await
+    }
+
+    pub async fn send_command_raw(
+        &self,
+        command: serde_json::value::Value,
+    ) -> Result<(), SendError> {
         self.sender
-            .send(Ok(Message::Text(
-                serde_json::to_string(&command)
-                    .expect("SignalingCommand is serializable")
-                    .into(),
-            )))
+            .send(Ok(Message::Text(command.to_string().into())))
             .await?;
         Ok(())
     }
 
-    pub async fn receive_event<M>(&mut self) -> Result<M::Outgoing, ReceiveError>
+    pub async fn receive_event<M>(&mut self) -> Result<SignalingEvent<M::Outgoing>, ReceiveError>
     where
         M: SignalingModule,
         M::Outgoing: DeserializeOwned,
@@ -226,13 +234,15 @@ impl<S> MockParticipant<S> {
                         error,
                         message: Message::Text(text),
                     })?;
-                Ok(event.content)
+                Ok(event)
             }
             other => Err(ReceiveError::UnexpectedMessage(other)),
         }
     }
 
-    pub async fn receive<E: DeserializeOwned>(&mut self) -> Result<E, ReceiveError> {
+    pub async fn receive<E: DeserializeOwned>(
+        &mut self,
+    ) -> Result<SignalingEvent<E>, ReceiveError> {
         let Some(received) = self.receiver.recv().await else {
             return Err(ReceiveError::Closed);
         };
@@ -244,7 +254,7 @@ impl<S> MockParticipant<S> {
                         message: Message::Text(text),
                     })?;
 
-                Ok(event.content)
+                Ok(event)
             }
             other => Err(ReceiveError::UnexpectedMessage(other)),
         }

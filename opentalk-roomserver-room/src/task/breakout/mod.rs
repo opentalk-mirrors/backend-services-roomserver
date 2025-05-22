@@ -45,12 +45,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         room_scope: Option<BreakoutId>,
         command: SignalingCommand,
     ) {
-        let command = match serde_json::from_str(command.content.get()) {
-            Ok(command) => command,
+        let breakout_command = match serde_json::from_str(command.content.get()) {
+            Ok(breakout_command) => breakout_command,
             Err(err) => {
                 self.message_router
                     .send_error(
                         connection_id,
+                        command.transaction_id,
                         SignalingError::InvalidJson {
                             message: format!("{err:?}"),
                         },
@@ -61,19 +62,30 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
-        let result = match command {
+        let result = match breakout_command {
             BreakoutCommand::Start(config) => {
-                self.breakout_start(participant_id, connection_id, room_scope, config)
-                    .await
+                self.breakout_start(
+                    participant_id,
+                    connection_id,
+                    command.transaction_id,
+                    room_scope,
+                    config,
+                )
+                .await
             }
             BreakoutCommand::SwitchRoom {
                 breakout_id: new_room,
             } => {
-                self.switch_room(participant_id, connection_id, new_room)
-                    .await
+                self.switch_room(
+                    participant_id,
+                    connection_id,
+                    command.transaction_id,
+                    new_room,
+                )
+                .await
             }
             BreakoutCommand::Stop { delay } => {
-                self.breakout_stop(participant_id, connection_id, delay)
+                self.breakout_stop(participant_id, connection_id, command.transaction_id, delay)
                     .await
             }
         };
@@ -84,14 +96,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     log::error!("internal error in breakout module: {err:?}");
 
                     self.message_router
-                        .send_error(connection_id, SignalingError::Internal)
+                        .send_error(
+                            connection_id,
+                            command.transaction_id,
+                            SignalingError::Internal,
+                        )
                         .await;
                 }
                 SignalingModuleError::Fatal(err) => {
                     log::error!("fatal error in breakout module: {err:?}");
 
                     self.message_router
-                        .send_error(connection_id, SignalingError::Internal)
+                        .send_error(
+                            connection_id,
+                            command.transaction_id,
+                            SignalingError::Internal,
+                        )
                         .await;
                 }
                 SignalingModuleError::Module(module_error) => {
@@ -100,6 +120,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         .serialize_and_send(
                             [connection_id],
                             self::NAMESPACE,
+                            command.transaction_id,
                             BreakoutEvent::Error(module_error),
                         )
                         .await;
@@ -108,7 +129,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         log::error!("failed to send error in breakout module: {fatal_error:?}");
 
                         self.message_router
-                            .send_error(connection_id, SignalingError::Internal)
+                            .send_error(
+                                connection_id,
+                                command.transaction_id,
+                                SignalingError::Internal,
+                            )
                             .await;
                     }
                 }
@@ -121,6 +146,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        transaction_id: Option<u64>,
         room_scope: Option<BreakoutId>,
         config: BreakoutConfig,
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
@@ -173,6 +199,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.broadcast_event_to_modules(
             participant_id,
             connection_id,
+            transaction_id,
             room_scope,
             breakout_started,
         )
@@ -187,7 +214,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             };
 
             self.message_router
-                .serialize_and_send(state.connections(), self::NAMESPACE, breakout_started)
+                .serialize_and_send(
+                    state.connections(),
+                    self::NAMESPACE,
+                    transaction_id,
+                    breakout_started,
+                )
                 .await?;
         }
 
@@ -202,6 +234,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        transaction_id: Option<u64>,
         delay: Option<Duration>,
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         let participants_state = self
@@ -220,7 +253,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let mut delay = match delay {
             Some(Duration::ZERO) | None => {
-                self.close_breakout_rooms(connection_id, Some(participant_id))
+                self.close_breakout_rooms(connection_id, transaction_id, Some(participant_id))
                     .await?;
                 return Ok(());
             }
@@ -234,6 +267,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .serialize_and_broadcast(
                 self::NAMESPACE,
+                transaction_id,
                 BreakoutEvent::CloseNotice {
                     issued_by: participant_id,
                     stops_at,
@@ -254,6 +288,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        transaction_id: Option<u64>,
         new_room: Option<BreakoutId>,
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         let Some(breakout_config) = &self.breakout_config else {
@@ -271,7 +306,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         }
 
-        self.move_participant(new_room, participant_id, connection_id)
+        self.move_participant(new_room, participant_id, connection_id, transaction_id)
             .await
     }
 
@@ -286,6 +321,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         breakout_room: Option<BreakoutId>,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        transaction_id: Option<u64>,
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         let Some(participant_state) = self.participants.all_unfiltered.get_mut(&participant_id)
         else {
@@ -312,6 +348,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.broadcast_event_to_modules(
             participant_id,
             connection_id,
+            transaction_id,
             breakout_room,
             DynBroadcastEvent::SwitchRoom {
                 participant_id,
@@ -327,6 +364,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .serialize_and_send(
                     [conn_id],
                     self::NAMESPACE,
+                    transaction_id,
                     BreakoutEvent::SwitchedRoom { module_data },
                 )
                 .await?;
@@ -341,6 +379,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .serialize_and_broadcast_exclude_connections(
                 self::NAMESPACE,
+                transaction_id,
                 content,
                 &excluded_connections,
             )
@@ -351,7 +390,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     pub(crate) async fn breakout_expired(&mut self) {
         // TODO: where connection id ¯\_(ツ)_/¯ - introduce origin enum for event sources, allowing internal events without connection source
-        if let Err(err) = self.close_breakout_rooms(ConnectionId::nil(), None).await {
+        if let Err(err) = self
+            .close_breakout_rooms(ConnectionId::nil(), None, None)
+            .await
+        {
             log::error!("Fatal error on breakout expiry: {err:?}");
         }
     }
@@ -360,15 +402,21 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(crate) async fn close_breakout_rooms(
         &mut self,
         origin: ConnectionId,
+        transaction_id: Option<u64>,
         issued_by: Option<ParticipantId>,
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         self.message_router
-            .serialize_and_broadcast(self::NAMESPACE, BreakoutEvent::Closing { issued_by })
+            .serialize_and_broadcast(
+                self::NAMESPACE,
+                transaction_id,
+                BreakoutEvent::Closing { issued_by },
+            )
             .await?;
 
         self.broadcast_event_to_modules(
             ParticipantId::nil(), // TODO: introduce origin type
             origin,
+            transaction_id,
             None,
             DynBroadcastEvent::BreakoutStop,
         )
@@ -383,8 +431,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         // move all participants back to the main room
         for participant_id in all_participants {
-            if let Err(SignalingModuleError::Fatal(error)) =
-                self.move_participant(None, participant_id, origin).await
+            if let Err(SignalingModuleError::Fatal(error)) = self
+                .move_participant(None, participant_id, origin, transaction_id)
+                .await
             {
                 return Err(SignalingModuleError::Fatal(error));
             }
@@ -393,7 +442,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.breakout_config = None;
 
         self.message_router
-            .serialize_and_broadcast(self::NAMESPACE, BreakoutEvent::Closed)
+            .serialize_and_broadcast(self::NAMESPACE, transaction_id, BreakoutEvent::Closed)
             .await?;
 
         Ok(())

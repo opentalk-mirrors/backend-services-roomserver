@@ -4485,11 +4485,13 @@ dependencies = [
  "futures",
  "log",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
  "serde_json",
+ "test-log",
  "tokio",
 ]
 
