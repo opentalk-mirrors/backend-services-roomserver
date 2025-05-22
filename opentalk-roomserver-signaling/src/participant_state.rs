@@ -4,15 +4,18 @@
 use std::collections::{BTreeSet, HashMap};
 
 use opentalk_roomserver_types::{
-    client_parameters::Role, connection_id::ConnectionId, device_id::DeviceId,
+    breakout_id::BreakoutId, client_parameters::Role, connection_id::ConnectionId,
+    device_id::DeviceId,
 };
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 
+use crate::participant_filter::{ParticipantsFiltered, ParticipantsFilteredMut};
+
 #[derive(Debug, Default)]
 pub struct Participants {
-    /// Contains all connected and disconnected participants
-    pub all: HashMap<ParticipantId, ParticipantState>,
+    /// Contains all connected and disconnected participants, even those outside of the current breakout scope
+    pub all_unfiltered: HashMap<ParticipantId, ParticipantState>,
 }
 
 impl Participants {
@@ -20,20 +23,24 @@ impl Participants {
         Self::default()
     }
 
-    pub fn connected(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> {
-        self.all.iter().filter(|(_, s)| s.is_connected())
+    pub fn connected(&self) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).connected()
     }
 
-    pub fn get_connected(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
-        self.all.get(participant_id).filter(|s| s.is_connected())
+    pub fn disconnected(&self) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).disconnected()
     }
 
-    pub fn disconnected(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> {
-        self.all.iter().filter(|(_, s)| !s.is_connected())
+    pub fn in_breakout_room(&self, breakout_room: Option<BreakoutId>) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).breakout_room(breakout_room)
     }
 
-    pub fn get_disconnected(&self, participant_id: &ParticipantId) -> Option<&ParticipantState> {
-        self.all.get(participant_id).filter(|s| !s.is_connected())
+    pub fn filter(&self) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self)
+    }
+
+    pub fn filter_mut(&mut self) -> ParticipantsFilteredMut {
+        ParticipantsFilteredMut::new(self)
     }
 }
 
@@ -41,6 +48,9 @@ impl Participants {
 pub struct ParticipantState {
     /// The participants display name
     pub display_name: DisplayName,
+
+    /// The breakout room of the participant. Is `None` when in the main room
+    pub breakout_room: Option<BreakoutId>,
 
     /// The kind of the participant
     pub kind: ParticipantKind,
@@ -62,6 +72,7 @@ impl ParticipantState {
     pub fn new(display_name: DisplayName, kind: ParticipantKind, role: Role) -> Self {
         Self {
             display_name,
+            breakout_room: None,
             kind,
             role,
             connections: HashMap::new(),
@@ -84,5 +95,9 @@ impl ParticipantState {
             devices.insert(*device);
         }
         devices
+    }
+
+    pub fn is_moderator(&self) -> bool {
+        matches!(self.role, Role::Moderator)
     }
 }

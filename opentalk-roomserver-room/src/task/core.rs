@@ -3,8 +3,13 @@
 
 use std::collections::BTreeMap;
 
-use opentalk_roomserver_signaling::signaling_module::{FatalError, SharedRawJson};
+use anyhow::anyhow;
+use opentalk_roomserver_signaling::{
+    breakout::module_data::BreakoutPeerModuleData,
+    signaling_module::{FatalError, SharedRawJson},
+};
 use opentalk_roomserver_types::{
+    breakout_id::BreakoutId,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
     error::SignalingError,
@@ -85,9 +90,21 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let mut peer_module_data = BTreeMap::new();
 
+        let Some(current_breakout_room) = self
+            .participants
+            .all_unfiltered
+            .get(&participant_id)
+            .map(|s| s.breakout_room)
+        else {
+            return Err(FatalError(anyhow!(
+                "Unable to get participant state for fresh connections"
+            )));
+        };
+
         self.broadcast_event_to_modules(
             participant_id,
             connection_id,
+            current_breakout_room,
             DynBroadcastEvent::Connected {
                 participant_id,
                 connection_id,
@@ -97,20 +114,24 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         )
         .await;
 
+        self.add_breakout_module_data(&mut module_data, current_breakout_room);
+
         let join_success_msg = build_join_success(
-            &self.context(participant_id, connection_id),
+            &self.context(participant_id, connection_id, current_breakout_room),
             participant_id,
             client_parameters,
             module_data,
         );
-        self.serialize_and_send(
-            [connection_id],
-            NAMESPACE,
-            CoreEvent::JoinSuccess(Box::new(join_success_msg)),
-        )
-        .await?;
 
-        for (&peer_id, state) in self.participants.connected() {
+        self.message_router
+            .serialize_and_send(
+                [connection_id],
+                NAMESPACE,
+                CoreEvent::JoinSuccess(Box::new(join_success_msg)),
+            )
+            .await?;
+
+        for (&peer_id, state) in self.participants.connected().iter() {
             let peer_join_info = peer_module_data.remove(&peer_id);
 
             let connections = state
@@ -119,16 +140,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .copied()
                 .filter(|&c| c != connection_id);
 
-            self.serialize_and_send(
-                connections,
-                NAMESPACE,
-                CoreEvent::ParticipantConnected {
-                    participant_id,
-                    connection_id,
-                    peer_join_info: peer_join_info.unwrap_or_default(),
-                },
-            )
-            .await?;
+            self.message_router
+                .serialize_and_send(
+                    connections,
+                    NAMESPACE,
+                    CoreEvent::ParticipantConnected {
+                        participant_id,
+                        connection_id,
+                        peer_join_info: peer_join_info.unwrap_or_default(),
+                    },
+                )
+                .await?;
         }
 
         Ok(())
@@ -140,11 +162,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        breakout_room: Option<BreakoutId>,
         reason: DisconnectReason,
     ) {
         self.broadcast_event_to_modules(
             participant_id,
             connection_id,
+            breakout_room,
             DynBroadcastEvent::Disconnected {
                 participant_id,
                 connection_id,
@@ -158,7 +182,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             reason,
         };
 
-        self.serialize_and_broadcast(NAMESPACE, content)
+        self.message_router
+            .serialize_and_broadcast(NAMESPACE, content)
             .await
             .expect("CoreEvent::ParticipantDisconnected must be serializable");
     }
@@ -168,6 +193,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        room_scope: Option<BreakoutId>,
         mut event: DynBroadcastEvent<'_>,
     ) {
         let mut errors = Vec::new();
@@ -176,6 +202,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .on_broadcast_event(
                     &mut DynModuleContext::new(
                         self.info.room_id,
+                        room_scope,
                         participant_id,
                         connection_id,
                         &mut self.info,
@@ -215,7 +242,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         // Remove the module from the room state
         self.info.room.tariff.modules.remove(&namespace);
 
-        self.broadcast_error(SignalingError::FatalModuleError { namespace })
+        self.message_router
+            .broadcast_error(SignalingError::FatalModuleError { namespace })
             .await;
     }
 }
@@ -228,11 +256,22 @@ fn build_join_success(
 ) -> JoinSuccess {
     let participants = ctx
         .participants
-        .all
+        .all_unfiltered
         .iter()
-        .map(|_id| Participant {
-            id: participant_id,
-            module_data: ModulePeerData::new(), // TODO: needs implementation in the signaling module
+        .map(|(id, state)| {
+            let mut module_peer_data = ModulePeerData::new();
+
+            // TODO: temporary solution to let participants know which participant is in which breakout room
+            module_peer_data
+                .insert(&BreakoutPeerModuleData {
+                    breakout_room: state.breakout_room,
+                })
+                .expect("BreakoutPeerModuleData must be serializable");
+
+            Participant {
+                id: *id,
+                module_data: module_peer_data, // TODO: needs implementation in the signaling module
+            }
         })
         .collect();
 

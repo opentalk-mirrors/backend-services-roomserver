@@ -2,20 +2,20 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use std::{
-    collections::BTreeMap, convert::Infallible, fmt::Debug, future::Future, marker::PhantomData,
-    sync::Arc,
+    collections::BTreeMap, convert::Infallible, fmt::Debug, marker::PhantomData, sync::Arc,
+    time::Duration,
 };
 
 use anyhow::Context;
 use opentalk_roomserver_common::settings::Settings;
-use opentalk_roomserver_types::connection_id::ConnectionId;
+use opentalk_roomserver_types::{breakout_id::BreakoutId, connection_id::ConnectionId};
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::value::{RawValue, to_raw_value};
 
 use super::module_context::ModuleContext;
-use crate::participant_state::ParticipantState;
+use crate::{breakout::BreakoutRoom, participant_state::ParticipantState};
 
 /// The trait that defines a signaling module
 ///
@@ -61,7 +61,7 @@ pub trait SignalingModule: Send + Sync + Sized {
     type Error: ModuleError;
 
     /// Creates an instance of the interface to access the module
-    fn init(init_data: SignalingModuleInitData) -> impl Future<Output = Option<Self>> + Send;
+    fn init(init_data: SignalingModuleInitData) -> Option<Self>;
 
     fn on_participant_joined(
         &mut self,
@@ -86,6 +86,35 @@ pub trait SignalingModule: Send + Sync + Sized {
         content: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>>;
 
+    #[allow(unused_variables)]
+    fn on_breakout_start(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        rooms: &[BreakoutRoom],
+        duration: Option<Duration>,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        Ok(())
+    }
+
+    #[allow(unused_variables)]
+    fn on_breakout_switch(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        participant_id: ParticipantId,
+        old_room: Option<BreakoutId>,
+        new_room: Option<BreakoutId>,
+    ) -> Result<BTreeMap<ConnectionId, Self::JoinInfo>, SignalingModuleError<Self::Error>> {
+        Ok(BTreeMap::new())
+    }
+
+    #[allow(unused_variables)]
+    fn on_breakout_stop(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        Ok(())
+    }
+
     fn on_loopback_event(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
@@ -95,9 +124,7 @@ pub trait SignalingModule: Send + Sync + Sized {
     /// Destroy the module and remove all associated resources
     ///
     /// Long running tasks must be spawned in a separate task
-    fn destroy(self) -> impl Future<Output = ()> + Send {
-        async {}
-    }
+    fn destroy(self) {}
 }
 
 pub trait CreateReplica<T> {
@@ -128,6 +155,15 @@ impl<M: SignalingModule> Default for JoinInfo<M> {
 pub struct PeerJoinInfoMap<M: SignalingModule> {
     pub map: BTreeMap<ParticipantId, SharedRawJson>,
     _m: PhantomData<M>,
+}
+
+impl<M: SignalingModule> PeerJoinInfoMap<M> {
+    pub fn new(map: BTreeMap<ParticipantId, SharedRawJson>) -> Self {
+        Self {
+            map,
+            _m: PhantomData,
+        }
+    }
 }
 
 impl<M: SignalingModule> Default for PeerJoinInfoMap<M> {
@@ -184,7 +220,7 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
         // Lazily serialize the PeerJoinInfo into a json string
         let mut raw_value: Option<SharedRawJson> = None;
 
-        for (participant_id, state) in ctx.participants.connected() {
+        for (participant_id, state) in ctx.participants.connected().iter() {
             if !filter(*participant_id, state) {
                 continue;
             }

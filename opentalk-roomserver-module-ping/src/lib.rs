@@ -34,7 +34,7 @@ impl SignalingModule for PingModule {
 
     type Error = PingError;
 
-    async fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
+    fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self)
     }
 
@@ -48,7 +48,7 @@ impl SignalingModule for PingModule {
         log::info!("Participant {participant_id} connected");
         let mut join_info = JoinInfo::default();
 
-        for (participant_id, ..) in ctx.participants.connected() {
+        for (participant_id, ..) in ctx.participants.connected().iter() {
             join_info
                 .peer
                 .insert(*participant_id, format!("Hello {participant_id}"))?;
@@ -85,9 +85,10 @@ impl SignalingModule for PingModule {
                 ctx.spawn(Self::handle_async_ping_delayed(participant_id));
             }
             Command::PingError => Self::ping_error()?,
-            Command::Broadcast => {
-                ctx.send_ws_message(ctx.participants.connected().map(|(id, _)| *id), Event::Pong)?
-            }
+            Command::Broadcast => ctx.send_ws_message(
+                ctx.participants.connected().iter().map(|(id, _)| *id),
+                Event::Pong,
+            )?,
             Command::Die => {
                 return Err(
                     FatalError(anyhow::anyhow!("Dying as requested, cya later alligator")).into(),

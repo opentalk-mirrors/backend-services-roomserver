@@ -6,6 +6,7 @@ use std::{cell::RefCell, future::Future, marker::PhantomData};
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_types::{
+    breakout_id::BreakoutId,
     client_parameters::Role,
     connection_id::ConnectionId,
     error::{self, SignalingError},
@@ -28,11 +29,12 @@ where
     M: SignalingModule,
 {
     pub room_id: RoomId,
+    pub breakout_room: Option<BreakoutId>,
     pub participant_id: ParticipantId,
     pub connection_id: ConnectionId,
     room_info: &'ctx mut RoomInfo,
     /// The websocket messages that are sent out after the module finished its event handling
-    messages: RefCell<Vec<(ConnectionId, SharedRawJson)>>,
+    messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
@@ -44,28 +46,42 @@ impl<'ctx, M> ModuleContext<'ctx, M>
 where
     M: SignalingModule,
 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         room_id: RoomId,
+        breakout_room: Option<BreakoutId>,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         room_info: &'ctx mut RoomInfo,
+        messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
         participants: &'ctx mut Participants,
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
     ) -> ModuleContext<'ctx, M> {
         Self {
             room_id,
+            breakout_room,
             participant_id,
             connection_id,
             room_info,
-            messages: RefCell::new(Vec::new()),
+            messages,
             participants,
             loopback_futures,
             m: PhantomData,
         }
     }
 
-    pub fn into_messages(self) -> Vec<(ConnectionId, SharedRawJson)> {
-        self.messages.into_inner()
+    pub fn reborrow<M2: SignalingModule>(&mut self) -> ModuleContext<'_, M2> {
+        ModuleContext {
+            room_id: self.room_id,
+            breakout_room: self.breakout_room,
+            participant_id: self.participant_id,
+            connection_id: self.connection_id,
+            room_info: self.room_info,
+            messages: self.messages,
+            participants: self.participants,
+            loopback_futures: self.loopback_futures,
+            m: PhantomData,
+        }
     }
 
     pub fn room_info(&self) -> &RoomInfo {
@@ -94,7 +110,7 @@ where
             .into();
 
         for participant_id in participant_ids {
-            let Some(state) = self.participants.get_connected(&participant_id) else {
+            let Some(state) = self.participants.connected().get(&participant_id) else {
                 log::error!(
                     "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
                     M::NAMESPACE
@@ -135,7 +151,7 @@ where
             .map_err(FatalError)?
             .into();
 
-        let Some(state) = self.participants.get_connected(&sender) else {
+        let Some(state) = self.participants.connected().get(&sender) else {
             log::error!(
                 "Module '{}' attempted to replicate a command to unknown participant {sender}",
                 M::NAMESPACE
@@ -171,7 +187,7 @@ where
             }
         };
 
-        let Some(state) = self.participants.get_connected(&self.participant_id) else {
+        let Some(state) = self.participants.connected().get(&self.participant_id) else {
             log::error!(
                 "Module '{}' attempted to send a websocket error message to unknown participant {}",
                 M::NAMESPACE,
@@ -198,12 +214,14 @@ where
     {
         let participant_id = self.participant_id;
         let connection_id = self.connection_id;
+        let breakout_room = self.breakout_room;
 
         let future = Box::pin(async move {
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
                 participant_id,
                 connection_id,
+                breakout_room,
                 value: Box::new(future.await),
             })
         });
@@ -222,6 +240,7 @@ where
     {
         let participant_id = self.participant_id;
         let connection_id = self.connection_id;
+        let breakout_room = self.breakout_room;
         let join_handle = tokio::task::spawn_blocking(blocking_function);
 
         let future = Box::pin(async move {
@@ -234,6 +253,7 @@ where
                 namespace: M::NAMESPACE,
                 participant_id,
                 connection_id,
+                breakout_room,
                 value: Box::new(value),
             })
         });
@@ -242,7 +262,7 @@ where
     }
 
     pub fn participant_state(&self, participant_id: ParticipantId) -> Option<&ParticipantState> {
-        self.participants.all.get(&participant_id)
+        self.participants.all_unfiltered.get(&participant_id)
     }
 
     pub fn participant_role(&self, participant_id: ParticipantId) -> Option<Role> {

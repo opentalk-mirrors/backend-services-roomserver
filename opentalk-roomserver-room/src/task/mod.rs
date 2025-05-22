@@ -38,6 +38,7 @@
 
 use std::{future::pending, sync::Arc, time::Duration};
 
+use breakout::state::BreakoutState;
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
@@ -47,6 +48,7 @@ use opentalk_roomserver_signaling::{
     signaling_module::SignalingModuleInitData,
 };
 use opentalk_roomserver_types::{
+    breakout_id::BreakoutId,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
     device_id::DeviceId,
@@ -54,7 +56,7 @@ use opentalk_roomserver_types::{
     room_parameters::RoomParameters,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::{modules::ModuleId, rooms::RoomId, time::Timestamp};
+use opentalk_types_common::{rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use tokio::{
     sync::{mpsc, watch},
@@ -75,10 +77,10 @@ use crate::{
     },
 };
 
+pub mod breakout;
 pub mod core;
 pub mod handle;
 pub mod idle_timeout;
-pub mod websocket;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
@@ -107,6 +109,8 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
     idle_timeout: IdleTimeout,
 
     message_router: MessageRouter,
+
+    breakout_config: Option<BreakoutState>,
 
     /// Loopback futures that were created by signaling modules
     loopback_futures: FuturesUnordered<LoopbackFuture>,
@@ -184,6 +188,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 api_rx: rx,
                 idle_timeout: IdleTimeout::start_new(timeout),
                 message_router,
+                breakout_config: None,
                 loopback_futures,
                 settings,
                 app_state,
@@ -222,7 +227,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 },
                 msg = self.message_router.recv() => {
                     log::trace!("received {msg:?}");
-                    let _ = self.handle_message(msg).await;
+                    self.handle_message(msg).await;
+
                 }
                 Some(msg) = self.loopback_futures.next() => {
                     self.handle_loopback(msg).await;
@@ -230,6 +236,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 () = self.idle_timeout.has_timed_out() => {
                     log::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
                     return Ok(());
+                }
+                () = Self::check_breakout_timeout(&mut self.breakout_config) => {
+                    self.breakout_expired().await;
                 }
                 result = self.app_state.changed() => {
                     if result.is_err() || self.app_state.borrow().is_shutting_down() {
@@ -282,6 +291,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
+            msg.breakout_room,
             msg.participant_id,
             msg.connection_id,
             &mut self.info,
@@ -323,7 +333,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             message,
             span,
         }: MessageEnvelope<SignalingMessage>,
-    ) -> anyhow::Result<()> {
+    ) {
         match message {
             SignalingMessage::Closed(close_reason) => {
                 log::trace!("Websocket closed for participant {participant_id}: {close_reason:?}");
@@ -334,14 +344,55 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             SignalingMessage::Command(signaling_command) => {
                 log::trace!("received signaling command: {signaling_command:?}");
 
-                let Some(module) = self.modules.get_mut(&signaling_command.namespace) else {
-                    self.handle_unknown_namespace(connection_id, signaling_command.namespace)
+                let Some(participant_state) = self.participants.all_unfiltered.get(&participant_id)
+                else {
+                    log::error!(
+                        "failed to get participant state for participant `{participant_id}`"
+                    );
+
+                    // This scenario should never occur because we never delete known participants. We still attempt to
+                    // send an error to the non-existent connection in a best-effort approach.
+                    self.message_router
+                        .send_error(connection_id, SignalingError::Internal)
                         .await;
-                    return Ok(());
+
+                    return;
+                };
+
+                let room_scope = participant_state.breakout_room;
+
+                match &signaling_command.namespace {
+                    m if *m == core::NAMESPACE => {
+                        log::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                        return;
+                    }
+                    m if *m == breakout::NAMESPACE => {
+                        self.handle_breakout_command(
+                            participant_id,
+                            connection_id,
+                            room_scope,
+                            signaling_command,
+                        )
+                        .await;
+
+                        return;
+                    }
+                    _ => (),
+                }
+
+                let Some(module) = self.modules.get_mut(&signaling_command.namespace) else {
+                    self.handle_unknown_namespace(
+                        connection_id,
+                        signaling_command.namespace.to_string(),
+                    )
+                    .await;
+
+                    return;
                 };
 
                 let mut ctx = DynModuleContext::new(
                     self.info.room_id,
+                    room_scope,
                     participant_id,
                     connection_id,
                     &mut self.info,
@@ -349,6 +400,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     &mut self.participants,
                     &self.loopback_futures,
                 );
+
                 if let Err(err) = module
                     .on_event(
                         &mut ctx,
@@ -365,8 +417,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 }
             }
         }
-
-        Ok(())
     }
 
     async fn connect_participant(&mut self, socket: Socket, client_parameters: ClientParameters) {
@@ -388,7 +438,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         // If we ever run into the issue of an uuid collision, a guest could hijack a user session and vice versa. We'd
         // rather decline the new connection when the participant id is known, but the participant kinds differ.
-        if let Some(existing_participant) = self.participants.all.get(&participant_id) {
+        if let Some(existing_participant) = self.participants.all_unfiltered.get(&participant_id) {
             if existing_participant.kind != kind {
                 log::error!("ParticipantId collision, dropping new participant ({participant_id})");
                 return;
@@ -407,6 +457,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
+        self.participants
+            .all_unfiltered
+            .entry(participant_id)
+            .or_insert_with(|| ParticipantState::new(display_name, kind, role))
+            .connections
+            .insert(connection_id, device_id);
+
         if let Err(err) = self
             .participant_joined(participant_id, connection_id, client_parameters)
             .await
@@ -416,13 +473,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             self.disconnect_participant(participant_id, connection_id, CloseReason::InternalError)
                 .await;
         }
-
-        self.participants
-            .all
-            .entry(participant_id)
-            .or_insert_with(|| ParticipantState::new(display_name, kind, role))
-            .connections
-            .insert(connection_id, device_id);
     }
 
     async fn disconnect_participant(
@@ -431,41 +481,53 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         connection_id: ConnectionId,
         reason: CloseReason,
     ) {
-        let Some(state) = self.participants.all.get_mut(&participant_id) else {
+        let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
             log::error!("Attempted to disconnect participant who does not exist");
             return;
         };
+
         state.connections.remove(&connection_id);
 
-        self.participant_disconnected(participant_id, connection_id, reason.into())
+        let breakout_room = state.breakout_room;
+
+        self.participant_disconnected(participant_id, connection_id, breakout_room, reason.into())
             .await;
 
         // start idle timeout when no one is connected
-        if !self.participants.all.values().any(|s| s.is_connected()) {
+        if !self
+            .participants
+            .all_unfiltered
+            .values()
+            .any(|s| s.is_connected())
+        {
             self.idle_timeout.start(IDLE_TIMEOUT);
         }
     }
 
-    async fn handle_unknown_namespace(&mut self, origin: ConnectionId, namespace: ModuleId) {
+    async fn handle_unknown_namespace(&mut self, origin: ConnectionId, namespace: String) {
         log::debug!(
             "Received signaling message with unknown namespace: {}",
             &namespace
         );
 
         let signaling_error = SignalingError::UnknownNamespace {
-            invalid_namespace: namespace.to_string(),
+            invalid_namespace: namespace,
         };
 
-        self.send_error(origin, signaling_error).await;
+        self.message_router
+            .send_error(origin, signaling_error)
+            .await;
     }
 
     fn context(
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        breakout_room: Option<BreakoutId>,
     ) -> DynModuleContext<'_> {
         DynModuleContext::new(
             self.info.room_id,
+            breakout_room,
             participant_id,
             connection_id,
             &mut self.info,

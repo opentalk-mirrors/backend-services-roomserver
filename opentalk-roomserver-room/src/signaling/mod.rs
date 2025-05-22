@@ -14,17 +14,20 @@
 //! Due to the generic nature of the [`ModuleDispatcher`] they cannot be stored in a single collection either,
 //! at least not when their generic type differs. This is where the [`ModuleHandle`] is used as an abstraction
 //! to remove any generic bounds. We achieve this with dynamic dispatch by storing them as a `Box<dyn ModuleDispatcher>`.
-use std::{any::Any, collections::BTreeMap};
+use std::{any::Any, cell::RefCell, collections::BTreeMap, time::Duration};
 
 use anyhow::Context;
 use dyn_module_context::DynModuleContext;
 use opentalk_roomserver_signaling::{
+    breakout::BreakoutRoom,
     module_context::ModuleContext,
     signaling_module::{
         CreateReplica, FatalError, SharedRawJson, SignalingModule, SignalingModuleError,
     },
 };
-use opentalk_roomserver_types::{connection_id::ConnectionId, error::SignalingError};
+use opentalk_roomserver_types::{
+    breakout_id::BreakoutId, connection_id::ConnectionId, error::SignalingError,
+};
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use serde_json::value::RawValue;
@@ -73,6 +76,22 @@ pub enum DynBroadcastEvent<'evt> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
     },
+
+    BreakoutStart {
+        rooms: &'evt Vec<BreakoutRoom>,
+        duration: Option<Duration>,
+    },
+
+    BreakoutStop,
+
+    /// A participant switches between main and/or breakout rooms
+    SwitchRoom {
+        participant_id: ParticipantId,
+        old_room: Option<BreakoutId>,
+        new_room: Option<BreakoutId>,
+        /// The module data for the participant in the new room. Each connection needs to have their own module data
+        module_data: &'evt mut BTreeMap<ConnectionId, ModuleData>,
+    },
 }
 
 /// Resolves generic JSON messages into concrete types for the associated [`SignalingModule`]
@@ -120,10 +139,10 @@ where
             } => {
                 let is_first_connection = ctx
                     .participants
-                    .all
+                    .all_unfiltered
                     .get(participant_id)
-                    .map(|s| s.connections.is_empty())
-                    .unwrap_or(true);
+                    .map(|s| s.connections.len() == 1)
+                    .context("new participant not in participant set")?;
 
                 let join_info = self.module.on_participant_joined(
                     ctx,
@@ -155,6 +174,33 @@ where
                 self.module
                     .on_participant_disconnected(ctx, *participant_id, *connection_id)?;
             }
+            DynBroadcastEvent::BreakoutStart { rooms, duration } => {
+                self.module.on_breakout_start(ctx, rooms, *duration)?;
+            }
+
+            DynBroadcastEvent::SwitchRoom {
+                participant_id,
+                old_room,
+                new_room,
+                module_data,
+            } => {
+                let join_infos =
+                    self.module
+                        .on_breakout_switch(ctx, *participant_id, *old_room, *new_room)?;
+
+                for (conn_id, join_info) in join_infos {
+                    module_data
+                        .entry(conn_id)
+                        .or_default()
+                        .insert(&join_info)
+                        .with_context(|| {
+                            format!("failed to serialize JoinInfo for module '{}'", M::NAMESPACE)
+                        })
+                        .map_err(FatalError)?;
+                }
+            }
+
+            DynBroadcastEvent::BreakoutStop => self.module.on_breakout_stop(ctx)?,
         }
         Ok(())
     }
@@ -250,7 +296,8 @@ where
         ctx: &mut DynModuleContext<'_>,
         event: DynEvent,
     ) -> Result<(), FatalError> {
-        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into_typed_context();
+        let mut messages = RefCell::new(Vec::new());
+        let mut module_context = ctx.reborrow().into_typed_context(&mut messages);
 
         if let Err(err) = self.handle_event(&mut module_context, event).await {
             match err {
@@ -270,7 +317,7 @@ where
             }
         }
 
-        for (connection_id, message) in module_context.into_messages() {
+        for (connection_id, message) in messages.into_inner() {
             ctx.message_router
                 .send_event([connection_id], message)
                 .await;
@@ -284,7 +331,9 @@ where
         ctx: &mut DynModuleContext<'_>,
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError> {
-        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into_typed_context();
+        let mut messages = RefCell::new(Vec::new());
+        let mut module_context: ModuleContext<'_, M> =
+            ctx.reborrow().into_typed_context(&mut messages);
 
         if let Err(err) = self
             .handle_broadcast_event(&mut module_context, event)
@@ -293,7 +342,7 @@ where
             return self.handle_error(&mut module_context, err).await;
         }
 
-        for (connection_id, message) in module_context.into_messages() {
+        for (connection_id, message) in messages.into_inner() {
             ctx.message_router
                 .send_event([connection_id], message)
                 .await;
@@ -303,6 +352,6 @@ where
     }
 
     async fn destroy(self: Box<Self>) {
-        self.module.destroy().await
+        self.module.destroy()
     }
 }
