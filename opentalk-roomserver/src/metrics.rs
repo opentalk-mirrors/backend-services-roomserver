@@ -4,10 +4,10 @@
 use std::net::IpAddr;
 
 use anyhow::Context as _;
-use axum::{extract::State, routing::get, Router};
+use axum::{Router, extract::State, routing::get};
 use tokio::sync::watch;
 
-use crate::{wait_shutdown, ApplicationState};
+use crate::{ApplicationState, wait_shutdown};
 
 pub(crate) async fn run_metric_server<H>(
     address: IpAddr,

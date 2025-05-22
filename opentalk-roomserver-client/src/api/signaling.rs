@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use anyhow::{anyhow, Context as _};
+use anyhow::{Context as _, anyhow};
 use futures::{SinkExt as _, StreamExt};
 use opentalk_types_common::roomserver::Token;
 use thiserror::Error;
 use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 use tungstenite::{
-    protocol::{frame::coding::CloseCode, CloseFrame},
     ClientRequestBuilder, Message, Utf8Bytes,
+    protocol::{CloseFrame, frame::coding::CloseCode},
 };
 use url::Url;
 

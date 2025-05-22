@@ -8,9 +8,9 @@ use std::{path::Path, result, sync::Arc, time::Duration};
 
 use anyhow::Context;
 use axum_prometheus::{
+    AXUM_HTTP_REQUESTS_DURATION_SECONDS, GenericMetricLayer, PrometheusMetricLayerBuilder,
     metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle},
     utils::SECONDS_DURATION_BUCKETS,
-    GenericMetricLayer, PrometheusMetricLayerBuilder, AXUM_HTTP_REQUESTS_DURATION_SECONDS,
 };
 use clap::Parser;
 use cli::{Args, SubCommand};
@@ -18,14 +18,14 @@ use futures::TryFutureExt;
 use metrics::MetricHandle;
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
-    settings::{telemetry::Monitoring, Settings},
+    settings::{Settings, telemetry::Monitoring},
 };
-use service_probe::{start_probe, stop_probe, ServiceState};
+use service_probe::{ServiceState, start_probe, stop_probe};
 use tokio::{
     signal,
     sync::watch::{self, Receiver},
     task::JoinSet,
-    time::{timeout_at, Instant},
+    time::{Instant, timeout_at},
 };
 
 mod api;

@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use config::{Config, Environment, File, FileFormat};
 use serde::Deserialize;
 use signaling_salt::SignalingSalt;

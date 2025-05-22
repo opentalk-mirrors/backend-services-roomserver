@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use egui::{style::ScrollAnimation, Response, RichText};
-use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver, UnboundedSender};
+use egui::{Response, RichText, style::ScrollAnimation};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, error::TryRecvError};
 
 use super::shortcuts::{PREVIOUS_SHORTCUT, SUCCESSOR_SHORTCUT, TOGGLE_HISTORY_PANEL_SHORTCUT};
 use crate::{
     app::{
+        TransitionToView,
         error::RunnerGoneError,
         event_widget::EventWidget,
         json_edit::json_editor,
         shortcuts::{CLEAR_SHORTCUT, DISCONNECT_SHORTCUT, SEND_SHORTCUT},
-        TransitionToView,
     },
     client::{RunnerCommand, RunnerEvent, SignalingState},
     settings::{DuiSettings, HistoryEntry, MessageHistory},

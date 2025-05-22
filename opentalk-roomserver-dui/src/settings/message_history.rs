@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::{vec_deque::Iter, VecDeque};
+use std::collections::{VecDeque, vec_deque::Iter};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

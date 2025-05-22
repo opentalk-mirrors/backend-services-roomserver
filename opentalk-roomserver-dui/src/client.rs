@@ -3,8 +3,8 @@
 
 use chrono::Local;
 use opentalk_roomserver_client::{
-    api::signaling::{SignalingConnection, SignalingError},
     Client,
+    api::signaling::{SignalingConnection, SignalingError},
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,

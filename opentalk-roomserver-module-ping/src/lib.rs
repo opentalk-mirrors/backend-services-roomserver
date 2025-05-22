@@ -11,7 +11,7 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_types_common::modules::{module_id, ModuleId};
+use opentalk_types_common::modules::{ModuleId, module_id};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 

@@ -12,7 +12,7 @@ use opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize, Serializer};
-use serde_json::value::{to_raw_value, RawValue};
+use serde_json::value::{RawValue, to_raw_value};
 
 use super::module_context::ModuleContext;
 use crate::participant_state::ParticipantState;

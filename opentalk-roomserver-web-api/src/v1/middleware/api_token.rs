@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::future::{ready, Ready};
+use std::future::{Ready, ready};
 
 use axum::{extract::Request, http::header::AUTHORIZATION, response::IntoResponse};
 use futures::future::Either;

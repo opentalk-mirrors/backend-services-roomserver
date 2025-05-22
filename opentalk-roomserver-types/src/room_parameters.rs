@@ -8,7 +8,7 @@ use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventDescription, EventId, EventTitle},
-    rooms::{invite_codes::InviteCode, RoomPassword},
+    rooms::{RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
     streaming::StreamingLink,
     tariffs::{QuotaType, TariffResource},

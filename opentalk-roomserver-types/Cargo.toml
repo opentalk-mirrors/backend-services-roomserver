@@ -3,7 +3,7 @@
 
 [package]
 authors.workspace = true
-edition = "2021"
+edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-types"
