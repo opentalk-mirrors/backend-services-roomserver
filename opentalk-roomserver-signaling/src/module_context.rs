@@ -16,6 +16,7 @@ use opentalk_types_signaling::ParticipantId;
 use serde_json::value::RawValue;
 
 use crate::{
+    event_origin::EventOrigin,
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantState, Participants},
     room_info::RoomInfo,
@@ -30,15 +31,13 @@ where
 {
     pub room_id: RoomId,
     pub breakout_room: Option<BreakoutId>,
-    pub participant_id: ParticipantId,
-    pub connection_id: ConnectionId,
+    pub event_origin: EventOrigin,
     room_info: &'ctx mut RoomInfo,
     /// The websocket messages that are sent out after the module finished its event handling
     messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
-    transaction_id: Option<u64>,
 
     m: PhantomData<fn() -> M>,
 }
@@ -51,24 +50,20 @@ where
     pub fn new(
         room_id: RoomId,
         breakout_room: Option<BreakoutId>,
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
+        event_origin: EventOrigin,
         room_info: &'ctx mut RoomInfo,
         messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
         participants: &'ctx mut Participants,
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
-        transaction_id: Option<u64>,
     ) -> ModuleContext<'ctx, M> {
         Self {
             room_id,
             breakout_room,
-            participant_id,
-            connection_id,
+            event_origin,
             room_info,
             messages,
             participants,
             loopback_futures,
-            transaction_id,
             m: PhantomData,
         }
     }
@@ -77,13 +72,11 @@ where
         ModuleContext {
             room_id: self.room_id,
             breakout_room: self.breakout_room,
-            participant_id: self.participant_id,
-            connection_id: self.connection_id,
+            event_origin: self.event_origin,
             room_info: self.room_info,
             messages: self.messages,
             participants: self.participants,
             loopback_futures: self.loopback_futures,
-            transaction_id: self.transaction_id,
             m: PhantomData,
         }
     }
@@ -106,7 +99,7 @@ where
     ) -> Result<(), FatalError> {
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
-            transaction_id: self.transaction_id,
+            transaction_id: self.event_origin.transaction_id(),
             content: msg,
         };
         let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
@@ -148,7 +141,7 @@ where
     ) -> Result<(), FatalError> {
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
-            transaction_id: self.transaction_id,
+            transaction_id: self.event_origin.transaction_id(),
             content: replication_event,
         };
 
@@ -175,15 +168,29 @@ where
         Ok(())
     }
 
-    /// Send a websocket error message of type [`SignalingError`] to the associated participant
+    /// Invoke an error message of type [`SignalingError`]
+    ///
+    /// If the event origin is a signaling connection, the error will be sent to the participant.
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
-    pub fn send_ws_error(&self, error: SignalingError) {
+    pub fn handle_error(&self, error: SignalingError) {
+        let participant_id = match self.event_origin {
+            EventOrigin::Participant(participant_origin) => participant_origin.id,
+            EventOrigin::Internal => {
+                log::error!(
+                    "Signaling module '{}' returned an error on an event with internal origin: {error:?} ",
+                    M::NAMESPACE
+                );
+                return;
+            }
+        };
+
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
-            transaction_id: self.transaction_id,
+            transaction_id: self.event_origin.transaction_id(),
             content: error,
         };
+
         let shared_json: SharedRawJson = match serde_json::value::to_raw_value(&event) {
             Ok(value) => value.into(),
             Err(err) => {
@@ -194,11 +201,11 @@ where
             }
         };
 
-        let Some(state) = self.participants.connected().get(&self.participant_id) else {
+        let Some(state) = self.participants.connected().get(&participant_id) else {
             log::error!(
                 "Module '{}' attempted to send a websocket error message to unknown participant {}",
                 M::NAMESPACE,
-                self.participant_id,
+                participant_id,
             );
             return;
         };
@@ -219,19 +226,15 @@ where
     where
         F: Future<Output = M::Loopback> + Send + Sync + 'static,
     {
-        let participant_id = self.participant_id;
-        let connection_id = self.connection_id;
+        let origin = self.event_origin;
         let breakout_room = self.breakout_room;
 
-        let transaction_id = self.transaction_id;
         let future = Box::pin(async move {
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
-                participant_id,
-                connection_id,
+                origin,
                 breakout_room,
                 value: Box::new(future.await),
-                transaction_id,
             })
         });
 
@@ -247,12 +250,10 @@ where
     where
         F: FnOnce() -> M::Loopback + Send + 'static,
     {
-        let participant_id = self.participant_id;
-        let connection_id = self.connection_id;
+        let origin = self.event_origin;
         let breakout_room = self.breakout_room;
         let join_handle = tokio::task::spawn_blocking(blocking_function);
 
-        let transaction_id = self.transaction_id;
         let future = Box::pin(async move {
             let Ok(value) = join_handle.await else {
                 log::error!("module {} panicked in loopback task", M::NAMESPACE);
@@ -261,11 +262,9 @@ where
 
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
-                participant_id,
-                connection_id,
+                origin,
                 breakout_room,
                 value: Box::new(value),
-                transaction_id,
             })
         });
 

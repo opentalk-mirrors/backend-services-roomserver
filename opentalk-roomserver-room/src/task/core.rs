@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
     breakout::module_data::BreakoutPeerModuleData,
+    event_origin::{EventOrigin, ParticipantOrigin},
     signaling_module::{FatalError, SharedRawJson},
 };
 use opentalk_roomserver_types::{
@@ -101,10 +102,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )));
         };
 
-        self.broadcast_event_to_modules(
-            participant_id,
+        let participant_origin = ParticipantOrigin {
+            id: participant_id,
             connection_id,
-            None,
+            transaction_id: None,
+        };
+
+        self.broadcast_event_to_modules(
+            participant_origin.into(),
             current_breakout_room,
             DynBroadcastEvent::Connected {
                 participant_id,
@@ -118,7 +123,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.add_breakout_module_data(&mut module_data, current_breakout_room);
 
         let join_success_msg = build_join_success(
-            &self.context(participant_id, connection_id, current_breakout_room),
+            &self.context(participant_origin.into(), current_breakout_room),
             participant_id,
             client_parameters,
             module_data,
@@ -163,15 +168,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// to all participants
     pub(super) async fn participant_disconnected(
         &mut self,
+        origin: EventOrigin,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         breakout_room: Option<BreakoutId>,
         reason: DisconnectReason,
     ) {
         self.broadcast_event_to_modules(
-            participant_id,
-            connection_id,
-            None,
+            origin,
             breakout_room,
             DynBroadcastEvent::Disconnected {
                 participant_id,
@@ -195,9 +199,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Broadcast the [`DynBroadcastEvent`] to all modules
     pub(crate) async fn broadcast_event_to_modules(
         &mut self,
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
-        transaction_id: Option<u64>,
+        origin: EventOrigin,
         room_scope: Option<BreakoutId>,
         mut event: DynBroadcastEvent<'_>,
     ) {
@@ -208,13 +210,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     &mut DynModuleContext::new(
                         self.info.room_id,
                         room_scope,
-                        participant_id,
-                        connection_id,
+                        origin,
                         &mut self.info,
                         &mut self.message_router,
                         &mut self.participants,
                         &self.loopback_futures,
-                        transaction_id,
                     ),
                     &mut event,
                 )
@@ -225,7 +225,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         for (namespace, err) in errors {
-            self.handle_fatal_module_error(namespace, transaction_id, err)
+            self.handle_fatal_module_error(namespace, origin.transaction_id(), err)
                 .await;
         }
     }

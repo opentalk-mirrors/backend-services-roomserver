@@ -42,6 +42,7 @@ use breakout::state::BreakoutState;
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
+    event_origin::{EventOrigin, ParticipantOrigin},
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantKind, ParticipantState, Participants},
     room_info::RoomInfo,
@@ -292,19 +293,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
             msg.breakout_room,
-            msg.participant_id,
-            msg.connection_id,
+            msg.origin,
             &mut self.info,
             &mut self.message_router,
             &mut self.participants,
             &self.loopback_futures,
-            msg.transaction_id,
         );
         if let Err(err) = module
             .on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value))
             .await
         {
-            self.handle_fatal_module_error(msg.namespace, msg.transaction_id, err)
+            self.handle_fatal_module_error(msg.namespace, msg.origin.transaction_id(), err)
                 .await;
         }
     }
@@ -339,12 +338,27 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         match message {
             SignalingMessage::Closed(close_reason) => {
                 log::trace!("Websocket closed for participant {participant_id}: {close_reason:?}");
-                self.disconnect_participant(participant_id, connection_id, close_reason)
-                    .await;
+                self.disconnect_participant(
+                    EventOrigin::Participant(ParticipantOrigin {
+                        id: participant_id,
+                        connection_id,
+                        transaction_id: None,
+                    }),
+                    participant_id,
+                    connection_id,
+                    close_reason,
+                )
+                .await;
             }
 
             SignalingMessage::Command(signaling_command) => {
                 log::trace!("received signaling command: {signaling_command:?}");
+
+                let participant_origin = ParticipantOrigin {
+                    id: participant_id,
+                    connection_id,
+                    transaction_id: signaling_command.transaction_id,
+                };
 
                 let Some(participant_state) = self.participants.all_unfiltered.get(&participant_id)
                 else {
@@ -374,8 +388,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     }
                     m if *m == breakout::NAMESPACE => {
                         self.handle_breakout_command(
-                            participant_id,
-                            connection_id,
+                            participant_origin,
                             room_scope,
                             signaling_command,
                         )
@@ -400,13 +413,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 let mut ctx = DynModuleContext::new(
                     self.info.room_id,
                     room_scope,
-                    participant_id,
-                    connection_id,
+                    participant_origin.into(),
                     &mut self.info,
                     &mut self.message_router,
                     &mut self.participants,
                     &self.loopback_futures,
-                    signaling_command.transaction_id,
                 );
 
                 if let Err(err) = module
@@ -482,13 +493,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         {
             log::error!("failed to add participant to conference {err:#?}");
 
-            self.disconnect_participant(participant_id, connection_id, CloseReason::InternalError)
-                .await;
+            self.disconnect_participant(
+                EventOrigin::Internal,
+                participant_id,
+                connection_id,
+                CloseReason::InternalError,
+            )
+            .await;
         }
     }
 
     async fn disconnect_participant(
         &mut self,
+        origin: EventOrigin,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         reason: CloseReason,
@@ -502,8 +519,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let breakout_room = state.breakout_room;
 
-        self.participant_disconnected(participant_id, connection_id, breakout_room, reason.into())
-            .await;
+        self.participant_disconnected(
+            origin,
+            participant_id,
+            connection_id,
+            breakout_room,
+            reason.into(),
+        )
+        .await;
 
         // start idle timeout when no one is connected
         if !self
@@ -538,20 +561,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     fn context(
         &mut self,
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
+        origin: EventOrigin,
         breakout_room: Option<BreakoutId>,
     ) -> DynModuleContext<'_> {
         DynModuleContext::new(
             self.info.room_id,
             breakout_room,
-            participant_id,
-            connection_id,
+            origin,
             &mut self.info,
             &mut self.message_router,
             &mut self.participants,
             &self.loopback_futures,
-            None,
         )
     }
 

@@ -7,6 +7,7 @@
 //! implement the [`SignalingModule`](signaling_module::SignalingModule) trait.
 
 pub mod breakout;
+pub mod event_origin;
 /// The `loopback` module is intended for internal use only
 #[doc(hidden)]
 pub mod loopback;
