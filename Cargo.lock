@@ -4529,9 +4529,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-v1"
-version = "0.37.0"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2f10fc56f617e3bdeb4d8b4807d2b089de0d9657f80cbe1a96fc2773674d5ff"
+checksum = "f8609e8bdeb8427884b5490ca162daab9d36de105cb18fb67242bdadf42dfbd1"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -4550,9 +4550,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.34.0"
+version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cabc79b25d91c7c39cd3339146518b9aff1f160869d75c481c3ae991fce9adb8"
+checksum = "f24efa7aaa62625984f3c008c87c07a5c7f27b6b0410f0eb75b150089d2a4e85"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -4601,9 +4601,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling"
-version = "0.35.0"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cda75585c6dfd4925537aa7530888a6a10ca3762909cca9d82e1db872a824de"
+checksum = "be4b2b5c8c01b45bad75d78fb2cba70aee8a48e30ed5e727e45fb5f9482d5666"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
@@ -4615,9 +4615,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-chat"
-version = "0.35.1"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccb2cb500f082edbee89399b49aecb19629e6ce363b2bc56057b9124e1e8dbb1"
+checksum = "0da4d43bdc7d4fa892d970ad3c0d5add2e04178a731070b606632d9dfd108858"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
@@ -4628,9 +4628,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-control"
-version = "0.35.0"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dd6870cc30975195d578e409e1584f74f95d534cde0aa64e0b0766ccd84a21f"
+checksum = "0a015ce6532f9441d5314ec9b692812276142d990645e5ba45da99e82f005833"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
