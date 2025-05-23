@@ -256,7 +256,6 @@ skip = [
   { name = "tokio-rustls", version = "0.24.1" },
   { name = "tokio-tungstenite", version = "0.20.1" },
   { name = "tokio-tungstenite", version = "0.26" },
-  { name = "tower", version = "0.4" },
   { name = "tungstenite", version = "0.20" },
   { name = "tungstenite", version = "0.26" },
   { name = "webpki-roots", version = "0.25" },
