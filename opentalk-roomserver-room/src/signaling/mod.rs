@@ -20,6 +20,7 @@ use anyhow::Context;
 use dyn_module_context::DynModuleContext;
 use opentalk_roomserver_signaling::{
     breakout::BreakoutRoom,
+    event_origin::EventOrigin,
     module_context::ModuleContext,
     signaling_module::{
         CreateReplica, FatalError, SharedRawJson, SignalingModule, SignalingModuleError,
@@ -224,7 +225,7 @@ where
                     err
                 );
 
-                ctx.send_ws_error(SignalingError::InvalidJson {
+                ctx.handle_error(SignalingError::InvalidJson {
                     message: "failed to deserialize websocket message".into(),
                 });
 
@@ -271,15 +272,25 @@ where
             SignalingModuleError::Fatal(err) => return Err(err),
             SignalingModuleError::Internal(err) => {
                 log::error!(
-                    "The '{}' module returned an internal error: {err:#?}",
+                    "module '{}' returned an internal error: {err:#?}",
                     M::NAMESPACE
                 );
-                ctx.send_ws_error(SignalingError::Internal);
+                ctx.handle_error(SignalingError::Internal);
             }
             SignalingModuleError::Module(err) => {
                 let msg = err.into();
 
-                ctx.send_ws_message([ctx.participant_id], msg)?;
+                match ctx.event_origin {
+                    EventOrigin::Participant(participant_origin) => {
+                        ctx.send_ws_message([participant_origin.id], msg)?;
+                    }
+                    EventOrigin::Internal => {
+                        log::warn!(
+                            "module '{}' returned a websocket error message but the event origin is internal: {msg:?} ",
+                            M::NAMESPACE
+                        )
+                    }
+                }
             }
         }
         Ok(())
@@ -300,21 +311,7 @@ where
         let mut module_context = ctx.reborrow().into_typed_context(&mut messages);
 
         if let Err(err) = self.handle_event(&mut module_context, event).await {
-            match err {
-                SignalingModuleError::Fatal(err) => return Err(err),
-                SignalingModuleError::Internal(err) => {
-                    log::error!(
-                        "The '{}' module returned an internal error: {err:#?}",
-                        M::NAMESPACE
-                    );
-                    module_context.send_ws_error(SignalingError::Internal);
-                }
-                SignalingModuleError::Module(err) => {
-                    let msg = err.into();
-
-                    module_context.send_ws_message([module_context.participant_id], msg)?;
-                }
-            }
+            self.handle_error(&mut module_context, err).await?;
         }
 
         for (connection_id, message) in messages.into_inner() {

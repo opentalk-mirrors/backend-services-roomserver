@@ -3,18 +3,16 @@
 
 use std::{any::Any, future::Future, pin::Pin};
 
-use opentalk_roomserver_types::{breakout_id::BreakoutId, connection_id::ConnectionId};
+use opentalk_roomserver_types::breakout_id::BreakoutId;
 use opentalk_types_common::modules::ModuleId;
-use opentalk_types_signaling::ParticipantId;
+
+use crate::event_origin::EventOrigin;
 
 pub type LoopbackFuture = Pin<Box<dyn Future<Output = Option<LoopbackMessage>> + Send + Sync>>;
 
 pub struct LoopbackMessage {
     pub namespace: ModuleId,
-    /// TODO: this might need to be optional at some point
-    pub participant_id: ParticipantId,
-    pub connection_id: ConnectionId,
+    pub origin: EventOrigin,
     pub breakout_room: Option<BreakoutId>,
     pub value: Box<dyn Any + Send + 'static>,
-    pub transaction_id: Option<u64>,
 }

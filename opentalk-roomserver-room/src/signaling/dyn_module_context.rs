@@ -5,6 +5,7 @@ use std::cell::RefCell;
 
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
+    event_origin::EventOrigin,
     loopback::LoopbackFuture,
     module_context::ModuleContext,
     participant_state::Participants,
@@ -13,7 +14,6 @@ use opentalk_roomserver_signaling::{
 };
 use opentalk_roomserver_types::{breakout_id::BreakoutId, connection_id::ConnectionId};
 use opentalk_types_common::rooms::RoomId;
-use opentalk_types_signaling::ParticipantId;
 
 use crate::message_router::MessageRouter;
 
@@ -21,13 +21,11 @@ use crate::message_router::MessageRouter;
 pub struct DynModuleContext<'ctx> {
     pub room_id: RoomId,
     pub breakout_room: Option<BreakoutId>,
-    pub participant_id: ParticipantId,
-    pub connection_id: ConnectionId,
+    pub event_origin: EventOrigin,
     pub room_info: &'ctx mut RoomInfo,
     pub message_router: &'ctx mut MessageRouter,
     pub participants: &'ctx mut Participants,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
-    transaction_id: Option<u64>,
 }
 
 impl<'ctx> DynModuleContext<'ctx> {
@@ -35,24 +33,20 @@ impl<'ctx> DynModuleContext<'ctx> {
     pub(crate) fn new(
         room_id: RoomId,
         breakout_room: Option<BreakoutId>,
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
+        event_origin: EventOrigin,
         room_info: &'ctx mut RoomInfo,
         message_router: &'ctx mut MessageRouter,
         participants: &'ctx mut Participants,
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
-        transaction_id: Option<u64>,
     ) -> Self {
         Self {
             room_id,
             breakout_room,
-            participant_id,
-            connection_id,
+            event_origin,
             room_info,
             message_router,
             participants,
             loopback_futures,
-            transaction_id,
         }
     }
 
@@ -61,13 +55,11 @@ impl<'ctx> DynModuleContext<'ctx> {
         DynModuleContext {
             room_id: self.room_id,
             breakout_room: self.breakout_room,
-            participant_id: self.participant_id,
-            connection_id: self.connection_id,
+            event_origin: self.event_origin,
             room_info: self.room_info,
             message_router: self.message_router,
             participants: self.participants,
             loopback_futures: self.loopback_futures,
-            transaction_id: self.transaction_id,
         }
     }
 
@@ -78,13 +70,11 @@ impl<'ctx> DynModuleContext<'ctx> {
         ModuleContext::new(
             self.room_id,
             self.breakout_room,
-            self.participant_id,
-            self.connection_id,
+            self.event_origin,
             self.room_info,
             messages,
             self.participants,
             self.loopback_futures,
-            self.transaction_id,
         )
     }
 }
