@@ -4504,6 +4504,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "opentalk-types-signaling-control",
  "serde",
  "serde_json",
  "test-log",

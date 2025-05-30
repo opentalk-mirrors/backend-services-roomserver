@@ -488,7 +488,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .insert(connection_id, device_id);
 
         if let Err(err) = self
-            .participant_joined(participant_id, connection_id, client_parameters)
+            .participant_joined(participant_id, connection_id, device_id, client_parameters)
             .await
         {
             log::error!("failed to add participant to conference {err:#?}");
