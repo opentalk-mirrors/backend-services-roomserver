@@ -7,21 +7,26 @@ use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
     breakout::module_data::BreakoutPeerModuleData,
     event_origin::{EventOrigin, ParticipantOrigin},
+    join::{
+        JoinSuccess, connection_info::ConnectionInfo, event_info::EventInfo,
+        participant::Participant,
+    },
     signaling_module::{FatalError, SharedRawJson},
 };
 use opentalk_roomserver_types::{
     breakout_id::BreakoutId,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
+    device_id::DeviceId,
     error::SignalingError,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{
-    events::{EventInfo, MeetingDetails},
+    events::MeetingDetails,
     modules::{ModuleId, module_id},
 };
-use opentalk_types_signaling::{ModuleData, ModulePeerData, Participant, ParticipantId, Role};
-use opentalk_types_signaling_control::{event::JoinSuccess, room::RoomInfo};
+use opentalk_types_signaling::{ModuleData, ModulePeerData, ParticipantId, Role};
+use opentalk_types_signaling_control::room::RoomInfo;
 use serde::{Deserialize, Serialize};
 
 use super::RoomTask;
@@ -85,6 +90,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        device_id: DeviceId,
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
         let mut module_data = ModuleData::new();
@@ -125,6 +131,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let join_success_msg = build_join_success(
             &self.context(participant_origin.into(), current_breakout_room),
             participant_id,
+            connection_id,
+            device_id,
             client_parameters,
             module_data,
         );
@@ -266,6 +274,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 fn build_join_success(
     ctx: &DynModuleContext<'_>,
     participant_id: ParticipantId,
+    connection_id: ConnectionId,
+    device_id: DeviceId,
     client_parameters: ClientParameters,
     module_data: ModuleData,
 ) -> JoinSuccess {
@@ -273,7 +283,17 @@ fn build_join_success(
         .participants
         .all_unfiltered
         .iter()
+        .filter(|(id, ..)| id != &&participant_id)
         .map(|(id, state)| {
+            let connections = state
+                .connections
+                .iter()
+                .map(|(conn, device)| ConnectionInfo {
+                    connection_id: *conn,
+                    device_id: *device,
+                })
+                .collect();
+
             let mut module_peer_data = ModulePeerData::new();
 
             // TODO: temporary solution to let participants know which participant is in which breakout room
@@ -285,6 +305,7 @@ fn build_join_success(
 
             Participant {
                 id: *id,
+                connections,
                 module_data: module_peer_data, // TODO: needs implementation in the signaling module
             }
         })
@@ -300,24 +321,47 @@ fn build_join_success(
         ClientKind::Guest { display_name } => (display_name, Role::Guest, None, false),
     };
 
-    let event_info = ctx.room_info.room.event.as_ref().map(|event_context| {
-        let meeting_details = MeetingDetails {
-            invite_code_id: ctx.room_info.room.invite_code,
-            call_in: ctx.room_info.room.call_in.clone(),
-            streaming_links: ctx.room_info.room.streaming_links.clone(),
-        };
-        EventInfo {
+    let event_info = ctx
+        .room_info
+        .room
+        .event
+        .as_ref()
+        .map(|event_context| EventInfo {
             id: event_context.id,
             room_id: ctx.room_id,
             title: event_context.title.clone(),
             is_adhoc: event_context.is_adhoc,
-            meeting_details: Some(meeting_details),
             e2e_encryption: ctx.room_info.room.e2e_encryption,
-        }
-    });
+        });
+
+    let meeting_details = MeetingDetails {
+        invite_code_id: ctx.room_info.room.invite_code,
+        call_in: ctx.room_info.room.call_in.clone(),
+        streaming_links: ctx.room_info.room.streaming_links.clone(),
+    };
+
+    let other_connections = ctx
+        .participants
+        .all_unfiltered
+        .get(&participant_id)
+        .map(|state| {
+            state
+                .connections
+                .iter()
+                .filter(|(conn, ..)| conn != &&connection_id)
+                .map(|(conn, device)| ConnectionInfo {
+                    connection_id: *conn,
+                    device_id: *device,
+                })
+                .collect()
+        })
+        .unwrap_or_default();
 
     JoinSuccess {
         id: participant_id,
+        connection_id,
+        device_id,
+        connections: other_connections,
         display_name,
         avatar_url,
         role,
@@ -330,6 +374,7 @@ fn build_join_success(
             password: ctx.room_info.room.password.clone(),
             created_by: ctx.room_info.room.created_by.user_info.clone(),
         },
+        meeting_details,
         is_room_owner,
         module_data,
     }
@@ -340,40 +385,78 @@ mod tests {
     use std::collections::BTreeMap;
 
     use opentalk_roomserver_signaling::{
-        signaling_event::SignalingEvent, signaling_module::SharedRawJson,
+        join::{JoinSuccess, connection_info::ConnectionInfo},
+        signaling_event::SignalingEvent,
+        signaling_module::SharedRawJson,
     };
-    use opentalk_roomserver_types::connection_id::ConnectionId;
+    use opentalk_roomserver_types::{connection_id::ConnectionId, device_id::DeviceId};
     use opentalk_types_common::{
-        modules::module_id,
+        events::MeetingDetails,
+        modules::{ModuleId, module_id},
         rooms::RoomId,
         tariffs::TariffResource,
         users::{DisplayName, UserInfo},
         utils::ExampleData,
     };
-    use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
-    use opentalk_types_signaling_control::{event::JoinSuccess, room::RoomInfo};
+    use opentalk_types_signaling::{ModuleData, ParticipantId, Role, SignalingModuleFrontendData};
+    use opentalk_types_signaling_control::room::RoomInfo;
     use pretty_assertions::assert_eq;
+    use serde::{Deserialize, Serialize};
     use serde_json::{json, value::to_raw_value};
 
     use super::{CoreEvent, DisconnectReason};
     use crate::task::core::NAMESPACE;
 
+    fn test_module_data() -> ModuleData {
+        #[derive(Debug, Serialize, Deserialize)]
+        struct TestData {
+            a: String,
+            b: u64,
+        }
+
+        impl SignalingModuleFrontendData for TestData {
+            const NAMESPACE: Option<ModuleId> = Some(module_id!("test"));
+        }
+
+        let mut module_data = ModuleData::new();
+
+        module_data
+            .insert(&TestData {
+                a: "test".into(),
+                b: 42,
+            })
+            .unwrap();
+
+        module_data
+    }
+
     #[test]
     fn serialize_signaling_event_success() {
         let join_success = JoinSuccess {
             id: ParticipantId::nil(),
+            connection_id: ConnectionId::nil(),
+            device_id: DeviceId::nil(),
+            connections: vec![ConnectionInfo {
+                connection_id: ConnectionId::nil(),
+                device_id: DeviceId::nil(),
+            }],
             display_name: DisplayName::example_data(),
             avatar_url: None,
             role: Role::Guest,
             closes_at: None,
             tariff: Box::new(TariffResource::example_data()),
-            module_data: ModuleData::new(),
+            module_data: test_module_data(),
             participants: vec![],
             event_info: None,
             room_info: RoomInfo {
                 id: RoomId::nil(),
                 password: None,
                 created_by: UserInfo::example_data(),
+            },
+            meeting_details: MeetingDetails {
+                invite_code_id: None,
+                call_in: None,
+                streaming_links: vec![],
             },
             is_room_owner: false,
         };
@@ -392,6 +475,14 @@ mod tests {
                 "content": {
                     "join_success": {
                         "id": "00000000-0000-0000-0000-000000000000",
+                        "connection_id": "00000000-0000-0000-0000-000000000000",
+                        "device_id": "00000000-0000-0000-0000-000000000000",
+                        "connections": [
+                            {
+                                "connection_id": "00000000-0000-0000-0000-000000000000",
+                                "device_id": "00000000-0000-0000-0000-000000000000"
+                            }
+                        ],
                         "display_name": "Alice Adams",
                         "role": "guest",
                         "tariff": {
@@ -420,6 +511,12 @@ mod tests {
                                 }
                             }
                         },
+                        "module_data": {
+                            "test": {
+                                "a": "test",
+                                "b": 42
+                            }
+                        },
                         "participants": [],
                         "event_info": null,
                         "room_info": {
@@ -432,6 +529,10 @@ mod tests {
                                 "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
                             }
                         },
+                        "meeting_details": {
+                            "streaming_links": []
+                        },
+
                         "is_room_owner": false
                     }
                 }
@@ -443,6 +544,14 @@ mod tests {
     "content": {
         "join_success": {
             "id": "00000000-0000-0000-0000-000000000001",
+            "connection_id": "00000000-0000-0000-0000-000000000001",
+            "device_id": "00000000-0000-0000-0000-000000000001",
+            "connections": [
+                {
+                    "connection_id": "00000000-0000-0000-0000-000000000000",
+                    "device_id": "00000000-0000-0000-0000-000000000000"
+                }
+            ],
             "display_name": "Alice the angry",
             "avatar_url": "https://example.com/avatar-of-alice",
             "role": "user",
@@ -468,25 +577,12 @@ mod tests {
                 "last_seen_timestamps_group": {}
             },
             "participants": [],
+            "module_data": {},
             "event_info": {
                 "id": "00000000-0000-0000-0000-004433221100",
                 "room_id": "00000000-0000-0000-0000-000000000001",
                 "title": "Team Event",
                 "is_adhoc": false,
-                "meeting_details": {
-                    "invite_code_id": "00000000-0000-0000-0000-0000deadbeef",
-                    "call_in": {
-                        "tel": "+555-123-456-789",
-                        "id": "1234567890",
-                        "password": "0987654321"
-                    },
-                    "streaming_links": [
-                        {
-                            "name": "My OwnCast Stream",
-                            "url": "https://owncast.example.com/mystream"
-                        }
-                    ]
-                },
                 "e2e_encryption": false
             },
             "room_info": {
@@ -500,6 +596,20 @@ mod tests {
                     "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
                 }
             },
+            "meeting_details": {
+                "invite_code_id": "00000000-0000-0000-0000-0000deadbeef",
+                "call_in": {
+                    "tel": "+555-123-456-789",
+                    "id": "1234567890",
+                    "password": "0987654321"
+                },
+                "streaming_links": [
+                    {
+                        "name": "My OwnCast Stream",
+                        "url": "https://owncast.example.com/mystream"
+                    }
+                ]
+            },
             "is_room_owner": false
         }
     }
@@ -511,6 +621,9 @@ mod tests {
     fn serialize_core_event_success() {
         let join_success = JoinSuccess {
             id: ParticipantId::nil(),
+            connection_id: ConnectionId::nil(),
+            device_id: DeviceId::nil(),
+            connections: vec![],
             display_name: DisplayName::example_data(),
             avatar_url: None,
             role: Role::Guest,
@@ -524,6 +637,11 @@ mod tests {
                 password: None,
                 created_by: UserInfo::example_data(),
             },
+            meeting_details: MeetingDetails {
+                invite_code_id: None,
+                call_in: None,
+                streaming_links: vec![],
+            },
             is_room_owner: false,
         };
         let event = CoreEvent::JoinSuccess(Box::new(join_success));
@@ -534,6 +652,9 @@ mod tests {
             json!({
                 "join_success": {
                     "id": "00000000-0000-0000-0000-000000000000",
+                    "connection_id": "00000000-0000-0000-0000-000000000000",
+                    "device_id": "00000000-0000-0000-0000-000000000000",
+                    "connections": [],
                     "display_name": "Alice Adams",
                     "role": "guest",
                     "tariff": {
@@ -562,6 +683,7 @@ mod tests {
                             }
                         }
                     },
+                    "module_data": {},
                     "participants": [],
                     "event_info": null,
                     "room_info": {
@@ -573,6 +695,9 @@ mod tests {
                             "display_name": "Alice Adams",
                             "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
                         }
+                    },
+                    "meeting_details": {
+                        "streaming_links": [],
                     },
                     "is_room_owner": false
                 }

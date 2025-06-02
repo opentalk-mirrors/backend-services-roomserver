@@ -3,7 +3,7 @@
 
 use axum::extract::ws::Message;
 use opentalk_roomserver_signaling::{
-    signaling_event::SignalingEvent, signaling_module::SignalingModule,
+    join::JoinSuccess, signaling_event::SignalingEvent, signaling_module::SignalingModule,
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
@@ -13,7 +13,6 @@ use opentalk_roomserver_web_api::v1::signaling::websocket;
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::users::{DisplayName, UserId, UserInfo};
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_control::event::JoinSuccess;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{json, value::to_raw_value};
 use tokio::sync::mpsc;
