@@ -205,7 +205,6 @@ skip = [
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
   { name = "tower", version = "0.4" },
-  { name = "webpki-roots", version = "0.26.11" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
