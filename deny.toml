@@ -91,6 +91,9 @@ exceptions = [
   ], name = "opentalk-roomserver-module-chat" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-livekit" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-ping" },
   { allow = [
     "EUPL-1.2",
@@ -125,6 +128,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-signaling-control" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-signaling-livekit" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
@@ -192,8 +198,19 @@ skip = [
   { name = "gix-hash", version = "0.17.0" },
   { name = "gix-utils", version = "0.2.0" },
   { name = "gix-validate", version = "0.9.4" },
+  { name = "h2", version = "0.3.26" },
   { name = "hashbrown", version = "0.14" },
+  { name = "heck", version = "0.4.1" },
+  { name = "http", version = "0.2.12" },
+  { name = "http-body", version = "0.4.6" },
+  { name = "hyper", version = "0.14.32" },
+  { name = "hyper-rustls", version = "0.24.2" },
+  { name = "itertools", version = "0.11" },
+  { name = "itertools", version = "0.12" },
   { name = "linux-raw-sys", version = "0.4" },
+  { name = "livekit-runtime", version = "0.3.1" },
+  { name = "prost", version = "0.12.6" },
+  { name = "prost-derive", version = "0.12.6" },
   { name = "quick-xml", version = "0.30" },
   { name = "quick-xml", version = "0.32" },
   { name = "rand", version = "0.8" },
@@ -201,10 +218,18 @@ skip = [
   { name = "rand_core", version = "0.6" },
   { name = "regex-automata", version = "0.1" },
   { name = "regex-syntax", version = "0.6" },
+  { name = "reqwest", version = "0.11.27" },
   { name = "rustix", version = "0.38" },
+  { name = "rustls", version = "0.21.12" },
+  { name = "rustls-native-certs", version = "0.6.3" },
+  { name = "rustls-webpki", version = "0.101.7" },
+  { name = "sync_wrapper", version = "0.1.2" },
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
+  { name = "tokio-rustls", version = "0.24.1" },
+  { name = "tokio-tungstenite", version = "0.20.1" },
   { name = "tower", version = "0.4" },
+  { name = "tungstenite", version = "0.20" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive

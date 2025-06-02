@@ -5,7 +5,7 @@ use std::{collections::BTreeSet, net::Ipv6Addr, sync::Arc};
 
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
-    settings::{Http, Settings},
+    settings::{Http, Settings, livekit::LiveKitSettings},
 };
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{
@@ -51,6 +51,8 @@ fn settings() -> Settings {
         metrics: Default::default(),
         tracing: Default::default(),
         conference: Default::default(),
+        livekit: Default::default(),
+        defaults: Default::default(),
     }
 }
 
@@ -92,6 +94,11 @@ impl TestRoomBuilder {
         self
     }
 
+    pub fn settings_livekit(mut self, settings: LiveKitSettings) -> Self {
+        self.settings.livekit = Some(settings);
+        self
+    }
+
     pub fn spawn(self) -> TestRoom {
         TestRoom::spawn(
             self.room_id,
@@ -109,6 +116,7 @@ impl Default for TestRoomBuilder {
 }
 
 pub struct TestRoom {
+    room_id: RoomId,
     room_handle: RoomTaskHandle<MockSocket>,
     _settings: Arc<Settings>,
     _app_state_tx: watch::Sender<ApplicationState>,
@@ -136,6 +144,7 @@ impl TestRoom {
         );
 
         Self {
+            room_id,
             room_handle,
             _settings: settings,
             _app_state_tx: app_state_tx,
@@ -169,5 +178,9 @@ impl TestRoom {
 
     pub async fn join_gustav_guest(&mut self) -> MockParticipantJoined {
         MockParticipantJoining::gustav().join(self).await.unwrap()
+    }
+
+    pub fn id(&self) -> RoomId {
+        self.room_id
     }
 }

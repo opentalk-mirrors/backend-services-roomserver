@@ -22,6 +22,7 @@ futures.workspace = true
 log.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-module-chat.workspace = true
+opentalk-roomserver-module-livekit.workspace = true
 opentalk-roomserver-module-ping.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true
