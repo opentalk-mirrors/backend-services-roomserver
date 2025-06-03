@@ -11,7 +11,7 @@ use opentalk_roomserver_types::{
     shared_raw_json::SharedRawJson,
     signaling::module_error::{FatalError, ModuleError, SignalingModuleError},
 };
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize};
 use serde_json::value::to_raw_value;
@@ -126,7 +126,8 @@ pub trait SignalingModule: Send + Sync + Sized {
     /// Destroy the module and remove all associated resources
     ///
     /// Long running tasks must be spawned in a separate task
-    fn destroy(self) {}
+    #[allow(unused_variables)]
+    fn destroy(self, room_id: RoomId) {}
 }
 
 pub trait CreateReplica<T> {
