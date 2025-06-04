@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use egui::{Button, Label, RichText, TextEdit, Widget};
-use egui_extras::{Column, StripBuilder, TableBuilder};
+use egui_extras::{Column, Size, StripBuilder, TableBuilder};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
@@ -25,9 +25,6 @@ pub struct ConnectionConfigView {
 
     room_parameters_select: ParameterWidget<RoomParameters>,
     client_parameters_select: ParameterWidget<ClientParameters>,
-
-    // wether or not to show delete buttons
-    delete_mode: bool,
 }
 
 impl ConnectionConfigView {
@@ -47,13 +44,11 @@ impl ConnectionConfigView {
                 serde_json::to_string_pretty(&settings.default_client_parameters())
                     .expect("ClientParameters are serializable"),
             ),
-
-            delete_mode: false,
         }
     }
 
-    pub fn menu_ui(&mut self, ui: &mut egui::Ui) {
-        delete_mode_btn(ui, &mut self.delete_mode);
+    pub fn menu_ui(&mut self, settings: &mut DuiSettings, ui: &mut egui::Ui) {
+        delete_mode_btn(ui, &mut settings.delete_mode);
     }
 
     pub fn center_ui(&mut self, settings: &mut DuiSettings, ui: &mut egui::Ui) {
@@ -62,14 +57,14 @@ impl ConnectionConfigView {
             .size(egui_extras::Size::relative(0.4))
             .size(egui_extras::Size::relative(0.4))
             .vertical(|mut strip| {
-                strip.cell(|ui| {
-                    self.room_id_ui(settings, ui);
+                strip.strip(|builder| {
+                    self.room_id_ui(settings, builder);
                 });
 
                 strip.strip(|builder| {
                     self.room_parameters_select.ui(
                         &mut settings.room_parameters,
-                        self.delete_mode,
+                        settings.delete_mode,
                         builder,
                     );
                 });
@@ -77,7 +72,7 @@ impl ConnectionConfigView {
                 strip.strip(|builder| {
                     self.client_parameters_select.ui(
                         &mut settings.client_parameters,
-                        self.delete_mode,
+                        settings.delete_mode,
                         builder,
                     );
                 });
@@ -116,7 +111,66 @@ impl ConnectionConfigView {
         transition_request
     }
 
-    fn room_id_ui(&mut self, settings: &mut DuiSettings, ui: &mut egui::Ui) {
+    fn room_id_ui(&mut self, settings: &mut DuiSettings, builder: StripBuilder<'_>) {
+        let parsed_room_id = self.new_room_id.parse::<RoomId>();
+        builder
+            .size(egui_extras::Size::initial(20.))
+            .size(Size::remainder())
+            .vertical(|mut strip| {
+                strip.cell(|ui| {
+                    ui.heading("Room ID");
+                });
+
+                strip.strip(|builder| {
+                    builder
+                        .size(Size::relative(0.2))
+                        .size(Size::remainder())
+                        .horizontal(|mut strip| {
+                            strip.cell(|ui| {
+                                ui.vertical(|ui| {
+                                    self.room_id_select_table_ui(settings, ui);
+                                });
+                            });
+
+                            strip.cell(|ui| {
+                                ui.add(
+                                    TextEdit::singleline(&mut self.new_room_id_name)
+                                        .hint_text("Room Name"),
+                                );
+                                let mut room_id_input = TextEdit::singleline(&mut self.new_room_id)
+                                    .hint_text("Room ID");
+                                if parsed_room_id.is_err() {
+                                    room_id_input = room_id_input.invalid_input_style();
+                                }
+                                let res = ui.add(room_id_input);
+                                if let Err(e) = &parsed_room_id {
+                                    res.on_hover_ui(|ui| {
+                                        ui.label(e.to_string());
+                                    });
+                                }
+                                if ui.button("🎲").clicked() {
+                                    self.new_room_id = RoomId::generate().to_string();
+                                }
+                                if ui
+                                    .add_enabled(parsed_room_id.is_ok(), egui::Button::new("save"))
+                                    .clicked()
+                                {
+                                    if let Ok(room_id) = parsed_room_id {
+                                        settings
+                                            .room_ids
+                                            .push((self.new_room_id_name.clone(), room_id));
+                                        self.new_room_id_name.clear();
+                                        self.new_room_id = RoomId::generate().to_string();
+                                        self.selected_room_id_index = settings.room_ids.len() - 1;
+                                    }
+                                }
+                            });
+                        });
+                });
+            });
+    }
+
+    fn room_id_select_table_ui(&mut self, settings: &mut DuiSettings, ui: &mut egui::Ui) {
         let available_height = ui.available_height();
 
         let text_height = egui::TextStyle::Body
@@ -124,12 +178,7 @@ impl ConnectionConfigView {
             .size
             .max(ui.spacing().interact_size.y);
 
-        let parsed_room_id = self.new_room_id.parse::<RoomId>();
-
-        ui.heading("Room ID");
-
         let mut delete_room_id = None;
-
         TableBuilder::new(ui)
             .striped(true)
             .sense(egui::Sense::click())
@@ -148,7 +197,7 @@ impl ConnectionConfigView {
                     row.set_selected(self.selected_room_id_index == row_index);
 
                     row.col(|ui| {
-                        if delete_btn(ui, self.delete_mode).clicked() {
+                        if delete_btn(ui, settings.delete_mode).clicked() {
                             delete_room_id = Some(row_index);
                         }
                     });
@@ -176,36 +225,5 @@ impl ConnectionConfigView {
             }
             ui.ctx().request_repaint();
         }
-
-        ui.horizontal(|ui| {
-            ui.add(TextEdit::singleline(&mut self.new_room_id_name).hint_text("Room Name"));
-            let mut room_id_input =
-                TextEdit::singleline(&mut self.new_room_id).hint_text("Room ID");
-            if parsed_room_id.is_err() {
-                room_id_input = room_id_input.invalid_input_style();
-            }
-            let res = ui.add(room_id_input);
-            if let Err(e) = &parsed_room_id {
-                res.on_hover_ui(|ui| {
-                    ui.label(e.to_string());
-                });
-            }
-            if ui.button("🎲").clicked() {
-                self.new_room_id = RoomId::generate().to_string();
-            }
-            if ui
-                .add_enabled(parsed_room_id.is_ok(), egui::Button::new("save"))
-                .clicked()
-            {
-                if let Ok(room_id) = parsed_room_id {
-                    settings
-                        .room_ids
-                        .push((self.new_room_id_name.clone(), room_id));
-                    self.new_room_id_name.clear();
-                    self.new_room_id = RoomId::generate().to_string();
-                    self.selected_room_id_index = settings.room_ids.len() - 1;
-                }
-            }
-        });
     }
 }

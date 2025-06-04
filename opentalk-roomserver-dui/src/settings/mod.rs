@@ -61,6 +61,9 @@ pub struct DuiSettings {
 
     #[serde(default)]
     pub client_parameters: Vec<(String, ClientParameters)>,
+
+    #[serde(default)]
+    pub delete_mode: bool,
 }
 
 impl Default for DuiSettings {
@@ -80,6 +83,7 @@ impl Default for DuiSettings {
             .to_vec(),
             room_parameters: [("Default".to_string(), default_room_parameters())].to_vec(),
             client_parameters: [("Default".to_string(), default_client_parameters())].to_vec(),
+            delete_mode: false,
         }
     }
 }

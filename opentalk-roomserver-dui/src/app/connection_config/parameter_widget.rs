@@ -39,7 +39,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
             .size(Size::remainder())
             .vertical(|mut strip| {
                 strip.cell(|ui| {
-                    self.header_ui(collection, ui);
+                    ui.heading(&self.heading);
                 });
 
                 strip.strip(|builder| {
@@ -48,7 +48,9 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                         .size(Size::remainder())
                         .horizontal(|mut strip| {
                             strip.cell(|ui| {
-                                self.table_ui(collection, delete_mode, ui);
+                                ui.vertical(|ui| {
+                                    self.table_ui(collection, delete_mode, ui);
+                                });
                             });
 
                             strip.cell(|ui| {
@@ -56,32 +58,12 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                                 if res.changed() {
                                     self.parsed = serde_json::from_str(&self.edit);
                                 }
+                                ui.add(TextEdit::singleline(&mut self.new_name).hint_text("Name"));
+                                self.save_ui(ui, collection);
                             });
                         });
                 });
             });
-    }
-
-    pub(crate) fn header_ui(&mut self, collection: &mut Vec<(String, T)>, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            ui.heading(&self.heading);
-            ui.add(TextEdit::singleline(&mut self.new_name).hint_text("Name"));
-
-            if ui
-                .add_enabled(self.parsed.is_ok(), egui::Button::new("save"))
-                .clicked()
-            {
-                if let Ok(parameters) = &self.parsed {
-                    collection.push((self.new_name.clone(), parameters.clone()));
-                    self.new_name.clear();
-                    self.selected_index = collection.len() - 1;
-                }
-            }
-            if let Some(e) = self.parsed.as_ref().err() {
-                let err_text = RichText::new(e.to_string()).invalid_input_style();
-                ui.label(err_text);
-            }
-        });
     }
 
     pub(crate) fn table_ui(
@@ -142,5 +124,24 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
             }
             ui.ctx().request_repaint();
         }
+    }
+
+    fn save_ui(&mut self, ui: &mut egui::Ui, collection: &mut Vec<(String, T)>) {
+        ui.horizontal(|ui| {
+            if ui
+                .add_enabled(self.parsed.is_ok(), egui::Button::new("save"))
+                .clicked()
+            {
+                if let Ok(parameters) = &self.parsed {
+                    collection.push((self.new_name.clone(), parameters.clone()));
+                    self.new_name.clear();
+                    self.selected_index = collection.len() - 1;
+                }
+            }
+            if let Some(e) = self.parsed.as_ref().err() {
+                let err_text = RichText::new(e.to_string()).invalid_input_style();
+                ui.label(err_text);
+            }
+        });
     }
 }

@@ -167,7 +167,7 @@ impl RoomServerApp {
                         )
                         .expect("Fatal Error"),
                     CentralAppView::ConnectionConfig(view) => {
-                        view.menu_ui(ui);
+                        view.menu_ui(&mut self.settings, ui);
                         None
                     }
                     _ => None,
