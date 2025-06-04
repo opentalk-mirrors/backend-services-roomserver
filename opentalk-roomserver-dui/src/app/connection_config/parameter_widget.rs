@@ -12,7 +12,6 @@ use crate::app::style::InvalidInputStyle as _;
 pub(crate) struct ParameterWidget<T> {
     pub(crate) heading: String,
     pub(crate) new_name: String,
-    pub(crate) selected_index: usize,
     pub(crate) edit: String,
     pub(crate) parsed: Result<T, serde_json::Error>,
 }
@@ -22,7 +21,6 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
         Self {
             heading,
             new_name: String::new(),
-            selected_index: 0,
             parsed: serde_json::from_str(&edit),
             edit,
         }
@@ -31,6 +29,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
     pub(crate) fn ui(
         &mut self,
         collection: &mut Vec<(String, T)>,
+        selected_index: &mut usize,
         delete_mode: bool,
         builder: StripBuilder<'_>,
     ) {
@@ -49,7 +48,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                         .horizontal(|mut strip| {
                             strip.cell(|ui| {
                                 ui.vertical(|ui| {
-                                    self.table_ui(collection, delete_mode, ui);
+                                    self.table_ui(collection, selected_index, delete_mode, ui);
                                 });
                             });
 
@@ -59,7 +58,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                                     self.parsed = serde_json::from_str(&self.edit);
                                 }
                                 ui.add(TextEdit::singleline(&mut self.new_name).hint_text("Name"));
-                                self.save_ui(ui, collection);
+                                self.save_ui(ui, collection, selected_index);
                             });
                         });
                 });
@@ -69,6 +68,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
     pub(crate) fn table_ui(
         &mut self,
         collection: &mut Vec<(String, T)>,
+        selected_index: &mut usize,
         delete_mode: bool,
         ui: &mut egui::Ui,
     ) {
@@ -94,7 +94,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                         return;
                     };
 
-                    row.set_selected(self.selected_index == row_index);
+                    row.set_selected(*selected_index == row_index);
 
                     row.col(|ui| {
                         if delete_btn(ui, delete_mode).clicked() {
@@ -107,7 +107,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                     });
 
                     if row.response().clicked() {
-                        self.selected_index = row_index;
+                        *selected_index = row_index;
                         if let Some((_, item)) = collection.get(row_index) {
                             self.parsed = Ok(item.clone());
                             self.edit = serde_json::to_string_pretty(&item)
@@ -119,14 +119,19 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
 
         if let Some(index) = delete_index {
             collection.remove(index);
-            if self.selected_index > index {
-                self.selected_index = self.selected_index.saturating_sub(1);
+            if *selected_index > index {
+                *selected_index = selected_index.saturating_sub(1);
             }
             ui.ctx().request_repaint();
         }
     }
 
-    fn save_ui(&mut self, ui: &mut egui::Ui, collection: &mut Vec<(String, T)>) {
+    fn save_ui(
+        &mut self,
+        ui: &mut egui::Ui,
+        collection: &mut Vec<(String, T)>,
+        selected_index: &mut usize,
+    ) {
         ui.horizontal(|ui| {
             if ui
                 .add_enabled(self.parsed.is_ok(), egui::Button::new("save"))
@@ -135,7 +140,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                 if let Ok(parameters) = &self.parsed {
                     collection.push((self.new_name.clone(), parameters.clone()));
                     self.new_name.clear();
-                    self.selected_index = collection.len() - 1;
+                    *selected_index = collection.len() - 1;
                 }
             }
             if let Some(e) = self.parsed.as_ref().err() {

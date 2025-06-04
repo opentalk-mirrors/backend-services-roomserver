@@ -13,13 +13,18 @@ use super::{
     shortcuts::SUBMIT_SHORTCUT,
     style::{InvalidInputStyle as _, delete_btn, delete_mode_btn},
 };
-use crate::{app::connection_config::parameter_widget::ParameterWidget, settings::DuiSettings};
+use crate::{
+    app::connection_config::parameter_widget::ParameterWidget,
+    settings::{
+        DuiSettings,
+        room::{default_client_parameters, default_room_parameters},
+    },
+};
 
 mod parameter_widget;
 
 #[derive(Debug)]
 pub struct ConnectionConfigView {
-    selected_room_id_index: usize,
     new_room_id: String,
     new_room_id_name: String,
 
@@ -29,19 +34,30 @@ pub struct ConnectionConfigView {
 
 impl ConnectionConfigView {
     pub fn new(settings: &DuiSettings) -> Self {
+        let room_param = settings
+            .room_parameters
+            .get(settings.selected_room_parameters)
+            .map(|(_, param)| param)
+            .cloned()
+            .unwrap_or_else(default_room_parameters);
+        let client_param = settings
+            .client_parameters
+            .get(settings.selected_client_parameters)
+            .map(|(_, param)| param)
+            .cloned()
+            .unwrap_or_else(default_client_parameters);
+
         Self {
-            selected_room_id_index: 0,
             new_room_id: RoomId::generate().to_string(),
             new_room_id_name: String::new(),
 
             room_parameters_select: ParameterWidget::new(
                 "Room Parameters".to_string(),
-                serde_json::to_string_pretty(&settings.default_room_parameters())
-                    .expect("RoomParameters are serializable"),
+                serde_json::to_string_pretty(&room_param).expect("RoomParameters are serializable"),
             ),
             client_parameters_select: ParameterWidget::new(
                 "Client Parameters".to_string(),
-                serde_json::to_string_pretty(&settings.default_client_parameters())
+                serde_json::to_string_pretty(&client_param)
                     .expect("ClientParameters are serializable"),
             ),
         }
@@ -64,6 +80,7 @@ impl ConnectionConfigView {
                 strip.strip(|builder| {
                     self.room_parameters_select.ui(
                         &mut settings.room_parameters,
+                        &mut settings.selected_room_parameters,
                         settings.delete_mode,
                         builder,
                     );
@@ -72,6 +89,7 @@ impl ConnectionConfigView {
                 strip.strip(|builder| {
                     self.client_parameters_select.ui(
                         &mut settings.client_parameters,
+                        &mut settings.selected_client_parameters,
                         settings.delete_mode,
                         builder,
                     );
@@ -90,7 +108,7 @@ impl ConnectionConfigView {
         if let (Some(room_id), Ok(room_parameters), Ok(client_parameters)) = (
             settings
                 .room_ids
-                .get(self.selected_room_id_index)
+                .get(settings.selected_room_id)
                 .map(|(_, r)| *r),
             &self.room_parameters_select.parsed,
             &self.client_parameters_select.parsed,
@@ -161,7 +179,7 @@ impl ConnectionConfigView {
                                             .push((self.new_room_id_name.clone(), room_id));
                                         self.new_room_id_name.clear();
                                         self.new_room_id = RoomId::generate().to_string();
-                                        self.selected_room_id_index = settings.room_ids.len() - 1;
+                                        settings.selected_room_id = settings.room_ids.len() - 1;
                                     }
                                 }
                             });
@@ -194,7 +212,7 @@ impl ConnectionConfigView {
                         return;
                     };
 
-                    row.set_selected(self.selected_room_id_index == row_index);
+                    row.set_selected(settings.selected_room_id == row_index);
 
                     row.col(|ui| {
                         if delete_btn(ui, settings.delete_mode).clicked() {
@@ -210,7 +228,7 @@ impl ConnectionConfigView {
                         ui.label(name);
                     });
                     if row.response().clicked() {
-                        self.selected_room_id_index = row_index;
+                        settings.selected_room_id = row_index;
                     }
                 });
             });
@@ -220,8 +238,8 @@ impl ConnectionConfigView {
 
             // when we delete something, the selected index might "shift" and the selection changed.
             // Decrease by 1 to avoid that unwanted change.
-            if self.selected_room_id_index > index {
-                self.selected_room_id_index = self.selected_room_id_index.saturating_sub(1);
+            if settings.selected_room_id > index {
+                settings.selected_room_id = settings.selected_room_id.saturating_sub(1);
             }
             ui.ctx().request_repaint();
         }
