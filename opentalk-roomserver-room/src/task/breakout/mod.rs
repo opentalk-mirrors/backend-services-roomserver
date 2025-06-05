@@ -5,7 +5,7 @@ use std::{collections::BTreeMap, time::Duration};
 
 use anyhow::{Context, anyhow};
 use chrono::TimeDelta;
-pub use opentalk_roomserver_signaling::breakout::NAMESPACE;
+pub use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_signaling::{
     breakout::module_data::BreakoutModuleData,
     event_origin::{EventOrigin, ParticipantOrigin},
@@ -104,7 +104,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         .message_router
                         .serialize_and_send(
                             [participant_origin.connection_id],
-                            self::NAMESPACE,
+                            self::BREAKOUT_MODULE_ID,
                             command.transaction_id,
                             BreakoutEvent::Error(module_error),
                         )
@@ -204,7 +204,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             self.message_router
                 .serialize_and_send(
                     state.connections(),
-                    self::NAMESPACE,
+                    self::BREAKOUT_MODULE_ID,
                     participant_origin.transaction_id,
                     breakout_started,
                 )
@@ -251,7 +251,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.message_router
             .serialize_and_broadcast(
-                self::NAMESPACE,
+                self::BREAKOUT_MODULE_ID,
                 origin.transaction_id,
                 BreakoutEvent::CloseNotice {
                     issued_by: origin.id,
@@ -344,7 +344,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             self.message_router
                 .serialize_and_send(
                     [conn_id],
-                    self::NAMESPACE,
+                    self::BREAKOUT_MODULE_ID,
                     origin.transaction_id(),
                     BreakoutEvent::SwitchedRoom { module_data },
                 )
@@ -359,7 +359,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.message_router
             .serialize_and_broadcast_exclude_connections(
-                self::NAMESPACE,
+                self::BREAKOUT_MODULE_ID,
                 None,
                 content,
                 &excluded_connections,
@@ -382,7 +382,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         self.message_router
             .serialize_and_broadcast(
-                self::NAMESPACE,
+                self::BREAKOUT_MODULE_ID,
                 origin.transaction_id(),
                 BreakoutEvent::Closing {
                     issued_by: origin.participant_id(),
@@ -414,7 +414,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.message_router
             .serialize_and_broadcast(
-                self::NAMESPACE,
+                self::BREAKOUT_MODULE_ID,
                 origin.transaction_id(),
                 BreakoutEvent::Closed,
             )

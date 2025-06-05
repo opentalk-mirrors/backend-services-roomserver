@@ -5,4 +5,4 @@ use opentalk_types_common::modules::{ModuleId, module_id};
 
 pub mod module_data;
 
-pub const NAMESPACE: ModuleId = module_id!("breakout");
+pub const BREAKOUT_MODULE_ID: ModuleId = module_id!("breakout");
