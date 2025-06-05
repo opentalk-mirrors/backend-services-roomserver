@@ -11,7 +11,7 @@ use crate::{
     signaling::module_error::ModuleError,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "message")]
 pub enum BreakoutEvent {
     /// Breakout rooms have started
@@ -70,7 +70,7 @@ pub enum BreakoutEvent {
     Error(BreakoutError),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "error")]
 pub enum BreakoutError {
     /// The requesting user has insufficient permission

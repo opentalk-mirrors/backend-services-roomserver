@@ -32,4 +32,8 @@ impl ConnectionId {
     pub fn nil() -> Self {
         Self(Uuid::nil())
     }
+
+    pub fn from_u128(value: u128) -> Self {
+        Self(Uuid::from_u128(value))
+    }
 }

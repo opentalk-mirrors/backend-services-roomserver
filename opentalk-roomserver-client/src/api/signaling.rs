@@ -13,6 +13,8 @@ use tungstenite::{
 };
 use url::Url;
 
+use crate::api::{command::SignalingCommand, event::SignalingEvent};
+
 #[derive(Debug, Error)]
 #[error("Signaling connection error")]
 pub struct SignalingError {
@@ -78,6 +80,23 @@ impl SignalingConnection {
             Message::Close(_) => Ok(None),
             Message::Frame(_) => Err(anyhow!("Expected text messsage, got: Frame").into()),
         }
+    }
+
+    pub async fn receive(&mut self) -> Result<Option<SignalingEvent>, SignalingError> {
+        match self.receive_raw_message().await {
+            Ok(Some(message)) => Ok(Some(
+                serde_json::from_str::<SignalingEvent>(&message).context("Failed to serialize")?,
+            )),
+
+            // map the option type from String to SignalingEvent.
+            Ok(None) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub async fn send(&mut self, command: &SignalingCommand) -> Result<(), SignalingError> {
+        let message = serde_json::to_string(&command).context("Failed to serialize command")?;
+        self.send_raw_message(&message).await
     }
 }
 

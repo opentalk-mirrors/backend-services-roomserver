@@ -19,9 +19,17 @@ http-request-derive.workspace = true
 http-request-derive-client.workspace = true
 http-request-derive-client-reqwest.workspace = true
 log.workspace = true
+opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-chat.workspace = true
+opentalk-roomserver-types-ping.workspace = true
 opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+opentalk-types-signaling-chat.workspace = true
+opentalk-types-signaling-livekit.workspace = true
 reqwest = { workspace = true, features = ["json"] }
+serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tokio-tungstenite.workspace = true
@@ -29,7 +37,7 @@ tungstenite.workspace = true
 url.workspace = true
 
 [dev-dependencies]
-log.workspace = true
+insta.workspace = true
 tokio.workspace = true
 url.workspace = true
 

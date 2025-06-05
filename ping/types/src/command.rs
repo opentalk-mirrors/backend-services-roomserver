@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::event::{PingEvent, Replication};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum PingCommand {
     /// A normal ping

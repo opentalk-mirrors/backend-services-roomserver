@@ -3,5 +3,7 @@
 
 //! Request that are supported by the room server.
 
+pub mod command;
+pub mod event;
 pub mod room;
 pub mod signaling;
