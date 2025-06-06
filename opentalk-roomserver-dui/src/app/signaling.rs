@@ -4,7 +4,10 @@
 use egui::{Response, RichText, style::ScrollAnimation};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, error::TryRecvError};
 
-use super::shortcuts::{PREVIOUS_SHORTCUT, SUCCESSOR_SHORTCUT, TOGGLE_HISTORY_PANEL_SHORTCUT};
+use super::{
+    shortcuts::{PREVIOUS_SHORTCUT, SUCCESSOR_SHORTCUT, TOGGLE_HISTORY_PANEL_SHORTCUT},
+    style::{delete_btn, delete_mode_btn},
+};
 use crate::{
     app::{
         TransitionToView,
@@ -43,6 +46,8 @@ pub struct SignalingView {
     force_focus: bool,
 
     show_history_panel: bool,
+
+    delete_mode: bool,
 }
 
 impl SignalingView {
@@ -53,6 +58,7 @@ impl SignalingView {
             historic_message_state: None,
             show_history_panel: true,
             force_focus: true,
+            delete_mode: false,
         }
     }
     pub fn menu_ui(
@@ -84,6 +90,8 @@ impl SignalingView {
             {
                 self.load_successor_message(&settings.history);
             }
+
+            delete_mode_btn(ui, &mut self.delete_mode);
         });
 
         match signaling_state {
@@ -120,6 +128,8 @@ impl SignalingView {
         {
             self.show_history_panel = !self.show_history_panel;
         }
+
+        delete_mode_btn(ui, &mut self.delete_mode);
 
         if ctx.input_mut(|i| i.consume_shortcut(&CLEAR_SHORTCUT)) {
             self.clear_messages(ctx);
@@ -178,7 +188,7 @@ impl SignalingView {
             let res = json_editor(ui, &mut self.edit_message);
 
             if self.force_focus {
-                ui.memory_mut(|memory| memory.request_focus(res.id));
+                res.request_focus();
                 self.force_focus = false;
             }
             // If we edit the message that was shown, we remove the "select history message" context
@@ -220,7 +230,7 @@ impl SignalingView {
                                 let message = msg.text().to_string();
                                 command_tx.send(RunnerCommand::Send { message })?;
                             }
-                            if ui.button("X").clicked() {
+                            if delete_btn(ui, self.delete_mode).clicked() {
                                 delete_entry.replace(index);
                             }
                             let res = ui.vertical(|ui| self.history_item_ui(index, msg, ui)).inner;
