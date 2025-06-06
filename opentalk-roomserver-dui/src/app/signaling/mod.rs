@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use egui::{Response, RichText, style::ScrollAnimation};
+use egui::{Response, RichText, TextEdit, Widget as _, style::ScrollAnimation};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, error::TryRecvError};
 
-use super::{
-    shortcuts::{PREVIOUS_SHORTCUT, SUCCESSOR_SHORTCUT, TOGGLE_HISTORY_PANEL_SHORTCUT},
-    style::{delete_btn, delete_mode_btn},
+use super::shortcuts::{
+    FILTER_SHORTCUT, FOCUS_MESSAGE_INPUT_SHORTCUT, PREVIOUS_SHORTCUT, SUCCESSOR_SHORTCUT,
+    TOGGLE_HISTORY_PANEL_SHORTCUT,
 };
 use crate::{
     app::{
@@ -15,10 +15,14 @@ use crate::{
         event_widget::EventWidget,
         json_edit::json_editor,
         shortcuts::{CLEAR_SHORTCUT, DISCONNECT_SHORTCUT, SEND_SHORTCUT},
+        signaling::filtered_vec::FilteredVec,
+        style::{delete_btn, delete_mode_btn},
     },
     client::{RunnerCommand, RunnerEvent, SignalingState},
     settings::{DuiSettings, HistoryEntry, MessageHistory},
 };
+
+pub mod filtered_vec;
 
 #[derive(Debug)]
 pub struct HistorySelectState {
@@ -29,7 +33,8 @@ pub struct HistorySelectState {
 
 #[derive(Debug)]
 pub struct SignalingView {
-    messages: Vec<EventWidget>,
+    messages: FilteredVec<EventWidget>,
+    show_plain_messages: bool,
 
     edit_message: String,
 
@@ -53,7 +58,8 @@ pub struct SignalingView {
 impl SignalingView {
     pub fn new() -> Self {
         Self {
-            messages: Vec::new(),
+            messages: FilteredVec::new(),
+            show_plain_messages: false,
             edit_message: String::new(),
             historic_message_state: None,
             show_history_panel: true,
@@ -89,6 +95,16 @@ impl SignalingView {
                 .clicked()
             {
                 self.load_successor_message(&settings.history);
+            }
+
+            let btn_plain_toggle_txt = if self.show_plain_messages {
+                "Parse Messages"
+            } else {
+                "Plain Messages"
+            };
+            let btn_plain_toggle = egui::Button::new(btn_plain_toggle_txt);
+            if ui.add(btn_plain_toggle).clicked() {
+                self.show_plain_messages = !self.show_plain_messages;
             }
 
             delete_mode_btn(ui, &mut self.delete_mode);
@@ -141,7 +157,10 @@ impl SignalingView {
         if ctx.input_mut(|i| i.consume_shortcut(&SUCCESSOR_SHORTCUT)) {
             self.load_successor_message(&settings.history);
         }
-
+        if ctx.input_mut(|i| i.consume_shortcut(&FOCUS_MESSAGE_INPUT_SHORTCUT)) {
+            self.force_focus = true;
+            ctx.request_repaint();
+        }
         Ok(None)
     }
 
@@ -156,22 +175,42 @@ impl SignalingView {
                 message: RichText::new("Failed to get new messages from RoomServer task."),
             });
         }
+        ui.vertical(|ui| {
+            self.filter_message_ui(ui);
 
-        egui::ScrollArea::vertical()
-            .stick_to_bottom(true)
-            .show(ui, |ui| {
-                egui::Grid::new("Message Grid")
-                    .striped(true)
-                    .num_columns(2)
-                    .show(ui, |ui| {
-                        for msg in &mut self.messages {
-                            msg.control_ui(ui);
-                            msg.content_ui(ui, &settings.event_widget_layout);
-                            ui.end_row();
-                        }
-                    });
-            });
+            egui::ScrollArea::vertical()
+                .stick_to_bottom(true)
+                .show(ui, |ui| {
+                    egui::Grid::new("Message Grid")
+                        .striped(true)
+                        .num_columns(2)
+                        .show(ui, |ui| {
+                            for msg in &mut self.messages.iter_mut().filter(|i| i.visible()) {
+                                msg.inner.control_ui(ui);
+                                msg.inner.content_ui(
+                                    ui,
+                                    &settings.event_widget_layout,
+                                    self.show_plain_messages,
+                                );
+                                ui.end_row();
+                            }
+                        });
+                });
+        });
         None
+    }
+
+    fn filter_message_ui(&mut self, ui: &mut egui::Ui) {
+        let filter_edit_res = TextEdit::singleline(self.messages.filter_string())
+            .hint_text("Message Filter")
+            .desired_width(f32::INFINITY)
+            .ui(ui);
+        if filter_edit_res.changed() {
+            self.messages.update();
+        }
+        if ui.ctx().input_mut(|i| i.consume_shortcut(&FILTER_SHORTCUT)) {
+            ui.memory_mut(|memory| memory.request_focus(filter_edit_res.id));
+        }
     }
 
     pub fn bottom_ui(
