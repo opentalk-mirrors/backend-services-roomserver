@@ -7,11 +7,14 @@ use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, event::PingEvent};
 use opentalk_types_common::modules::{CORE_MODULE_ID, ModuleId};
 use serde::{Deserialize, Serialize};
-
 // reexport events for easier usage
 pub use {
     opentalk_types_signaling_livekit::MODULE_ID as LIVEKIT_MODULE_ID,
-    opentalk_types_signaling_livekit::event::LiveKitEvent,
+    opentalk_types_signaling_livekit::{
+        Credentials, MicrophoneRestrictionState,
+        event::{Error as LiveKitError, LiveKitEvent},
+        state::LiveKitState,
+    },
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -75,9 +78,8 @@ mod tests {
     use opentalk_types_signaling_livekit::event::LiveKitEvent;
     use serde::Deserialize;
 
-    use crate::api::event::SignalingEvent;
-
     use super::SignalingModuleEvent;
+    use crate::api::event::SignalingEvent;
 
     #[derive(Debug, Clone, Deserialize)]
     pub struct NamespaceOnly {

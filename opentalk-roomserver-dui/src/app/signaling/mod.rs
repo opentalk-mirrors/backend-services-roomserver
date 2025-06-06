@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use egui::{Response, RichText, TextEdit, Widget as _, style::ScrollAnimation};
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, error::TryRecvError};
+use egui::{InnerResponse, Response, RichText, TextEdit, Widget as _, style::ScrollAnimation};
+use tokio::{
+    runtime::Runtime,
+    sync::mpsc::{UnboundedReceiver, UnboundedSender, error::TryRecvError},
+};
 
 use super::shortcuts::{
     FILTER_SHORTCUT, FOCUS_MESSAGE_INPUT_SHORTCUT, PREVIOUS_SHORTCUT, SUCCESSOR_SHORTCUT,
@@ -15,14 +18,20 @@ use crate::{
         event_widget::EventWidget,
         json_edit::json_editor,
         shortcuts::{CLEAR_SHORTCUT, DISCONNECT_SHORTCUT, SEND_SHORTCUT},
-        signaling::filtered_vec::FilteredVec,
+        signaling::{
+            filtered_vec::FilteredVec,
+            livekit::LiveKitPlugin,
+            plugin::{Received, SignalingPlugin},
+        },
         style::{delete_btn, delete_mode_btn},
     },
-    client::{RunnerCommand, RunnerEvent, SignalingState},
+    client::{RunnerCommand, RunnerEvent, RunnerEventType, SignalingState},
     settings::{DuiSettings, HistoryEntry, MessageHistory},
 };
 
 pub mod filtered_vec;
+mod livekit;
+mod plugin;
 
 #[derive(Debug)]
 pub struct HistorySelectState {
@@ -53,10 +62,12 @@ pub struct SignalingView {
     show_history_panel: bool,
 
     delete_mode: bool,
+
+    plugins: Vec<(bool, Box<dyn SignalingPlugin>)>,
 }
 
 impl SignalingView {
-    pub fn new() -> Self {
+    pub fn new(runtime: &Runtime, ctx: egui::Context) -> Self {
         Self {
             messages: FilteredVec::new(),
             show_plain_messages: false,
@@ -65,6 +76,7 @@ impl SignalingView {
             show_history_panel: true,
             force_focus: true,
             delete_mode: false,
+            plugins: vec![(false, Box::new(LiveKitPlugin::new(runtime, ctx)))],
         }
     }
     pub fn menu_ui(
@@ -145,6 +157,34 @@ impl SignalingView {
             self.show_history_panel = !self.show_history_panel;
         }
 
+        ui.menu_button("Plugins", |ui| {
+            for (open, plugin) in &mut self.plugins {
+                let show_plugin_txt = if *open {
+                    format!("Hide {} Window", plugin.name())
+                } else {
+                    format!("Show {} Window", plugin.name())
+                };
+                let mut btn_show_plugin = egui::Button::new(show_plugin_txt);
+                if let Some(shortcut) = plugin.shortcut() {
+                    btn_show_plugin = btn_show_plugin.shortcut_text(ctx.format_shortcut(shortcut));
+                }
+                if ui.add(btn_show_plugin).clicked() {
+                    *open = !*open;
+                }
+            }
+        });
+
+        // we cannot handle the shortcuts inside the menu button ui since this is not executed if the menu is closed
+        for (open, plugin) in &mut self.plugins {
+            if plugin
+                .shortcut()
+                .map(|shortcut| ctx.input_mut(|i| i.consume_shortcut(shortcut)))
+                .unwrap_or(false)
+            {
+                *open = !*open;
+            }
+        }
+
         delete_mode_btn(ui, &mut self.delete_mode);
 
         if ctx.input_mut(|i| i.consume_shortcut(&CLEAR_SHORTCUT)) {
@@ -161,6 +201,7 @@ impl SignalingView {
             self.force_focus = true;
             ctx.request_repaint();
         }
+
         Ok(None)
     }
 
@@ -168,13 +209,20 @@ impl SignalingView {
         &mut self,
         ui: &mut egui::Ui,
         event_rx: &mut UnboundedReceiver<RunnerEvent>,
-        settings: &DuiSettings,
+        command_tx: &UnboundedSender<RunnerCommand>,
+        settings: &mut DuiSettings,
     ) -> Option<TransitionToView> {
-        if let Err(_e) = self.receive_runner_events(event_rx) {
+        // receive events from RoomServerRunner and forward them to the plugins.
+        let res = self.receive_runner_events(event_rx).and_then(|received| {
+            self.plugin_ui(ui, command_tx, settings, &received)?;
+            Ok(())
+        });
+        if let Err(_e) = res {
             return Some(TransitionToView::Error {
                 message: RichText::new("Failed to get new messages from RoomServer task."),
             });
         }
+
         ui.vertical(|ui| {
             self.filter_message_ui(ui);
 
@@ -198,6 +246,34 @@ impl SignalingView {
                 });
         });
         None
+    }
+
+    fn plugin_ui(
+        &mut self,
+        ui: &mut egui::Ui,
+        command_tx: &UnboundedSender<RunnerCommand>,
+        settings: &mut DuiSettings,
+        received: &[Received],
+    ) -> Result<(), RunnerGoneError> {
+        for (open, plugin) in &mut self.plugins {
+            for message in plugin.handle_events(settings, received) {
+                command_tx.send(RunnerCommand::Send { message })?;
+            }
+
+            let res = egui::Window::new(plugin.name())
+                .open(open)
+                .show(ui.ctx(), |ui| plugin.ui(ui, settings));
+            if let Some(InnerResponse {
+                inner: Some(messages),
+                ..
+            }) = res
+            {
+                for message in messages {
+                    command_tx.send(RunnerCommand::Send { message })?;
+                }
+            }
+        }
+        Ok(())
     }
 
     fn filter_message_ui(&mut self, ui: &mut egui::Ui) {
@@ -319,11 +395,17 @@ impl SignalingView {
     fn receive_runner_events(
         &mut self,
         event_rx: &mut UnboundedReceiver<RunnerEvent>,
-    ) -> Result<(), RunnerGoneError> {
+    ) -> Result<Vec<Received>, RunnerGoneError> {
+        let mut received = Vec::new();
         loop {
             match event_rx.try_recv() {
-                Ok(msg) => self.messages.push(msg.into()),
-                Err(TryRecvError::Empty) => return Ok(()),
+                Ok(msg) => {
+                    if let RunnerEventType::Received { message } = &msg.event_type {
+                        received.push(message.clone().into());
+                    }
+                    self.messages.push(msg.into());
+                }
+                Err(TryRecvError::Empty) => return Ok(received),
                 Err(TryRecvError::Disconnected) => {
                     log::error!("Failed to receive runner event, channel closed.");
                     return Err(RunnerGoneError);
@@ -403,11 +485,5 @@ impl SignalingView {
         if let Some(historic_state) = self.historic_message_state.take() {
             self.edit_message = historic_state.unsent_message;
         }
-    }
-}
-
-impl Default for SignalingView {
-    fn default() -> Self {
-        Self::new()
     }
 }

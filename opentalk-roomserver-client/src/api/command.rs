@@ -7,7 +7,6 @@ use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, command::PingCommand};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
-
 // reexport commands for easier usage
 pub use {
     opentalk_types_signaling_livekit::MODULE_ID as LIVEKIT_MODULE_ID,
@@ -24,6 +23,15 @@ pub struct SignalingCommand {
 impl SignalingCommand {
     pub fn namespace(&self) -> ModuleId {
         self.content.namespace()
+    }
+}
+
+impl From<SignalingModuleCommand> for SignalingCommand {
+    fn from(content: SignalingModuleCommand) -> Self {
+        Self {
+            transaction_id: None,
+            content,
+        }
     }
 }
 
@@ -61,9 +69,8 @@ mod tests {
     use opentalk_types_signaling_livekit::command::LiveKitCommand;
     use serde::Deserialize;
 
-    use crate::api::command::SignalingCommand;
-
     use super::SignalingModuleCommand;
+    use crate::api::command::SignalingCommand;
 
     #[derive(Debug, Clone, Deserialize)]
     pub struct NamespaceOnly {

@@ -42,7 +42,7 @@ mod error;
 pub mod style;
 
 pub struct RoomServerApp {
-    _runtime: Runtime,
+    runtime: Runtime,
     settings: DuiSettings,
 
     event_rx: UnboundedReceiver<RunnerEvent>,
@@ -78,7 +78,7 @@ impl RoomServerApp {
         let view = CentralAppView::ConnectionConfig(Box::new(ConnectionConfigView::new(&settings)));
 
         Ok(Self {
-            _runtime: runtime,
+            runtime,
             settings,
 
             event_rx,
@@ -116,16 +116,19 @@ impl RoomServerApp {
                 None
             }
             CentralAppView::Connecting(view) => view.ui(ui, &self.command_tx, &self.settings),
-            CentralAppView::Signaling(signaling_view) => {
-                signaling_view.center_ui(ui, &mut self.event_rx, &self.settings)
-            }
+            CentralAppView::Signaling(signaling_view) => signaling_view.center_ui(
+                ui,
+                &mut self.event_rx,
+                &self.command_tx,
+                &mut self.settings,
+            ),
             CentralAppView::Error(error_view) => {
                 error_view.ui(ui);
                 None
             }
         };
         if let Some(request) = request {
-            self.transition_to_view(request);
+            self.transition_to_view(request, ui.ctx());
         }
     }
 
@@ -173,13 +176,13 @@ impl RoomServerApp {
                     _ => None,
                 };
                 if let Some(request) = request {
-                    self.transition_to_view(request);
+                    self.transition_to_view(request, ctx);
                 }
             })
         });
     }
 
-    fn transition_to_view(&mut self, request: TransitionToView) {
+    fn transition_to_view(&mut self, request: TransitionToView, ctx: &egui::Context) {
         match request {
             TransitionToView::ConnectionConfig => {
                 self.view = CentralAppView::ConnectionConfig(Box::new(ConnectionConfigView::new(
@@ -198,7 +201,8 @@ impl RoomServerApp {
                 )))
             }
             TransitionToView::Signaling => {
-                self.view = CentralAppView::Signaling(SignalingView::new())
+                self.view =
+                    CentralAppView::Signaling(SignalingView::new(&self.runtime, ctx.clone()))
             }
             TransitionToView::Error { message } => {
                 self.view = CentralAppView::Error(ErrorView::new(message))
@@ -221,7 +225,7 @@ impl RoomServerApp {
             CentralAppView::ConnectionConfig(view) => {
                 let req = view.ui_bottom(ui, &mut self.settings);
                 if let Some(transition) = req {
-                    self.transition_to_view(transition);
+                    self.transition_to_view(transition, ui.ctx());
                 }
             }
             _ => (),
@@ -238,9 +242,12 @@ impl eframe::App for RoomServerApp {
                 self.bottom_panel_ui(ui);
             });
         if let Err(RunnerGoneError) = self.left_panel_ui(ctx) {
-            self.transition_to_view(TransitionToView::Error {
-                message: RichText::new("Runner is gone"),
-            });
+            self.transition_to_view(
+                TransitionToView::Error {
+                    message: RichText::new("Runner is gone"),
+                },
+                ctx,
+            );
         }
         egui::CentralPanel::default().show(ctx, |ui| {
             self.central_panel_ui(ui);
@@ -262,9 +269,12 @@ impl eframe::App for RoomServerApp {
             self.settings_view = Some(SettingsView::new(&self.settings));
         }
         if ctx.input_mut(|i| i.consume_shortcut(&ERROR_SHORTCUT)) {
-            self.transition_to_view(TransitionToView::Error {
-                message: RichText::new("This is a test"),
-            });
+            self.transition_to_view(
+                TransitionToView::Error {
+                    message: RichText::new("This is a test"),
+                },
+                ctx,
+            );
         }
     }
 
