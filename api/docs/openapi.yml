@@ -254,7 +254,7 @@ components:
         - myfeature
       maxLength: 255
       minLength: 1
-      pattern: "^[-_0-9a-zA-Z]*$"
+      pattern: "^[_0-9a-z]*$"
     InviteCode:
       type: string
       format: uuid
@@ -480,7 +480,7 @@ components:
                   - mymodule
                 maxLength: 255
                 minLength: 1
-                pattern: "^[-_0-9a-zA-Z]*$"
+                pattern: "^[_0-9a-z]*$"
             default: core
             example: mymodule
         name:
