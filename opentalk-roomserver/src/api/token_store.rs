@@ -100,6 +100,7 @@ impl TokenStore {
 #[cfg(test)]
 mod tests {
     use std::{
+        str::FromStr,
         thread,
         time::{Duration, Instant},
     };
@@ -108,7 +109,7 @@ mod tests {
     use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{
         rooms::RoomId,
-        roomserver::Token,
+        roomserver::{DeviceSecret, Token},
         users::{UserId, UserInfo},
     };
     use pretty_assertions::assert_eq;
@@ -120,7 +121,8 @@ mod tests {
         SignalingClientContext {
             room_id: RoomId::from_u128(i),
             client_parameters: ClientParameters {
-                device_secret: i.to_string(),
+                device_secret: DeviceSecret::from_str(&format!("LongEnoughToBeADeviceSecret{i}"))
+                    .expect("Valid device secret"),
                 kind: ClientKind::Registered {
                     profile: PublicUserProfile {
                         id: UserId::from_u128(i),

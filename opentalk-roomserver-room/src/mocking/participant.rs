@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use axum::extract::ws::Message;
 use opentalk_roomserver_signaling::{
@@ -15,7 +15,10 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket;
 use opentalk_types_api_v1::users::PublicUserProfile;
-use opentalk_types_common::users::{DisplayName, UserId, UserInfo};
+use opentalk_types_common::{
+    roomserver::DeviceSecret,
+    users::{DisplayName, UserId, UserInfo},
+};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{json, value::to_raw_value};
@@ -128,7 +131,7 @@ impl<S> MockParticipant<S> {
         MockParticipantBuilder {
             profile,
             role: Role::Moderator,
-            secret: "Alice Device A".to_string(),
+            secret: DeviceSecret::from_str("Alice Device Secret A").expect("Valid device secret"),
         }
     }
 
@@ -148,7 +151,7 @@ impl<S> MockParticipant<S> {
         MockParticipantBuilder {
             profile,
             role: Role::User,
-            secret: "Bob Device A".to_string(),
+            secret: DeviceSecret::from_str("Bob Device Secret A").expect("Valid device secret"),
         }
     }
 
@@ -168,7 +171,7 @@ impl<S> MockParticipant<S> {
         MockParticipantBuilder {
             profile,
             role: Role::User,
-            secret: "Charlie Device A".to_string(),
+            secret: DeviceSecret::from_str("Charlie Device Secret A").expect("Valid device secret"),
         }
     }
 
@@ -176,7 +179,7 @@ impl<S> MockParticipant<S> {
         MockParticipantBuilder {
             profile: "Gustav the great".parse().expect("Valid DisplayName"),
             role: Role::User,
-            secret: "Gustav Device A".to_string(),
+            secret: DeviceSecret::from_str("Gustav Device Secret A").expect("Valid device secret"),
         }
     }
 
@@ -300,11 +303,11 @@ pub(crate) fn create_participant_connection() -> (MockSocket, MockParticipantJoi
 pub struct MockParticipantBuilder<P> {
     profile: P,
     role: Role,
-    secret: String,
+    secret: DeviceSecret,
 }
 
 impl<P> MockParticipantBuilder<P> {
-    pub fn secret(mut self, secret: String) -> Self {
+    pub fn secret(mut self, secret: DeviceSecret) -> Self {
         self.secret = secret;
         self
     }

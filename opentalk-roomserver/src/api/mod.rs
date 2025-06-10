@@ -317,6 +317,7 @@ mod test {
     use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
     use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{
+        roomserver::DeviceSecret,
         tariffs::TariffResource,
         users::{DisplayName, UserId, UserInfo, UserTitle},
         utils::ExampleData,
@@ -340,7 +341,7 @@ mod test {
 
     fn client_parameters2() -> ClientParameters {
         ClientParameters {
-            device_secret: "1234".into(),
+            device_secret: DeviceSecret::example_data(),
             kind: ClientKind::Guest {
                 display_name: DisplayName::from_str_lossy("tester"),
             },
@@ -350,7 +351,7 @@ mod test {
 
     fn client_parameters1() -> ClientParameters {
         ClientParameters {
-            device_secret: "1234".into(),
+            device_secret: DeviceSecret::example_data(),
             kind: ClientKind::Registered {
                 profile: PublicUserProfile {
                     id: UserId::nil(),

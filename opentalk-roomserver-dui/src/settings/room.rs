@@ -8,8 +8,10 @@ use opentalk_roomserver_types::{
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     modules::ModuleId,
+    roomserver::DeviceSecret,
     tariffs::{TariffId, TariffModuleResource, TariffResource},
     users::{UserId, UserInfo},
+    utils::ExampleData,
 };
 
 pub fn alice_profile() -> PublicUserProfile {
@@ -55,7 +57,7 @@ pub fn default_room_parameters() -> RoomParameters {
 
 pub fn default_client_parameters() -> ClientParameters {
     ClientParameters {
-        device_secret: "this is not secure".to_string(),
+        device_secret: DeviceSecret::example_data(),
         kind: ClientKind::Registered {
             profile: alice_profile(),
         },
