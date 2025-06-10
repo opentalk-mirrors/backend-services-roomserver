@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_types::{connection_id::ConnectionId, device_id::DeviceId};
 use serde::{Deserialize, Serialize};
+
+use crate::{connection_id::ConnectionId, device_id::DeviceId};
 
 /// A participants connection information
 #[derive(Clone, Debug, Serialize, Deserialize)]

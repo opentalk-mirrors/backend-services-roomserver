@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use axum::extract::ws::{CloseFrame, WebSocket, close_code};
 use opentalk_roomserver_room::Request;
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, signaling_context::SignalingClientContext,
+    client_parameters::ClientParameters, signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_roomserver_web_api::v1::signaling::SignalingBackend;
 use opentalk_types_api_v1::error::ApiError;

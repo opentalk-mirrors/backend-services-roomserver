@@ -5,7 +5,7 @@
 use opentalk_types_signaling::{ModulePeerData, ParticipantId, SignalingModulePeerFrontendData};
 use serde::{Deserialize, Serialize};
 
-use super::connection_info::ConnectionInfo;
+use crate::join::connection_info::ConnectionInfo;
 
 /// Status information about a participant
 #[derive(Clone, Debug, Serialize, Deserialize)]

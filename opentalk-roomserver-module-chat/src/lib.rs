@@ -8,9 +8,11 @@ use command::ChatCommand;
 use event::{ChatError, ChatEvent};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, SignalingModule, SignalingModuleError, SignalingModuleInitData},
+    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData},
 };
-use opentalk_roomserver_types::connection_id::ConnectionId;
+use opentalk_roomserver_types::{
+    connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
+};
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use opentalk_types_signaling_chat::{

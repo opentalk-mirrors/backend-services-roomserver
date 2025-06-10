@@ -5,12 +5,12 @@ use std::{thread, time::Duration};
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{
-        CreateReplica, FatalError, JoinInfo, ModuleError, SignalingModule, SignalingModuleError,
-        SignalingModuleInitData,
-    },
+    signaling_module::{CreateReplica, JoinInfo, SignalingModule, SignalingModuleInitData},
 };
-use opentalk_roomserver_types::connection_id::ConnectionId;
+use opentalk_roomserver_types::{
+    connection_id::ConnectionId,
+    signaling::module_error::{FatalError, ModuleError, SignalingModuleError},
+};
 use opentalk_types_common::modules::{ModuleId, module_id};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};

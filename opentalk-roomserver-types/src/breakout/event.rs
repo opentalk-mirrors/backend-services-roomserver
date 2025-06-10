@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_types::breakout_id::BreakoutId;
 use opentalk_types_common::time::Timestamp;
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use serde::{Deserialize, Serialize};
 
-use crate::{breakout::BreakoutRoom, signaling_module::ModuleError};
+use crate::{
+    breakout::{BreakoutRoom, breakout_id::BreakoutId},
+    signaling::module_error::ModuleError,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "message")]
@@ -90,13 +92,13 @@ impl ModuleError for BreakoutError {}
 
 #[cfg(test)]
 mod tests {
-    use opentalk_roomserver_types::breakout_id::BreakoutId;
     use opentalk_types_common::time::Timestamp;
     use opentalk_types_signaling::{ModuleData, ParticipantId};
     use serde_json::json;
 
     use crate::breakout::{
         BreakoutRoom,
+        breakout_id::BreakoutId,
         event::{BreakoutError, BreakoutEvent},
     };
 

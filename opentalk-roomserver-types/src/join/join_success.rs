@@ -1,21 +1,19 @@
-// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
-//
 // SPDX-License-Identifier: EUPL-1.2
+//
+// SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use connection_info::ConnectionInfo;
-use event_info::EventInfo;
-use opentalk_roomserver_types::{connection_id::ConnectionId, device_id::DeviceId};
 use opentalk_types_common::{
     events::MeetingDetails, tariffs::TariffResource, time::Timestamp, users::DisplayName,
 };
 use opentalk_types_signaling::{ParticipantId, Role};
 use opentalk_types_signaling_control::room::RoomInfo;
-use participant::Participant;
 use serde::{Deserialize, Serialize};
 
-pub mod connection_info;
-pub mod event_info;
-pub mod participant;
+use crate::{
+    connection_id::ConnectionId,
+    device_id::DeviceId,
+    join::{connection_info::ConnectionInfo, event_info::EventInfo, participant::Participant},
+};
 
 /// The data received by a participant upon successfully joining a meeting
 #[derive(Clone, Debug, Serialize, Deserialize)]

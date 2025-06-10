@@ -10,13 +10,12 @@ use axum::extract::ws::{CloseFrame, close_code};
 use futures::SinkExt;
 pub use message::{CloseReason, MessageEnvelope, SignalingMessage};
 use opentalk_roomserver_common::application_state::ApplicationState;
-use opentalk_roomserver_signaling::{
-    signaling_event::SignalingEvent,
-    signaling_module::{FatalError, SharedRawJson},
-};
+use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     error::{self, SignalingError},
+    shared_raw_json::SharedRawJson,
+    signaling::module_error::FatalError,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::modules::ModuleId;

@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{
-    collections::BTreeMap, convert::Infallible, fmt::Debug, marker::PhantomData, sync::Arc,
-    time::Duration,
-};
+use std::{collections::BTreeMap, fmt::Debug, marker::PhantomData, sync::Arc, time::Duration};
 
 use anyhow::Context;
 use opentalk_roomserver_common::settings::Settings;
-use opentalk_roomserver_types::{breakout_id::BreakoutId, connection_id::ConnectionId};
+use opentalk_roomserver_types::{
+    breakout::{BreakoutRoom, breakout_id::BreakoutId},
+    connection_id::ConnectionId,
+    shared_raw_json::SharedRawJson,
+    signaling::module_error::{FatalError, ModuleError, SignalingModuleError},
+};
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
-use serde::{Deserialize, Serialize, Serializer};
-use serde_json::value::{RawValue, to_raw_value};
+use serde::{Deserialize, Serialize};
+use serde_json::value::to_raw_value;
 
 use super::module_context::ModuleContext;
-use crate::{breakout::BreakoutRoom, participant_state::ParticipantState};
+use crate::participant_state::ParticipantState;
 
 /// The trait that defines a signaling module
 ///
@@ -57,7 +59,7 @@ pub trait SignalingModule: Send + Sync + Sized {
     ///
     /// Is converted into a websocket event and returned to the command issuing participant
     ///
-    /// Use [`Infallible`] if there is no error case.
+    /// Use [`Infallible`](std::convert::Infallible) if there is no error case.
     type Error: ModuleError;
 
     /// Creates an instance of the interface to access the module
@@ -252,80 +254,4 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
 pub struct SignalingModuleInitData {
     /// The roomserver settings
     pub settings: Arc<Settings>,
-}
-
-/// Marker trait to allow us to convert the [`SignalingModule::Error`] into a [`SignalingModuleError`]
-pub trait ModuleError: Debug + Send {}
-
-impl ModuleError for Infallible {}
-
-/// The error type returned by signaling module event handlers
-#[derive(Debug)]
-pub enum SignalingModuleError<E> {
-    /// An non-fatal internal error occurred
-    Internal(anyhow::Error),
-    /// A fatal error occurred.
-    ///
-    /// This is considered to be unrecoverable, the module will be flagged as broken and deactivated
-    Fatal(FatalError),
-    /// The module specific error
-    ///
-    /// Is turned into a websocket message and returned to the command issuing participant
-    Module(E),
-}
-
-impl<E> From<anyhow::Error> for SignalingModuleError<E> {
-    fn from(err: anyhow::Error) -> Self {
-        Self::Internal(err)
-    }
-}
-
-impl<E: ModuleError> From<E> for SignalingModuleError<E> {
-    fn from(err: E) -> Self {
-        Self::Module(err)
-    }
-}
-
-#[derive(Debug)]
-pub struct FatalError(pub anyhow::Error);
-
-impl<E> From<FatalError> for SignalingModuleError<E> {
-    fn from(err: FatalError) -> Self {
-        Self::Fatal(err)
-    }
-}
-
-/// Type to deal with opaque JSON values.
-///
-/// Some scenarios require sending the same value to a large amount of participants,
-/// which is why the value is reference counted and therefore cheap to clone.
-#[derive(Debug, Clone)]
-pub struct SharedRawJson {
-    inner: Arc<RawValue>,
-}
-
-impl From<Box<RawValue>> for SharedRawJson {
-    fn from(value: Box<RawValue>) -> Self {
-        Self {
-            inner: value.into(),
-        }
-    }
-}
-
-impl Serialize for SharedRawJson {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        RawValue::serialize(&*self.inner, serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for SharedRawJson {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        <Box<RawValue>>::deserialize(deserializer).map(Self::from)
-    }
 }

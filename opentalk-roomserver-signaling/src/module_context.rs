@@ -6,10 +6,12 @@ use std::{cell::RefCell, future::Future, marker::PhantomData};
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_types::{
-    breakout_id::BreakoutId,
+    breakout::breakout_id::BreakoutId,
     client_parameters::Role,
     connection_id::ConnectionId,
     error::{self, SignalingError},
+    shared_raw_json::SharedRawJson,
+    signaling::module_error::FatalError,
 };
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
@@ -21,7 +23,7 @@ use crate::{
     participant_state::{ParticipantState, Participants},
     room_info::RoomInfo,
     signaling_event::SignalingEvent,
-    signaling_module::{FatalError, SharedRawJson, SignalingModule},
+    signaling_module::SignalingModule,
 };
 
 /// Contains the room state and provides an interface to send websocket messages.

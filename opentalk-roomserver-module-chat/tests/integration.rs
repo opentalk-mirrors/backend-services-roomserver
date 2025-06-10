@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_module_chat::{ChatModule, command::ChatCommand, event::ChatEvent};
-use opentalk_roomserver_room::{mocking::room::TestRoom, task::core::CoreEvent};
+use opentalk_roomserver_room::mocking::room::TestRoom;
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
+use opentalk_roomserver_types::core_event::CoreEvent;
 use opentalk_types_common::time::Timestamp;
 use opentalk_types_signaling::ParticipantId;
 use opentalk_types_signaling_chat::{

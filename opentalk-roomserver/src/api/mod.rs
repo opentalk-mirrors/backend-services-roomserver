@@ -15,7 +15,7 @@ use opentalk_roomserver_module_ping::PingModule;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters, room_parameters::RoomParameters,
-    signaling_context::SignalingClientContext,
+    signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
 use opentalk_types_api_v1::error::ApiError;

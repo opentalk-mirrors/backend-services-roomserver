@@ -4519,7 +4519,6 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-control",
  "serde",
  "serde_json",
  "test-log",
@@ -4530,11 +4529,13 @@ dependencies = [
 name = "opentalk-roomserver-types"
 version = "0.0.0-dev"
 dependencies = [
+ "anyhow",
  "chrono",
  "derive_more",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "opentalk-types-signaling-control",
  "pretty_assertions",
  "serde",
  "serde_json",

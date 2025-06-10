@@ -5,11 +5,10 @@ use std::{pin::Pin, time::Duration};
 
 use futures::{FutureExt, SinkExt as _, StreamExt as _, stream::Peekable};
 use opentalk_roomserver_common::application_state::ApplicationState;
-use opentalk_roomserver_signaling::{
-    signaling_event::SignalingEvent, signaling_module::SharedRawJson,
-};
+use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
 use opentalk_roomserver_types::{
-    connection_id::ConnectionId, error::SignalingError, signaling::SignalingCommand,
+    connection_id::ConnectionId, error::SignalingError, shared_raw_json::SharedRawJson,
+    signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
     CloseFrame, Message, SignalingSink, SignalingSocket, SignalingStream,

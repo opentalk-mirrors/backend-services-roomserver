@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_types::breakout_id::BreakoutId;
+use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
 use opentalk_types_signaling::ParticipantId;
 
 use crate::participant_state::{ParticipantState, Participants};

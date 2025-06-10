@@ -3,10 +3,10 @@
 
 use std::time::Duration;
 
-use opentalk_roomserver_types::breakout_id::BreakoutId;
 use serde::{Deserialize, Serialize};
 
 use super::breakout_config::BreakoutConfig;
+use crate::breakout::breakout_id::BreakoutId;
 
 /// Incoming websocket commands to the `breakout` namespace
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,12 +39,12 @@ pub enum BreakoutCommand {
 mod tests {
     use std::time::Duration;
 
-    use opentalk_roomserver_types::breakout_id::BreakoutId;
     use opentalk_types_signaling::ParticipantId;
     use serde_json::json;
 
     use crate::breakout::{
         breakout_config::{BreakoutConfig, BreakoutRoomConfig},
+        breakout_id::BreakoutId,
         command::BreakoutCommand,
     };
 
