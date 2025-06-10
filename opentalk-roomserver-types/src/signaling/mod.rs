@@ -7,6 +7,9 @@ use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
+pub mod module_error;
+pub mod signaling_context;
+
 pub enum MessageTarget {
     AllParticipantsInRoom,
     Participant(ParticipantId),

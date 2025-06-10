@@ -3,7 +3,7 @@
 
 use std::{any::Any, future::Future, pin::Pin};
 
-use opentalk_roomserver_types::breakout_id::BreakoutId;
+use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
 use opentalk_types_common::modules::ModuleId;
 
 use crate::event_origin::EventOrigin;

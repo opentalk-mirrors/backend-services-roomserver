@@ -7,18 +7,19 @@ use anyhow::{Context, anyhow};
 use chrono::TimeDelta;
 pub use opentalk_roomserver_signaling::breakout::NAMESPACE;
 use opentalk_roomserver_signaling::{
+    breakout::module_data::BreakoutModuleData,
+    event_origin::{EventOrigin, ParticipantOrigin},
+};
+use opentalk_roomserver_types::{
     breakout::{
         BreakoutRoom,
         breakout_config::BreakoutConfig,
+        breakout_id::BreakoutId,
         command::BreakoutCommand,
         event::{BreakoutError, BreakoutEvent},
-        module_data::BreakoutModuleData,
     },
-    event_origin::{EventOrigin, ParticipantOrigin},
-    signaling_module::SignalingModuleError,
-};
-use opentalk_roomserver_types::{
-    breakout_id::BreakoutId, error::SignalingError, signaling::SignalingCommand,
+    error::SignalingError,
+    signaling::{SignalingCommand, module_error::SignalingModuleError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::time::Timestamp;

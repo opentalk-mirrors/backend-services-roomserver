@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_signaling::signaling_module::{
-    CreateReplica, JoinInfo, ModuleError, SignalingModule, SignalingModuleError,
-    SignalingModuleInitData,
+    CreateReplica, JoinInfo, SignalingModule, SignalingModuleInitData,
 };
+use opentalk_roomserver_types::signaling::module_error::{ModuleError, SignalingModuleError};
 use opentalk_types_common::modules::{ModuleId, module_id};
 use serde::{Deserialize, Serialize};
 

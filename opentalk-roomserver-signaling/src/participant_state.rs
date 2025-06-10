@@ -4,7 +4,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 use opentalk_roomserver_types::{
-    breakout_id::BreakoutId, client_parameters::Role, connection_id::ConnectionId,
+    breakout::breakout_id::BreakoutId, client_parameters::Role, connection_id::ConnectionId,
     device_id::DeviceId,
 };
 use opentalk_types_common::users::DisplayName;

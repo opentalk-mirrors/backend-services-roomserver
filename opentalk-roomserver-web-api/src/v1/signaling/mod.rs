@@ -15,7 +15,7 @@ use axum::{
     routing::get,
 };
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, signaling_context::SignalingClientContext,
+    client_parameters::ClientParameters, signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use tracing::{Instrument, Span};

@@ -49,7 +49,7 @@ use opentalk_roomserver_signaling::{
     signaling_module::SignalingModuleInitData,
 };
 use opentalk_roomserver_types::{
-    breakout_id::BreakoutId,
+    breakout::breakout_id::BreakoutId,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
     device_id::DeviceId,

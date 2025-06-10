@@ -6,7 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use opentalk_roomserver_types::signaling_context::SignalingClientContext;
+use opentalk_roomserver_types::signaling::signaling_context::SignalingClientContext;
 use opentalk_types_common::roomserver::Token;
 
 const DEFAULT_EXPIRY: Duration = Duration::from_secs(30);

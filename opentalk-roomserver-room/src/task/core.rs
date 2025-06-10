@@ -7,10 +7,9 @@ use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
     breakout::module_data::BreakoutPeerModuleData,
     event_origin::{EventOrigin, ParticipantOrigin},
-    signaling_module::FatalError,
 };
 use opentalk_roomserver_types::{
-    breakout_id::BreakoutId,
+    breakout::breakout_id::BreakoutId,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
     core_event::CoreEvent,
@@ -21,6 +20,7 @@ use opentalk_roomserver_types::{
         connection_info::ConnectionInfo, event_info::EventInfo, join_success::JoinSuccess,
         participant::Participant,
     },
+    signaling::module_error::FatalError,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{

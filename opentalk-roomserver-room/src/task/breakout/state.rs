@@ -6,7 +6,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use opentalk_roomserver_signaling::breakout::breakout_config::BreakoutConfig;
+use opentalk_roomserver_types::breakout::breakout_config::BreakoutConfig;
 use opentalk_types_common::time::Timestamp;
 use tokio::time::Sleep;
 

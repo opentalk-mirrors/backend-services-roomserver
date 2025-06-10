@@ -19,14 +19,16 @@ use std::{any::Any, cell::RefCell, collections::BTreeMap, time::Duration};
 use anyhow::Context;
 use dyn_module_context::DynModuleContext;
 use opentalk_roomserver_signaling::{
-    breakout::BreakoutRoom,
     event_origin::EventOrigin,
     module_context::ModuleContext,
-    signaling_module::{CreateReplica, FatalError, SignalingModule, SignalingModuleError},
+    signaling_module::{CreateReplica, SignalingModule},
 };
 use opentalk_roomserver_types::{
-    breakout_id::BreakoutId, connection_id::ConnectionId, error::SignalingError,
+    breakout::{BreakoutRoom, breakout_id::BreakoutId},
+    connection_id::ConnectionId,
+    error::SignalingError,
     shared_raw_json::SharedRawJson,
+    signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ModuleData, ParticipantId};

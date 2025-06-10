@@ -9,7 +9,7 @@ use opentalk_roomserver_signaling::{
     participant_state::Participants, room_info::RoomInfo, signaling_module::SignalingModule,
 };
 use opentalk_roomserver_types::{
-    breakout_id::BreakoutId, connection_id::ConnectionId, shared_raw_json::SharedRawJson,
+    breakout::breakout_id::BreakoutId, connection_id::ConnectionId, shared_raw_json::SharedRawJson,
 };
 use opentalk_types_common::rooms::RoomId;
 
