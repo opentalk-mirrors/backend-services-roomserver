@@ -5,14 +5,12 @@ use std::cell::RefCell;
 
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
-    event_origin::EventOrigin,
-    loopback::LoopbackFuture,
-    module_context::ModuleContext,
-    participant_state::Participants,
-    room_info::RoomInfo,
-    signaling_module::{SharedRawJson, SignalingModule},
+    event_origin::EventOrigin, loopback::LoopbackFuture, module_context::ModuleContext,
+    participant_state::Participants, room_info::RoomInfo, signaling_module::SignalingModule,
 };
-use opentalk_roomserver_types::{breakout_id::BreakoutId, connection_id::ConnectionId};
+use opentalk_roomserver_types::{
+    breakout_id::BreakoutId, connection_id::ConnectionId, shared_raw_json::SharedRawJson,
+};
 use opentalk_types_common::rooms::RoomId;
 
 use crate::message_router::MessageRouter;

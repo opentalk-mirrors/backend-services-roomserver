@@ -8,7 +8,6 @@
 
 pub mod breakout;
 pub mod event_origin;
-pub mod join;
 /// The `loopback` module is intended for internal use only
 #[doc(hidden)]
 pub mod loopback;

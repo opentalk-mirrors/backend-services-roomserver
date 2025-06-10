@@ -22,12 +22,11 @@ use opentalk_roomserver_signaling::{
     breakout::BreakoutRoom,
     event_origin::EventOrigin,
     module_context::ModuleContext,
-    signaling_module::{
-        CreateReplica, FatalError, SharedRawJson, SignalingModule, SignalingModuleError,
-    },
+    signaling_module::{CreateReplica, FatalError, SignalingModule, SignalingModuleError},
 };
 use opentalk_roomserver_types::{
     breakout_id::BreakoutId, connection_id::ConnectionId, error::SignalingError,
+    shared_raw_json::SharedRawJson,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ModuleData, ParticipantId};

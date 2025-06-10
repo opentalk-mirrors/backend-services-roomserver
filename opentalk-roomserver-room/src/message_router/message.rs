@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 //! Exposed message types
-use opentalk_roomserver_types::signaling::SignalingCommand;
+use opentalk_roomserver_types::{disconnect_reason::DisconnectReason, signaling::SignalingCommand};
 use opentalk_types_signaling::ParticipantId;
 
 use super::ConnectionId;
@@ -19,6 +19,16 @@ pub enum CloseReason {
     TaskClosed,
 
     InternalError,
+}
+
+impl From<CloseReason> for DisconnectReason {
+    fn from(value: CloseReason) -> Self {
+        match value {
+            CloseReason::ParticipantClosed => DisconnectReason::Leave,
+            CloseReason::ConnectionLost => DisconnectReason::ConnectionLost,
+            CloseReason::InternalError | CloseReason::TaskClosed => DisconnectReason::InternalError,
+        }
+    }
 }
 
 /// A signaling message sent by a client

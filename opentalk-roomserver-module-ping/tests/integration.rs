@@ -2,12 +2,9 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_module_ping::{Command, Event, PingError, PingModule, Replication};
-use opentalk_roomserver_room::{
-    mocking::{participant::MockParticipantJoining, room::TestRoom},
-    task::core::CoreEvent,
-};
+use opentalk_roomserver_room::mocking::{participant::MockParticipantJoining, room::TestRoom};
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
-use opentalk_roomserver_types::error::SignalingError;
+use opentalk_roomserver_types::{core_event::CoreEvent, error::SignalingError};
 use pretty_assertions::assert_eq;
 
 #[test_log::test(tokio::test)]

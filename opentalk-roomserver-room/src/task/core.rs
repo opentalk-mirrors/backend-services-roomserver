@@ -7,18 +7,20 @@ use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
     breakout::module_data::BreakoutPeerModuleData,
     event_origin::{EventOrigin, ParticipantOrigin},
-    join::{
-        JoinSuccess, connection_info::ConnectionInfo, event_info::EventInfo,
-        participant::Participant,
-    },
-    signaling_module::{FatalError, SharedRawJson},
+    signaling_module::FatalError,
 };
 use opentalk_roomserver_types::{
     breakout_id::BreakoutId,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
+    core_event::CoreEvent,
     device_id::DeviceId,
+    disconnect_reason::DisconnectReason,
     error::SignalingError,
+    join::{
+        connection_info::ConnectionInfo, event_info::EventInfo, join_success::JoinSuccess,
+        participant::Participant,
+    },
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{
@@ -27,59 +29,11 @@ use opentalk_types_common::{
 };
 use opentalk_types_signaling::{ModuleData, ModulePeerData, ParticipantId, Role};
 use opentalk_types_signaling_control::room::RoomInfo;
-use serde::{Deserialize, Serialize};
 
 use super::RoomTask;
-use crate::{
-    message_router::CloseReason,
-    signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext},
-};
+use crate::signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext};
 
 pub const NAMESPACE: ModuleId = module_id!("core");
-
-/// Outgoing websocket messages in the core namespace
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CoreEvent {
-    /// Message sent to a participant on a successful join
-    JoinSuccess(Box<JoinSuccess>),
-
-    /// Broadcast message sent to all participants when a new participant has joined
-    ParticipantConnected {
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
-        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-        peer_join_info: BTreeMap<ModuleId, SharedRawJson>, // TODO: find a better name
-    },
-
-    /// Broadcast message sent to all participants when a participant disconnected
-    ParticipantDisconnected {
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
-        reason: DisconnectReason,
-    },
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DisconnectReason {
-    /// The participant left the conference
-    Leave,
-    /// The connection was interrupted
-    ConnectionLost,
-    /// The participant was removed due to an internal error
-    InternalError,
-}
-
-impl From<CloseReason> for DisconnectReason {
-    fn from(value: CloseReason) -> Self {
-        match value {
-            CloseReason::ParticipantClosed => DisconnectReason::Leave,
-            CloseReason::ConnectionLost => DisconnectReason::ConnectionLost,
-            CloseReason::InternalError | CloseReason::TaskClosed => DisconnectReason::InternalError,
-        }
-    }
-}
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// A participant connected to the conference
@@ -384,12 +338,13 @@ fn build_join_success(
 mod tests {
     use std::collections::BTreeMap;
 
-    use opentalk_roomserver_signaling::{
-        join::{JoinSuccess, connection_info::ConnectionInfo},
-        signaling_event::SignalingEvent,
-        signaling_module::SharedRawJson,
+    use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
+    use opentalk_roomserver_types::{
+        connection_id::ConnectionId,
+        device_id::DeviceId,
+        join::{connection_info::ConnectionInfo, join_success::JoinSuccess},
+        shared_raw_json::SharedRawJson,
     };
-    use opentalk_roomserver_types::{connection_id::ConnectionId, device_id::DeviceId};
     use opentalk_types_common::{
         events::MeetingDetails,
         modules::{ModuleId, module_id},

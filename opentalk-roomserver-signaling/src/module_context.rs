@@ -10,6 +10,7 @@ use opentalk_roomserver_types::{
     client_parameters::Role,
     connection_id::ConnectionId,
     error::{self, SignalingError},
+    shared_raw_json::SharedRawJson,
 };
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
@@ -21,7 +22,7 @@ use crate::{
     participant_state::{ParticipantState, Participants},
     room_info::RoomInfo,
     signaling_event::SignalingEvent,
-    signaling_module::{FatalError, SharedRawJson, SignalingModule},
+    signaling_module::{FatalError, SignalingModule},
 };
 
 /// Contains the room state and provides an interface to send websocket messages.

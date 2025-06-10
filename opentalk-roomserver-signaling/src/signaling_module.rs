@@ -8,11 +8,13 @@ use std::{
 
 use anyhow::Context;
 use opentalk_roomserver_common::settings::Settings;
-use opentalk_roomserver_types::{breakout_id::BreakoutId, connection_id::ConnectionId};
+use opentalk_roomserver_types::{
+    breakout_id::BreakoutId, connection_id::ConnectionId, shared_raw_json::SharedRawJson,
+};
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
-use serde::{Deserialize, Serialize, Serializer};
-use serde_json::value::{RawValue, to_raw_value};
+use serde::{Deserialize, Serialize};
+use serde_json::value::to_raw_value;
 
 use super::module_context::ModuleContext;
 use crate::{breakout::BreakoutRoom, participant_state::ParticipantState};
@@ -292,40 +294,5 @@ pub struct FatalError(pub anyhow::Error);
 impl<E> From<FatalError> for SignalingModuleError<E> {
     fn from(err: FatalError) -> Self {
         Self::Fatal(err)
-    }
-}
-
-/// Type to deal with opaque JSON values.
-///
-/// Some scenarios require sending the same value to a large amount of participants,
-/// which is why the value is reference counted and therefore cheap to clone.
-#[derive(Debug, Clone)]
-pub struct SharedRawJson {
-    inner: Arc<RawValue>,
-}
-
-impl From<Box<RawValue>> for SharedRawJson {
-    fn from(value: Box<RawValue>) -> Self {
-        Self {
-            inner: value.into(),
-        }
-    }
-}
-
-impl Serialize for SharedRawJson {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        RawValue::serialize(&*self.inner, serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for SharedRawJson {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        <Box<RawValue>>::deserialize(deserializer).map(Self::from)
     }
 }
