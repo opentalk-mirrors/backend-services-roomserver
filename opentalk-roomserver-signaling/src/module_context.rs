@@ -13,7 +13,7 @@ use opentalk_roomserver_types::{
     shared_raw_json::SharedRawJson,
     signaling::module_error::FatalError,
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use serde_json::value::RawValue;
 
@@ -39,6 +39,7 @@ where
     messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
+    pub timestamp: Timestamp,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
 
     m: PhantomData<fn() -> M>,
@@ -56,6 +57,7 @@ where
         room_info: &'ctx mut RoomInfo,
         messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
         participants: &'ctx mut Participants,
+        timestamp: Timestamp,
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
     ) -> ModuleContext<'ctx, M> {
         Self {
@@ -65,6 +67,7 @@ where
             room_info,
             messages,
             participants,
+            timestamp,
             loopback_futures,
             m: PhantomData,
         }
@@ -78,6 +81,7 @@ where
             room_info: self.room_info,
             messages: self.messages,
             participants: self.participants,
+            timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
             m: PhantomData,
         }
@@ -230,12 +234,14 @@ where
     {
         let origin = self.event_origin;
         let room = self.room;
+        let timestamp = self.timestamp;
 
         let future = Box::pin(async move {
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
                 origin,
                 room,
+                timestamp,
                 value: Box::new(future.await),
             })
         });
@@ -253,8 +259,9 @@ where
         F: FnOnce() -> M::Loopback + Send + 'static,
     {
         let origin = self.event_origin;
-        let breakout_room = self.room;
+        let room = self.room;
         let join_handle = tokio::task::spawn_blocking(blocking_function);
+        let timestamp = self.timestamp;
 
         let future = Box::pin(async move {
             let Ok(value) = join_handle.await else {
@@ -265,7 +272,8 @@ where
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
                 origin,
-                room: breakout_room,
+                room,
+                timestamp,
                 value: Box::new(value),
             })
         });

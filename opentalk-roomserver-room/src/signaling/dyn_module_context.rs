@@ -11,7 +11,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, room_kind::RoomKind, shared_raw_json::SharedRawJson,
 };
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{rooms::RoomId, time::Timestamp};
 
 use crate::message_router::MessageRouter;
 
@@ -23,6 +23,7 @@ pub struct DynModuleContext<'ctx> {
     pub room_info: &'ctx mut RoomInfo,
     pub message_router: &'ctx mut MessageRouter,
     pub participants: &'ctx mut Participants,
+    pub timestamp: Timestamp,
     loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
 }
 
@@ -35,6 +36,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         room_info: &'ctx mut RoomInfo,
         message_router: &'ctx mut MessageRouter,
         participants: &'ctx mut Participants,
+        timestamp: Timestamp,
         loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
     ) -> Self {
         Self {
@@ -44,6 +46,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             room_info,
             message_router,
             participants,
+            timestamp,
             loopback_futures,
         }
     }
@@ -57,6 +60,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             room_info: self.room_info,
             message_router: self.message_router,
             participants: self.participants,
+            timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
         }
     }
@@ -72,6 +76,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             self.room_info,
             messages,
             self.participants,
+            self.timestamp,
             self.loopback_futures,
         )
     }
