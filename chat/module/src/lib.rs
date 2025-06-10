@@ -74,11 +74,9 @@ impl SignalingModule for ChatModule {
             ..Default::default()
         };
 
-        for (p_other, _) in ctx.participants.connected().iter() {
-            join_info
-                .peer
-                .insert(*p_other, ChatPeerState { groups: Vec::new() })?;
-        }
+        join_info
+            .peer
+            .insert_for_all(ctx, ChatPeerState { groups: Vec::new() })?;
 
         Ok(join_info)
     }
