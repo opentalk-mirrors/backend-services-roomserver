@@ -16,6 +16,8 @@ members = [
   "opentalk-roomserver-web-api",
   "ping/module",
   "ping/types",
+  "timer/module",
+  "timer/types",
 ]
 resolver = "2"
 
@@ -38,6 +40,7 @@ opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0
 opentalk-roomserver-module-chat = { path = "chat/module", version = "0.0.0-dev" }
 opentalk-roomserver-module-livekit = { path = "livekit/module", version = "0.0.0-dev" }
 opentalk-roomserver-module-ping = { path = "ping/module", version = "0.0.0-dev" }
+opentalk-roomserver-module-timer = { path = "timer/module", version = "0.0.0-dev" }
 opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.0-dev" }
 opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.0-dev" }
 opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev", features = [
@@ -46,6 +49,7 @@ opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0
 opentalk-roomserver-types-chat = { path = "chat/types", version = "0.0.0-dev" }
 opentalk-roomserver-types-livekit = { path = "livekit/types", version = "0.0.0-dev" }
 opentalk-roomserver-types-ping = { path = "ping/types", version = "0.0.0-dev" }
+opentalk-roomserver-types-timer = { path = "timer/types", version = "0.0.0-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 opentalk-types-api-v1 = { version = "0.39.1", features = ["axum"] }
 opentalk-types-common = { version = "0.35.2", features = ["serde", "utoipa"] }
@@ -80,6 +84,7 @@ livekit-api = "0.4"
 livekit-protocol = "=0.3.9"
 livekit-runtime = { version = "0.4", default-features = false }
 log = "0.4.22"
+opentalk-types-signaling-timer = { version = "0.36", features = ["serde"] }
 opentalk-version = "0.2.0"
 opentelemetry = "0.29.0"
 opentelemetry-otlp = { version = "0.29.0", features = ["grpc-tonic"] }
