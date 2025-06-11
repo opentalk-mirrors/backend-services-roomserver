@@ -17,3 +17,8 @@ opentalk-types-signaling-timer.workspace = true
 pretty_assertions.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+
+[dev-dependencies]
+chrono.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true

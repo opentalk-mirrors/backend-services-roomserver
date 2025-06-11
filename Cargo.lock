@@ -5027,12 +5027,14 @@ dependencies = [
  "anyhow",
  "chrono",
  "log",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-timer",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-timer",
+ "test-log",
  "tokio",
 ]
 
@@ -5141,8 +5143,11 @@ dependencies = [
 name = "opentalk-roomserver-types-timer"
 version = "0.0.0-dev"
 dependencies = [
+ "chrono",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
  "opentalk-types-signaling-timer",
  "pretty_assertions",
  "serde",
