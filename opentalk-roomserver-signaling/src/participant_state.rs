@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use opentalk_roomserver_types::{
     breakout::breakout_id::BreakoutId, client_parameters::Role, connection_id::ConnectionId,
@@ -33,6 +33,13 @@ impl Participants {
 
     pub fn in_breakout_room(&self, breakout_room: Option<BreakoutId>) -> ParticipantsFiltered {
         ParticipantsFiltered::new(self).breakout_room(breakout_room)
+    }
+
+    pub fn connections(&self) -> BTreeMap<ParticipantId, BTreeSet<ConnectionId>> {
+        self.all_unfiltered
+            .iter()
+            .map(|(p, state)| (*p, state.connections.keys().copied().collect()))
+            .collect()
     }
 
     pub fn filter(&self) -> ParticipantsFiltered {

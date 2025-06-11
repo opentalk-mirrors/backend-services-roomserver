@@ -24,15 +24,6 @@ _check_ci_doc_updater:
     fi
 
 [no-exit-message]
-_check_jq:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if ! command -v jq > /dev/null; then
-        echo 'jq is not available, please install using your favorite package manager.`' >&2
-        exit 1
-    fi
-
-[no-exit-message]
 _check_cargo_depgraph:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -71,7 +62,7 @@ update-docs: _check_ci_doc_updater
 run-dui *ARGS:
     RUST_LOG=opentalk=debug cargo run -p opentalk-roomserver-dui -- {{ ARGS }}
 
-generate-deps-graph: _check_jq _check_cargo_depgraph _check_dot
+generate-deps-graph: _check_cargo_depgraph _check_dot
     #!/usr/bin/env bash
     set -euo pipefail
     OUT_PATH=`mktemp --suffix=.png`

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::time::Duration;
+
 use axum::extract::ws::Message;
 use opentalk_roomserver_signaling::{
     signaling_event::SignalingEvent, signaling_module::SignalingModule,
@@ -17,16 +19,22 @@ use opentalk_types_common::users::{DisplayName, UserId, UserInfo};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{json, value::to_raw_value};
-use tokio::sync::mpsc;
+use tokio::{
+    sync::mpsc,
+    time::{error::Elapsed, timeout},
+};
 
 use super::{
     room::{self, TestRoom},
     socket::MockSocket,
 };
 
+const RECV_TIMEOUT: Duration = Duration::from_millis(500);
+
 #[derive(Debug)]
 pub enum ReceiveError {
     Closed,
+    Timeout,
     InvalidJson {
         error: serde_json::Error,
         message: Message,
@@ -44,6 +52,12 @@ pub enum SendError {
 impl<T> From<mpsc::error::SendError<T>> for SendError {
     fn from(_: mpsc::error::SendError<T>) -> Self {
         SendError::Closed
+    }
+}
+
+impl From<Elapsed> for ReceiveError {
+    fn from(_value: Elapsed) -> Self {
+        Self::Timeout
     }
 }
 
@@ -100,7 +114,7 @@ impl MockParticipant<JoinSuccess> {
 impl<S> MockParticipant<S> {
     pub fn alice() -> MockParticipantBuilder<PublicUserProfile> {
         let profile = PublicUserProfile {
-            id: UserId::from_u128(0x1),
+            id: UserId::from_u128(0xa11ce),
             email: "alice@example.com".to_string(),
             user_info: UserInfo {
                 title: "M.Sc.".parse().expect("Valid title"),
@@ -120,7 +134,7 @@ impl<S> MockParticipant<S> {
 
     pub fn bob() -> MockParticipantBuilder<PublicUserProfile> {
         let profile = PublicUserProfile {
-            id: UserId::from_u128(0x2),
+            id: UserId::from_u128(0xb0b),
             email: "bob@example.com".to_string(),
             user_info: UserInfo {
                 title: "".parse().expect("Valid title"),
@@ -140,7 +154,7 @@ impl<S> MockParticipant<S> {
 
     pub fn charlie() -> MockParticipantBuilder<PublicUserProfile> {
         let profile = PublicUserProfile {
-            id: UserId::from_u128(0x3),
+            id: UserId::from_u128(0xcca211e),
             email: "charlie@example.com".to_string(),
             user_info: UserInfo {
                 title: "".parse().expect("Valid title"),
@@ -224,7 +238,7 @@ impl<S> MockParticipant<S> {
         M: SignalingModule,
         M::Outgoing: DeserializeOwned,
     {
-        let Some(received) = self.receiver.recv().await else {
+        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         match received {
@@ -243,7 +257,7 @@ impl<S> MockParticipant<S> {
     pub async fn receive<E: DeserializeOwned>(
         &mut self,
     ) -> Result<SignalingEvent<E>, ReceiveError> {
-        let Some(received) = self.receiver.recv().await else {
+        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         match received {

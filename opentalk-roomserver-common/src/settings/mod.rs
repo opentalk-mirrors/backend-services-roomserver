@@ -9,10 +9,17 @@ use std::{
 use anyhow::{Context, anyhow};
 use config::{Config, Environment, File, FileFormat};
 use serde::Deserialize;
-use signaling_salt::SignalingSalt;
-use telemetry::{Metrics, Monitoring, Tracing};
 use thiserror::Error;
 
+use crate::settings::{
+    defaults::Defaults,
+    livekit::LiveKitSettings,
+    signaling_salt::SignalingSalt,
+    telemetry::{Metrics, Monitoring, Tracing},
+};
+
+pub mod defaults;
+pub mod livekit;
 pub mod signaling_salt;
 pub mod telemetry;
 
@@ -39,6 +46,12 @@ pub struct Settings {
 
     #[serde(default)]
     pub conference: Conference,
+
+    #[serde(default)]
+    pub livekit: Option<LiveKitSettings>,
+
+    #[serde(default)]
+    pub defaults: Option<Defaults>,
 }
 
 impl Settings {
@@ -113,6 +126,8 @@ impl Settings {
             conference: Conference {
                 signaling_salt: SignalingSalt("abcdefghijklmnopqrstuvwx".into()),
             },
+            livekit: None,
+            defaults: None,
         }
     }
 }

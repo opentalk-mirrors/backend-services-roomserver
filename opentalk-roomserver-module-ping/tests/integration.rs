@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::time::Duration;
+
 use opentalk_roomserver_module_ping::{Command, Event, PingError, PingModule, Replication};
 use opentalk_roomserver_room::mocking::{participant::MockParticipantJoining, room::TestRoom};
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
@@ -64,7 +66,12 @@ async fn blocking_delayed_pong_is_received() {
     alice_2.receive::<CoreEvent>().await.unwrap(); // bob ParticipantJoined event
 
     alice_1
-        .send_command::<PingModule>(Command::BlockingDelayedPing, None)
+        .send_command::<PingModule>(
+            Command::BlockingDelayedPing {
+                delay: Duration::from_millis(200),
+            },
+            None,
+        )
         .await
         .unwrap();
 
@@ -100,7 +107,12 @@ async fn async_delayed_pong_is_received() {
     alice_2.receive::<CoreEvent>().await.unwrap(); // bob ParticipantJoined event
 
     alice_1
-        .send_command::<PingModule>(Command::AsyncDelayedPing, None)
+        .send_command::<PingModule>(
+            Command::AsyncDelayedPing {
+                delay: Duration::from_millis(200),
+            },
+            None,
+        )
         .await
         .unwrap();
 

@@ -30,7 +30,7 @@ use opentalk_roomserver_types::{
     shared_raw_json::SharedRawJson,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use serde_json::value::RawValue;
 
@@ -54,7 +54,7 @@ pub trait ModuleHandle: Send + Sync {
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError>;
 
-    async fn destroy(self: Box<Self>);
+    async fn destroy(self: Box<Self>, room_id: RoomId);
 }
 
 pub enum DynEvent {
@@ -349,7 +349,7 @@ where
         Ok(())
     }
 
-    async fn destroy(self: Box<Self>) {
-        self.module.destroy()
+    async fn destroy(self: Box<Self>, room_id: RoomId) {
+        self.module.destroy(room_id)
     }
 }

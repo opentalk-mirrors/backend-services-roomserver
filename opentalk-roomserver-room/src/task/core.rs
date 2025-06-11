@@ -211,7 +211,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
-        module.destroy().await;
+        module.destroy(self.info.room_id).await;
 
         // Remove the module from the room state
         self.info.room.tariff.modules.remove(&namespace);

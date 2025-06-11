@@ -78,11 +78,11 @@ impl SignalingModule for PingModule {
             Command::Ping | Command::ReplicatedPing => {
                 ctx.send_ws_message([participant_id], Event::Pong)?
             }
-            Command::BlockingDelayedPing => {
-                ctx.spawn_blocking(move || Self::handle_ping_delayed(participant_id));
+            Command::BlockingDelayedPing { delay } => {
+                ctx.spawn_blocking(move || Self::handle_ping_delayed(participant_id, delay));
             }
-            Command::AsyncDelayedPing => {
-                ctx.spawn(Self::handle_async_ping_delayed(participant_id));
+            Command::AsyncDelayedPing { delay } => {
+                ctx.spawn(Self::handle_async_ping_delayed(participant_id, delay));
             }
             Command::PingError => Self::ping_error()?,
             Command::Broadcast => ctx.send_ws_message(
@@ -109,13 +109,16 @@ impl SignalingModule for PingModule {
 }
 
 impl PingModule {
-    fn handle_ping_delayed(participant_id: ParticipantId) -> DelayedPingCompleted {
-        thread::sleep(Duration::from_secs(3));
+    fn handle_ping_delayed(participant_id: ParticipantId, delay: Duration) -> DelayedPingCompleted {
+        thread::sleep(delay);
         DelayedPingCompleted(participant_id)
     }
 
-    async fn handle_async_ping_delayed(participant_id: ParticipantId) -> DelayedPingCompleted {
-        tokio::time::sleep(Duration::from_secs(3)).await;
+    async fn handle_async_ping_delayed(
+        participant_id: ParticipantId,
+        delay: Duration,
+    ) -> DelayedPingCompleted {
+        tokio::time::sleep(delay).await;
         DelayedPingCompleted(participant_id)
     }
 
@@ -130,9 +133,17 @@ pub enum Command {
     /// A normal ping
     Ping,
     /// A ping with delayed response
-    BlockingDelayedPing,
+    BlockingDelayedPing {
+        /// The duration that the pong is delayed for.
+        #[serde(with = "opentalk_types_common::utils::duration_seconds")]
+        delay: Duration,
+    },
     /// A ping with delayed response
-    AsyncDelayedPing,
+    AsyncDelayedPing {
+        /// The duration that the pong is delayed for.
+        #[serde(with = "opentalk_types_common::utils::duration_seconds")]
+        delay: Duration,
+    },
     /// A ping that will result in a [`PingError`]
     PingError,
     /// Ping all participants
