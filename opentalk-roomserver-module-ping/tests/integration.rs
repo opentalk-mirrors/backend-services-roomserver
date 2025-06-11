@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use opentalk_roomserver_module_ping::{Command, Event, PingError, PingModule, Replication};
 use opentalk_roomserver_room::mocking::{participant::MockParticipantJoining, room::TestRoom};
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{core_event::CoreEvent, error::SignalingError};
+use opentalk_types_common::roomserver::DeviceSecret;
 use pretty_assertions::assert_eq;
 
 #[test_log::test(tokio::test)]
@@ -14,12 +15,12 @@ async fn ping_sends_response_to_all_connections() {
     let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
 
     let mut alice_1 = MockParticipantJoining::alice()
-        .secret("secret-1".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 1").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
     let mut alice_2 = MockParticipantJoining::alice()
-        .secret("secret-2".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 2").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
@@ -50,12 +51,12 @@ async fn blocking_delayed_pong_is_received() {
     let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
 
     let mut alice_1 = MockParticipantJoining::alice()
-        .secret("secret-1".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 1").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
     let mut alice_2 = MockParticipantJoining::alice()
-        .secret("secret-2".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 2").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
@@ -91,12 +92,12 @@ async fn async_delayed_pong_is_received() {
     let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
 
     let mut alice_1 = MockParticipantJoining::alice()
-        .secret("secret-1".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 1").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
     let mut alice_2 = MockParticipantJoining::alice()
-        .secret("secret-2".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 2").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
@@ -132,12 +133,12 @@ async fn error_ping_responds_with_error() {
     let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
 
     let mut alice_1 = MockParticipantJoining::alice()
-        .secret("secret-1".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 1").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
     let mut alice_2 = MockParticipantJoining::alice()
-        .secret("secret-2".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 2").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
@@ -168,12 +169,12 @@ async fn broadcast_should_be_received_by_all() {
     let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
 
     let mut alice_1 = MockParticipantJoining::alice()
-        .secret("secret-1".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 1").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
     let mut alice_2 = MockParticipantJoining::alice()
-        .secret("secret-2".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 2").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
@@ -207,12 +208,12 @@ async fn module_should_die() {
     let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
 
     let mut alice_1 = MockParticipantJoining::alice()
-        .secret("secret-1".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 1").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
     let mut alice_2 = MockParticipantJoining::alice()
-        .secret("secret-2".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 2").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
@@ -252,12 +253,12 @@ async fn replicated_ping_is_replicated_to_all_connections() {
     let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
 
     let mut alice_1 = MockParticipantJoining::alice()
-        .secret("secret-1".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 1").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();
     let mut alice_2 = MockParticipantJoining::alice()
-        .secret("secret-2".to_string())
+        .secret(DeviceSecret::from_str("Alice Device Secret 2").expect("Valid device secret"))
         .join(&mut room)
         .await
         .unwrap();

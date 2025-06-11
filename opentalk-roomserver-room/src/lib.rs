@@ -36,7 +36,9 @@ mod tests {
         client_parameters::{self, ClientParameters},
         room_parameters::RoomParameters,
     };
-    use opentalk_types_common::{rooms::RoomId, users::DisplayName, utils::ExampleData};
+    use opentalk_types_common::{
+        rooms::RoomId, roomserver::DeviceSecret, users::DisplayName, utils::ExampleData,
+    };
     use tokio::{sync::watch, time::sleep};
 
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
@@ -73,7 +75,7 @@ mod tests {
         let (handle, _sender) = create_room_task();
         let (socket, _) = create_participant_connection();
         let client_parameters = ClientParameters {
-            device_secret: "1234".into(),
+            device_secret: DeviceSecret::example_data(),
             kind: client_parameters::ClientKind::Guest {
                 display_name: DisplayName::from_str_lossy("tester"),
             },

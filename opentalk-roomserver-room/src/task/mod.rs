@@ -57,7 +57,7 @@ use opentalk_roomserver_types::{
     room_parameters::RoomParameters,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::{rooms::RoomId, time::Timestamp};
+use opentalk_types_common::{rooms::RoomId, roomserver::DeviceSecret, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use tokio::{
     sync::{mpsc, watch},
@@ -583,11 +583,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ///
     /// Reusing the salt is fine in this case since the salt is private and the device secret already has a high entropy.
     /// In contrast to a password salt, our salt needs to stay private.
-    fn derive_device_id(&self, device_secret: &str) -> DeviceId {
+    fn derive_device_id(&self, device_secret: &DeviceSecret) -> DeviceId {
         let mut hasher = blake3::Hasher::new();
         let salt = self.settings.conference.signaling_salt.as_bytes();
         hasher.update(salt);
-        hasher.update(device_secret.as_bytes());
+        hasher.update(device_secret.to_string().as_bytes());
 
         let mut uuid_bytes = [0; 16];
 
