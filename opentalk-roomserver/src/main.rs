@@ -90,7 +90,7 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
         // No task was started, this should not happen
         None => log::error!("Failed to start any task!"),
         // Task panicked
-        Some(Err(e)) => log::error!("Task panicked: {e}"),
+        Some(Err(e)) => log::error!("Task panicked: {e:?}"),
         // Task finished successfully
         Some(Ok(Ok(()))) => {}
         // Task returned an error
@@ -153,9 +153,9 @@ async fn graceful_shutdown(
             // Task exited successfully
             Ok(Some(Ok(Ok(())))) => log::info!("Task exited"),
             // Task returned error
-            Ok(Some(Ok(Err(e)))) => log::error!("{e}"),
+            Ok(Some(Ok(Err(e)))) => log::error!("Task error: {e:?}"),
             // Task panicked
-            Ok(Some(Err(e))) => log::error!("{e}"),
+            Ok(Some(Err(e))) => log::error!("Task Panic: {e:?}"),
         };
     }
 }
