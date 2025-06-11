@@ -334,7 +334,7 @@ impl LiveKitModule {
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         sender: ParticipantId,
-        mut participants: BTreeSet<ParticipantId>,
+        participants: BTreeSet<ParticipantId>,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
         if !ctx.is_moderator(sender) {
             tracing::debug!(
@@ -343,9 +343,21 @@ impl LiveKitModule {
             return Err(LiveKitError::InsufficientPermissions.into());
         }
 
+        // check that we know all participants and query their connection ids
+        let known_participants: BTreeSet<_> = ctx
+            .participants
+            .connected()
+            .ids()
+            .filter(|p| participants.contains(p))
+            .collect();
+        let unknown_participants: BTreeSet<_> = participants
+            .difference(&known_participants)
+            .copied()
+            .collect();
+
         let mut connections = ctx.participants.connections();
-        connections.retain(|p, _| participants.remove(p));
-        Self::notify_unknown_participants(participants, ctx, sender)?;
+        connections.retain(|p, _| known_participants.contains(p));
+        Self::notify_unknown_participants(unknown_participants, ctx, sender)?;
 
         let room = ctx.room_id.to_string();
         let livekit_client: Arc<RoomClient> = Arc::clone(&self.livekit_client);
@@ -404,9 +416,22 @@ impl LiveKitModule {
             return Err(LiveKitError::InsufficientPermissions.into());
         }
         let room = ctx.room_id.to_string();
+
+        // check that we know all participants and query their connection ids
+        let known_participants: BTreeSet<_> = ctx
+            .participants
+            .connected()
+            .ids()
+            .filter(|p| participants.contains(p))
+            .collect();
+        let unknown_participants: BTreeSet<_> = participants
+            .difference(&known_participants)
+            .copied()
+            .collect();
+
         let mut connections = ctx.participants.connections();
-        connections.retain(|p, _| participants.contains(p));
-        Self::notify_unknown_participants(participants, ctx, sender)?;
+        connections.retain(|p, _| known_participants.contains(p));
+        Self::notify_unknown_participants(unknown_participants, ctx, sender)?;
 
         ctx.spawn(loopback::set_sceenshare_permissions(
             Arc::clone(&self.livekit_client),
