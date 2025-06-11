@@ -120,6 +120,16 @@ impl<'a> ParticipantsFiltered<'a> {
         }
     }
 
+    pub fn ids(&self) -> impl Iterator<Item = ParticipantId> + use<'_> {
+        let filter = self.filter;
+
+        self.inner
+            .all_unfiltered
+            .iter()
+            .filter(move |(_, s)| filter.apply(s))
+            .map(|(k, _)| *k)
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> + use<'_> {
         let filter = self.filter;
 
