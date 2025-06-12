@@ -8,10 +8,9 @@ use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types::core_event::CoreEvent;
 use opentalk_roomserver_types_livekit::{
-    command::LiveKitCommand, error::LiveKitError, event::LiveKitEvent,
+    LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState, UnrestrictedParticipants,
 };
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_livekit::{command::UnrestrictedParticipants, state::LiveKitState};
 use pretty_assertions::assert_eq;
 
 mod common;

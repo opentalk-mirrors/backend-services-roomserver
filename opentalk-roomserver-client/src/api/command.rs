@@ -4,14 +4,14 @@
 use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::breakout::command::BreakoutCommand;
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
+// reexport commands for easier usage
+pub use opentalk_roomserver_types_livekit::{
+    LIVEKIT_MODULE_ID, LiveKitCommand, MicrophoneRestrictionState,
+};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, command::PingCommand};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
-// reexport commands for easier usage
-pub use {
-    opentalk_types_signaling_livekit::MODULE_ID as LIVEKIT_MODULE_ID,
-    opentalk_types_signaling_livekit::command::LiveKitCommand,
-};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignalingCommand {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -64,9 +64,9 @@ mod tests {
     use insta::assert_snapshot;
     use opentalk_roomserver_types::breakout::command::BreakoutCommand;
     use opentalk_roomserver_types_chat::command::ChatCommand;
+    use opentalk_roomserver_types_livekit::LiveKitCommand;
     use opentalk_roomserver_types_ping::command::PingCommand;
     use opentalk_types_common::modules::ModuleId;
-    use opentalk_types_signaling_livekit::command::LiveKitCommand;
     use serde::Deserialize;
 
     use super::SignalingModuleCommand;

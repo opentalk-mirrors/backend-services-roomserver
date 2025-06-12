@@ -4,18 +4,13 @@
 use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core_event::CoreEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
+// reexport events for easier usage
+pub use opentalk_roomserver_types_livekit::{
+    Credentials, LIVEKIT_MODULE_ID, LiveKitError, LiveKitEvent, LiveKitState,
+};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, event::PingEvent};
 use opentalk_types_common::modules::{CORE_MODULE_ID, ModuleId};
 use serde::{Deserialize, Serialize};
-// reexport events for easier usage
-pub use {
-    opentalk_types_signaling_livekit::MODULE_ID as LIVEKIT_MODULE_ID,
-    opentalk_types_signaling_livekit::{
-        Credentials, MicrophoneRestrictionState,
-        event::{Error as LiveKitError, LiveKitEvent},
-        state::LiveKitState,
-    },
-};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalingEvent {
@@ -71,10 +66,10 @@ mod tests {
         breakout::event::BreakoutEvent, connection_id::ConnectionId, core_event::CoreEvent,
     };
     use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
+    use opentalk_roomserver_types_livekit::LiveKitEvent;
     use opentalk_roomserver_types_ping::event::PingEvent;
     use opentalk_types_common::modules::ModuleId;
     use opentalk_types_signaling::ParticipantId;
-    use opentalk_types_signaling_livekit::event::LiveKitEvent;
     use serde::Deserialize;
 
     use super::SignalingModuleEvent;

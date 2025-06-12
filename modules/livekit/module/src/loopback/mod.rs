@@ -8,8 +8,8 @@ use futures::{StreamExt as _, stream};
 use livekit_api::services::room::{RoomClient, UpdateParticipantOptions};
 use livekit_protocol::{ParticipantInfo, ParticipantPermission, TrackSource};
 use opentalk_roomserver_types::connection_id::ConnectionId;
+use opentalk_roomserver_types_livekit::MicrophoneRestrictionState;
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_livekit::MicrophoneRestrictionState;
 
 pub use crate::loopback::{
     create_room::create_room, force_mute::force_mute_participants,

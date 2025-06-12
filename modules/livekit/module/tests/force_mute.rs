@@ -6,11 +6,8 @@ use std::collections::BTreeSet;
 use livekit::{RoomEvent, RoomOptions};
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
-use opentalk_roomserver_types_livekit::{
-    command::LiveKitCommand, error::LiveKitError, event::LiveKitEvent,
-};
+use opentalk_roomserver_types_livekit::{LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState};
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_livekit::state::LiveKitState;
 use pretty_assertions::assert_eq;
 
 mod common;
@@ -27,7 +24,7 @@ async fn unknown_participant() {
     alice
         .send_command::<LiveKitModule>(
             LiveKitCommand::ForceMute {
-                participants: BTreeSet::from_iter(vec![disconnected_participant]),
+                participants: BTreeSet::from_iter([disconnected_participant]),
             },
             None,
         )
@@ -38,7 +35,7 @@ async fn unknown_participant() {
     assert_eq!(
         error_event.content,
         LiveKitEvent::Error(LiveKitError::UnknownParticipant {
-            participant: BTreeSet::from_iter(vec![disconnected_participant])
+            participant: BTreeSet::from_iter([disconnected_participant])
         })
     )
 }
@@ -81,7 +78,7 @@ async fn mute_bob() {
     alice
         .send_command::<LiveKitModule>(
             LiveKitCommand::ForceMute {
-                participants: BTreeSet::from_iter(vec![bob.id()]),
+                participants: BTreeSet::from_iter([bob.id()]),
             },
             None,
         )
@@ -111,7 +108,7 @@ async fn insufficient_permissions() {
     // Bob sends the command
     bob.send_command::<LiveKitModule>(
         LiveKitCommand::ForceMute {
-            participants: BTreeSet::from_iter(vec![disconnected_participant]),
+            participants: BTreeSet::from_iter([disconnected_participant]),
         },
         None,
     )

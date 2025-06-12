@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use livekit_api::services::room::{CreateRoomOptions, RoomClient};
-use opentalk_roomserver_types_livekit::error::LiveKitError;
+use opentalk_roomserver_types_livekit::LiveKitError;
 use opentalk_types_common::rooms::RoomId;
 
 use crate::loopback::LiveKitLoopback;

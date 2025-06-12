@@ -23,16 +23,14 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_livekit::{
-    command::LiveKitCommand, error::LiveKitError, event::LiveKitEvent,
+    Credentials, LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState,
+    MicrophoneRestrictionState, UnrestrictedParticipants,
 };
 use opentalk_types_common::{
     modules::{ModuleId, module_id},
     rooms::RoomId,
 };
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_livekit::{
-    Credentials, MicrophoneRestrictionState, command::UnrestrictedParticipants, state::LiveKitState,
-};
 use tokio::sync::Mutex;
 
 use crate::loopback::LiveKitLoopback;
@@ -459,7 +457,7 @@ impl LiveKitModule {
             [sender],
             LiveKitEvent::ScreenSharePermissionsUpdated {
                 grant,
-                participants: participants.into_iter().collect(),
+                participants,
             },
         )?;
         Ok(())

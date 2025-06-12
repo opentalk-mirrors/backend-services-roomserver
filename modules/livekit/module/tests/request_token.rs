@@ -3,8 +3,7 @@
 
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
-use opentalk_roomserver_types_livekit::{command::LiveKitCommand, event::LiveKitEvent};
-use opentalk_types_signaling_livekit::Credentials;
+use opentalk_roomserver_types_livekit::{Credentials, LiveKitCommand, LiveKitEvent};
 use pretty_assertions::assert_eq;
 
 mod common;

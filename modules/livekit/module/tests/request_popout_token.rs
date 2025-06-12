@@ -3,7 +3,7 @@
 
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
-use opentalk_roomserver_types_livekit::{command::LiveKitCommand, event::LiveKitEvent};
+use opentalk_roomserver_types_livekit::{LiveKitCommand, LiveKitEvent};
 
 mod common;
 

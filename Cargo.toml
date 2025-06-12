@@ -60,7 +60,6 @@ opentalk-types-common = { version = "0.35.2", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.36.0", features = ["serde"] }
 opentalk-types-signaling-chat = { version = "0.36.0" }
 opentalk-types-signaling-control = { version = "0.36.0", features = ["serde"] }
-opentalk-types-signaling-livekit = { version = "0.38.0", features = ["serde"] }
 
 anyhow = "1"
 async-trait = "0.1"

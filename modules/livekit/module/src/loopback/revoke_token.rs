@@ -6,7 +6,7 @@ use std::{collections::BTreeSet, sync::Arc};
 
 use livekit_api::services::room::RoomClient;
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_roomserver_types_livekit::error::LiveKitError;
+use opentalk_roomserver_types_livekit::LiveKitError;
 use opentalk_types_signaling::ParticipantId;
 
 use crate::loopback::LiveKitLoopback;

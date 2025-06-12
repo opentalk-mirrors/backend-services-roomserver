@@ -5036,10 +5036,10 @@ dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-chat",
+ "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-ping",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-livekit",
  "reqwest 0.12.20",
  "serde",
  "serde_json",
@@ -5123,7 +5123,6 @@ dependencies = [
  "opentalk-roomserver-types-livekit",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-livekit",
  "pretty_assertions",
  "test-log",
  "testcontainers",
@@ -5269,8 +5268,8 @@ version = "0.0.0-dev"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-livekit",
  "serde",
 ]
 
@@ -5435,17 +5434,6 @@ dependencies = [
  "opentalk-types-signaling",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "opentalk-types-signaling-livekit"
-version = "0.38.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15e7b83083acd3e5e0ae66980221ae5140f1b539b426a6c8da6f5cae6f0e83b7"
-dependencies = [
- "opentalk-types-common",
- "opentalk-types-signaling",
- "serde",
 ]
 
 [[package]]

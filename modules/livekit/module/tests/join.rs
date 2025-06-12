@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_types_signaling_livekit::{MicrophoneRestrictionState, state::LiveKitState};
+use opentalk_roomserver_types_livekit::{LiveKitState, MicrophoneRestrictionState};
 use pretty_assertions::assert_eq;
 
 mod common;

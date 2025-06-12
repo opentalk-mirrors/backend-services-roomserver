@@ -10,9 +10,8 @@ use std::{
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::{ParticipantInfo, TrackSource};
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_roomserver_types_livekit::error::LiveKitError;
+use opentalk_roomserver_types_livekit::{LiveKitError, MicrophoneRestrictionState};
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_livekit::MicrophoneRestrictionState;
 
 use super::{LiveKitLoopback, update_participants_permission};
 use crate::build_livekit_participant_id;
