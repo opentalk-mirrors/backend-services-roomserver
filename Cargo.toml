@@ -17,6 +17,7 @@ members = [
   "opentalk-roomserver-dui",
   "opentalk-roomserver-room",
   "opentalk-roomserver-types",
+  "opentalk-roomserver-types-signaling-chat", # TODO: find a proper name
   "opentalk-roomserver-web-api",
 ]
 resolver = "2"
