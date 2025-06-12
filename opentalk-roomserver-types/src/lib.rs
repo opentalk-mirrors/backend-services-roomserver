@@ -13,6 +13,7 @@ pub mod device_id;
 pub mod disconnect_reason;
 pub mod error;
 pub mod join;
+pub mod room_kind;
 pub mod room_parameters;
 pub mod shared_raw_json;
 pub mod signaling;

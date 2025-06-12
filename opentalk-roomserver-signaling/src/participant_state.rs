@@ -4,8 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use opentalk_roomserver_types::{
-    breakout::breakout_id::BreakoutId, client_parameters::Role, connection_id::ConnectionId,
-    device_id::DeviceId,
+    client_parameters::Role, connection_id::ConnectionId, device_id::DeviceId, room_kind::RoomKind,
 };
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
@@ -31,8 +30,8 @@ impl Participants {
         ParticipantsFiltered::new(self).disconnected()
     }
 
-    pub fn in_breakout_room(&self, breakout_room: Option<BreakoutId>) -> ParticipantsFiltered {
-        ParticipantsFiltered::new(self).breakout_room(breakout_room)
+    pub fn in_room(&self, room: RoomKind) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).room(room)
     }
 
     pub fn connections(&self) -> BTreeMap<ParticipantId, BTreeSet<ConnectionId>> {
@@ -57,7 +56,7 @@ pub struct ParticipantState {
     pub display_name: DisplayName,
 
     /// The breakout room of the participant. Is `None` when in the main room
-    pub breakout_room: Option<BreakoutId>,
+    pub room: RoomKind,
 
     /// The kind of the participant
     pub kind: ParticipantKind,
@@ -79,7 +78,7 @@ impl ParticipantState {
     pub fn new(display_name: DisplayName, kind: ParticipantKind, role: Role) -> Self {
         Self {
             display_name,
-            breakout_room: None,
+            room: RoomKind::Main,
             kind,
             role,
             connections: HashMap::new(),

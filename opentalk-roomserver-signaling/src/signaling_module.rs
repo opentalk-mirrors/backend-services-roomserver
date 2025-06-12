@@ -6,8 +6,9 @@ use std::{collections::BTreeMap, fmt::Debug, marker::PhantomData, sync::Arc, tim
 use anyhow::Context;
 use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_types::{
-    breakout::{BreakoutRoom, breakout_id::BreakoutId},
+    breakout::BreakoutRoom,
     connection_id::ConnectionId,
+    room_kind::RoomKind,
     shared_raw_json::SharedRawJson,
     signaling::module_error::{FatalError, ModuleError, SignalingModuleError},
 };
@@ -103,8 +104,8 @@ pub trait SignalingModule: Send + Sync + Sized {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
-        old_room: Option<BreakoutId>,
-        new_room: Option<BreakoutId>,
+        old_room: RoomKind,
+        new_room: RoomKind,
     ) -> Result<BTreeMap<ConnectionId, Self::JoinInfo>, SignalingModuleError<Self::Error>> {
         Ok(BTreeMap::new())
     }

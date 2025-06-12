@@ -9,7 +9,6 @@ use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
 };
 use opentalk_roomserver_types::{
-    breakout::breakout_id::BreakoutId,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
     core_event::CoreEvent,
@@ -20,6 +19,7 @@ use opentalk_roomserver_types::{
         connection_info::ConnectionInfo, event_info::EventInfo, join_success::JoinSuccess,
         participant::Participant,
     },
+    room_kind::RoomKind,
     signaling::module_error::FatalError,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
@@ -55,7 +55,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .participants
             .all_unfiltered
             .get(&participant_id)
-            .map(|s| s.breakout_room)
+            .map(|s| s.room)
         else {
             return Err(FatalError(anyhow!(
                 "Unable to get participant state for fresh connections"
@@ -133,12 +133,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         origin: EventOrigin,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
-        breakout_room: Option<BreakoutId>,
+        room: RoomKind,
         reason: DisconnectReason,
     ) {
         self.broadcast_event_to_modules(
             origin,
-            breakout_room,
+            room,
             DynBroadcastEvent::Disconnected {
                 participant_id,
                 connection_id,
@@ -162,7 +162,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(crate) async fn broadcast_event_to_modules(
         &mut self,
         origin: EventOrigin,
-        room_scope: Option<BreakoutId>,
+        room_scope: RoomKind,
         mut event: DynBroadcastEvent<'_>,
     ) {
         let mut errors = Vec::new();
@@ -252,9 +252,7 @@ fn build_join_success(
 
             // TODO: temporary solution to let participants know which participant is in which breakout room
             module_peer_data
-                .insert(&BreakoutPeerModuleData {
-                    breakout_room: state.breakout_room,
-                })
+                .insert(&BreakoutPeerModuleData { room: state.room })
                 .expect("BreakoutPeerModuleData must be serializable");
 
             Participant {

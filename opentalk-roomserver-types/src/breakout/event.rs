@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     breakout::{BreakoutRoom, breakout_id::BreakoutId},
+    room_kind::RoomKind,
     signaling::module_error::ModuleError,
 };
 
@@ -34,9 +35,9 @@ pub enum BreakoutEvent {
         /// The participant that moved
         participant_id: ParticipantId,
         /// The old room of the participant. `None` is the main room
-        old_breakout_room: Option<BreakoutId>,
+        old_room: RoomKind,
         /// The room that the participant moved to. `None` is the main room
-        new_breakout_room: Option<BreakoutId>,
+        new_room: RoomKind,
     },
 
     /// The receiver has successfully switched between rooms
@@ -96,10 +97,13 @@ mod tests {
     use opentalk_types_signaling::{ModuleData, ParticipantId};
     use serde_json::json;
 
-    use crate::breakout::{
-        BreakoutRoom,
-        breakout_id::BreakoutId,
-        event::{BreakoutError, BreakoutEvent},
+    use crate::{
+        breakout::{
+            BreakoutRoom,
+            breakout_id::BreakoutId,
+            event::{BreakoutError, BreakoutEvent},
+        },
+        room_kind::RoomKind,
     };
 
     #[test]
@@ -141,8 +145,8 @@ mod tests {
     fn participant_switched_room() {
         let val = BreakoutEvent::ParticipantSwitchedRoom {
             participant_id: ParticipantId::nil(),
-            old_breakout_room: None,
-            new_breakout_room: Some(BreakoutId::from(1)),
+            old_room: RoomKind::Main,
+            new_room: RoomKind::Breakout(BreakoutId::from(1)),
         };
 
         let json = serde_json::to_value(val).unwrap();
@@ -152,8 +156,13 @@ mod tests {
             json!({
                 "message": "participant_switched_room",
                 "participant_id": "00000000-0000-0000-0000-000000000000",
-                "old_breakout_room": null,
-                "new_breakout_room": 1
+                "old_room": {
+                    "kind": "main",
+                },
+                "new_room": {
+                    "kind": "breakout",
+                    "id": 1,
+                }
             }
             )
         );

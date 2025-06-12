@@ -9,7 +9,7 @@ use opentalk_roomserver_signaling::{
     participant_state::Participants, room_info::RoomInfo, signaling_module::SignalingModule,
 };
 use opentalk_roomserver_types::{
-    breakout::breakout_id::BreakoutId, connection_id::ConnectionId, shared_raw_json::SharedRawJson,
+    connection_id::ConnectionId, room_kind::RoomKind, shared_raw_json::SharedRawJson,
 };
 use opentalk_types_common::rooms::RoomId;
 
@@ -18,7 +18,7 @@ use crate::message_router::MessageRouter;
 /// Contains the state of the [`RoomTask`](super::super::task::RoomTask) that is accessible to all [`SignalingModule`]s
 pub struct DynModuleContext<'ctx> {
     pub room_id: RoomId,
-    pub breakout_room: Option<BreakoutId>,
+    pub room: RoomKind,
     pub event_origin: EventOrigin,
     pub room_info: &'ctx mut RoomInfo,
     pub message_router: &'ctx mut MessageRouter,
@@ -30,7 +30,7 @@ impl<'ctx> DynModuleContext<'ctx> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         room_id: RoomId,
-        breakout_room: Option<BreakoutId>,
+        room: RoomKind,
         event_origin: EventOrigin,
         room_info: &'ctx mut RoomInfo,
         message_router: &'ctx mut MessageRouter,
@@ -39,7 +39,7 @@ impl<'ctx> DynModuleContext<'ctx> {
     ) -> Self {
         Self {
             room_id,
-            breakout_room,
+            room,
             event_origin,
             room_info,
             message_router,
@@ -52,7 +52,7 @@ impl<'ctx> DynModuleContext<'ctx> {
     pub(crate) fn reborrow(&mut self) -> DynModuleContext<'_> {
         DynModuleContext {
             room_id: self.room_id,
-            breakout_room: self.breakout_room,
+            room: self.room,
             event_origin: self.event_origin,
             room_info: self.room_info,
             message_router: self.message_router,
@@ -67,7 +67,7 @@ impl<'ctx> DynModuleContext<'ctx> {
     ) -> ModuleContext<'ctx, M> {
         ModuleContext::new(
             self.room_id,
-            self.breakout_room,
+            self.room,
             self.event_origin,
             self.room_info,
             messages,

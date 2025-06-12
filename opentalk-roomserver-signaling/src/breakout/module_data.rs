@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_types::breakout::{BreakoutRoom, breakout_id::BreakoutId};
+use opentalk_roomserver_types::{breakout::BreakoutRoom, room_kind::RoomKind};
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::{SignalingModuleFrontendData, SignalingModulePeerFrontendData};
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BreakoutModuleData {
     /// The current room of the participant
-    pub breakout_room: Option<BreakoutId>,
+    pub room: RoomKind,
 
     /// Active breakout rooms
     pub rooms: Vec<BreakoutRoom>,
@@ -28,7 +28,7 @@ impl SignalingModuleFrontendData for BreakoutModuleData {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BreakoutPeerModuleData {
     /// The current room of the participant
-    pub breakout_room: Option<BreakoutId>,
+    pub room: RoomKind,
 }
 
 impl SignalingModulePeerFrontendData for BreakoutPeerModuleData {

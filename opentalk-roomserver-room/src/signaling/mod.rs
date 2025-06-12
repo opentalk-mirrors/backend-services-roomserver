@@ -24,9 +24,10 @@ use opentalk_roomserver_signaling::{
     signaling_module::{CreateReplica, SignalingModule},
 };
 use opentalk_roomserver_types::{
-    breakout::{BreakoutRoom, breakout_id::BreakoutId},
+    breakout::BreakoutRoom,
     connection_id::ConnectionId,
     error::SignalingError,
+    room_kind::RoomKind,
     shared_raw_json::SharedRawJson,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
@@ -89,8 +90,8 @@ pub enum DynBroadcastEvent<'evt> {
     /// A participant switches between main and/or breakout rooms
     SwitchRoom {
         participant_id: ParticipantId,
-        old_room: Option<BreakoutId>,
-        new_room: Option<BreakoutId>,
+        old_room: RoomKind,
+        new_room: RoomKind,
         /// The module data for the participant in the new room. Each connection needs to have their own module data
         module_data: &'evt mut BTreeMap<ConnectionId, ModuleData>,
     },
