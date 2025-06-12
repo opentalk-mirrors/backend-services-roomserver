@@ -5,16 +5,14 @@ use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types_chat::{
-    command::ChatCommand,
-    event::{ChatError, ChatEvent},
+    Scope,
+    command::{ChatCommand, SendMessage, SetLastSeenTimestamp},
+    event::{
+        ChatDisabled, ChatEnabled, ChatEvent, Error as ChatError, HistoryCleared, MessageSent,
+    },
 };
 use opentalk_types_common::time::Timestamp;
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_chat::{
-    Scope,
-    command::{SendMessage, SetLastSeenTimestamp},
-    event::{ChatDisabled, ChatEnabled, HistoryCleared, MessageSent},
-};
 use pretty_assertions::assert_eq;
 
 // This macro shall make comparing messages more readable.

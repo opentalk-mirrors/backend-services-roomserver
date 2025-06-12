@@ -12,19 +12,16 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_chat::{
-    CHAT_MODULE_ID,
-    command::ChatCommand,
-    event::{ChatError, ChatEvent},
-};
-use opentalk_types_common::{modules::ModuleId, time::Timestamp};
-use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_chat::{
-    MessageId, Scope,
-    command::{SendMessage, SetLastSeenTimestamp},
-    event::{ChatDisabled, ChatEnabled, HistoryCleared, MessageSent},
+    CHAT_MODULE_ID, MessageId, Scope,
+    command::{ChatCommand, SendMessage, SetLastSeenTimestamp},
+    event::{
+        ChatDisabled, ChatEnabled, ChatEvent, Error as ChatError, HistoryCleared, MessageSent,
+    },
     peer_state::ChatPeerState,
     state::{ChatState, PrivateHistory, StoredMessage},
 };
+use opentalk_types_common::{modules::ModuleId, time::Timestamp};
+use opentalk_types_signaling::ParticipantId;
 
 pub mod chat_id;
 

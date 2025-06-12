@@ -19,5 +19,5 @@ pub struct ChatPeerState {
 
 #[cfg(feature = "serde")]
 impl opentalk_types_signaling::SignalingModulePeerFrontendData for ChatPeerState {
-    const NAMESPACE: Option<opentalk_types_common::modules::ModuleId> = Some(crate::MODULE_ID);
+    const NAMESPACE: Option<opentalk_types_common::modules::ModuleId> = Some(crate::CHAT_MODULE_ID);
 }

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_roomserver_types::signaling::module_error::ModuleError;
+
 /// Errors from the `chat` module namespace
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(
@@ -16,3 +18,5 @@ pub enum Error {
     /// Request user has insufficient permissions
     InsufficientPermissions,
 }
+
+impl ModuleError for Error {}

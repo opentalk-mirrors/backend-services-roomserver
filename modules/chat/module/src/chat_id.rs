@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use opentalk_roomserver_types_chat::Scope;
 use opentalk_types_common::users::GroupName;
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_chat::Scope;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ChatId {

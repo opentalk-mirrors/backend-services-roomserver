@@ -39,7 +39,7 @@ pub struct ChatState {
 
 #[cfg(feature = "serde")]
 impl opentalk_types_signaling::SignalingModuleFrontendData for ChatState {
-    const NAMESPACE: Option<opentalk_types_common::modules::ModuleId> = Some(crate::MODULE_ID);
+    const NAMESPACE: Option<opentalk_types_common::modules::ModuleId> = Some(crate::CHAT_MODULE_ID);
 }
 
 #[cfg(all(test, feature = "serde"))]

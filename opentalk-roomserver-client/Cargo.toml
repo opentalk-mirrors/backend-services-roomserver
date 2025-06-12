@@ -21,11 +21,10 @@ http-request-derive-client-reqwest.workspace = true
 log.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
-opentalk-roomserver-types-chat.workspace = true
+opentalk-roomserver-types-chat = { workspace = true, features = ["serde"] }
 opentalk-roomserver-types-ping.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-opentalk-types-signaling-chat.workspace = true
 opentalk-types-signaling-livekit.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 serde.workspace = true
