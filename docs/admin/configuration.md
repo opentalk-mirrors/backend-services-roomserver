@@ -66,6 +66,14 @@ api_token = "secret"
 
 # Tracing is optional and disabled by default
 #otlp_tracing_endpoint = "http://localhost:4317"
+
+# LiveKit WebRTC SFU
+[livekit]
+public_url = "http://localhost:7880"
+service_url = "http://localhost:7880"
+
+api_key = "devkey"
+api_secret = "secret"
 ```
 
 <!-- end:fromfile:example/roomserver.toml.md -->
