@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::collections::BTreeSet;
+
 use livekit::{RoomEvent, RoomOptions};
 use opentalk_roomserver_module_livekit::{
     LiveKitModule, command::LiveKitCommand, error::LiveKitError, event::LiveKitEvent,
@@ -45,11 +47,13 @@ async fn microphones_are_restricted() {
     // Bob should be able to publish audio
     common::publish_audio(&bob_room).await.unwrap();
 
+    let unrestricted = BTreeSet::from_iter([alice.id()]);
+
     // Alice sends the command
     alice
         .send_command::<LiveKitModule>(
             LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
-                unrestricted_participants: vec![alice.id()],
+                unrestricted_participants: unrestricted.clone(),
             }),
             None,
         )
@@ -57,10 +61,11 @@ async fn microphones_are_restricted() {
         .unwrap();
 
     let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+
     assert_eq!(
         success_event.content,
         LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
-            unrestricted_participants: vec![alice.id()]
+            unrestricted_participants: unrestricted.clone(),
         })
     );
 
@@ -69,7 +74,7 @@ async fn microphones_are_restricted() {
     assert_eq!(
         force_mute_event.content,
         LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
-            unrestricted_participants: vec![alice.id()]
+            unrestricted_participants: unrestricted
         })
     );
 
@@ -113,11 +118,13 @@ async fn permissions_are_updated() {
     // Bob should be able to publish audio
     common::publish_audio(&bob_room).await.unwrap();
 
+    let unrestricted = BTreeSet::from_iter([alice.id()]);
+
     // Alice sends the command to restrict bob
     alice
         .send_command::<LiveKitModule>(
             LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
-                unrestricted_participants: vec![alice.id()],
+                unrestricted_participants: unrestricted.clone(),
             }),
             None,
         )
@@ -128,7 +135,7 @@ async fn permissions_are_updated() {
     assert_eq!(
         success_event.content,
         LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
-            unrestricted_participants: vec![alice.id()]
+            unrestricted_participants: unrestricted.clone()
         })
     );
 
@@ -137,14 +144,13 @@ async fn permissions_are_updated() {
     assert_eq!(
         force_mute_event.content,
         LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
-            unrestricted_participants: vec![alice.id()]
+            unrestricted_participants: unrestricted.clone()
         })
     );
 
-    // Alice sends the command to lift bobs restrictions
-    let unrestricted = vec![bob.id(), alice.id()];
-    assert!(unrestricted.is_sorted());
+    let unrestricted = BTreeSet::from_iter([alice.id(), bob.id()]);
 
+    // Alice sends the command to lift bobs restrictions
     alice
         .send_command::<LiveKitModule>(
             LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
@@ -186,11 +192,13 @@ async fn enable_unknown_participant() {
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator().await;
 
+    let disconnected = BTreeSet::from_iter([disconnected_participant]);
+
     // Alice sends the command
     alice
         .send_command::<LiveKitModule>(
             LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
-                unrestricted_participants: vec![disconnected_participant],
+                unrestricted_participants: disconnected.clone(),
             }),
             None,
         )
@@ -203,7 +211,7 @@ async fn enable_unknown_participant() {
     assert_eq!(
         success_event.content,
         LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
-            unrestricted_participants: vec![disconnected_participant]
+            unrestricted_participants: disconnected
         })
     );
 }
@@ -244,11 +252,13 @@ async fn disable_unknown_participant() {
         // Bob should be able to publish audio
         common::publish_audio(&bob_room).await.unwrap();
 
+        let unrestricted = BTreeSet::from_iter([alice.id()]);
+
         // Alice sends the command
         alice
             .send_command::<LiveKitModule>(
                 LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
-                    unrestricted_participants: vec![alice.id()],
+                    unrestricted_participants: unrestricted,
                 }),
                 None,
             )
@@ -303,10 +313,12 @@ async fn enable_insufficient_permissions() {
     // Bob joins the meeting
     let mut bob = room.join_bob().await;
 
+    let unrestricted = BTreeSet::from_iter([disconnected_participant]);
+
     // Bob sends the command
     bob.send_command::<LiveKitModule>(
         LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
-            unrestricted_participants: vec![disconnected_participant],
+            unrestricted_participants: unrestricted,
         }),
         None,
     )
@@ -334,7 +346,7 @@ async fn barrier_should_be_freed() {
         alice
             .send_command::<LiveKitModule>(
                 LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
-                    unrestricted_participants: vec![],
+                    unrestricted_participants: BTreeSet::new(),
                 }),
                 None,
             )
@@ -346,7 +358,7 @@ async fn barrier_should_be_freed() {
         assert_eq!(
             success_event.content,
             LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
-                unrestricted_participants: vec![]
+                unrestricted_participants: BTreeSet::new()
             })
         );
     }
