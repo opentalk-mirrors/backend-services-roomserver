@@ -57,6 +57,7 @@ update-frontend-api:
 # Update generated or derived parts of the documentation
 update-docs: _check_ci_doc_updater
     #!/usr/bin/env bash
+    cargo build --release
     ./ci/docs-update-generated-parts.sh
 
 run-dui *ARGS:

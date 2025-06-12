@@ -33,7 +33,7 @@ fi
 
 if ! command -v "$OPENTALK_ROOMSERVER_CMD" > /dev/null || [ ! -f "$OPENTALK_ROOMSERVER_CMD" ]; then
   echo "The variable 'OPENTALK_ROOMSERVER_CMD' needs to be set to a path pointing \
-to a valid controller binary or the controller needs to be build using \
+to a valid roomserver binary or the roomserver needs to be build using \
 'cargo build --release' prior to executing this script"
   exit 1
 fi
