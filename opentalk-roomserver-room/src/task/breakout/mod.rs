@@ -19,6 +19,7 @@ use opentalk_roomserver_types::{
         event::{BreakoutError, BreakoutEvent},
     },
     error::SignalingError,
+    room_kind::RoomKind,
     signaling::{SignalingCommand, module_error::SignalingModuleError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
@@ -42,7 +43,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(crate) async fn handle_breakout_command(
         &mut self,
         participant_origin: ParticipantOrigin,
-        room_scope: Option<BreakoutId>,
+        room_scope: RoomKind,
         command: SignalingCommand,
     ) {
         let breakout_command = match serde_json::from_str(command.content.get()) {
@@ -67,9 +68,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 self.breakout_start(participant_origin, room_scope, config)
                     .await
             }
-            BreakoutCommand::SwitchRoom {
-                breakout_id: new_room,
-            } => {
+            BreakoutCommand::SwitchRoom(new_room) => {
                 self.switch_room(participant_origin.id, new_room, participant_origin.into())
                     .await
             }
@@ -131,7 +130,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     async fn breakout_start(
         &mut self,
         participant_origin: ParticipantOrigin,
-        room_scope: Option<BreakoutId>,
+        room_scope: RoomKind,
         config: BreakoutConfig,
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         let participants_state = self
@@ -273,18 +272,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     async fn switch_room(
         &mut self,
         participant_id: ParticipantId,
-        new_room: Option<BreakoutId>,
+        new_room: RoomKind,
         origin: EventOrigin,
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         let Some(breakout_config) = &self.breakout_config else {
             return Err(BreakoutError::BreakoutInactive.into());
         };
 
-        if let Some(new_room) = new_room {
+        if let RoomKind::Breakout(id) = new_room {
             if breakout_config
                 .config
                 .rooms
-                .get(u64::from(new_room) as usize)
+                .get(u64::from(id) as usize)
                 .is_none()
             {
                 return Err(BreakoutError::UnknownBreakoutId.into());
@@ -305,20 +304,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         origin: EventOrigin,
         participant_id: ParticipantId,
-        breakout_room: Option<BreakoutId>,
+        room: RoomKind,
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         let Some(participant_state) = self.participants.all_unfiltered.get_mut(&participant_id)
         else {
             return Err(anyhow!("Received message from non-existent participant").into());
         };
 
-        let previous_room = participant_state.breakout_room;
+        let previous_room = participant_state.room;
 
-        if previous_room == breakout_room {
+        if previous_room == room {
             return Err(BreakoutError::AlreadyInRoom.into());
         }
 
-        participant_state.breakout_room = breakout_room;
+        participant_state.room = room;
 
         let mut module_data_map = BTreeMap::new();
         let mut excluded_connections = Vec::new();
@@ -331,11 +330,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.broadcast_event_to_modules(
             origin,
-            breakout_room,
+            room,
             DynBroadcastEvent::SwitchRoom {
                 participant_id,
                 old_room: previous_room,
-                new_room: breakout_room,
+                new_room: room,
                 module_data: &mut module_data_map,
             },
         )
@@ -354,8 +353,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let content = BreakoutEvent::ParticipantSwitchedRoom {
             participant_id,
-            old_breakout_room: previous_room,
-            new_breakout_room: breakout_room,
+            old_room: previous_room,
+            new_room: room,
         };
 
         self.message_router
@@ -391,7 +390,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )
             .await?;
 
-        self.broadcast_event_to_modules(origin, None, DynBroadcastEvent::BreakoutStop)
+        self.broadcast_event_to_modules(origin, RoomKind::Main, DynBroadcastEvent::BreakoutStop)
             .await;
 
         let all_participants = self
@@ -403,8 +402,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         // move all participants back to the main room, ignore non-fatal errors
         for participant_id in all_participants {
-            if let Err(SignalingModuleError::Fatal(error)) =
-                self.move_participant(origin, participant_id, None).await
+            if let Err(SignalingModuleError::Fatal(error)) = self
+                .move_participant(origin, participant_id, RoomKind::Main)
+                .await
             {
                 return Err(SignalingModuleError::Fatal(error));
             }
@@ -435,7 +435,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(crate) fn add_breakout_module_data(
         &self,
         module_data: &mut ModuleData,
-        current_room: Option<BreakoutId>,
+        current_room: RoomKind,
     ) {
         let Some(breakout_config) = &self.breakout_config else {
             return;
@@ -451,7 +451,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         if let Err(e) = module_data.insert(&BreakoutModuleData {
-            breakout_room: current_room,
+            room: current_room,
             rooms,
             expires: breakout_config.expires_at,
         }) {

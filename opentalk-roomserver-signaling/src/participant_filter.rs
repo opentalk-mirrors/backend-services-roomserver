@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
+use opentalk_roomserver_types::room_kind::RoomKind;
 use opentalk_types_signaling::ParticipantId;
 
 use crate::participant_state::{ParticipantState, Participants};
@@ -21,9 +21,9 @@ macro_rules! impl_filter_functions {
             self
         }
 
-        /// Filter by the participants breakout room
-        pub fn breakout_room(mut self, breakout_room: Option<BreakoutId>) -> Self {
-            self.filter.breakout = Some(breakout_room);
+        /// Filter by the participants (breakout) room
+        pub fn room(mut self, room: RoomKind) -> Self {
+            self.filter.room = Some(room);
             self
         }
     };
@@ -31,7 +31,8 @@ macro_rules! impl_filter_functions {
 
 #[derive(Default, Clone, Copy)]
 struct ParticipantStateFilter {
-    breakout: Option<Option<BreakoutId>>,
+    /// Room participant filter
+    room: Option<RoomKind>,
     connected: Option<bool>,
 }
 
@@ -43,8 +44,8 @@ impl ParticipantStateFilter {
             }
         }
 
-        if let Some(breakout_room) = self.breakout {
-            if state.breakout_room != breakout_room {
+        if let Some(room) = self.room {
+            if state.room != room {
                 return false;
             }
         }

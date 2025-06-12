@@ -6,7 +6,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use super::breakout_config::BreakoutConfig;
-use crate::breakout::breakout_id::BreakoutId;
+use crate::room_kind::RoomKind;
 
 /// Incoming websocket commands to the `breakout` namespace
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,7 +18,7 @@ pub enum BreakoutCommand {
     /// Move to the targeted room. Providing no BreakoutId will move the participant to the main room.
     ///
     /// Switching the room moves all active connections to that room, a participant can only be in one room at a time.
-    SwitchRoom { breakout_id: Option<BreakoutId> },
+    SwitchRoom(RoomKind),
 
     /// Stop all breakout rooms, moving participants back to the main room.
     Stop {
@@ -42,10 +42,13 @@ mod tests {
     use opentalk_types_signaling::ParticipantId;
     use serde_json::json;
 
-    use crate::breakout::{
-        breakout_config::{BreakoutConfig, BreakoutRoomConfig},
-        breakout_id::BreakoutId,
-        command::BreakoutCommand,
+    use crate::{
+        breakout::{
+            breakout_config::{BreakoutConfig, BreakoutRoomConfig},
+            breakout_id::BreakoutId,
+            command::BreakoutCommand,
+        },
+        room_kind::RoomKind,
     };
 
     #[test]
@@ -145,9 +148,7 @@ mod tests {
 
     #[test]
     fn switch_room() {
-        let val = BreakoutCommand::SwitchRoom {
-            breakout_id: Some(BreakoutId::from(1)),
-        };
+        let val = BreakoutCommand::SwitchRoom(RoomKind::Breakout(BreakoutId::from(1)));
 
         let json = serde_json::to_value(val).unwrap();
 
@@ -155,9 +156,9 @@ mod tests {
             json,
             json!({
                 "action": "switch_room",
-                "breakout_id": 1
-            }
-            )
+                "kind": "breakout",
+                "id": 1,
+            })
         );
     }
 }

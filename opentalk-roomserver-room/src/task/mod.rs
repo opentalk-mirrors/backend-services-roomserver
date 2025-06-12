@@ -49,11 +49,11 @@ use opentalk_roomserver_signaling::{
     signaling_module::SignalingModuleInitData,
 };
 use opentalk_roomserver_types::{
-    breakout::breakout_id::BreakoutId,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
     device_id::DeviceId,
     error::SignalingError,
+    room_kind::RoomKind,
     room_parameters::RoomParameters,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
@@ -292,7 +292,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
-            msg.breakout_room,
+            msg.room,
             msg.origin,
             &mut self.info,
             &mut self.message_router,
@@ -379,7 +379,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     return;
                 };
 
-                let room_scope = participant_state.breakout_room;
+                let room_scope = participant_state.room;
 
                 match &signaling_command.namespace {
                     m if *m == core::NAMESPACE => {
@@ -517,16 +517,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         state.connections.remove(&connection_id);
 
-        let breakout_room = state.breakout_room;
+        let room = state.room;
 
-        self.participant_disconnected(
-            origin,
-            participant_id,
-            connection_id,
-            breakout_room,
-            reason.into(),
-        )
-        .await;
+        self.participant_disconnected(origin, participant_id, connection_id, room, reason.into())
+            .await;
 
         // start idle timeout when no one is connected
         if !self
@@ -559,14 +553,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .await;
     }
 
-    fn context(
-        &mut self,
-        origin: EventOrigin,
-        breakout_room: Option<BreakoutId>,
-    ) -> DynModuleContext<'_> {
+    fn context(&mut self, origin: EventOrigin, room: RoomKind) -> DynModuleContext<'_> {
         DynModuleContext::new(
             self.info.room_id,
-            breakout_room,
+            room,
             origin,
             &mut self.info,
             &mut self.message_router,

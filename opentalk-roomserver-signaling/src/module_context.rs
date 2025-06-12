@@ -6,10 +6,10 @@ use std::{cell::RefCell, future::Future, marker::PhantomData};
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_types::{
-    breakout::breakout_id::BreakoutId,
     client_parameters::Role,
     connection_id::ConnectionId,
     error::{self, SignalingError},
+    room_kind::RoomKind,
     shared_raw_json::SharedRawJson,
     signaling::module_error::FatalError,
 };
@@ -32,7 +32,7 @@ where
     M: SignalingModule,
 {
     pub room_id: RoomId,
-    pub breakout_room: Option<BreakoutId>,
+    pub room: RoomKind,
     pub event_origin: EventOrigin,
     room_info: &'ctx mut RoomInfo,
     /// The websocket messages that are sent out after the module finished its event handling
@@ -51,7 +51,7 @@ where
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         room_id: RoomId,
-        breakout_room: Option<BreakoutId>,
+        room: RoomKind,
         event_origin: EventOrigin,
         room_info: &'ctx mut RoomInfo,
         messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
@@ -60,7 +60,7 @@ where
     ) -> ModuleContext<'ctx, M> {
         Self {
             room_id,
-            breakout_room,
+            room,
             event_origin,
             room_info,
             messages,
@@ -73,7 +73,7 @@ where
     pub fn reborrow<M2: SignalingModule>(&mut self) -> ModuleContext<'_, M2> {
         ModuleContext {
             room_id: self.room_id,
-            breakout_room: self.breakout_room,
+            room: self.room,
             event_origin: self.event_origin,
             room_info: self.room_info,
             messages: self.messages,
@@ -229,13 +229,13 @@ where
         F: Future<Output = M::Loopback> + Send + Sync + 'static,
     {
         let origin = self.event_origin;
-        let breakout_room = self.breakout_room;
+        let room = self.room;
 
         let future = Box::pin(async move {
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
                 origin,
-                breakout_room,
+                room,
                 value: Box::new(future.await),
             })
         });
@@ -253,7 +253,7 @@ where
         F: FnOnce() -> M::Loopback + Send + 'static,
     {
         let origin = self.event_origin;
-        let breakout_room = self.breakout_room;
+        let breakout_room = self.room;
         let join_handle = tokio::task::spawn_blocking(blocking_function);
 
         let future = Box::pin(async move {
@@ -265,7 +265,7 @@ where
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
                 origin,
-                breakout_room,
+                room: breakout_room,
                 value: Box::new(value),
             })
         });
