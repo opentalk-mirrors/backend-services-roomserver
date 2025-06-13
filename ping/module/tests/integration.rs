@@ -8,9 +8,9 @@ use opentalk_roomserver_room::mocking::{participant::MockParticipantJoining, roo
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{core_event::CoreEvent, error::SignalingError};
 use opentalk_roomserver_types_ping::{
-    command::Command,
+    command::PingCommand,
     error::PingError,
-    event::{Event, Replication},
+    event::{PingEvent, Replication},
 };
 use opentalk_types_common::roomserver::DeviceSecret;
 use pretty_assertions::assert_eq;
@@ -36,17 +36,17 @@ async fn ping_sends_response_to_all_connections() {
     alice_2.receive::<CoreEvent>().await.unwrap(); // bob ParticipantJoined event
 
     alice_1
-        .send_command::<PingModule>(Command::Ping, None)
+        .send_command::<PingModule>(PingCommand::Ping, None)
         .await
         .unwrap();
 
     assert_eq!(
         alice_1.receive_event::<PingModule>().await.unwrap().content,
-        Event::Pong
+        PingEvent::Pong
     );
     assert_eq!(
         alice_2.receive_event::<PingModule>().await.unwrap().content,
-        Event::Pong
+        PingEvent::Pong
     );
     assert!(bob.received_nothing());
 }
@@ -73,7 +73,7 @@ async fn blocking_delayed_pong_is_received() {
 
     alice_1
         .send_command::<PingModule>(
-            Command::BlockingDelayedPing {
+            PingCommand::BlockingDelayedPing {
                 delay: Duration::from_millis(200),
             },
             None,
@@ -83,11 +83,11 @@ async fn blocking_delayed_pong_is_received() {
 
     assert_eq!(
         alice_1.receive_event::<PingModule>().await.unwrap().content,
-        Event::DelayedPong
+        PingEvent::DelayedPong
     );
     assert_eq!(
         alice_2.receive_event::<PingModule>().await.unwrap().content,
-        Event::DelayedPong
+        PingEvent::DelayedPong
     );
     assert!(bob.received_nothing());
 }
@@ -114,7 +114,7 @@ async fn async_delayed_pong_is_received() {
 
     alice_1
         .send_command::<PingModule>(
-            Command::AsyncDelayedPing {
+            PingCommand::AsyncDelayedPing {
                 delay: Duration::from_millis(200),
             },
             None,
@@ -124,11 +124,11 @@ async fn async_delayed_pong_is_received() {
 
     assert_eq!(
         alice_1.receive_event::<PingModule>().await.unwrap().content,
-        Event::DelayedPong
+        PingEvent::DelayedPong
     );
     assert_eq!(
         alice_2.receive_event::<PingModule>().await.unwrap().content,
-        Event::DelayedPong
+        PingEvent::DelayedPong
     );
     assert!(bob.received_nothing());
 }
@@ -154,17 +154,17 @@ async fn error_ping_responds_with_error() {
     alice_2.receive::<CoreEvent>().await.unwrap(); // bob ParticipantJoined event
 
     alice_1
-        .send_command::<PingModule>(Command::PingError, None)
+        .send_command::<PingModule>(PingCommand::PingError, None)
         .await
         .unwrap();
 
     assert_eq!(
         alice_1.receive_event::<PingModule>().await.unwrap().content,
-        Event::Error(PingError)
+        PingEvent::Error(PingError)
     );
     assert_eq!(
         alice_2.receive_event::<PingModule>().await.unwrap().content,
-        Event::Error(PingError)
+        PingEvent::Error(PingError)
     );
     assert!(bob.received_nothing());
 }
@@ -190,21 +190,21 @@ async fn broadcast_should_be_received_by_all() {
     alice_2.receive::<CoreEvent>().await.unwrap(); // bob ParticipantJoined event
 
     alice_1
-        .send_command::<PingModule>(Command::Broadcast, None)
+        .send_command::<PingModule>(PingCommand::Broadcast, None)
         .await
         .unwrap();
 
     assert_eq!(
         alice_1.receive_event::<PingModule>().await.unwrap().content,
-        Event::Pong
+        PingEvent::Pong
     );
     assert_eq!(
         alice_2.receive_event::<PingModule>().await.unwrap().content,
-        Event::Pong
+        PingEvent::Pong
     );
     assert_eq!(
         bob.receive_event::<PingModule>().await.unwrap().content,
-        Event::Pong
+        PingEvent::Pong
     );
 }
 
@@ -229,7 +229,7 @@ async fn module_should_die() {
     alice_2.receive::<CoreEvent>().await.unwrap(); // bob ParticipantJoined event
 
     alice_1
-        .send_command::<PingModule>(Command::Die, None)
+        .send_command::<PingModule>(PingCommand::Die, None)
         .await
         .unwrap();
 
@@ -274,21 +274,21 @@ async fn replicated_ping_is_replicated_to_all_connections() {
     alice_2.receive::<CoreEvent>().await.unwrap(); // bob ParticipantJoined event
 
     alice_1
-        .send_command::<PingModule>(Command::ReplicatedPing, None)
+        .send_command::<PingModule>(PingCommand::ReplicatedPing, None)
         .await
         .unwrap();
     assert_eq!(
         alice_2.receive_event::<PingModule>().await.unwrap().content,
-        Event::Replication(Replication::ReplicatedPing)
+        PingEvent::Replication(Replication::ReplicatedPing)
     );
 
     assert_eq!(
         alice_1.receive_event::<PingModule>().await.unwrap().content,
-        Event::Pong
+        PingEvent::Pong
     );
     assert_eq!(
         alice_2.receive_event::<PingModule>().await.unwrap().content,
-        Event::Pong
+        PingEvent::Pong
     );
     assert!(bob.received_nothing());
 }

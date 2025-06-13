@@ -7,7 +7,7 @@ use crate::error::PingError;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "message", rename_all = "snake_case")]
-pub enum Event {
+pub enum PingEvent {
     Pong,
     DelayedPong,
     Error(PingError),
@@ -20,7 +20,7 @@ pub enum Replication {
     ReplicatedPing,
 }
 
-impl From<PingError> for Event {
+impl From<PingError> for PingEvent {
     fn from(err: PingError) -> Self {
         Self::Error(err)
     }

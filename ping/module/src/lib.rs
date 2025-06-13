@@ -11,7 +11,9 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
-use opentalk_roomserver_types_ping::{MODULE_ID, command::Command, error::PingError, event::Event};
+use opentalk_roomserver_types_ping::{
+    MODULE_ID, command::PingCommand, error::PingError, event::PingEvent,
+};
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 
@@ -20,9 +22,9 @@ pub struct PingModule;
 impl SignalingModule for PingModule {
     const NAMESPACE: ModuleId = MODULE_ID;
 
-    type Incoming = Command;
+    type Incoming = PingCommand;
 
-    type Outgoing = Event;
+    type Outgoing = PingEvent;
 
     type Loopback = DelayedPingCompleted;
 
@@ -73,21 +75,21 @@ impl SignalingModule for PingModule {
         content: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match content {
-            Command::Ping | Command::ReplicatedPing => {
-                ctx.send_ws_message([participant_id], Event::Pong)?
+            PingCommand::Ping | PingCommand::ReplicatedPing => {
+                ctx.send_ws_message([participant_id], PingEvent::Pong)?
             }
-            Command::BlockingDelayedPing { delay } => {
+            PingCommand::BlockingDelayedPing { delay } => {
                 ctx.spawn_blocking(move || Self::handle_ping_delayed(participant_id, delay));
             }
-            Command::AsyncDelayedPing { delay } => {
+            PingCommand::AsyncDelayedPing { delay } => {
                 ctx.spawn(Self::handle_async_ping_delayed(participant_id, delay));
             }
-            Command::PingError => Self::ping_error()?,
-            Command::Broadcast => ctx.send_ws_message(
+            PingCommand::PingError => Self::ping_error()?,
+            PingCommand::Broadcast => ctx.send_ws_message(
                 ctx.participants.connected().iter().map(|(id, _)| *id),
-                Event::Pong,
+                PingEvent::Pong,
             )?,
-            Command::Die => {
+            PingCommand::Die => {
                 return Err(
                     FatalError(anyhow::anyhow!("Dying as requested, cya later alligator")).into(),
                 );
@@ -101,7 +103,8 @@ impl SignalingModule for PingModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        ctx.send_ws_message([event.0], Event::DelayedPong).unwrap();
+        ctx.send_ws_message([event.0], PingEvent::DelayedPong)
+            .unwrap();
         Ok(())
     }
 }

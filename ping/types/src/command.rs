@@ -6,11 +6,11 @@ use std::time::Duration;
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use serde::{Deserialize, Serialize};
 
-use crate::event::{Event, Replication};
+use crate::event::{PingEvent, Replication};
 
 #[derive(Deserialize, Serialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
-pub enum Command {
+pub enum PingCommand {
     /// A normal ping
     Ping,
     /// A ping with delayed response
@@ -36,10 +36,12 @@ pub enum Command {
     ReplicatedPing,
 }
 
-impl CreateReplica<Event> for Command {
-    fn replicate(&self) -> Option<Event> {
+impl CreateReplica<PingEvent> for PingCommand {
+    fn replicate(&self) -> Option<PingEvent> {
         match self {
-            Command::ReplicatedPing => Some(Event::Replication(Replication::ReplicatedPing)),
+            PingCommand::ReplicatedPing => {
+                Some(PingEvent::Replication(Replication::ReplicatedPing))
+            }
             _ => None,
         }
     }
