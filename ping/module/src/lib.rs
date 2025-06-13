@@ -12,7 +12,7 @@ use opentalk_roomserver_types::{
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_types_ping::{
-    MODULE_ID, command::PingCommand, error::PingError, event::PingEvent,
+    PING_MODULE_ID, command::PingCommand, error::PingError, event::PingEvent,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
@@ -20,7 +20,7 @@ use opentalk_types_signaling::ParticipantId;
 pub struct PingModule;
 
 impl SignalingModule for PingModule {
-    const NAMESPACE: ModuleId = MODULE_ID;
+    const NAMESPACE: ModuleId = PING_MODULE_ID;
 
     type Incoming = PingCommand;
 

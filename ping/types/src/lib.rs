@@ -3,7 +3,7 @@
 
 use opentalk_types_common::modules::{ModuleId, module_id};
 
-pub const MODULE_ID: ModuleId = module_id!("ping");
+pub const PING_MODULE_ID: ModuleId = module_id!("ping");
 
 pub mod command;
 pub mod error;

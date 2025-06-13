@@ -39,7 +39,7 @@ use crate::loopback::LiveKitLoopback;
 
 pub mod loopback;
 
-const MODULE_ID: ModuleId = module_id!("livekit");
+const LIVEKIT_MODULE_ID: ModuleId = module_id!("livekit");
 
 const PARALLEL_UPDATES: usize = 25;
 const ACCESS_TOKEN_TTL: Duration = Duration::from_secs(32);
@@ -72,7 +72,7 @@ pub struct LiveKitModule {
 }
 
 impl SignalingModule for LiveKitModule {
-    const NAMESPACE: ModuleId = MODULE_ID;
+    const NAMESPACE: ModuleId = LIVEKIT_MODULE_ID;
 
     type Incoming = LiveKitCommand;
 

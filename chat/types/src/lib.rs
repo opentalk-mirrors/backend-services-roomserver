@@ -4,7 +4,7 @@
 use opentalk_types_common::modules::{ModuleId, module_id};
 
 /// The module id for the signaling module
-pub const MODULE_ID: ModuleId = module_id!("chat");
+pub const CHAT_MODULE_ID: ModuleId = module_id!("chat");
 
 pub mod command;
 pub mod event;

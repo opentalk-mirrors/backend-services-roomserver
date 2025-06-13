@@ -12,7 +12,7 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_chat::{
-    MODULE_ID,
+    CHAT_MODULE_ID,
     command::ChatCommand,
     event::{ChatError, ChatEvent},
 };
@@ -40,7 +40,7 @@ pub struct ChatModule {
 }
 
 impl SignalingModule for ChatModule {
-    const NAMESPACE: ModuleId = MODULE_ID;
+    const NAMESPACE: ModuleId = CHAT_MODULE_ID;
 
     type Incoming = ChatCommand;
 
