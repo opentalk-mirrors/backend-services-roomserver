@@ -201,8 +201,11 @@ impl RoomServerApp {
                 )))
             }
             TransitionToView::Signaling => {
-                self.view =
-                    CentralAppView::Signaling(SignalingView::new(&self.runtime, ctx.clone()))
+                self.view = CentralAppView::Signaling(SignalingView::new(
+                    &self.runtime,
+                    ctx.clone(),
+                    &self.settings,
+                ))
             }
             TransitionToView::Error { message } => {
                 self.view = CentralAppView::Error(ErrorView::new(message))

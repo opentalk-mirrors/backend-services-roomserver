@@ -18,9 +18,11 @@ use crate::{
     settings::room::{default_client_parameters, default_room_parameters},
 };
 
+mod livekit;
 mod message_history;
 pub mod room;
 
+pub use livekit::LiveKitSettings;
 pub use message_history::{HistoryEntry, MessageHistory};
 
 const SETTINGS_KEY: &str = "settings";
@@ -72,6 +74,9 @@ pub struct DuiSettings {
 
     #[serde(default)]
     pub delete_mode: bool,
+
+    #[serde(default)]
+    pub livekit: LiveKitSettings,
 }
 
 impl Default for DuiSettings {
@@ -99,6 +104,7 @@ impl Default for DuiSettings {
             selected_client_parameters: 0,
 
             delete_mode: false,
+            livekit: LiveKitSettings::default(),
         }
     }
 }

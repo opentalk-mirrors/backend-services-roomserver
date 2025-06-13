@@ -19,6 +19,7 @@ use crate::{
         json_edit::json_editor,
         shortcuts::{CLEAR_SHORTCUT, DISCONNECT_SHORTCUT, SEND_SHORTCUT},
         signaling::{
+            breakout::BreakoutPlugin,
             filtered_vec::FilteredVec,
             livekit::LiveKitPlugin,
             plugin::{Received, SignalingPlugin},
@@ -29,6 +30,7 @@ use crate::{
     settings::{DuiSettings, HistoryEntry, MessageHistory},
 };
 
+mod breakout;
 pub mod filtered_vec;
 mod livekit;
 mod plugin;
@@ -67,7 +69,7 @@ pub struct SignalingView {
 }
 
 impl SignalingView {
-    pub fn new(runtime: &Runtime, ctx: egui::Context) -> Self {
+    pub fn new(runtime: &Runtime, ctx: egui::Context, settings: &DuiSettings) -> Self {
         Self {
             messages: FilteredVec::new(),
             show_plain_messages: false,
@@ -76,7 +78,10 @@ impl SignalingView {
             show_history_panel: true,
             force_focus: true,
             delete_mode: false,
-            plugins: vec![(false, Box::new(LiveKitPlugin::new(runtime, ctx)))],
+            plugins: vec![
+                (false, Box::new(LiveKitPlugin::new(runtime, ctx, settings))),
+                (false, Box::new(BreakoutPlugin::new())),
+            ],
         }
     }
     pub fn menu_ui(

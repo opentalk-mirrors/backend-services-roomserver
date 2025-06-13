@@ -27,3 +27,5 @@ pub const FOCUS_MESSAGE_INPUT_SHORTCUT: KeyboardShortcut =
 
 pub const TOGGLE_LIVEKIT_WINDOW_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::L);
+pub const TOGGLE_BREAKOUT_WINDOW_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::B);
