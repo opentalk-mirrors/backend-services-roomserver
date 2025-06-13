@@ -106,7 +106,7 @@ pub trait SignalingModule: Send + Sync + Sized {
         participant_id: ParticipantId,
         old_room: RoomKind,
         new_room: RoomKind,
-    ) -> Result<BTreeMap<ConnectionId, Self::JoinInfo>, SignalingModuleError<Self::Error>> {
+    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
         Ok(BTreeMap::new())
     }
 
@@ -142,6 +142,11 @@ pub struct JoinInfo<M: SignalingModule> {
     /// Module specific data that will be attached to other participants `Joined` message
     pub peer: PeerJoinInfoMap<M>,
 }
+
+/// Similar to [`JoinInfo`], but without the [`PeerJoinInfoMap`] and with one
+/// [`SignalingModule::JoinInfo`] for each [`ConnectionId`] of the switching
+/// participant.
+type SwitchInfo<M> = BTreeMap<ConnectionId, Option<<M as SignalingModule>::JoinInfo>>;
 
 impl<M: SignalingModule> Default for JoinInfo<M> {
     fn default() -> Self {

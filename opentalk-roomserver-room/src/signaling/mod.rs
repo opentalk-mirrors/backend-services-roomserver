@@ -192,14 +192,19 @@ where
                         .on_breakout_switch(ctx, *participant_id, *old_room, *new_room)?;
 
                 for (conn_id, join_info) in join_infos {
-                    module_data
-                        .entry(conn_id)
-                        .or_default()
-                        .insert(&join_info)
-                        .with_context(|| {
-                            format!("failed to serialize JoinInfo for module '{}'", M::NAMESPACE)
-                        })
-                        .map_err(FatalError)?;
+                    if let Some(join_info) = join_info {
+                        module_data
+                            .entry(conn_id)
+                            .or_default()
+                            .insert(&join_info)
+                            .with_context(|| {
+                                format!(
+                                    "failed to serialize JoinInfo for module '{}'",
+                                    M::NAMESPACE
+                                )
+                            })
+                            .map_err(FatalError)?;
+                    }
                 }
             }
 
