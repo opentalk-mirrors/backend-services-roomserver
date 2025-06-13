@@ -4964,17 +4964,16 @@ dependencies = [
 name = "opentalk-roomserver-module-chat"
 version = "0.0.0-dev"
 dependencies = [
- "chrono",
  "log",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-types-chat",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-chat",
  "pretty_assertions",
  "serde",
- "serde_json",
  "test-log",
  "tokio",
 ]
@@ -4992,11 +4991,11 @@ dependencies = [
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-types-livekit",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-livekit",
  "pretty_assertions",
- "serde",
  "test-log",
  "testcontainers",
  "tokio",
@@ -5012,10 +5011,10 @@ dependencies = [
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-types-ping",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
- "serde",
  "test-log",
  "tokio",
 ]
@@ -5083,6 +5082,42 @@ dependencies = [
  "serde_json",
  "utoipa",
  "uuid",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-chat"
+version = "0.0.0-dev"
+dependencies = [
+ "chrono",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "opentalk-types-signaling-chat",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-livekit"
+version = "0.0.0-dev"
+dependencies = [
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-signaling",
+ "opentalk-types-signaling-livekit",
+ "serde",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-ping"
+version = "0.0.0-dev"
+dependencies = [
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "serde",
 ]
 
 [[package]]
