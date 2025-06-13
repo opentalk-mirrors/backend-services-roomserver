@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-module-livekit"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+futures.workspace = true
+livekit-api.workspace = true
+livekit-protocol.workspace = true
+opentalk-roomserver-common.workspace = true
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-livekit.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+opentalk-types-signaling-livekit.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+livekit.workspace = true
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+pretty_assertions.workspace = true
+test-log = { workspace = true, features = ["trace"] }
+testcontainers.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
