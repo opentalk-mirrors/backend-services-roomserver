@@ -349,7 +349,7 @@ async fn global_chat_is_cleared() {
         .expect("ChatState must be valid")
         .expect("ChatState must exist");
 
-    assert!(chat_state.room_history.is_empty());
+    assert!(chat_state.global_history.is_empty());
     assert_eq!(
         chat_state
             .private_history

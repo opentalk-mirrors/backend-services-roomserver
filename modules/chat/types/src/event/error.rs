@@ -17,6 +17,9 @@ pub enum Error {
 
     /// Request user has insufficient permissions
     InsufficientPermissions,
+
+    /// The chat messages breakout scope does not match the participants breakout room
+    InvalidBreakoutScope,
 }
 
 impl ModuleError for Error {}

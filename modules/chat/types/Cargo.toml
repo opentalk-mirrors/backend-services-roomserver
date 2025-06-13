@@ -4,8 +4,8 @@
 
 [package]
 authors.workspace = true
-description = "Signaling types for the OpenTalk roomserver chat module"
-documentation = "https://docs.rs/opentalk-types-signaling-chat"
+description = "Signaling types for the OpenTalk chat module in the roomserver"
+documentation = "https://docs.rs/opentalk-roomserver-types-chat"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true

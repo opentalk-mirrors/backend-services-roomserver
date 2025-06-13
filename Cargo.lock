@@ -5095,6 +5095,7 @@ dependencies = [
 name = "opentalk-roomserver-module-chat"
 version = "0.0.0-dev"
 dependencies = [
+ "anyhow",
  "log",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
 use opentalk_roomserver_types_chat::Scope;
 use opentalk_types_common::users::GroupName;
 use opentalk_types_signaling::ParticipantId;
@@ -9,6 +10,9 @@ use opentalk_types_signaling::ParticipantId;
 pub enum ChatId {
     /// Global scope for chat
     Global,
+
+    /// Breakout scope for chat
+    Breakout(BreakoutId),
 
     /// Group scope for chat
     Group(GroupName),
@@ -21,6 +25,7 @@ impl ChatId {
     pub fn from_scope_and_source(scope: Scope, source: ParticipantId) -> Self {
         match scope {
             Scope::Global => Self::Global,
+            Scope::Breakout(breakout_id) => Self::Breakout(breakout_id),
             Scope::Group(group_name) => Self::Group(group_name),
             Scope::Private(participant_id) => {
                 Self::Private(PrivateChatId::new(source, participant_id))
