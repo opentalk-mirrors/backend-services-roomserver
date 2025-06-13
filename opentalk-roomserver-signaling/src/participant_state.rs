@@ -4,10 +4,13 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use opentalk_roomserver_types::{
-    client_parameters::Role, connection_id::ConnectionId, device_id::DeviceId, room_kind::RoomKind,
+    client_parameters::{Role, ServiceKind},
+    connection_id::ConnectionId,
+    device_id::DeviceId,
+    room_kind::RoomKind,
 };
 use opentalk_types_common::users::DisplayName;
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, ParticipationVisibility};
 
 use crate::participant_filter::{ParticipantsFiltered, ParticipantsFilteredMut};
 
@@ -72,6 +75,16 @@ pub struct ParticipantState {
 pub enum ParticipantKind {
     User,
     Guest,
+    Service(ServiceKind),
+}
+
+impl ParticipantKind {
+    pub fn visibility(&self) -> ParticipationVisibility {
+        match self {
+            ParticipantKind::User | ParticipantKind::Guest => ParticipationVisibility::Visible,
+            ParticipantKind::Service(service_kind) => service_kind.visibility(),
+        }
+    }
 }
 
 impl ParticipantState {
@@ -87,6 +100,10 @@ impl ParticipantState {
 
     pub fn is_connected(&self) -> bool {
         !self.connections.is_empty()
+    }
+
+    pub fn is_visible(&self) -> bool {
+        self.kind.visibility().is_visible()
     }
 
     /// Get all connections of the participant

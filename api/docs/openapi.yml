@@ -169,6 +169,16 @@ components:
               type: string
               enum:
                 - guest
+        - allOf:
+            - $ref: "#/components/schemas/ServiceKind"
+            - type: object
+              required:
+                - kind
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - service
     ClientParameters:
       allOf:
         - $ref: "#/components/schemas/ClientKind"
@@ -395,6 +405,16 @@ components:
         - v3rys3cr3t
       maxLength: 255
       minLength: 1
+    ServiceKind:
+      oneOf:
+        - type: object
+          required:
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - recorder
     SharedFolder:
       type: object
       description: |-

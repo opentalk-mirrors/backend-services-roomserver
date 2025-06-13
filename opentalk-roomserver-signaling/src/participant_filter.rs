@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_types::room_kind::RoomKind;
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, ParticipationVisibility};
 
 use crate::participant_state::{ParticipantState, Participants};
 
@@ -26,6 +26,11 @@ macro_rules! impl_filter_functions {
             self.filter.room = Some(room);
             self
         }
+
+        pub fn visibility(mut self, visibility: ParticipationVisibility) -> Self {
+            self.filter.visibility = Some(visibility);
+            self
+        }
     };
 }
 
@@ -34,6 +39,7 @@ struct ParticipantStateFilter {
     /// Room participant filter
     room: Option<RoomKind>,
     connected: Option<bool>,
+    visibility: Option<ParticipationVisibility>,
 }
 
 impl ParticipantStateFilter {
@@ -46,6 +52,12 @@ impl ParticipantStateFilter {
 
         if let Some(room) = self.room {
             if state.room != room {
+                return false;
+            }
+        }
+
+        if let Some(visibility) = self.visibility {
+            if state.kind.visibility() != visibility {
                 return false;
             }
         }

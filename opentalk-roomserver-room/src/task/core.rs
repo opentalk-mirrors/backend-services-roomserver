@@ -273,6 +273,9 @@ fn build_join_success(
             ctx.room_info.room.created_by.id == profile.id,
         ),
         ClientKind::Guest { display_name } => (display_name, Role::Guest, None, false),
+        ClientKind::Service(service_kind) => {
+            (service_kind.display_name(), Role::Guest, None, false)
+        }
     };
 
     let event_info = ctx

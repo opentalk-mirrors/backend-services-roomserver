@@ -297,6 +297,11 @@ impl LiveKitModule {
 
         let identity = build_livekit_participant_id(participant, connection);
 
+        let hidden = !ctx
+            .participant_state(participant)
+            .with_context(|| format!("Participant '{}' has no state", participant))?
+            .is_visible();
+
         let access_token =
             AccessToken::with_api_key(&self.settings.api_key, &self.settings.api_secret)
                 .with_name(&identity)
@@ -314,7 +319,7 @@ impl LiveKitModule {
                     can_publish_sources,
                     can_update_own_metadata: false,
                     ingress_admin: false,
-                    hidden: false,
+                    hidden,
                     recorder: false,
                 })
                 .with_ttl(ACCESS_TOKEN_TTL)

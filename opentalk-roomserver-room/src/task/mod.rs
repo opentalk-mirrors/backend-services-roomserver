@@ -459,6 +459,15 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
                 (participant_id, display_name.clone(), ParticipantKind::Guest)
             }
+            ClientKind::Service(service_kind) => {
+                let participant_id = ParticipantId::from(Uuid::from(device_id));
+
+                (
+                    participant_id,
+                    service_kind.display_name(),
+                    ParticipantKind::Service(*service_kind),
+                )
+            }
         };
 
         // If we ever run into the issue of an uuid collision, a guest could hijack a user session and vice versa. We'd
