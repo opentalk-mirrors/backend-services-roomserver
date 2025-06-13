@@ -53,6 +53,10 @@ prepare-release VERSION: _check_cargo_set_version
 update-frontend-api:
     # Update OpenAPI specification (which contains the version number)
     cargo run -- openapi dump > api/docs/openapi.yml
+    # Trim whitespace
+    sed -i 's/[[:space:]]*$//' api/docs/openapi.yml
+    # Add trailing new line (removed by previous command)
+    echo '' >> api/docs/openapi.yml
 
 # Update generated or derived parts of the documentation
 update-docs: _check_ci_doc_updater
