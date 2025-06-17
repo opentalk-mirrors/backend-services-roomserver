@@ -297,6 +297,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.info,
             &mut self.message_router,
             &mut self.participants,
+            msg.timestamp,
             &self.loopback_futures,
         );
         if let Err(err) = module
@@ -417,6 +418,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     &mut self.info,
                     &mut self.message_router,
                     &mut self.participants,
+                    Timestamp::now(),
                     &self.loopback_futures,
                 );
 
@@ -561,6 +563,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.info,
             &mut self.message_router,
             &mut self.participants,
+            Timestamp::now(),
             &self.loopback_futures,
         )
     }

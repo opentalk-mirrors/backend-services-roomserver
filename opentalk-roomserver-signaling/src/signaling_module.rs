@@ -146,7 +146,7 @@ pub struct JoinInfo<M: SignalingModule> {
 /// Similar to [`JoinInfo`], but without the [`PeerJoinInfoMap`] and with one
 /// [`SignalingModule::JoinInfo`] for each [`ConnectionId`] of the switching
 /// participant.
-type SwitchInfo<M> = BTreeMap<ConnectionId, Option<<M as SignalingModule>::JoinInfo>>;
+pub type SwitchInfo<M> = BTreeMap<ConnectionId, Option<<M as SignalingModule>::JoinInfo>>;
 
 impl<M: SignalingModule> Default for JoinInfo<M> {
     fn default() -> Self {

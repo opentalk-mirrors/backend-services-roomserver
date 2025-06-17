@@ -97,6 +97,9 @@ exceptions = [
   ], name = "opentalk-roomserver-module-ping" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-timer" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-room" },
   { allow = [
     "EUPL-1.2",
@@ -113,6 +116,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-ping" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-timer" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-web-api" },
@@ -140,6 +146,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-signaling-livekit" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-signaling-timer" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,

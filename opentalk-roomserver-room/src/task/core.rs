@@ -26,6 +26,7 @@ use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{
     events::MeetingDetails,
     modules::{ModuleId, module_id},
+    time::Timestamp,
 };
 use opentalk_types_signaling::{ModuleData, ModulePeerData, ParticipantId, Role};
 use opentalk_types_signaling_control::room::RoomInfo;
@@ -176,6 +177,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         &mut self.info,
                         &mut self.message_router,
                         &mut self.participants,
+                        Timestamp::now(),
                         &self.loopback_futures,
                     ),
                     &mut event,

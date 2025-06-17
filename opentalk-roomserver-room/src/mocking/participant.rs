@@ -5,9 +5,10 @@ use std::{str::FromStr, time::Duration};
 
 use axum::extract::ws::Message;
 use opentalk_roomserver_signaling::{
-    signaling_event::SignalingEvent, signaling_module::SignalingModule,
+    breakout, signaling_event::SignalingEvent, signaling_module::SignalingModule,
 };
 use opentalk_roomserver_types::{
+    breakout::command::BreakoutCommand,
     client_parameters::{ClientKind, ClientParameters, Role},
     core_event::CoreEvent,
     join::join_success::JoinSuccess,
@@ -234,6 +235,20 @@ impl<S> MockParticipant<S> {
             .send(Ok(Message::Text(command.to_string().into())))
             .await?;
         Ok(())
+    }
+
+    pub async fn send_breakout_command(
+        &self,
+        command: BreakoutCommand,
+        transaction_id: Option<u64>,
+    ) -> Result<(), SendError> {
+        let command = SignalingCommand {
+            namespace: breakout::NAMESPACE,
+            transaction_id,
+            content: to_raw_value(&command).expect("Command must be serializable"),
+        };
+        let value = serde_json::to_value(&command).expect("BreakoutCommand is serializable");
+        self.send_command_raw(value).await
     }
 
     pub async fn receive_event<M>(&mut self) -> Result<SignalingEvent<M::Outgoing>, ReceiveError>
