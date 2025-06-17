@@ -107,3 +107,174 @@ impl ParticipantState {
         matches!(self.role, Role::Moderator)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
+
+    use super::*;
+
+    #[test]
+    fn filter_connected() {
+        let mut participants = Participants::new();
+
+        let connected_participant_0 = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            connected_participant_0,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Connected 0"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::User,
+                role: Role::Moderator,
+                connections: HashMap::from_iter([(ConnectionId::generate(), DeviceId::nil())]),
+            },
+        );
+
+        let connected_participant_1 = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            connected_participant_1,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Connected 1"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::Guest,
+                role: Role::User,
+                connections: HashMap::from_iter([(ConnectionId::generate(), DeviceId::nil())]),
+            },
+        );
+
+        let disconnected_participant = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            disconnected_participant,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Disconnected"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::User,
+                role: Role::Moderator,
+                connections: HashMap::from_iter([]),
+            },
+        );
+
+        assert_eq!(
+            participants
+                .connected()
+                .ids()
+                .collect::<HashSet<ParticipantId>>(),
+            HashSet::from_iter([connected_participant_0, connected_participant_1])
+        );
+
+        assert_eq!(
+            participants
+                .disconnected()
+                .ids()
+                .collect::<HashSet<ParticipantId>>(),
+            HashSet::from_iter([disconnected_participant])
+        );
+    }
+
+    #[test]
+    fn filter_room() {
+        let mut participants = Participants::new();
+
+        let connected_breakout = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            connected_breakout,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Connected 0"),
+                room: RoomKind::Breakout(BreakoutId::from(0)),
+                kind: ParticipantKind::User,
+                role: Role::Moderator,
+                connections: HashMap::from_iter([(ConnectionId::generate(), DeviceId::nil())]),
+            },
+        );
+
+        let disconnected_breakout = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            disconnected_breakout,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Connected 1"),
+                room: RoomKind::Breakout(BreakoutId::from(0)),
+                kind: ParticipantKind::Guest,
+                role: Role::User,
+                connections: HashMap::from_iter([]),
+            },
+        );
+
+        let disconnected_main = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            disconnected_main,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Disconnected"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::User,
+                role: Role::Moderator,
+                connections: HashMap::from_iter([]),
+            },
+        );
+
+        // Participants in breakout room 0
+        assert_eq!(
+            participants
+                .filter()
+                .room(RoomKind::Breakout(BreakoutId::from(0)))
+                .ids()
+                .collect::<HashSet<ParticipantId>>(),
+            HashSet::from_iter([disconnected_breakout, connected_breakout])
+        );
+
+        // Connected participants in breakout room 0
+        assert_eq!(
+            participants
+                .filter()
+                .room(RoomKind::Breakout(BreakoutId::from(0)))
+                .connected()
+                .ids()
+                .collect::<HashSet<ParticipantId>>(),
+            HashSet::from_iter([connected_breakout])
+        );
+
+        // Disconnected participants in breakout room 0
+        assert_eq!(
+            participants
+                .filter()
+                .room(RoomKind::Main)
+                .disconnected()
+                .ids()
+                .collect::<HashSet<ParticipantId>>(),
+            HashSet::from_iter([disconnected_main])
+        );
+
+        // Participants in main room
+        assert_eq!(
+            participants
+                .filter()
+                .room(RoomKind::Main)
+                .ids()
+                .collect::<HashSet<ParticipantId>>(),
+            HashSet::from_iter([disconnected_main])
+        );
+
+        // Connected participants in main room
+        assert!(
+            participants
+                .filter()
+                .room(RoomKind::Main)
+                .connected()
+                .iter()
+                .next()
+                .is_none()
+        );
+
+        // Disconnected participants in main room
+        assert_eq!(
+            participants
+                .filter()
+                .room(RoomKind::Main)
+                .disconnected()
+                .ids()
+                .collect::<HashSet<ParticipantId>>(),
+            HashSet::from_iter([disconnected_main])
+        );
+    }
+}
