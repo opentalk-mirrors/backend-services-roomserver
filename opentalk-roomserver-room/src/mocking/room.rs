@@ -5,7 +5,7 @@ use std::{collections::BTreeSet, net::Ipv6Addr, sync::Arc};
 
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
-    settings::{Http, Settings, livekit::LiveKitSettings},
+    settings::{Http, LiveKitSettings, Settings},
 };
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{

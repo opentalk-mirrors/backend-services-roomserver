@@ -5,7 +5,7 @@ use std::{net::IpAddr, path::Path};
 
 use eframe::CreationContext;
 use egui::ThemePreference;
-use opentalk_roomserver_common::settings::Settings;
+use opentalk_roomserver_common::settings::{Settings, SettingsFile};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
@@ -132,7 +132,7 @@ impl DuiSettings {
 
         if let Some(config) = roomserver_config {
             log::debug!("Loading Roomserver Configuration");
-            let roomserver_settings = Settings::load_from_path(config)?;
+            let roomserver_settings: Settings = SettingsFile::load_from_path(config)?.into();
 
             let roomserver_url = build_url(
                 roomserver_settings.http.address,

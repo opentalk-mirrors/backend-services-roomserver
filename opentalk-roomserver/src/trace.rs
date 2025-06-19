@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use anyhow::Context;
-use opentalk_roomserver_common::settings::telemetry::Tracing;
+use opentalk_roomserver_common::settings::Tracing;
 use opentelemetry::{KeyValue, trace::TracerProvider as _};
 use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
 use opentelemetry_sdk::{

@@ -14,7 +14,7 @@ use livekit_api::{
     services::{ServiceError, TwirpError, TwirpErrorCode, room::RoomClient},
 };
 use livekit_protocol::TrackSource;
-use opentalk_roomserver_common::settings::livekit::LiveKitSettings;
+use opentalk_roomserver_common::settings::LiveKitSettings;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{JoinInfo, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData},

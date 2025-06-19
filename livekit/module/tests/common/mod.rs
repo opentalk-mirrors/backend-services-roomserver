@@ -9,7 +9,7 @@ use livekit::{
         prelude::{AudioFrame, AudioSourceOptions, RtcAudioSource},
     },
 };
-use opentalk_roomserver_common::settings::livekit::LiveKitSettings;
+use opentalk_roomserver_common::settings::LiveKitSettings;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::TestRoom;
 use testcontainers::{
