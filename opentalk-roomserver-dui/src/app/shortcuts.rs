@@ -13,7 +13,7 @@ pub const BACK_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTR
 pub const SEND_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Enter);
 pub const SUBMIT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Enter);
 pub const DISCONNECT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::D);
-pub const CLEAR_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::L);
+pub const CLEAR_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::X);
 
 pub const PREVIOUS_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL, Key::ArrowUp);
@@ -24,3 +24,6 @@ pub const TOGGLE_HISTORY_PANEL_SHORTCUT: KeyboardShortcut =
 pub const FILTER_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::F);
 pub const FOCUS_MESSAGE_INPUT_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL, Key::M);
+
+pub const TOGGLE_LIVEKIT_WINDOW_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::L);

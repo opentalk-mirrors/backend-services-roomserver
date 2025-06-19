@@ -4,7 +4,7 @@
 use opentalk_roomserver_types::signaling::module_error::ModuleError;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PingError;
 
 impl ModuleError for PingError {}

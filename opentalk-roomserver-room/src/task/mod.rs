@@ -387,7 +387,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         log::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
                         return;
                     }
-                    m if *m == breakout::NAMESPACE => {
+                    m if *m == breakout::BREAKOUT_MODULE_ID => {
                         self.handle_breakout_command(
                             participant_origin,
                             room_scope,

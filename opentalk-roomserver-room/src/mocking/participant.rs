@@ -5,7 +5,8 @@ use std::{str::FromStr, time::Duration};
 
 use axum::extract::ws::Message;
 use opentalk_roomserver_signaling::{
-    breakout, signaling_event::SignalingEvent, signaling_module::SignalingModule,
+    breakout::BREAKOUT_MODULE_ID, signaling_event::SignalingEvent,
+    signaling_module::SignalingModule,
 };
 use opentalk_roomserver_types::{
     breakout::command::BreakoutCommand,
@@ -243,7 +244,7 @@ impl<S> MockParticipant<S> {
         transaction_id: Option<u64>,
     ) -> Result<(), SendError> {
         let command = SignalingCommand {
-            namespace: breakout::NAMESPACE,
+            namespace: BREAKOUT_MODULE_ID,
             transaction_id,
             content: to_raw_value(&command).expect("Command must be serializable"),
         };

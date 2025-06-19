@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// Outgoing websocket messages in the core namespace
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CoreEvent {
     /// Message sent to a participant on a successful join

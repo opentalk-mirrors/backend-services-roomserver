@@ -21,7 +21,7 @@ pub struct BreakoutModuleData {
 }
 
 impl SignalingModuleFrontendData for BreakoutModuleData {
-    const NAMESPACE: Option<ModuleId> = Some(super::NAMESPACE);
+    const NAMESPACE: Option<ModuleId> = Some(super::BREAKOUT_MODULE_ID);
 }
 
 /// The peer module data that is attached to the `JoinSuccess` message
@@ -32,5 +32,5 @@ pub struct BreakoutPeerModuleData {
 }
 
 impl SignalingModulePeerFrontendData for BreakoutPeerModuleData {
-    const NAMESPACE: Option<ModuleId> = Some(super::NAMESPACE);
+    const NAMESPACE: Option<ModuleId> = Some(super::BREAKOUT_MODULE_ID);
 }
