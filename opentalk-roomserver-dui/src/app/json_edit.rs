@@ -14,13 +14,12 @@ pub(crate) fn json_editor(ui: &mut egui::Ui, text: &mut String) -> egui::Respons
     };
 
     egui::ScrollArea::vertical()
-        .max_height(f32::INFINITY)
         .show(ui, |ui| {
             egui::TextEdit::multiline(text)
                 .font(egui::TextStyle::Monospace)
+                .min_size(ui.available_size())
                 .code_editor()
                 .lock_focus(true)
-                .desired_width(f32::INFINITY)
                 .layouter(&mut layouter)
                 .ui(ui)
         })

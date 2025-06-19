@@ -228,25 +228,23 @@ impl RoomServerApp {
         };
     }
 }
-
 impl eframe::App for RoomServerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.menu_ui(ctx);
-
-        egui::TopBottomPanel::bottom("bottom-view").show(ctx, |ui| {
-            self.bottom_panel_ui(ui);
-        });
-
+        egui::TopBottomPanel::bottom("bottom-view")
+            .resizable(true)
+            .default_height(102.)
+            .show(ctx, |ui| {
+                self.bottom_panel_ui(ui);
+            });
         if let Err(RunnerGoneError) = self.left_panel_ui(ctx) {
             self.transition_to_view(TransitionToView::Error {
                 message: RichText::new("Runner is gone"),
             });
         }
-
         egui::CentralPanel::default().show(ctx, |ui| {
             self.central_panel_ui(ui);
         });
-
         if let Some(settings_view) = &mut self.settings_view {
             let modal = egui::Modal::new(egui::Id::new("Settings")).show(ctx, |ui| {
                 settings_view.ui(ui, &mut self.settings);
@@ -255,7 +253,6 @@ impl eframe::App for RoomServerApp {
                 self.settings_view.take();
             }
         }
-
         if ctx.input_mut(|i| i.consume_shortcut(&EXIT_SHORTCUT)) {
             let _ = self.command_tx.send(RunnerCommand::Close);
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
