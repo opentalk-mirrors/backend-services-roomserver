@@ -167,7 +167,7 @@ impl SignalingModule for ChatModule {
         Ok(switch_info)
     }
 
-    fn on_breakout_stop(
+    fn on_breakout_closed(
         &mut self,
         _ctx: &mut ModuleContext<'_, Self>,
     ) -> Result<(), SignalingModuleError<Self::Error>> {

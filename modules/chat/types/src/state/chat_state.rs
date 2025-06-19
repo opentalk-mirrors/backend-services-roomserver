@@ -56,9 +56,6 @@ impl opentalk_types_signaling::SignalingModuleFrontendData for ChatState {
 
 #[cfg(all(test, feature = "serde"))]
 mod serde_tests {
-    use std::str::FromStr;
-
-    use chrono::DateTime;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
@@ -70,7 +67,7 @@ mod serde_tests {
         let expected = json!({
             "id":"00000000-0000-0000-0000-000000000000",
             "source":"00000000-0000-0000-0000-000000000000",
-            "timestamp":"2021-06-24T14:00:11.873753715Z",
+            "timestamp":"1970-01-01T00:00:00Z",
             "content":"Hello All!",
             "scope":"global",
         });
@@ -78,9 +75,7 @@ mod serde_tests {
         let produced = serde_json::to_value(StoredMessage {
             id: MessageId::nil(),
             source: ParticipantId::nil(),
-            timestamp: DateTime::from_str("2021-06-24T14:00:11.873753715Z")
-                .unwrap()
-                .into(),
+            timestamp: Timestamp::unix_epoch(),
             content: "Hello All!".to_string(),
             scope: Scope::Global,
         })

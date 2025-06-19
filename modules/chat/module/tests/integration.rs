@@ -2,8 +2,22 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_module_chat::ChatModule;
-use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
+use opentalk_roomserver_room::mocking::{
+    participant::MockParticipant,
+    room::{TestRoom, flush_connected_events},
+};
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
+use opentalk_roomserver_types::{
+    breakout::{
+        breakout_config::{BreakoutConfig, BreakoutRoomConfig},
+        breakout_id::BreakoutId,
+        command::BreakoutCommand,
+        event::BreakoutEvent,
+    },
+    core_event::CoreEvent,
+    join::join_success::JoinSuccess,
+    room_kind::RoomKind,
+};
 use opentalk_roomserver_types_chat::{
     Scope,
     command::{ChatCommand, SendMessage, SetLastSeenTimestamp},
@@ -438,4 +452,510 @@ async fn last_seen_timestamp_should_be_stored() {
             .copied(),
         Some(timestamp)
     );
+}
+
+/// Send a message in the breakout room scope
+///
+/// Uses the scenario from [start_breakout_scenario]
+/// - Alice & Bob are in breakout room 1
+/// - Charlie is in the main room
+///
+/// 1. Alice sends a message with the breakout room 1 scope
+/// 2. Alice and Bob receive the message
+/// 3. Charlie won't receive anything
+#[test_log::test(tokio::test)]
+async fn breakout_scope_messages() {
+    let breakout_scenario = start_breakout_scenario().await;
+
+    let mut breakout_alice = breakout_scenario.alice;
+    let mut breakout_bob = breakout_scenario.bob;
+    let mut main_room_charlie = breakout_scenario.charlie;
+
+    let breakout_message: String = "breakout_message1".into();
+    let breakout_scope = Scope::Breakout(BreakoutId::from(1));
+
+    // Alice sends a message to the breakout room
+    breakout_alice
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: breakout_message.clone(),
+                scope: breakout_scope.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the message
+    assert_message_eq!(
+        &breakout_scope,
+        breakout_message,
+        breakout_alice.id(),
+        &breakout_alice
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    // Bob receives the message
+    assert_message_eq!(
+        &breakout_scope,
+        breakout_message,
+        breakout_alice.id(),
+        &breakout_bob
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    // Charlie is clueless
+    assert!(main_room_charlie.received_nothing());
+}
+
+/// Send a message in the breakout room scope
+///
+/// Uses the scenario from [start_breakout_scenario]
+/// - Alice & Bob are in breakout room 1
+/// - Charlie is in the main room
+///
+/// 1. Charlie attempts to send a message to breakout room 1
+/// 2. Charlie receives an error
+#[test_log::test(tokio::test)]
+async fn invalid_breakout_scope() {
+    let breakout_scenario = start_breakout_scenario().await;
+
+    let mut breakout_alice = breakout_scenario.alice;
+    let mut breakout_bob = breakout_scenario.bob;
+    let mut main_room_charlie = breakout_scenario.charlie;
+
+    let breakout_message: String = "breakout_message1".into();
+    let breakout_scope = Scope::Breakout(BreakoutId::from(1));
+
+    // Charlie sends a message to breakout room 1
+    main_room_charlie
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: breakout_message.clone(),
+                scope: breakout_scope.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        main_room_charlie
+            .receive::<ChatEvent>()
+            .await
+            .unwrap()
+            .content,
+        ChatEvent::Error(ChatError::InvalidBreakoutScope)
+    );
+
+    assert!(breakout_alice.received_nothing());
+    assert!(breakout_bob.received_nothing());
+}
+
+/// Send a message in global room scope from a breakout room
+///
+/// Uses the scenario from [start_breakout_scenario]
+/// - Alice & Bob are in breakout room 1
+/// - Charlie is in the main room
+///
+/// 1. Alice sends a message with global scope
+/// 2. Alice, Bob and Charlie receive the message
+#[test_log::test(tokio::test)]
+async fn send_global_message_from_breakout_room() {
+    let breakout_scenario = start_breakout_scenario().await;
+
+    let mut breakout_alice = breakout_scenario.alice;
+    let mut breakout_bob = breakout_scenario.bob;
+    let mut main_room_charlie = breakout_scenario.charlie;
+
+    let global_message_from_breakout_room: String = "global message from breakout room".into();
+    let global_scope = Scope::Global;
+
+    // Alice sends a message to the global room
+    breakout_alice
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: global_message_from_breakout_room.clone(),
+                scope: global_scope.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    assert_message_eq!(
+        &global_scope,
+        global_message_from_breakout_room,
+        breakout_alice.id(),
+        &breakout_alice
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    assert_message_eq!(
+        &global_scope,
+        global_message_from_breakout_room,
+        breakout_alice.id(),
+        &breakout_bob
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    assert_message_eq!(
+        &global_scope,
+        global_message_from_breakout_room,
+        breakout_alice.id(),
+        &main_room_charlie
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+}
+
+/// Send a message in global room scope from the main room to a breakout room
+///
+/// Uses the scenario from [start_breakout_scenario]
+/// - Alice & Bob are in breakout room 1
+/// - Charlie is in the main room
+///
+/// 3. Charlie sends a message with global scope
+/// 4. Alice, Bob and Charlie receive the message
+#[test_log::test(tokio::test)]
+async fn send_global_message_to_breakout_room() {
+    let breakout_scenario = start_breakout_scenario().await;
+
+    let mut breakout_alice = breakout_scenario.alice;
+    let mut breakout_bob = breakout_scenario.bob;
+    let mut main_room_charlie = breakout_scenario.charlie;
+
+    let global_message_from_breakout_room: String = "global message from breakout room".into();
+    let global_scope = Scope::Global;
+
+    // Charlie sends a message to the global room
+    main_room_charlie
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: global_message_from_breakout_room.clone(),
+                scope: global_scope.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    assert_message_eq!(
+        &global_scope,
+        global_message_from_breakout_room,
+        main_room_charlie.id(),
+        &breakout_alice
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    assert_message_eq!(
+        &global_scope,
+        global_message_from_breakout_room,
+        main_room_charlie.id(),
+        &breakout_bob
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    assert_message_eq!(
+        &global_scope,
+        global_message_from_breakout_room,
+        main_room_charlie.id(),
+        &main_room_charlie
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+}
+
+/// Send a message with private scope between breakout rooms
+///
+/// Uses the scenario from [start_breakout_scenario]
+/// - Alice & Bob are in breakout room 1
+/// - Charlie is in the main room
+///
+/// 1. Alice sends a private message to Bob (Breakout1 -> Breakout1)
+/// 2. Alice and Bob receive the message
+#[test_log::test(tokio::test)]
+async fn send_private_message_breakout_to_breakout() {
+    let breakout_scenario = start_breakout_scenario().await;
+
+    let mut breakout_alice = breakout_scenario.alice;
+    let mut breakout_bob = breakout_scenario.bob;
+    let mut main_room_charlie = breakout_scenario.charlie;
+
+    // Alice sends a private message to Bob (Breakout1 -> Breakout1)
+    let message: String = "private message from breakout to breakout room".into();
+    breakout_alice
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: message.clone(),
+                scope: Scope::Private(breakout_bob.id()),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives her own message
+    assert_message_eq!(
+        &Scope::Private(breakout_bob.id()),
+        message,
+        breakout_alice.id(),
+        &breakout_alice
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    // Bob receives the message from Alice
+    assert_message_eq!(
+        &Scope::Private(breakout_alice.id()),
+        message,
+        breakout_alice.id(),
+        &breakout_bob
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    // Charlie wasn't involved
+    assert!(main_room_charlie.received_nothing());
+}
+
+/// Send a message with private scope between a breakout room and the main room
+///
+/// Uses the scenario from [start_breakout_scenario]
+/// - Alice & Bob are in breakout room 1
+/// - Charlie is in the main room
+///
+/// 1. Bob sends a private message to Charlie (Breakout1 -> Main)
+/// 2. Bob and Charlie receive the message
+#[test_log::test(tokio::test)]
+async fn send_private_message_breakout_to_main() {
+    let breakout_scenario = start_breakout_scenario().await;
+
+    let mut breakout_alice = breakout_scenario.alice;
+    let mut breakout_bob = breakout_scenario.bob;
+    let mut main_room_charlie = breakout_scenario.charlie;
+
+    // Bob sends a private message to Charlie (Breakout1 -> Main)
+    let message: String = "private message from breakout to main room".into();
+    breakout_bob
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: message.clone(),
+                scope: Scope::Private(main_room_charlie.id()),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Bob receives his own message
+    assert_message_eq!(
+        &Scope::Private(main_room_charlie.id()),
+        message,
+        breakout_bob.id(),
+        &breakout_bob
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    // Charlie receives the message from Bob
+    assert_message_eq!(
+        &Scope::Private(breakout_bob.id()),
+        message,
+        breakout_bob.id(),
+        &main_room_charlie
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    // Alice wasn't involved
+    assert!(breakout_alice.received_nothing());
+}
+
+/// Send a message with private scope between the main and a breakout room
+///
+/// Uses the scenario from [start_breakout_scenario]
+/// - Alice & Bob are in breakout room 1
+/// - Charlie is in the main room
+///
+/// 1. Charlie sends a private message to Alice (Main -> Breakout1)
+/// 2. Charlie and Alice receive the message
+#[test_log::test(tokio::test)]
+async fn send_private_message_main_to_breakout() {
+    let breakout_scenario = start_breakout_scenario().await;
+
+    let mut breakout_alice = breakout_scenario.alice;
+    let mut breakout_bob = breakout_scenario.bob;
+    let mut main_room_charlie = breakout_scenario.charlie;
+
+    // Charlie sends a private message to Alice (Main -> Breakout1)
+    let message: String = "private message from main to breakout room".into();
+    main_room_charlie
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: message.clone(),
+                scope: Scope::Private(breakout_alice.id()),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Charlie receives his own message
+    assert_message_eq!(
+        &Scope::Private(breakout_alice.id()),
+        message,
+        main_room_charlie.id(),
+        &main_room_charlie
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    // Alice receives the message from charlie
+    assert_message_eq!(
+        &Scope::Private(main_room_charlie.id()),
+        message,
+        main_room_charlie.id(),
+        &breakout_alice
+            .receive_event::<ChatModule>()
+            .await
+            .unwrap()
+            .content,
+    );
+
+    // Bob wasn't involved
+    assert!(breakout_bob.received_nothing());
+}
+
+/// Return type for [start_breakout_scenario]
+struct BreakoutScenario<S> {
+    _room: TestRoom,
+    alice: MockParticipant<S>,
+    bob: MockParticipant<S>,
+    charlie: MockParticipant<S>,
+}
+
+/// Starts three breakout rooms with alice, bob and charlie
+///
+/// Alice and Bob will join the first breakout room but charlie will stay in the main room
+async fn start_breakout_scenario() -> BreakoutScenario<JoinSuccess> {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+
+    let mut alice = room.join_alice_moderator(1).await;
+    let mut bob = room.join_bob(1).await;
+    let mut charlie = room.join_charlie(1).await;
+
+    // bob joined for alice
+    assert!(matches!(
+        alice.receive::<CoreEvent>().await.unwrap().content,
+        CoreEvent::ParticipantConnected { .. }
+    ));
+
+    // charlie joined for alice
+    assert!(matches!(
+        alice.receive::<CoreEvent>().await.unwrap().content,
+        CoreEvent::ParticipantConnected { .. }
+    ));
+
+    // charlie joined for bob
+    assert!(matches!(
+        bob.receive::<CoreEvent>().await.unwrap().content,
+        CoreEvent::ParticipantConnected { .. }
+    ));
+
+    // alice starts breakout rooms
+    alice
+        .send_breakout_command(
+            BreakoutCommand::Start(BreakoutConfig {
+                rooms: vec![
+                    BreakoutRoomConfig {
+                        name: "Room 0".into(),
+                        assignments: vec![],
+                    },
+                    BreakoutRoomConfig {
+                        name: "Room 1".into(),
+                        assignments: vec![],
+                    },
+                    BreakoutRoomConfig {
+                        name: "Room 2".into(),
+                        assignments: vec![],
+                    },
+                ],
+                duration: None,
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    // breakout rooms started
+    let _: BreakoutEvent = alice.receive().await.unwrap().content;
+    let _: BreakoutEvent = bob.receive().await.unwrap().content;
+    let _: BreakoutEvent = charlie.receive().await.unwrap().content;
+
+    // Alice switches to breakout room 1
+    alice
+        .send_breakout_command(
+            BreakoutCommand::SwitchRoom(RoomKind::Breakout(BreakoutId::from(1))),
+            None,
+        )
+        .await
+        .unwrap();
+    let _: BreakoutEvent = alice.receive().await.unwrap().content;
+    let _: BreakoutEvent = bob.receive().await.unwrap().content;
+    let _: BreakoutEvent = charlie.receive().await.unwrap().content;
+
+    // Bob switches to breakout room 1
+    bob.send_breakout_command(
+        BreakoutCommand::SwitchRoom(RoomKind::Breakout(BreakoutId::from(1))),
+        None,
+    )
+    .await
+    .unwrap();
+    let _: BreakoutEvent = alice.receive().await.unwrap().content;
+    let _: BreakoutEvent = bob.receive().await.unwrap().content;
+    let _: BreakoutEvent = charlie.receive().await.unwrap().content;
+
+    assert!(alice.received_nothing());
+    assert!(bob.received_nothing());
+    assert!(charlie.received_nothing());
+
+    BreakoutScenario {
+        _room: room,
+        alice,
+        bob,
+        charlie,
+    }
 }
