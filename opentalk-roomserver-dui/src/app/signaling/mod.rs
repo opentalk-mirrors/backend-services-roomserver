@@ -220,30 +220,28 @@ impl SignalingView {
         signaling_state: SignalingState,
         history: &mut MessageHistory,
     ) -> Result<(), RunnerGoneError> {
-        ui.horizontal(|ui| {
-            let button =
-                egui::Button::new("Send").shortcut_text(ui.ctx().format_shortcut(&SEND_SHORTCUT));
-            let button_res = ui.add_enabled(signaling_state.is_connected(), button);
-            let res = json_editor(ui, &mut self.edit_message);
+        let button =
+            egui::Button::new("Send").shortcut_text(ui.ctx().format_shortcut(&SEND_SHORTCUT));
+        let button_res = ui.add_enabled(signaling_state.is_connected(), button);
 
-            if self.force_focus {
-                res.request_focus();
-                self.force_focus = false;
-            }
-            // If we edit the message that was shown, we remove the "select history message" context
-            // The message that was edited before searching the history will be lost.
-            if self.historic_message_state.is_some() && res.changed() {
-                self.historic_message_state.take();
-            }
+        let res = json_editor(ui, &mut self.edit_message);
 
-            if button_res.clicked() || ui.input_mut(|i| i.consume_shortcut(&SEND_SHORTCUT)) {
-                self.record_sent_message(history);
-                self.send_websocket_message(command_tx)
-            } else {
-                Ok(())
-            }
-        })
-        .inner
+        if self.force_focus {
+            res.request_focus();
+            self.force_focus = false;
+        }
+
+        // The message that was edited before searching the history will be lost.
+        if self.historic_message_state.is_some() && res.changed() {
+            self.historic_message_state.take();
+        }
+
+        if button_res.clicked() || ui.input_mut(|i| i.consume_shortcut(&SEND_SHORTCUT)) {
+            self.record_sent_message(history);
+            self.send_websocket_message(command_tx)
+        } else {
+            Ok(())
+        }
     }
 
     pub fn left_panel_ui(
