@@ -18,7 +18,7 @@ use futures::TryFutureExt;
 use metrics::MetricHandle;
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
-    settings::{Settings, telemetry::Monitoring},
+    settings::{Monitoring, Settings, SettingsFile},
 };
 use service_probe::{ServiceState, start_probe, stop_probe};
 use tokio::{
@@ -49,7 +49,7 @@ pub fn decorate_error(decoration: &'static str) -> impl Fn(anyhow::Error) -> any
 
 async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
     let (app_state, _) = watch::channel(ApplicationState::Running);
-    let settings = Arc::new(Settings::load(config_file_path)?);
+    let settings: Arc<Settings> = Arc::new(SettingsFile::load(config_file_path)?.into());
     let mut set = JoinSet::new();
 
     set.spawn(

@@ -1,0 +1,74 @@
+// SPDX-License-Identifier: EUPL-1.2
+// SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+use std::net::{IpAddr, Ipv4Addr};
+
+use conference::Conference;
+use defaults::Defaults;
+use http::Http;
+use livekit::LiveKitSettings;
+use telemetry::{Metrics, Monitoring, Tracing};
+
+use super::{settings_file::SettingsFile, signaling_salt::SignalingSalt};
+
+pub mod conference;
+pub mod defaults;
+pub mod http;
+pub mod livekit;
+pub mod telemetry;
+
+#[derive(Debug, Clone)]
+pub struct Settings {
+    /// HTTP web server settings
+    pub http: Http,
+
+    pub monitoring: Option<Monitoring>,
+
+    pub metrics: Option<Metrics>,
+
+    pub tracing: Option<Tracing>,
+
+    pub conference: Conference,
+
+    pub livekit: Option<LiveKitSettings>,
+
+    pub defaults: Option<Defaults>,
+}
+
+impl Settings {
+    /// Creates settings for testing
+    ///
+    /// Do not use in production
+    pub fn test_settings(api_token: String) -> Settings {
+        Settings {
+            http: Http {
+                address: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+                port: 11333,
+                api_token,
+                disable_openapi: false,
+            },
+            monitoring: None,
+            metrics: None,
+            tracing: None,
+            conference: Conference {
+                signaling_salt: SignalingSalt("abcdefghijklmnopqrstuvwx".into()),
+            },
+            livekit: None,
+            defaults: None,
+        }
+    }
+}
+
+impl From<SettingsFile> for Settings {
+    fn from(value: SettingsFile) -> Self {
+        Settings {
+            http: value.http.into(),
+            monitoring: value.monitoring.map(Into::into),
+            metrics: value.metrics.map(Into::into),
+            tracing: value.tracing.map(Into::into),
+            conference: value.conference.into(),
+            livekit: value.livekit.map(Into::into),
+            defaults: value.defaults.map(Into::into),
+        }
+    }
+}
