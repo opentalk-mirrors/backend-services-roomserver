@@ -246,8 +246,10 @@ skip = [
   { name = "thiserror-impl", version = "1" },
   { name = "tokio-rustls", version = "0.24.1" },
   { name = "tokio-tungstenite", version = "0.20.1" },
+  { name = "tokio-tungstenite", version = "0.26" },
   { name = "tower", version = "0.4" },
   { name = "tungstenite", version = "0.20" },
+  { name = "tungstenite", version = "0.26" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
