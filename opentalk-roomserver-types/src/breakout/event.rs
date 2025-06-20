@@ -34,9 +34,9 @@ pub enum BreakoutEvent {
     ParticipantSwitchedRoom {
         /// The participant that moved
         participant_id: ParticipantId,
-        /// The old room of the participant. `None` is the main room
+        /// The old room of the participant.
         old_room: RoomKind,
-        /// The room that the participant moved to. `None` is the main room
+        /// The room that the participant moved to.
         new_room: RoomKind,
     },
 
@@ -44,6 +44,10 @@ pub enum BreakoutEvent {
     SwitchedRoom {
         /// Module data that was attached by signaling modules
         module_data: ModuleData,
+        /// The old room of the participant.
+        old_room: RoomKind,
+        /// The room that the participant moved to.
+        new_room: RoomKind,
     },
 
     /// A notice that the breakout rooms will close soon
@@ -172,6 +176,8 @@ mod tests {
     fn switched_room() {
         let val = BreakoutEvent::SwitchedRoom {
             module_data: ModuleData::new(),
+            old_room: RoomKind::Main,
+            new_room: RoomKind::Breakout(BreakoutId::from(1)),
         };
 
         let json = serde_json::to_value(val).unwrap();
@@ -181,6 +187,13 @@ mod tests {
             json!({
                 "message": "switched_room",
                 "module_data": {},
+                "old_room": {
+                    "kind": "main",
+                },
+                "new_room": {
+                    "kind": "breakout",
+                    "id": 1,
+                }
             }
             )
         );
