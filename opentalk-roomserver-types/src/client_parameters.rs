@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use derive_more::Display;
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{roomserver::DeviceSecret, users::DisplayName, utils::ExampleData};
+use opentalk_types_signaling::ParticipationVisibility;
 use serde::{Deserialize, Serialize};
 
 /// Client context required for a signaling connection
@@ -25,10 +27,46 @@ pub struct ClientParameters {
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum ClientKind {
     /// A registered user
-    Registered { profile: PublicUserProfile },
+    Registered {
+        profile: PublicUserProfile,
+    },
 
     /// A guest participant
-    Guest { display_name: DisplayName },
+    Guest {
+        display_name: DisplayName,
+    },
+
+    Service(ServiceKind),
+}
+
+impl ClientKind {
+    pub fn visibility(&self) -> ParticipationVisibility {
+        match self {
+            ClientKind::Registered { .. } | ClientKind::Guest { .. } => {
+                ParticipationVisibility::Visible
+            }
+            ClientKind::Service(service_kind) => service_kind.visibility(),
+        }
+    }
+}
+
+#[derive(Display, Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case", tag = "kind")]
+pub enum ServiceKind {
+    Recorder,
+}
+
+impl ServiceKind {
+    pub fn display_name(&self) -> DisplayName {
+        DisplayName::from_str_lossy(&self.to_string())
+    }
+
+    pub fn visibility(&self) -> ParticipationVisibility {
+        match self {
+            ServiceKind::Recorder => ParticipationVisibility::Hidden,
+        }
+    }
 }
 
 impl ExampleData for ClientParameters {
@@ -55,9 +93,10 @@ pub enum Role {
 mod tests {
     use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{roomserver::DeviceSecret, users::DisplayName, utils::ExampleData};
+    use pretty_assertions::assert_eq;
     use serde_json::json;
 
-    use super::ClientKind;
+    use super::{ClientKind, ServiceKind};
     use crate::client_parameters::{ClientParameters, Role};
 
     #[test]
@@ -115,5 +154,24 @@ mod tests {
                 }
             )
         )
+    }
+
+    #[test]
+    fn service() {
+        let value = serde_json::to_value(ClientParameters {
+            device_secret: DeviceSecret::example_data(),
+            kind: ClientKind::Service(ServiceKind::Recorder),
+            role: Role::User,
+        })
+        .unwrap();
+
+        assert_eq!(
+            value,
+            json!({
+                "role": "user",
+                "device_secret": "v3rys3cr3tD3v1ce5tr1ng",
+                "kind": "recorder",
+            })
+        );
     }
 }
