@@ -4,20 +4,20 @@
 
 [workspace]
 members = [
-  "chat/module",
-  "chat/types",
-  "livekit/module",
-  "livekit/types",
+  "modules/chat/module",
+  "modules/chat/types",
+  "modules/livekit/module",
+  "modules/livekit/types",
+  "modules/ping/module",
+  "modules/ping/types",
+  "modules/timer/module",
+  "modules/timer/types",
   "opentalk-roomserver",
   "opentalk-roomserver-client",
   "opentalk-roomserver-dui",
   "opentalk-roomserver-room",
   "opentalk-roomserver-types",
   "opentalk-roomserver-web-api",
-  "ping/module",
-  "ping/types",
-  "timer/module",
-  "timer/types",
 ]
 resolver = "2"
 
@@ -37,19 +37,19 @@ version = "0.0.0-dev"
 [workspace.dependencies]
 opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.0-dev" }
 opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.0-dev" }
-opentalk-roomserver-module-chat = { path = "chat/module", version = "0.0.0-dev" }
-opentalk-roomserver-module-livekit = { path = "livekit/module", version = "0.0.0-dev" }
-opentalk-roomserver-module-ping = { path = "ping/module", version = "0.0.0-dev" }
-opentalk-roomserver-module-timer = { path = "timer/module", version = "0.0.0-dev" }
+opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.0-dev" }
+opentalk-roomserver-module-livekit = { path = "modules/livekit/module", version = "0.0.0-dev" }
+opentalk-roomserver-module-ping = { path = "modules/ping/module", version = "0.0.0-dev" }
+opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.0-dev" }
 opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.0-dev" }
 opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.0-dev" }
 opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.0-dev", features = [
   "utoipa",
 ] }
-opentalk-roomserver-types-chat = { path = "chat/types", version = "0.0.0-dev" }
-opentalk-roomserver-types-livekit = { path = "livekit/types", version = "0.0.0-dev" }
-opentalk-roomserver-types-ping = { path = "ping/types", version = "0.0.0-dev" }
-opentalk-roomserver-types-timer = { path = "timer/types", version = "0.0.0-dev" }
+opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.0-dev" }
+opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = "0.0.0-dev" }
+opentalk-roomserver-types-ping = { path = "modules/ping/types", version = "0.0.0-dev" }
+opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.0-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.0-dev" }
 opentalk-types-api-v1 = { version = "0.39.1", features = ["axum"] }
 opentalk-types-common = { version = "0.35.2", features = ["serde", "utoipa"] }
