@@ -5271,6 +5271,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-types-polls"
+version = "0.0.0-dev"
+dependencies = [
+ "chrono",
+ "derive_more",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "opentalk-roomserver-types-timer"
 version = "0.0.0-dev"
 dependencies = [
