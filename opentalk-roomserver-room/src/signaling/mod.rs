@@ -34,6 +34,7 @@ use opentalk_roomserver_types::{
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use serde_json::value::RawValue;
+use tracing::{Span, field::Empty};
 
 pub mod dyn_module_context;
 pub(crate) mod module_initializer;
@@ -85,7 +86,11 @@ pub enum DynBroadcastEvent<'evt> {
         duration: Option<Duration>,
     },
 
-    BreakoutStop,
+    /// Breakout rooms are about to be closed. All participants will be moved to the main room automatically.
+    BreakoutClosing,
+
+    /// Breakout rooms have been closed and all participant are moved back to the main room.
+    BreakoutClosed,
 
     /// A participant switches between main and/or breakout rooms
     SwitchRoom {
@@ -127,12 +132,13 @@ where
         }
     }
 
-    #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
+    #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE, opentalk.event_type=Empty))]
     async fn handle_broadcast_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), SignalingModuleError<M::Error>> {
+        let span = Span::current();
         match event {
             DynBroadcastEvent::Connected {
                 participant_id,
@@ -140,6 +146,7 @@ where
                 module_data,
                 peer_module_data,
             } => {
+                span.record("opentalk.event_type", "Connected");
                 let is_first_connection = ctx
                     .participants
                     .all_unfiltered
@@ -174,10 +181,12 @@ where
                 participant_id,
                 connection_id,
             } => {
+                span.record("opentalk.event_type", "Disconnected");
                 self.module
                     .on_participant_disconnected(ctx, *participant_id, *connection_id)?;
             }
             DynBroadcastEvent::BreakoutStart { rooms, duration } => {
+                span.record("opentalk.event_type", "BreakoutStart");
                 self.module.on_breakout_start(ctx, rooms, *duration)?;
             }
 
@@ -187,6 +196,7 @@ where
                 new_room,
                 module_data,
             } => {
+                span.record("opentalk.event_type", "SwitchRoom");
                 let join_infos =
                     self.module
                         .on_breakout_switch(ctx, *participant_id, *old_room, *new_room)?;
@@ -208,7 +218,15 @@ where
                 }
             }
 
-            DynBroadcastEvent::BreakoutStop => self.module.on_breakout_stop(ctx)?,
+            DynBroadcastEvent::BreakoutClosing => {
+                span.record("opentalk.event_type", "BreakoutClosing");
+                self.module.on_breakout_closing(ctx)?;
+            }
+
+            DynBroadcastEvent::BreakoutClosed => {
+                span.record("opentalk.event_type", "BreakoutClosed");
+                self.module.on_breakout_closed(ctx)?;
+            }
         }
         Ok(())
     }

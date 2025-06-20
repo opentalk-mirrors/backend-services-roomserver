@@ -16,6 +16,7 @@ use opentalk_roomserver_types::{
 use opentalk_types_common::{rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use serde_json::value::RawValue;
+use tracing::{Instrument as _, debug_span};
 
 use crate::{
     event_origin::EventOrigin,
@@ -235,13 +236,16 @@ where
         let origin = self.event_origin;
         let room = self.room;
         let timestamp = self.timestamp;
+        let span = debug_span!("spawn");
 
+        let future = future.instrument(span.clone());
         let future = Box::pin(async move {
             Some(LoopbackMessage {
                 namespace: M::NAMESPACE,
                 origin,
                 room,
                 timestamp,
+                span,
                 value: Box::new(future.await),
             })
         });
@@ -258,9 +262,13 @@ where
     where
         F: FnOnce() -> M::Loopback + Send + 'static,
     {
+        let span = debug_span!("spawn_blocking");
         let origin = self.event_origin;
         let room = self.room;
-        let join_handle = tokio::task::spawn_blocking(blocking_function);
+        let join_handle = {
+            let span = span.clone();
+            tokio::task::spawn_blocking(move || span.in_scope(blocking_function))
+        };
         let timestamp = self.timestamp;
 
         let future = Box::pin(async move {
@@ -274,6 +282,7 @@ where
                 origin,
                 room,
                 timestamp,
+                span,
                 value: Box::new(value),
             })
         });
