@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use livekit::RoomOptions;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
+use opentalk_roomserver_types::{
+    breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
+    room_kind::RoomKind,
+};
 use opentalk_roomserver_types_livekit::{LiveKitCommand, LiveKitEvent};
 
 mod common;
@@ -28,4 +33,51 @@ async fn request_access_token() {
         token_event.content,
         LiveKitEvent::PopoutStreamAccessToken { .. }
     ));
+}
+
+#[test_log::test(tokio::test)]
+#[ignore]
+async fn alice_in_breakout_bob_in_main() {
+    let (_container, mut room, public_url) = common::build_livekit_room().await;
+
+    // Alice and Bob join the meeting
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".to_string(),
+                    assignments: vec![],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
+        .await;
+
+    alice
+        .send_command::<LiveKitModule>(LiveKitCommand::RequestPopoutStreamAccessToken, None)
+        .await
+        .unwrap();
+    let token_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+    assert!(bob.received_nothing());
+
+    if let LiveKitEvent::PopoutStreamAccessToken { token } = token_event.content {
+        // join livekit to ensure we got the token for the correct room
+        let (alice_room, _room_events) =
+            livekit::Room::connect(&public_url, &token, RoomOptions::default())
+                .await
+                .unwrap();
+        assert_eq!(alice_room.name(), format!("{}:0", room.id()));
+    } else {
+        panic!("Expected PopoutStreamAccessToken event, got: {token_event:?}");
+    }
 }

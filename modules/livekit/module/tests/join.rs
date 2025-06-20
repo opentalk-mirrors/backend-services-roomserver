@@ -23,7 +23,10 @@ async fn joined_participant_receives_key() {
         alice_livekit_state.microphone_restriction_state,
         MicrophoneRestrictionState::Disabled,
     );
-    assert_eq!(alice_livekit_state.credentials.room, room.id().to_string());
+    assert_eq!(
+        alice_livekit_state.credentials.room,
+        format!("{}:main", room.id())
+    );
     assert!(!alice_livekit_state.credentials.token.is_empty());
     assert!(alice_livekit_state.credentials.service_url.is_none());
     assert_eq!(alice_livekit_state.credentials.public_url, livekit_url);

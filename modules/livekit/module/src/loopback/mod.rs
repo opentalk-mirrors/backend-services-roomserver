@@ -14,7 +14,7 @@ use opentalk_types_signaling::ParticipantId;
 pub use crate::loopback::{
     create_room::create_room, force_mute::force_mute_participants,
     microphone_restriction::update_restricted_microphones, revoke_token::revoke_token,
-    screen_share_permissions::set_sceenshare_permissions,
+    screen_share_permissions::set_screenshare_permissions,
 };
 use crate::{LIVEKIT_MEDIA_SOURCES, PARALLEL_UPDATES};
 
@@ -26,6 +26,7 @@ mod screen_share_permissions;
 
 pub enum LiveKitLoopback {
     RoomCreated,
+    RoomRemoved,
 
     ParticipantsMuted {
         sender: ParticipantId,

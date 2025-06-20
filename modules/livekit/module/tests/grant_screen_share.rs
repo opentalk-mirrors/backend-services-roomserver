@@ -6,6 +6,10 @@ use std::collections::BTreeSet;
 use livekit::RoomOptions;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
+use opentalk_roomserver_types::{
+    breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
+    room_kind::RoomKind,
+};
 use opentalk_roomserver_types_livekit::{LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState};
 use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
@@ -25,7 +29,7 @@ async fn unknown_participant() {
     alice
         .send_command::<LiveKitModule>(
             LiveKitCommand::GrantScreenSharePermission {
-                participants: BTreeSet::from_iter([disconnected_participant]),
+                participants: BTreeSet::from([disconnected_participant]),
             },
             None,
         )
@@ -36,7 +40,7 @@ async fn unknown_participant() {
     assert_eq!(
         error_event.content,
         LiveKitEvent::Error(LiveKitError::UnknownParticipant {
-            participant: BTreeSet::from_iter([disconnected_participant])
+            participant: BTreeSet::from([disconnected_participant])
         })
     )
 }
@@ -53,7 +57,7 @@ async fn insufficient_permissions() {
     // Bob sends the command
     bob.send_command::<LiveKitModule>(
         LiveKitCommand::GrantScreenSharePermission {
-            participants: BTreeSet::from_iter([disconnected_participant]),
+            participants: BTreeSet::from([disconnected_participant]),
         },
         None,
     )
@@ -96,7 +100,7 @@ async fn grant_bob() {
     alice
         .send_command::<LiveKitModule>(
             LiveKitCommand::GrantScreenSharePermission {
-                participants: BTreeSet::from_iter([bob.id()]),
+                participants: BTreeSet::from([bob.id()]),
             },
             None,
         )
@@ -108,7 +112,59 @@ async fn grant_bob() {
         event.content,
         LiveKitEvent::ScreenSharePermissionsUpdated {
             grant: true,
-            participants: BTreeSet::from_iter([bob.id()]),
+            participants: BTreeSet::from([bob.id()]),
+        }
+    );
+
+    // Bob is notified by the livekit signaling session (separate to our signaling)
+    assert!(bob.received_nothing());
+}
+
+#[test_log::test(tokio::test)]
+#[ignore]
+async fn alice_in_breakout_bob_in_main() {
+    let (_container, mut room, _public_url) = common::build_livekit_room().await;
+
+    // Alice and Bob join the meeting
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".to_string(),
+                    assignments: vec![],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
+        .await;
+
+    // Alice sends the command
+    alice
+        .send_command::<LiveKitModule>(
+            LiveKitCommand::GrantScreenSharePermission {
+                participants: BTreeSet::from([bob.id()]),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice.receive_event::<LiveKitModule>().await.unwrap();
+    assert_eq!(
+        event.content,
+        LiveKitEvent::ScreenSharePermissionsUpdated {
+            grant: true,
+            participants: BTreeSet::from([bob.id()]),
         }
     );
 

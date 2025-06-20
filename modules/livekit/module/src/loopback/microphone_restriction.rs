@@ -16,7 +16,7 @@ use opentalk_types_signaling::ParticipantId;
 use super::{LiveKitLoopback, update_participants_permission};
 use crate::build_livekit_participant_id;
 
-#[tracing::instrument(skip(livekit_client, participant_connections), level = "debug")]
+#[tracing::instrument(skip(livekit_client), level = "debug")]
 pub async fn update_restricted_microphones(
     livekit_client: Arc<RoomClient>,
     room: String,
@@ -27,6 +27,7 @@ pub async fn update_restricted_microphones(
     let participants =
         affected_participants(&livekit_client, &room, &state, participant_connections).await?;
 
+    tracing::debug!("update microphone restrictions");
     update_participants_permission(
         &livekit_client,
         participants.restricted,
@@ -67,6 +68,7 @@ async fn affected_participants(
             tracing::error!("Failed to query participants, {err}");
             LiveKitError::LivekitUnavailable
         })?;
+    tracing::trace!("Participants in livekit room: {:?}", participants);
 
     // filter unrestricted participants since they must not be affected by the restrictions.
     if let MicrophoneRestrictionState::Enabled {
