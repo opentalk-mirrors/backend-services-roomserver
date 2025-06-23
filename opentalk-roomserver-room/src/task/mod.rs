@@ -63,6 +63,7 @@ use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
 };
+use tracing::Instrument;
 use uuid::Uuid;
 
 use super::{
@@ -277,12 +278,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all, fields(opentalk.room_id = %self.info.room_id))]
     async fn handle_loopback(&mut self, msg: Option<LoopbackMessage>) {
         let Some(msg) = msg else {
             log::error!("Signaling module channel was dropped");
             return;
         };
+
+        let span = msg.span.clone();
+        self.handle_loopback_message(msg).instrument(span).await;
+    }
+
+    async fn handle_loopback_message(&mut self, msg: LoopbackMessage) {
         let Some(module) = self.modules.get_mut(&msg.namespace) else {
             log::error!(
                 "Received loopback event for unknown module {}",

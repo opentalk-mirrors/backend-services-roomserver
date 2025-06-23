@@ -111,7 +111,15 @@ pub trait SignalingModule: Send + Sync + Sized {
     }
 
     #[allow(unused_variables)]
-    fn on_breakout_stop(
+    fn on_breakout_closing(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        Ok(())
+    }
+
+    #[allow(unused_variables)]
+    fn on_breakout_closed(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
     ) -> Result<(), SignalingModuleError<Self::Error>> {

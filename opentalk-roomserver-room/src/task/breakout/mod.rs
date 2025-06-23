@@ -26,6 +26,7 @@ use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::time::Timestamp;
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use state::BreakoutState;
+use tracing::Instrument;
 
 use super::RoomTask;
 use crate::signaling::DynBroadcastEvent;
@@ -300,6 +301,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ///
     /// Sends a [`BreakoutEvent::SwitchedRoom`] to the moved participant and [`BreakoutEvent::ParticipantSwitchedRoom`] to
     /// all participants.
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn move_participant(
         &mut self,
         origin: EventOrigin,
@@ -390,7 +392,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )
             .await?;
 
-        self.broadcast_event_to_modules(origin, RoomKind::Main, DynBroadcastEvent::BreakoutStop)
+        let span = tracing::debug_span!("breakout_closing");
+        self.broadcast_event_to_modules(origin, RoomKind::Main, DynBroadcastEvent::BreakoutClosing)
+            .instrument(span)
             .await;
 
         let all_participants = self
@@ -401,9 +405,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .collect::<Vec<_>>();
 
         // move all participants back to the main room, ignore non-fatal errors
+        let span = tracing::debug_span!("move_participants");
         for participant_id in all_participants {
             if let Err(SignalingModuleError::Fatal(error)) = self
                 .move_participant(origin, participant_id, RoomKind::Main)
+                .instrument(span.clone())
                 .await
             {
                 return Err(SignalingModuleError::Fatal(error));
@@ -411,6 +417,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         self.breakout_config = None;
+
+        let span = tracing::debug_span!("breakout_closed");
+        self.broadcast_event_to_modules(origin, RoomKind::Main, DynBroadcastEvent::BreakoutClosed)
+            .instrument(span)
+            .await;
 
         self.message_router
             .serialize_and_broadcast(
