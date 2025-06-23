@@ -11,6 +11,16 @@ pub enum Received {
     Invalid,
 }
 
+impl Received {
+    /// Returns `true` if the received is [`Invalid`].
+    ///
+    /// [`Invalid`]: Received::Invalid
+    #[must_use]
+    pub fn is_invalid(&self) -> bool {
+        matches!(self, Self::Invalid)
+    }
+}
+
 impl From<String> for Received {
     fn from(received: String) -> Self {
         if let Ok(event) = serde_json::from_str(&received) {

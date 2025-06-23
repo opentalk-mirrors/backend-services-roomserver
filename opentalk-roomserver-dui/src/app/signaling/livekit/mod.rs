@@ -3,7 +3,6 @@
 
 use anyhow::Context as _;
 use egui::{Color32, RichText, Widget};
-use livekit::RoomEvent;
 use opentalk_roomserver_client::api::{
     command::{LiveKitCommand, SignalingCommand, SignalingModuleCommand},
     event::{
@@ -79,8 +78,22 @@ impl LiveKitPlugin {
         Ok(())
     }
 
-    fn handle_runner_event(&mut self, event: RoomEvent) {
-        self.events.push(format!("LiveKit Event: {event:?}"));
+    fn handle_livekit_events(&mut self) {
+        let Some(handle) = self.handle.as_mut() else {
+            return;
+        };
+
+        let mut received = handle.recv_event();
+        while let Ok(Some(event)) = received {
+            self.events.push(format!("LiveKit Event: {event:?}"));
+            received = handle.recv_event();
+        }
+
+        if let Err(e) = received {
+            log::error!("LiveKitRunner gone! {e:?}");
+            self.events.push(format!("LiveKit Runner Error: {e:?}"));
+            self.handle = None;
+        }
     }
 
     fn connection_status_ui(&mut self, ui: &mut egui::Ui) {
@@ -130,14 +143,8 @@ impl LiveKitPlugin {
     fn handle_credentials(&mut self, credentials: &Credentials) {
         self.credentials.replace(credentials.clone());
     }
-}
 
-impl SignalingPlugin for LiveKitPlugin {
-    fn handle_events(
-        &mut self,
-        _settings: &mut crate::settings::DuiSettings,
-        received: &[Received],
-    ) -> Vec<String> {
+    fn handle_opentalk_events(&mut self, received: &[Received]) {
         log::trace!("received {} events", received.len());
         for msg in received {
             let res = match msg {
@@ -163,18 +170,18 @@ impl SignalingPlugin for LiveKitPlugin {
                 log::warn!("{e}");
             }
         }
+    }
+}
 
-        let mut next_event = self.handle.as_mut().map(|handle| handle.recv_event());
-        while let Some(Ok(Some(event))) = next_event {
-            self.handle_runner_event(event);
-            next_event = self.handle.as_mut().map(|handle| handle.recv_event());
-        }
-        if let Some(Err(e)) = next_event {
-            log::error!("LiveKitRunner gone! {e:?}");
-            self.events.push(format!("LiveKit Runner Error: {e:?}"));
-            self.handle = None;
-            return Vec::new();
-        }
+impl SignalingPlugin for LiveKitPlugin {
+    fn handle_events(
+        &mut self,
+        _settings: &mut crate::settings::DuiSettings,
+        received: &[Received],
+    ) -> Vec<String> {
+        self.handle_opentalk_events(received);
+
+        self.handle_livekit_events();
 
         Vec::new()
     }

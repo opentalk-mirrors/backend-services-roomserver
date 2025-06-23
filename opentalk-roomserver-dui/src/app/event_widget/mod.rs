@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use egui::{Color32, RichText};
+use egui::{Color32, RichText, Widget};
 use egui_json_tree::{JsonTree, JsonTreeStyle, ToggleButtonsState};
 
 use crate::client::{RunnerEvent, RunnerEventType};
@@ -15,6 +15,8 @@ use super::signaling::filtered_vec::{Filter, Filterable};
 #[derive(Debug)]
 pub(crate) struct EventWidget {
     event: RunnerEvent,
+    /// Wether the message was parsed successfully with the opentalk-types.
+    known_type: bool,
     json: Option<serde_json::Value>,
     timestamp: String,
 
@@ -34,6 +36,7 @@ impl EventWidget {
         let timestamp = event.timestamp.format("%T %3f").to_string();
         Self {
             event,
+            known_type: false,
             json,
             timestamp,
             reset_expanded: false,
@@ -41,11 +44,20 @@ impl EventWidget {
     }
 
     pub(crate) fn control_ui(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            ui.label(RichText::new(&self.timestamp).color(Color32::GRAY));
+        ui.vertical(|ui| {
+            egui::Label::new(RichText::new(&self.timestamp).color(Color32::GRAY))
+                .wrap_mode(egui::TextWrapMode::Extend)
+                .ui(ui);
 
             match &self.event.event_type {
                 RunnerEventType::Received { .. } => {
+                    if self.known_type {
+                        ui.label(RichText::new("✅").color(Color32::GREEN))
+                            .on_hover_text("This message was understood by DUI");
+                    } else {
+                        ui.label(RichText::new("🚫").color(Color32::RED))
+                            .on_hover_text("Unknown, unprocessed message");
+                    }
                     ui.label(
                         RichText::new("⬇")
                             .color(Color32::WHITE)
@@ -115,6 +127,10 @@ impl EventWidget {
             // more content, but already fills everything that is available.
             ui.allocate_space(ui.available_size());
         });
+    }
+
+    pub(crate) fn set_type_known(&mut self, known_type: bool) {
+        self.known_type = known_type;
     }
 }
 
