@@ -252,6 +252,7 @@ skip = [
   { name = "tower", version = "0.4" },
   { name = "tungstenite", version = "0.20" },
   { name = "tungstenite", version = "0.26" },
+  { name = "webpki-roots", version = "0.25" },
   { name = "zip", version = "0.6" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate

@@ -19,7 +19,7 @@ egui = { workspace = true, features = ["persistence"] }
 egui_extras = { workspace = true, features = ["syntect"] }
 egui_json_tree.workspace = true
 env_logger.workspace = true
-livekit.workspace = true
+livekit = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 log.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-roomserver-common.workspace = true
