@@ -5075,6 +5075,7 @@ dependencies = [
  "egui_extras",
  "egui_json_tree",
  "env_logger",
+ "futures",
  "livekit",
  "log",
  "opentalk-roomserver-client",
