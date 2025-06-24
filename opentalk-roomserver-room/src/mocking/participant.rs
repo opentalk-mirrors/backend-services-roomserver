@@ -11,6 +11,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     breakout::command::BreakoutCommand,
     client_parameters::{ClientKind, ClientParameters, Role},
+    connection_id::ConnectionId,
     core_event::CoreEvent,
     join::join_success::JoinSuccess,
     signaling::SignalingCommand,
@@ -113,6 +114,10 @@ impl MockParticipant<JoinSuccess> {
 
     pub fn id(&self) -> ParticipantId {
         self.state.id
+    }
+
+    pub fn connection_id(&self) -> ConnectionId {
+        self.state.connection_id
     }
 }
 
