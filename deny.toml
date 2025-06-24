@@ -98,6 +98,9 @@ exceptions = [
   ], name = "opentalk-roomserver-module-chat" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-e2ee" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-livekit" },
   { allow = [
     "EUPL-1.2",
@@ -120,6 +123,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-chat" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-e2ee" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-livekit" },
