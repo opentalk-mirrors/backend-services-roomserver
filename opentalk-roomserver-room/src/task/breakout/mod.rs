@@ -348,7 +348,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     [conn_id],
                     self::BREAKOUT_MODULE_ID,
                     origin.transaction_id(),
-                    BreakoutEvent::SwitchedRoom { module_data },
+                    BreakoutEvent::SwitchedRoom {
+                        module_data,
+                        old_room: previous_room,
+                        new_room: room,
+                    },
                 )
                 .await?;
         }

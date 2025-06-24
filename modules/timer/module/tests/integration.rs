@@ -539,7 +539,7 @@ async fn breakout_room_ready_state() {
     .await;
 
     // Alice is still ready in room 0
-    let BreakoutEvent::SwitchedRoom { module_data } = switched_room else {
+    let BreakoutEvent::SwitchedRoom { module_data, .. } = switched_room else {
         unreachable!("Received wrong event");
     };
 
