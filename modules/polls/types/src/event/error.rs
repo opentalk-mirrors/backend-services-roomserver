@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_roomserver_types::signaling::module_error::ModuleError;
 use serde::{Deserialize, Serialize};
 
 /// Errors from the `polls` module namespace
@@ -12,7 +13,12 @@ pub enum Error {
     InsufficientPermissions,
 
     /// Attempted to start a poll with invalid choice count
-    InvalidChoiceCount,
+    InvalidChoiceCount {
+        /// The minimum number of choices a poll must have
+        min_choice_count: usize,
+        /// The maximum number of choices a poll is allowed to have
+        max_choice_count: usize,
+    },
 
     /// Attempted to perform a command with an invalid poll id
     InvalidPollId,
@@ -24,14 +30,30 @@ pub enum Error {
     MultipleChoicesNotAllowed,
 
     /// Attempted to perform a command with an invalid choice description
-    InvalidChoiceDescription,
+    InvalidChoiceDescriptionLength {
+        /// The minimum number of bytes a choice description must have
+        min_length: usize,
+        /// The maximum number of bytes a choice description is allowed to have
+        max_length: usize,
+    },
 
     /// Attempted to perform a command with an invalid duration
-    InvalidDuration,
+    InvalidDuration {
+        /// The maximum allowed duration of a poll
+        max_duration: u64,
+    },
 
     /// Attempted to perform a command with an invalid topic length
-    InvalidTopicLength,
+    InvalidTopicLength {
+        /// The maximum number of bytes the topic length is allowed to have
+        max_length: usize,
+    },
 
     /// Attempted to start a new poll while an existing one is still running
     StillRunning,
+
+    /// An internal error occured and the poll was cancelled
+    Internal,
 }
+
+impl ModuleError for Error {}

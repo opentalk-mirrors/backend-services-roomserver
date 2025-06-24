@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Results,
+    command::Vote,
     event::{Error, Started},
 };
 
@@ -18,6 +19,9 @@ pub enum PollsEvent {
 
     /// Live update of the poll results
     LiveUpdate(Results),
+
+    /// A vote was cast on a different device
+    Voted(Vote),
 
     /// The poll is completed
     Done(Results),
@@ -40,13 +44,13 @@ impl From<Error> for PollsEvent {
 
 #[cfg(test)]
 mod serde_tests {
-    use std::time::Duration;
+    use std::{collections::BTreeSet, time::Duration};
 
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::*;
-    use crate::{Choice, ChoiceId, Item, PollId};
+    use crate::{Choice, ChoiceId, Item, PollId, command::Choices};
 
     #[test]
     fn started() {
@@ -124,6 +128,25 @@ mod serde_tests {
                 ]
             })
         );
+    }
+
+    #[test]
+    fn voted() {
+        let voted = PollsEvent::Voted(Vote {
+            poll_id: PollId::nil(),
+            choices: Choices::Multiple {
+                choice_ids: BTreeSet::from_iter([ChoiceId::from_u32(0), ChoiceId::from_u32(1)]),
+            },
+        });
+
+        assert_eq!(
+            serde_json::to_value(voted).unwrap(),
+            json!({
+                "message": "voted",
+                "poll_id": "00000000-0000-0000-0000-000000000000",
+                "choice_ids": [0, 1],
+            })
+        )
     }
 
     #[test]

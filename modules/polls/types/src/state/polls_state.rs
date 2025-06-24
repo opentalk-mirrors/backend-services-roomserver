@@ -4,13 +4,18 @@
 
 //! Frontend data for `polls` namespace
 
-use std::time::Duration;
+use std::{
+    collections::{BTreeSet, HashMap},
+    time::Duration,
+};
 
 use chrono::Utc;
 use opentalk_types_common::time::Timestamp;
+use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
+use tokio::sync::oneshot::Sender;
 
-use crate::{Choice, PollId};
+use crate::{Choice, ChoiceId, Item, PollId};
 
 /// The state of the `polls` module.
 ///
@@ -64,4 +69,50 @@ impl PollsState {
     pub fn is_expired(&self) -> bool {
         self.remaining().is_none()
     }
+}
+
+/// Contains the state of a poll and a [`Sender`] to cancel it
+#[derive(Debug)]
+pub struct Poll {
+    /// The state of the poll
+    pub state: PollsState,
+
+    /// The votes that were cast
+    pub voted_choice_ids: HashMap<ParticipantId, BTreeSet<ChoiceId>>,
+
+    /// Cancels the poll
+    pub tx_cancel: Sender<StopKind>,
+}
+
+impl Poll {
+    /// The current result of the poll
+    pub fn results(&self) -> Vec<Item> {
+        let votes = self.voted_choice_ids.values().flatten();
+        let mut results: HashMap<ChoiceId, u32> = self
+            .state
+            .choices
+            .iter()
+            .map(|choice| (choice.id, 0))
+            .collect();
+
+        for vote in votes {
+            *results.entry(*vote).or_insert(0) += 1;
+        }
+
+        let mut results = results
+            .into_iter()
+            .map(|(id, count)| Item { id, count })
+            .collect::<Vec<_>>();
+        results.sort_by(|a, b| a.id.cmp(&b.id));
+        results
+    }
+}
+
+/// Determines how a poll was stopped
+#[derive(Debug)]
+pub enum StopKind {
+    /// The poll was stopped by a moderator
+    ByModerator,
+    /// The poll expired
+    Expired,
 }

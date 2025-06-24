@@ -13,7 +13,7 @@ pub struct Vote {
     /// The id of the poll
     pub poll_id: PollId,
 
-    /// The choices
+    /// The choices of the participant
     #[serde(flatten)]
     pub choices: Choices,
 }

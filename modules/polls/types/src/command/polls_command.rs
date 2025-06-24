@@ -2,9 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use serde::{Deserialize, Serialize};
 
-use crate::command::{Finish, Start, Vote};
+use crate::{
+    command::{Finish, Start, Vote},
+    event::PollsEvent,
+};
 
 /// Commands received by the `polls` module
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -13,11 +17,20 @@ pub enum PollsCommand {
     /// Start a poll
     Start(Start),
 
-    /// Vote in the poll
+    /// Cast a vote
     Vote(Vote),
 
     /// Finish the poll
     Finish(Finish),
+}
+
+impl CreateReplica<PollsEvent> for PollsCommand {
+    fn replicate(&self) -> Option<PollsEvent> {
+        match self {
+            PollsCommand::Vote(vote) => Some(PollsEvent::Voted(vote.clone())),
+            _ => None,
+        }
+    }
 }
 
 impl From<Start> for PollsCommand {
@@ -74,7 +87,7 @@ mod serde_tests {
             assert_eq!(choices, vec!["a", "b", "c"]);
             assert_eq!(duration, Duration::from_secs(30));
         } else {
-            panic!()
+            panic!("expected PollsCommand::Start but got: {message:?}");
         }
     }
 
@@ -97,7 +110,7 @@ mod serde_tests {
                 }
             );
         } else {
-            panic!()
+            panic!("Expected PollsCommand::Vote, got: {message:?}");
         }
     }
 
@@ -120,7 +133,7 @@ mod serde_tests {
                 }
             );
         } else {
-            panic!()
+            panic!("Expected PollsCommand::Vote, got: {message:?}");
         }
     }
 
@@ -144,7 +157,7 @@ mod serde_tests {
                 }
             );
         } else {
-            panic!()
+            panic!("Expected PollsCommand::Vote, got: {message:?}");
         }
     }
 
@@ -166,7 +179,19 @@ mod serde_tests {
                 }
             );
         } else {
-            panic!()
+            panic!("Expected PollsCommand::Vote, got: {message:?}");
         }
+    }
+
+    #[test]
+    fn finish() {
+        let json = json!({
+            "action": "finish",
+            "id": "00000000-0000-0000-0000-000000000000",
+        });
+
+        let message: PollsCommand = serde_json::from_value(json).unwrap();
+
+        assert_eq!(message, PollsCommand::Finish(Finish { id: PollId::nil() }));
     }
 }

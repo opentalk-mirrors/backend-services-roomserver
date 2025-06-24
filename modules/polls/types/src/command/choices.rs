@@ -29,7 +29,7 @@ impl Choices {
     /// Returns the choices as a BTreeSet
     pub fn to_hash_set(self) -> BTreeSet<ChoiceId> {
         match self {
-            Self::Single { choice_id } => BTreeSet::from_iter(vec![choice_id]),
+            Self::Single { choice_id } => BTreeSet::from([choice_id]),
             Self::Multiple { choice_ids } => choice_ids,
         }
     }
