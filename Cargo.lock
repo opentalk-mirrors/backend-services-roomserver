@@ -5157,11 +5157,13 @@ version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "log",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-polls",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "test-log",
  "tokio",
 ]
 
