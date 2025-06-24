@@ -13,7 +13,7 @@ async fn response_contains_transaction_id() {
     let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
 
     // Alice joins
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     // When no transaction id is sent, the response will not contain one
     alice
@@ -38,7 +38,7 @@ async fn error_contains_transaction_id() {
     let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
 
     // Alice joins
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     alice
         .send_command::<MockModule>(Command::Invalid, Some(0))
@@ -53,7 +53,7 @@ async fn invalid_command_response_contains_transaction_id() {
     let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
 
     // Alice joins
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     let command = json!({
         "transaction_id": 0,

@@ -12,7 +12,7 @@ mod common;
 async fn joined_participant_receives_key() {
     let (_container, mut room, livekit_url) = common::build_livekit_room().await;
 
-    let alice = room.join_alice_moderator().await;
+    let alice = room.join_alice_moderator(0).await;
     let alice_livekit_state = alice
         .join_success()
         .get_module::<LiveKitState>()

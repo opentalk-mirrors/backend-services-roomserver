@@ -9,7 +9,7 @@ use opentalk_roomserver_common::{
 };
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, room_parameters::RoomParameters,
+    client_parameters::ClientParameters, core_event::CoreEvent, room_parameters::RoomParameters,
 };
 use opentalk_types_common::{rooms::RoomId, tariffs::TariffModuleResource, utils::ExampleData};
 use tokio::sync::watch;
@@ -164,16 +164,25 @@ impl TestRoom {
         Ok(participant)
     }
 
-    pub async fn join_alice_moderator(&mut self) -> MockParticipantJoined {
-        MockParticipantJoining::alice().join(self).await.unwrap()
+    pub async fn join_alice_moderator(&mut self, device_number: usize) -> MockParticipantJoined {
+        MockParticipantJoining::alice(device_number)
+            .join(self)
+            .await
+            .unwrap()
     }
 
-    pub async fn join_bob(&mut self) -> MockParticipantJoined {
-        MockParticipantJoining::bob().join(self).await.unwrap()
+    pub async fn join_bob(&mut self, device_number: usize) -> MockParticipantJoined {
+        MockParticipantJoining::bob(device_number)
+            .join(self)
+            .await
+            .unwrap()
     }
 
-    pub async fn join_charlie(&mut self) -> MockParticipantJoined {
-        MockParticipantJoining::charlie().join(self).await.unwrap()
+    pub async fn join_charlie(&mut self, device_number: usize) -> MockParticipantJoined {
+        MockParticipantJoining::charlie(device_number)
+            .join(self)
+            .await
+            .unwrap()
     }
 
     pub async fn join_gustav_guest(&mut self) -> MockParticipantJoined {
@@ -182,5 +191,14 @@ impl TestRoom {
 
     pub fn id(&self) -> RoomId {
         self.room_id
+    }
+}
+
+pub async fn flush_connected_events(others: &mut [&mut MockParticipantJoined]) {
+    for p in others {
+        assert!(matches!(
+            p.receive::<CoreEvent>().await.unwrap().content,
+            CoreEvent::ParticipantConnected { .. }
+        ));
     }
 }

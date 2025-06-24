@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 
 use livekit::{RoomEvent, RoomOptions};
 use opentalk_roomserver_module_livekit::LiveKitModule;
-use opentalk_roomserver_types::core_event::CoreEvent;
+use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types_livekit::{
     command::LiveKitCommand, error::LiveKitError, event::LiveKitEvent,
 };
@@ -22,7 +22,7 @@ async fn unknown_participant() {
 
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
 
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     alice
         .send_command::<LiveKitModule>(
@@ -49,19 +49,16 @@ async fn mute_bob() {
     let (_container, mut room, public_url) = common::build_livekit_room().await;
 
     // Alice and Bob join the meeting
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
-    let mut bob = room.join_bob().await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
     let bob_livekit_state = bob
         .join_success()
         .get_module::<LiveKitState>()
         .expect("LiveKit state must be deserializable")
         .expect("LiveKit state must be present");
 
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
     // join livekit to ensure participant exists and can be muted.
     let (_bob_room, mut room_events) = livekit::Room::connect(
         &public_url,
@@ -109,7 +106,7 @@ async fn insufficient_permissions() {
     let (_container, mut room, _public_url) = common::build_livekit_room().await;
 
     // Bob joins the meeting
-    let mut bob = room.join_bob().await;
+    let mut bob = room.join_bob(0).await;
 
     // Bob sends the command
     bob.send_command::<LiveKitModule>(

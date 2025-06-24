@@ -122,7 +122,7 @@ impl MockParticipant<JoinSuccess> {
 }
 
 impl<S> MockParticipant<S> {
-    pub fn alice() -> MockParticipantBuilder<PublicUserProfile> {
+    pub fn alice(device_number: usize) -> MockParticipantBuilder<PublicUserProfile> {
         let profile = PublicUserProfile {
             id: UserId::from_u128(0xa11ce),
             email: "alice@example.com".to_string(),
@@ -138,11 +138,12 @@ impl<S> MockParticipant<S> {
         MockParticipantBuilder {
             profile,
             role: Role::Moderator,
-            secret: DeviceSecret::from_str("Alice Device Secret A").expect("Valid device secret"),
+            secret: DeviceSecret::from_str(&format!("Alice Device Secret {device_number}"))
+                .expect("Valid device secret"),
         }
     }
 
-    pub fn bob() -> MockParticipantBuilder<PublicUserProfile> {
+    pub fn bob(device_number: usize) -> MockParticipantBuilder<PublicUserProfile> {
         let profile = PublicUserProfile {
             id: UserId::from_u128(0xb0b),
             email: "bob@example.com".to_string(),
@@ -158,11 +159,12 @@ impl<S> MockParticipant<S> {
         MockParticipantBuilder {
             profile,
             role: Role::User,
-            secret: DeviceSecret::from_str("Bob Device Secret A").expect("Valid device secret"),
+            secret: DeviceSecret::from_str(&format!("Bob Device Secret {device_number}"))
+                .expect("Valid device secret"),
         }
     }
 
-    pub fn charlie() -> MockParticipantBuilder<PublicUserProfile> {
+    pub fn charlie(device_number: usize) -> MockParticipantBuilder<PublicUserProfile> {
         let profile = PublicUserProfile {
             id: UserId::from_u128(0xcca211e),
             email: "charlie@example.com".to_string(),
@@ -178,7 +180,8 @@ impl<S> MockParticipant<S> {
         MockParticipantBuilder {
             profile,
             role: Role::User,
-            secret: DeviceSecret::from_str("Charlie Device Secret A").expect("Valid device secret"),
+            secret: DeviceSecret::from_str(&format!("Charlie Device Secret {device_number}"))
+                .expect("Valid device secret"),
         }
     }
 
