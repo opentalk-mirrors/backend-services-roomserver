@@ -13,6 +13,7 @@ use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_ping::PingModule;
+use opentalk_roomserver_module_polls::PollsModule;
 use opentalk_roomserver_module_timer::TimerModule;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
@@ -189,6 +190,7 @@ fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<ChatModule>();
     module_registry.add_module::<LiveKitModule>();
     module_registry.add_module::<TimerModule>();
+    module_registry.add_module::<PollsModule>();
     module_registry
 }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{cell::RefCell, future::Future, marker::PhantomData};
+use std::{cell::RefCell, future::Future, marker::PhantomData, time::Duration};
 
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
@@ -16,6 +16,10 @@ use opentalk_roomserver_types::{
 use opentalk_types_common::{rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use serde_json::value::RawValue;
+use tokio::{
+    select,
+    sync::oneshot::{self, Receiver, Sender},
+};
 use tracing::{Instrument as _, debug_span};
 
 use crate::{
@@ -332,5 +336,49 @@ where
         self.participant_role(participant_id)
             .map(|r| r == Role::Moderator)
             .unwrap_or(false)
+    }
+}
+
+pub struct ChannelDroppedError;
+
+impl<M, T> ModuleContext<'_, M>
+where
+    M: 'static + SignalingModule<Loopback = Result<T, ChannelDroppedError>>,
+    T: 'static + Sync + Send,
+{
+    /// Creates a loopback future that resolves after the `duration`.
+    ///
+    /// When `duration` has passed, `create_result` is invoked and the return
+    /// value is sent as a loopback event.
+    /// Can be cancelled by sending a result into the `rx_cancel` [`Receiver`].
+    pub fn loopback_after<F>(&self, duration: Duration, create_result: F) -> Sender<T>
+    where
+        F: FnOnce() -> T + Send + Sync + 'static,
+    {
+        let (tx_cancel, rx_cancel) = oneshot::channel();
+        self.spawn(handle_loopback_after(duration, rx_cancel, create_result));
+        tx_cancel
+    }
+}
+
+async fn handle_loopback_after<T, F>(
+    duration: Duration,
+    rx_cancel: Receiver<T>,
+    create_result: F,
+) -> Result<T, ChannelDroppedError>
+where
+    T: Sync + Send + 'static,
+    F: FnOnce() -> T + 'static,
+{
+    select! {
+        result = rx_cancel => {
+            match result {
+                Ok(value) => Ok(value),
+                Err(_) => Err(ChannelDroppedError),
+            }
+        },
+        () = tokio::time::sleep(duration) => {
+            Ok(create_result())
+        }
     }
 }

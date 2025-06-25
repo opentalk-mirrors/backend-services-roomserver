@@ -9,7 +9,7 @@ use std::{
 
 use anyhow::Context;
 use opentalk_roomserver_signaling::{
-    module_context::ModuleContext,
+    module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
         JoinInfo, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData, SwitchInfo,
     },
@@ -32,10 +32,6 @@ use opentalk_types_signaling_timer::{
     event::{Started, StopKind, Stopped, UpdatedReadyStatus},
     peer_state::TimerPeerState,
     state::TimerState,
-};
-use tokio::{
-    select,
-    sync::oneshot::{self, Receiver},
 };
 
 use crate::timer::Timer;
@@ -276,9 +272,12 @@ impl TimerModule {
                     .checked_add_signed(chrono::Duration::seconds(signed_duration))
                     .ok_or(TimerError::InvalidDuration)?;
 
-                let (tx, rx) = oneshot::channel();
+                let tx = ctx.loopback_after(Duration::from_secs(duration), || Stopped {
+                    timer_id: TimerId::nil(),
+                    kind: StopKind::Expired,
+                    reason: None,
+                });
                 tx_cancel = Some(tx);
-                ctx.spawn(Self::handle_countdown(duration, rx));
 
                 Kind::Countdown {
                     ends_at: Timestamp::from(ends_at),
@@ -415,27 +414,4 @@ impl TimerModule {
 
         Ok(())
     }
-
-    async fn handle_countdown(
-        duration: u64,
-        rx_cancel: Receiver<Stopped>,
-    ) -> Result<Stopped, ChannelDroppedError> {
-        select! {
-            result = rx_cancel => {
-                match result {
-                    Ok(stopped) => Ok(stopped),
-                    Err(_) => Err(ChannelDroppedError),
-                }
-            },
-            () = tokio::time::sleep(Duration::from_secs(duration)) => {
-                Ok(Stopped {
-                    timer_id: TimerId::nil(),
-                    kind: StopKind::Expired,
-                    reason: None,
-                })
-            }
-        }
-    }
 }
-
-pub struct ChannelDroppedError;

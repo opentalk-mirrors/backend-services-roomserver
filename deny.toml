@@ -104,6 +104,9 @@ exceptions = [
   ], name = "opentalk-roomserver-module-ping" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-polls" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-timer" },
   { allow = [
     "EUPL-1.2",
@@ -123,6 +126,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-ping" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-polls" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-timer" },
