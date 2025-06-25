@@ -2,9 +2,8 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_module_chat::ChatModule;
-use opentalk_roomserver_room::mocking::room::TestRoom;
+use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
-use opentalk_roomserver_types::core_event::CoreEvent;
 use opentalk_roomserver_types_chat::{
     command::ChatCommand,
     event::{ChatError, ChatEvent},
@@ -46,12 +45,9 @@ macro_rules! assert_message_eq {
 async fn chat_is_disabled() {
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
-    let mut alice = room.join_alice_moderator().await;
-    let mut bob = room.join_bob().await;
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     alice
         .send_command::<ChatModule>(ChatCommand::DisableChat, None)
@@ -127,13 +123,10 @@ async fn chat_is_disabled() {
 async fn chat_works_after_enabling() {
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
-    let mut bob = room.join_bob().await;
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     // Disabling the chat should broadcast the ChatDisabled event
     alice
@@ -225,23 +218,13 @@ async fn chat_works_after_enabling() {
 async fn private_messages_are_private() {
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
-    let mut bob = room.join_bob().await;
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
-    let mut charlie = room.join_charlie().await;
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
-    assert!(matches!(
-        bob.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    let mut charlie = room.join_charlie(0).await;
+    flush_connected_events(&mut [&mut alice, &mut bob]).await;
 
     // Private messages should not be received by third parties
     alice
@@ -281,14 +264,11 @@ async fn global_chat_is_cleared() {
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
     // Alice joins
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     // Bob joins
-    let mut bob = room.join_bob().await;
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     // populate the chat history both private and global
 
@@ -362,11 +342,9 @@ async fn global_chat_is_cleared() {
 
     // When bob reconnects, the join success should only contain the private message
     bob.disconnect();
-    let bob = room.join_bob().await;
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    let bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
     let chat_state = bob
         .join_success()
         .get_module::<<ChatModule as SignalingModule>::JoinInfo>()
@@ -407,7 +385,7 @@ async fn last_seen_timestamp_should_be_stored() {
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
     // Alice joins
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     // set global last seen timestamp
     alice
@@ -448,7 +426,7 @@ async fn last_seen_timestamp_should_be_stored() {
     );
 
     alice.disconnect();
-    let alice = room.join_alice_moderator().await;
+    let alice = room.join_alice_moderator(0).await;
     let chat_state = alice
         .join_success()
         .get_module::<<ChatModule as SignalingModule>::JoinInfo>()

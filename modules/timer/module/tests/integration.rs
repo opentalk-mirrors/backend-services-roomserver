@@ -5,7 +5,7 @@
 use opentalk_roomserver_module_timer::TimerModule;
 use opentalk_roomserver_room::mocking::{
     participant::{MockParticipant, MockParticipantJoined},
-    room::TestRoom,
+    room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
     breakout::{
@@ -14,7 +14,6 @@ use opentalk_roomserver_types::{
         command::BreakoutCommand,
         event::BreakoutEvent,
     },
-    core_event::CoreEvent,
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_timer::{
@@ -29,13 +28,9 @@ use opentalk_types_signaling_timer::{
 
 async fn create_room() -> (TestRoom, MockParticipantJoined, MockParticipantJoined) {
     let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
-    let mut alice = room.join_alice_moderator().await;
-    let bob = room.join_bob().await;
-
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    let mut alice = room.join_alice_moderator(0).await;
+    let bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     (room, alice, bob)
 }
@@ -355,7 +350,7 @@ async fn ready_state_persists() {
 
     alice.disconnect();
 
-    let alice = room.join_alice_moderator().await;
+    let alice = room.join_alice_moderator(0).await;
 
     let timer_state = alice
         .join_success()

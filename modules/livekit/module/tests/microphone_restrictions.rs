@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 
 use livekit::{RoomEvent, RoomOptions};
 use opentalk_roomserver_module_livekit::LiveKitModule;
+use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types::core_event::CoreEvent;
 use opentalk_roomserver_types_livekit::{
     command::LiveKitCommand, error::LiveKitError, event::LiveKitEvent,
@@ -21,20 +22,17 @@ async fn microphones_are_restricted() {
     let (_container, mut room, public_url) = common::build_livekit_room().await;
 
     // Alice joins the meeting
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     // Bob joins the meeting
-    let mut bob = room.join_bob().await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
     let bob_livekit_state = bob
         .join_success()
         .get_module::<LiveKitState>()
         .expect("LiveKit state must be deserializable")
         .expect("LiveKit state must be present");
 
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
     // join livekit to ensure participant exists and can be muted.
     let (bob_room, mut room_events) = livekit::Room::connect(
         &public_url,
@@ -92,10 +90,10 @@ async fn permissions_are_updated() {
     let (_container, mut room, public_url) = common::build_livekit_room().await;
 
     // Alice joins the meeting
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     // Bob joins the meeting
-    let mut bob = room.join_bob().await;
+    let mut bob = room.join_bob(0).await;
     let bob_livekit_state = bob
         .join_success()
         .get_module::<LiveKitState>()
@@ -191,7 +189,7 @@ async fn enable_unknown_participant() {
     let (_container, mut room, _public_url) = common::build_livekit_room().await;
 
     // Alice joins the meeting
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     let disconnected = BTreeSet::from_iter([disconnected_participant]);
 
@@ -225,10 +223,10 @@ async fn disable_unknown_participant() {
     let (_container, mut room, public_url) = common::build_livekit_room().await;
 
     // Alice joins the meeting
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     // Bob joins the meeting
-    let bob = room.join_bob().await;
+    let bob = room.join_bob(0).await;
     let bob_livekit_state = bob
         .join_success()
         .get_module::<LiveKitState>()
@@ -291,7 +289,7 @@ async fn disable_insufficient_permissions() {
     let (_container, mut room, _public_url) = common::build_livekit_room().await;
 
     // Bob joins the meeting
-    let mut bob = room.join_bob().await;
+    let mut bob = room.join_bob(0).await;
 
     // Bob sends the command
     bob.send_command::<LiveKitModule>(LiveKitCommand::DisableMicrophoneRestrictions, None)
@@ -312,7 +310,7 @@ async fn enable_insufficient_permissions() {
     let (_container, mut room, _public_url) = common::build_livekit_room().await;
 
     // Bob joins the meeting
-    let mut bob = room.join_bob().await;
+    let mut bob = room.join_bob(0).await;
 
     let unrestricted = BTreeSet::from_iter([disconnected_participant]);
 
@@ -340,7 +338,7 @@ async fn barrier_should_be_freed() {
     let (_container, mut room, _public_url) = common::build_livekit_room().await;
 
     // Alice joins the meeting
-    let mut alice = room.join_alice_moderator().await;
+    let mut alice = room.join_alice_moderator(0).await;
 
     // Alice sends the command
     for _ in 0..2 {
