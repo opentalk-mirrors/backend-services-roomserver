@@ -11,10 +11,7 @@ use opentalk_roomserver_types::{
     breakout::{
         breakout_config::{BreakoutConfig, BreakoutRoomConfig},
         breakout_id::BreakoutId,
-        command::BreakoutCommand,
-        event::BreakoutEvent,
     },
-    core_event::CoreEvent,
     join::join_success::JoinSuccess,
     room_kind::RoomKind,
 };
@@ -875,30 +872,15 @@ async fn start_breakout_scenario() -> BreakoutScenario<JoinSuccess> {
 
     let mut alice = room.join_alice_moderator(1).await;
     let mut bob = room.join_bob(1).await;
+    flush_connected_events(&mut [&mut alice]).await;
     let mut charlie = room.join_charlie(1).await;
+    flush_connected_events(&mut [&mut alice, &mut bob]).await;
 
-    // bob joined for alice
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
-
-    // charlie joined for alice
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
-
-    // charlie joined for bob
-    assert!(matches!(
-        bob.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
-
-    // alice starts breakout rooms
+    // Alice starts breakout rooms
     alice
-        .send_breakout_command(
-            BreakoutCommand::Start(BreakoutConfig {
+        .start_breakout_rooms(
+            &mut [&mut bob, &mut charlie],
+            BreakoutConfig {
                 rooms: vec![
                     BreakoutRoomConfig {
                         name: "Room 0".into(),
@@ -914,39 +896,24 @@ async fn start_breakout_scenario() -> BreakoutScenario<JoinSuccess> {
                     },
                 ],
                 duration: None,
-            }),
-            None,
+            },
         )
-        .await
-        .unwrap();
-
-    // breakout rooms started
-    let _: BreakoutEvent = alice.receive().await.unwrap().content;
-    let _: BreakoutEvent = bob.receive().await.unwrap().content;
-    let _: BreakoutEvent = charlie.receive().await.unwrap().content;
+        .await;
 
     // Alice switches to breakout room 1
     alice
-        .send_breakout_command(
-            BreakoutCommand::SwitchRoom(RoomKind::Breakout(BreakoutId::from(1))),
-            None,
+        .switch_breakout_room(
+            &mut [&mut bob, &mut charlie],
+            RoomKind::Breakout(BreakoutId::from(1)),
         )
-        .await
-        .unwrap();
-    let _: BreakoutEvent = alice.receive().await.unwrap().content;
-    let _: BreakoutEvent = bob.receive().await.unwrap().content;
-    let _: BreakoutEvent = charlie.receive().await.unwrap().content;
+        .await;
 
     // Bob switches to breakout room 1
-    bob.send_breakout_command(
-        BreakoutCommand::SwitchRoom(RoomKind::Breakout(BreakoutId::from(1))),
-        None,
+    bob.switch_breakout_room(
+        &mut [&mut alice, &mut charlie],
+        RoomKind::Breakout(BreakoutId::from(1)),
     )
-    .await
-    .unwrap();
-    let _: BreakoutEvent = alice.receive().await.unwrap().content;
-    let _: BreakoutEvent = bob.receive().await.unwrap().content;
-    let _: BreakoutEvent = charlie.receive().await.unwrap().content;
+    .await;
 
     assert!(alice.received_nothing());
     assert!(bob.received_nothing());
