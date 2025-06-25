@@ -160,39 +160,36 @@ impl SignalingModule for TimerModule {
             .get(&new_room)
             .with_context(|| format!("Room '{:?}' does not exist in timers", new_room))?;
 
-        let connections = ctx
-            .participant_state(participant_id)
-            .with_context(|| format!("Participant '{participant_id}' does not have state"))?
-            .connections();
+        // Timer is disabled, send empty JoinInfo
+        let Some(timer) = timer else {
+            return Ok(SwitchInfo::<Self>::new());
+        };
 
-        let timer_state = match timer {
-            // Timer is enabled with ready check, send TimerState with ready_status
-            Some(timer) if timer.config.ready_check_enabled => {
-                // Joining participants might already be ready when they were in the
-                // room before
-                let ready_status = self
-                    .ready_participants
+        let ready_status = if timer.config.ready_check_enabled {
+            // Joining participants might already be ready when they were in the
+            // room before
+            Some(
+                self.ready_participants
                     .get(&new_room)
                     .with_context(|| {
                         format!("Room '{new_room:?}' does not exist in participant ready state")
                     })?
-                    .contains(&participant_id);
-
-                Some(TimerState {
-                    config: timer.config.clone(),
-                    ready_status: Some(ready_status),
-                })
-            }
-            // Timer is enabled without ready check send TimerState without ready_status
-            Some(timer) => Some(TimerState {
-                config: timer.config.clone(),
-                ready_status: None,
-            }),
-            // Timer is disabled, send empty JoinInfo
-            None => None,
+                    .contains(&participant_id),
+            )
+        } else {
+            None
         };
+        let timer_state = Some(TimerState {
+            config: timer.config.clone(),
+            ready_status,
+        });
 
+        let connections = ctx
+            .participant_state(participant_id)
+            .with_context(|| format!("Participant '{participant_id}' does not have state"))?
+            .connections();
         let switch_info = connections.map(|con| (con, timer_state.clone())).collect();
+
         Ok(switch_info)
     }
 
