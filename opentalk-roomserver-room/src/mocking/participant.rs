@@ -9,11 +9,12 @@ use opentalk_roomserver_signaling::{
     signaling_module::SignalingModule,
 };
 use opentalk_roomserver_types::{
-    breakout::command::BreakoutCommand,
+    breakout::{breakout_config::BreakoutConfig, command::BreakoutCommand, event::BreakoutEvent},
     client_parameters::{ClientKind, ClientParameters, Role},
     connection_id::ConnectionId,
     core_event::CoreEvent,
     join::join_success::JoinSuccess,
+    room_kind::RoomKind,
     signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket;
@@ -118,6 +119,44 @@ impl MockParticipant<JoinSuccess> {
 
     pub fn connection_id(&self) -> ConnectionId {
         self.state.connection_id
+    }
+
+    pub async fn start_breakout_rooms(
+        &mut self,
+        others: &mut [&mut MockParticipantJoined],
+        config: BreakoutConfig,
+    ) -> BreakoutEvent {
+        self.send_breakout_command(BreakoutCommand::Start(config), None)
+            .await
+            .unwrap();
+
+        for p in others {
+            assert!(matches!(
+                p.receive::<BreakoutEvent>().await.unwrap().content,
+                BreakoutEvent::Started { .. },
+            ));
+        }
+
+        self.receive::<BreakoutEvent>().await.unwrap().content
+    }
+
+    pub async fn switch_breakout_room(
+        &mut self,
+        others: &mut [&mut MockParticipantJoined],
+        room: RoomKind,
+    ) -> BreakoutEvent {
+        self.send_breakout_command(BreakoutCommand::SwitchRoom(room), None)
+            .await
+            .unwrap();
+
+        for p in others {
+            assert!(matches!(
+                p.receive::<BreakoutEvent>().await.unwrap().content,
+                BreakoutEvent::ParticipantSwitchedRoom { .. },
+            ));
+        }
+
+        self.receive::<BreakoutEvent>().await.unwrap().content
     }
 }
 

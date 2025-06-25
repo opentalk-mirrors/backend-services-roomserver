@@ -3,10 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_module_timer::TimerModule;
-use opentalk_roomserver_room::mocking::{
-    participant::MockParticipant,
-    room::{TestRoom, flush_connected_events},
-};
+use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{
     breakout::{
         breakout_config::{BreakoutConfig, BreakoutRoomConfig},
@@ -398,12 +395,9 @@ async fn breakout_room_scope() {
     bob.receive::<BreakoutEvent>().await.unwrap();
 
     // Alice switches to room 0
-    switch_room(
-        &mut alice,
-        &mut bob,
-        RoomKind::Breakout(BreakoutId::from(0)),
-    )
-    .await;
+    alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(BreakoutId::from(0)))
+        .await;
 
     // Alice starts a timer in her room
     alice
@@ -436,24 +430,6 @@ async fn breakout_room_scope() {
     assert!(bob.received_nothing());
 }
 
-async fn switch_room<S>(
-    participant: &mut MockParticipant<S>,
-    other_participant: &mut MockParticipant<S>,
-    room: RoomKind,
-) -> BreakoutEvent {
-    participant
-        .send_breakout_command(BreakoutCommand::SwitchRoom(room), None)
-        .await
-        .unwrap();
-    // All participants receive the ParticipantSwitchedRoom event
-    other_participant.receive::<BreakoutEvent>().await.unwrap();
-    participant
-        .receive::<BreakoutEvent>()
-        .await
-        .unwrap()
-        .content
-}
-
 #[test_log::test(tokio::test)]
 async fn breakout_room_ready_state() {
     let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
@@ -471,27 +447,19 @@ async fn breakout_room_ready_state() {
         assignments: vec![bob.id()],
     };
     alice
-        .send_breakout_command(
-            BreakoutCommand::Start(BreakoutConfig {
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
                 rooms: vec![alice_room, bob_room],
                 duration: None,
-            }),
-            None,
+            },
         )
-        .await
-        .unwrap();
-
-    // Alice and Bob receive the BreakoutStarted event
-    alice.receive::<BreakoutEvent>().await.unwrap();
-    bob.receive::<BreakoutEvent>().await.unwrap();
+        .await;
 
     // Alice switches to room 0
-    switch_room(
-        &mut alice,
-        &mut bob,
-        RoomKind::Breakout(BreakoutId::from(0)),
-    )
-    .await;
+    alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(BreakoutId::from(0)))
+        .await;
 
     // Alice starts a timer in room 0
     alice
@@ -528,23 +496,17 @@ async fn breakout_room_ready_state() {
     );
 
     // Alice switches to room 1
-    switch_room(
-        &mut alice,
-        &mut bob,
-        RoomKind::Breakout(BreakoutId::from(1)),
-    )
-    .await;
+    alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(BreakoutId::from(1)))
+        .await;
 
     // Alice switches back to room 0
-    let switched_room = switch_room(
-        &mut alice,
-        &mut bob,
-        RoomKind::Breakout(BreakoutId::from(0)),
-    )
-    .await;
+    let event = alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(BreakoutId::from(0)))
+        .await;
 
     // Alice is still ready in room 0
-    let BreakoutEvent::SwitchedRoom { module_data, .. } = switched_room else {
+    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
         unreachable!("Received wrong event");
     };
 
