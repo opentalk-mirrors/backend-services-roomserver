@@ -4,7 +4,7 @@
 
 use opentalk_roomserver_module_timer::TimerModule;
 use opentalk_roomserver_room::mocking::{
-    participant::{MockParticipant, MockParticipantJoined},
+    participant::MockParticipant,
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
@@ -26,18 +26,10 @@ use opentalk_types_signaling_timer::{
     state::TimerState,
 };
 
-async fn create_room() -> (TestRoom, MockParticipantJoined, MockParticipantJoined) {
-    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
-    let mut alice = room.join_alice_moderator(0).await;
-    let bob = room.join_bob(0).await;
-    flush_connected_events(&mut [&mut alice]).await;
-
-    (room, alice, bob)
-}
-
 #[test_log::test(tokio::test)]
 async fn can_not_start_second_timer() {
-    let (_room, mut alice, _bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
 
     alice
         .send_command::<TimerModule>(
@@ -78,7 +70,8 @@ async fn can_not_start_second_timer() {
 
 #[test_log::test(tokio::test)]
 async fn non_moderator_cant_start_timer() {
-    let (_room, _alice, mut bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut bob = room.join_bob(0).await;
 
     bob.send_command::<TimerModule>(
         TimerCommand::Start(Start {
@@ -100,7 +93,10 @@ async fn non_moderator_cant_start_timer() {
 
 #[test_log::test(tokio::test)]
 async fn all_participants_receive_timer_events() {
-    let (_room, mut alice, mut bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     alice
         .send_command::<TimerModule>(
@@ -143,7 +139,8 @@ async fn all_participants_receive_timer_events() {
 
 #[test_log::test(tokio::test)]
 async fn exceed_timer() {
-    let (_room, mut alice, _bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
 
     alice
         .send_command::<TimerModule>(
@@ -174,7 +171,8 @@ async fn exceed_timer() {
 
 #[test_log::test(tokio::test)]
 async fn stop_timer() {
-    let (_room, mut alice, _bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
 
     alice
         .send_command::<TimerModule>(
@@ -216,7 +214,8 @@ async fn stop_timer() {
 
 #[test_log::test(tokio::test)]
 async fn can_not_update_ready_status_when_timer_not_running() {
-    let (_room, mut alice, _bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
 
     alice
         .send_command::<TimerModule>(TimerCommand::UpdateReadyStatus { status: true }, None)
@@ -231,7 +230,8 @@ async fn can_not_update_ready_status_when_timer_not_running() {
 
 #[test_log::test(tokio::test)]
 async fn can_not_update_ready_status_when_disabled() {
-    let (_room, mut alice, _bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
 
     alice
         .send_command::<TimerModule>(
@@ -264,7 +264,10 @@ async fn can_not_update_ready_status_when_disabled() {
 
 #[test_log::test(tokio::test)]
 async fn update_ready_status() {
-    let (_room, mut alice, mut bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     alice
         .send_command::<TimerModule>(
@@ -314,7 +317,8 @@ async fn update_ready_status() {
 
 #[test_log::test(tokio::test)]
 async fn ready_state_persists() {
-    let (mut room, mut alice, _bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
 
     alice
         .send_command::<TimerModule>(
@@ -364,7 +368,10 @@ async fn ready_state_persists() {
 
 #[test_log::test(tokio::test)]
 async fn breakout_room_scope() {
-    let (mut _room, mut alice, mut bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     // Alice starts breakout rooms with separate rooms for Alice and Bob
     let alice_room = BreakoutRoomConfig {
@@ -449,7 +456,10 @@ async fn switch_room<S>(
 
 #[test_log::test(tokio::test)]
 async fn breakout_room_ready_state() {
-    let (mut _room, mut alice, mut bob) = create_room().await;
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     // Alice starts breakout rooms with separate rooms for Alice and Bob
     let alice_room = BreakoutRoomConfig {
