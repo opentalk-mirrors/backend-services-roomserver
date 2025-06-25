@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_types::room_kind::RoomKind;
+use opentalk_roomserver_types::{connection_id::ConnectionId, room_kind::RoomKind};
 use opentalk_types_signaling::{ParticipantId, ParticipationVisibility};
 
 use crate::participant_state::{ParticipantState, Participants};
@@ -141,6 +141,16 @@ impl<'a> ParticipantsFiltered<'a> {
             .iter()
             .filter(move |(_, s)| filter.apply(s))
             .map(|(k, _)| *k)
+    }
+
+    pub fn connection_ids(&self) -> impl Iterator<Item = ConnectionId> + use<'_> {
+        let filter = self.filter;
+
+        self.inner
+            .all_unfiltered
+            .iter()
+            .filter(move |(_, s)| filter.apply(s))
+            .flat_map(|(_, s)| s.connections())
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> + use<'_> {
