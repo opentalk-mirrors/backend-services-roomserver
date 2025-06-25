@@ -1,8 +1,11 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
 # SPDX-License-Identifier: EUPL-1.2
-# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 [package]
 authors.workspace = true
+description = "Signaling types for the OpenTalk chat module in the roomserver"
+documentation = "https://docs.rs/opentalk-roomserver-types-chat"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
@@ -10,16 +13,47 @@ name = "opentalk-roomserver-types-chat"
 repository.workspace = true
 version.workspace = true
 
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+backend = [
+  "opentalk-types-common/backend",
+  "opentalk-types-signaling/backend",
+  "rand",
+  "serde",
+]
+frontend = [
+  "opentalk-types-common/frontend",
+  "opentalk-types-signaling/frontend",
+  "serde",
+]
+rand = [
+  "opentalk-types-common/rand",
+  "opentalk-types-signaling/rand",
+  "uuid/v4",
+]
+serde = [
+  "dep:serde",
+  "opentalk-types-common/serde",
+  "opentalk-types-signaling/serde",
+  "uuid/serde",
+]
+
 [dependencies]
+derive_more = { workspace = true, features = [
+  "as_ref",
+  "display",
+  "from",
+  "from_str",
+  "into",
+] }
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-opentalk-types-signaling-chat = { workspace = true, features = [
-  "rand",
-  "serde",
-] }
-serde.workspace = true
+serde = { workspace = true, optional = true }
+uuid.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

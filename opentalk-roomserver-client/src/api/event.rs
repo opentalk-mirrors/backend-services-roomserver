@@ -70,11 +70,10 @@ mod tests {
     use opentalk_roomserver_types::{
         breakout::event::BreakoutEvent, connection_id::ConnectionId, core_event::CoreEvent,
     };
-    use opentalk_roomserver_types_chat::event::ChatEvent;
+    use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
     use opentalk_roomserver_types_ping::event::PingEvent;
     use opentalk_types_common::modules::ModuleId;
     use opentalk_types_signaling::ParticipantId;
-    use opentalk_types_signaling_chat::event::ChatDisabled;
     use opentalk_types_signaling_livekit::event::LiveKitEvent;
     use serde::Deserialize;
 

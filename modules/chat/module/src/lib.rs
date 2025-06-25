@@ -3,28 +3,29 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+use anyhow::Context;
 use chat_id::{ChatId, PrivateChatId};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData},
+    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData, SwitchInfo},
 };
 use opentalk_roomserver_types::{
-    connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
+    breakout::{BreakoutRoom, breakout_id::BreakoutId},
+    connection_id::ConnectionId,
+    room_kind::RoomKind,
+    signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_chat::{
-    CHAT_MODULE_ID,
-    command::ChatCommand,
-    event::{ChatError, ChatEvent},
-};
-use opentalk_types_common::{modules::ModuleId, time::Timestamp};
-use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_chat::{
-    MessageId, Scope,
-    command::{SendMessage, SetLastSeenTimestamp},
-    event::{ChatDisabled, ChatEnabled, HistoryCleared, MessageSent},
+    CHAT_MODULE_ID, MessageId, Scope,
+    command::{ChatCommand, SendMessage, SetLastSeenTimestamp},
+    event::{
+        ChatDisabled, ChatEnabled, ChatEvent, Error as ChatError, HistoryCleared, MessageSent,
+    },
     peer_state::ChatPeerState,
     state::{ChatState, PrivateHistory, StoredMessage},
 };
+use opentalk_types_common::{modules::ModuleId, time::Timestamp};
+use opentalk_types_signaling::ParticipantId;
 
 pub mod chat_id;
 
@@ -70,7 +71,7 @@ impl SignalingModule for ChatModule {
         _is_first_connection: bool,
     ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
         let mut join_info = JoinInfo {
-            join_success: Some(self.chat_state_for_participant(p_joined)),
+            join_success: Some(self.chat_state_for_participant(p_joined, RoomKind::Main)),
             ..Default::default()
         };
 
@@ -129,6 +130,54 @@ impl SignalingModule for ChatModule {
         Ok(())
     }
 
+    fn on_breakout_start(
+        &mut self,
+        _ctx: &mut ModuleContext<'_, Self>,
+        rooms: &[BreakoutRoom],
+        _duration: Option<std::time::Duration>,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        for room in rooms {
+            self.history.insert(ChatId::Breakout(room.id), Vec::new());
+        }
+
+        Ok(())
+    }
+
+    fn on_breakout_switch(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        participant_id: ParticipantId,
+        _old_room: RoomKind,
+        new_room: RoomKind,
+    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
+        let mut switch_info = SwitchInfo::<Self>::new();
+        let chat_state = self.chat_state_for_participant(participant_id, new_room);
+
+        let connections = ctx
+            .participants
+            .connected()
+            .get(&participant_id)
+            .context("failed to get participant state")?
+            .connections();
+
+        for conn_id in connections {
+            switch_info.insert(conn_id, Some(chat_state.clone()));
+        }
+
+        Ok(switch_info)
+    }
+
+    fn on_breakout_closed(
+        &mut self,
+        _ctx: &mut ModuleContext<'_, Self>,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        // remove all breakout chat histories
+        self.history
+            .retain(|id, _| !matches!(id, ChatId::Breakout(_)));
+
+        Ok(())
+    }
+
     fn on_loopback_event(
         &mut self,
         _ctx: &mut ModuleContext<'_, Self>,
@@ -139,13 +188,34 @@ impl SignalingModule for ChatModule {
 }
 
 impl ChatModule {
-    fn chat_state_for_participant(&mut self, participant: ParticipantId) -> ChatState {
+    fn chat_state_for_participant(
+        &mut self,
+        participant: ParticipantId,
+        room_kind: RoomKind,
+    ) -> ChatState {
+        let (breakout_room_history, last_seen_timestamp_breakout) = match room_kind {
+            RoomKind::Main => (None, None),
+            RoomKind::Breakout(breakout_id) => {
+                let history = self
+                    .history
+                    .entry(ChatId::Breakout(breakout_id))
+                    .or_default()
+                    .clone();
+
+                let last_seen = self.last_seen_breakout(participant, breakout_id);
+
+                (Some(history), last_seen)
+            }
+        };
+
         ChatState {
             enabled: self.enabled,
-            room_history: self.history.entry(ChatId::Global).or_default().clone(),
+            global_history: self.history.entry(ChatId::Global).or_default().clone(),
+            breakout_room_history,
             groups_history: Vec::new(),
             private_history: self.private_chat_histories(participant),
             last_seen_timestamp_global: self.last_seen_global(participant),
+            last_seen_timestamp_breakout,
             last_seen_timestamps_private: self.last_seen_timestamps_private(participant),
             last_seen_timestamps_group: Default::default(),
         }
@@ -184,6 +254,19 @@ impl ChatModule {
             .entry(participant)
             .or_default()
             .get(&ChatId::Global)
+            .copied()
+            .flatten()
+    }
+
+    fn last_seen_breakout(
+        &mut self,
+        participant: ParticipantId,
+        breakout_id: BreakoutId,
+    ) -> Option<Timestamp> {
+        self.chat_state
+            .entry(participant)
+            .or_default()
+            .get(&ChatId::Breakout(breakout_id))
             .copied()
             .flatten()
     }
@@ -231,7 +314,7 @@ impl ChatModule {
             })
         };
 
-        ctx.send_ws_message(ctx.participants.connected().iter().map(|(id, _)| *id), msg)?;
+        ctx.send_ws_message(ctx.participants.connected().ids(), msg)?;
         Ok(())
     }
 
@@ -244,6 +327,17 @@ impl ChatModule {
     ) -> Result<(), SignalingModuleError<<ChatModule as SignalingModule>::Error>> {
         if !self.enabled {
             return Err(ChatError::ChatDisabled.into());
+        }
+
+        if let Scope::Breakout(breakout_id) = scope {
+            // deny messages to other breakout rooms
+            let RoomKind::Breakout(current_breakout_id) = ctx.room else {
+                return Err(ChatError::InvalidBreakoutScope.into());
+            };
+
+            if current_breakout_id != breakout_id {
+                return Err(ChatError::InvalidBreakoutScope.into());
+            }
         }
 
         let out_message = MessageSent {
@@ -285,7 +379,16 @@ impl ChatModule {
         match &chat_id {
             ChatId::Global => {
                 ctx.send_ws_message(
-                    ctx.participants.connected().iter().map(|(id, _)| *id),
+                    ctx.participants.connected().ids(),
+                    ChatEvent::MessageSent(out_message),
+                )?;
+            }
+            ChatId::Breakout(breakout_id) => {
+                ctx.send_ws_message(
+                    ctx.participants
+                        .connected()
+                        .room(RoomKind::Breakout(*breakout_id))
+                        .ids(),
                     ChatEvent::MessageSent(out_message),
                 )?;
             }
@@ -319,7 +422,7 @@ impl ChatModule {
         self.history.remove(&ChatId::Global);
 
         ctx.send_ws_message(
-            ctx.participants.connected().iter().map(|(id, _)| *id),
+            ctx.participants.connected().ids(),
             ChatEvent::HistoryCleared(HistoryCleared {
                 issued_by: participant,
             }),
@@ -341,7 +444,7 @@ impl ChatModule {
             .insert(chat_id, Some(timestamp));
 
         ctx.send_ws_message(
-            ctx.participants.connected().iter().map(|(id, _)| *id),
+            ctx.participants.connected().ids(),
             ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp { scope, timestamp }),
         )?;
         Ok(())

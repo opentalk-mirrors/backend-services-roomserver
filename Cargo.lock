@@ -1478,6 +1478,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "diesel"
+version = "2.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a917a9209950404d5be011c81d081a2692a822f73c3d6af586f0cab5ff50f614"
+dependencies = [
+ "bitflags 2.9.1",
+ "byteorder",
+ "diesel_derives",
+ "itoa",
+ "pq-sys",
+ "uuid",
+]
+
+[[package]]
+name = "diesel_derives"
+version = "2.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52841e97814f407b895d836fa0012091dff79c6268f39ad8155d384c21ae0d26"
+dependencies = [
+ "diesel_table_macro_syntax",
+ "dsl_auto_type",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "diesel_table_macro_syntax"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "209c735641a413bc68c4923a9d6ad4bcb3ca306b794edaa7eb0b3228a99ffb25"
+dependencies = [
+ "syn",
+]
+
+[[package]]
 name = "diff"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1582,6 +1618,20 @@ name = "dpi"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
+
+[[package]]
+name = "dsl_auto_type"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "139ae9aca7527f85f26dd76483eb38533fd84bd571065da1739656ef71c5ff5b"
+dependencies = [
+ "darling",
+ "either",
+ "heck 0.5.0",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "dunce"
@@ -4490,10 +4540,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-bigint"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
+dependencies = [
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
 name = "num-conv"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51d515d32fb182ee37cda2ccdcb92950d6a3c2893aa280e540671c2cd0f3b1d9"
+
+[[package]]
+name = "num-integer"
+version = "0.1.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7969661fd2958a5cb096e56c8e1ad0444ac2bbcd0061bd28660485a44879858f"
+dependencies = [
+ "num-traits",
+]
 
 [[package]]
 name = "num-traits"
@@ -4890,6 +4959,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-diesel-newtype"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5d51cd892035a11f28a44e64312ec1796dcebbe32a820b35f26b7dd42b6542c"
+dependencies = [
+ "diesel",
+ "opentalk-diesel-newtype-impl",
+ "serde",
+]
+
+[[package]]
+name = "opentalk-diesel-newtype-impl"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8ee737a5837bdcafca4f5ac6c3ac388c1e5e3f229d28abe2d124d552b61e720"
+dependencies = [
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "opentalk-roomserver"
 version = "0.0.0-dev"
 dependencies = [
@@ -4949,7 +5041,6 @@ dependencies = [
  "opentalk-roomserver-types-ping",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-chat",
  "opentalk-types-signaling-livekit",
  "reqwest 0.12.20",
  "serde",
@@ -5004,6 +5095,7 @@ dependencies = [
 name = "opentalk-roomserver-module-chat"
 version = "0.0.0-dev"
 dependencies = [
+ "anyhow",
  "log",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
@@ -5011,7 +5103,6 @@ dependencies = [
  "opentalk-roomserver-types-chat",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-chat",
  "pretty_assertions",
  "serde",
  "test-log",
@@ -5147,14 +5238,15 @@ dependencies = [
 name = "opentalk-roomserver-types-chat"
 version = "0.0.0-dev"
 dependencies = [
+ "derive_more",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-chat",
  "pretty_assertions",
  "serde",
  "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -5239,11 +5331,15 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "derive_more",
+ "diesel",
  "email_address",
  "itertools 0.14.0",
+ "opentalk-diesel-newtype",
  "opentalk-types-common-identifiers",
  "opentalk-types-common-macros",
  "rand 0.9.1",
+ "redis",
+ "redis-args",
  "serde",
  "serde_json",
  "serde_with",
@@ -5261,6 +5357,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80484edfb74f38dd9dcfdbb962d3c5e38417ea919649346b779733a5d6e4edc1"
 dependencies = [
  "derive_more",
+ "diesel",
+ "opentalk-diesel-newtype",
  "serde",
  "serde_json",
  "serde_with",
@@ -5289,22 +5387,10 @@ checksum = "be4b2b5c8c01b45bad75d78fb2cba70aee8a48e30ed5e727e45fb5f9482d5666"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
+ "redis-args",
  "serde",
  "serde_json",
  "strum 0.27.1",
- "uuid",
-]
-
-[[package]]
-name = "opentalk-types-signaling-chat"
-version = "0.36.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0da4d43bdc7d4fa892d970ad3c0d5add2e04178a731070b606632d9dfd108858"
-dependencies = [
- "derive_more",
- "opentalk-types-common",
- "opentalk-types-signaling",
- "serde",
  "uuid",
 ]
 
@@ -5804,6 +5890,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pq-sys"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dfd6cf44cca8f9624bc19df234fc4112873432f5fda1caff174527846d026fa9"
+dependencies = [
+ "libc",
+ "vcpkg",
+]
+
+[[package]]
 name = "pretty_assertions"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6128,6 +6224,45 @@ name = "raw-window-handle"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
+
+[[package]]
+name = "redis"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bc1ea653e0b2e097db3ebb5b7f678be339620b8041f66b30a308c1d45d36a7f"
+dependencies = [
+ "combine",
+ "itoa",
+ "num-bigint",
+ "percent-encoding",
+ "ryu",
+ "sha1_smol",
+ "socket2",
+ "url",
+]
+
+[[package]]
+name = "redis-args"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c970cff6813c98e2b621a20a02b7f8b3d4bbb8a69e921434ca33ac2adfc3c758"
+dependencies = [
+ "redis",
+ "redis-args-impl",
+ "serde_json",
+]
+
+[[package]]
+name = "redis-args-impl"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1b39ca58a52902317eb86914747ce40d493194aa59a707629a30fab3352cae9"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "redox_syscall"
@@ -6795,6 +6930,12 @@ dependencies = [
  "digest",
  "sha1",
 ]
+
+[[package]]
+name = "sha1_smol"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbfa15b3dddfee50a0fff136974b3e1bde555604ba463834a7eb7deb6417705d"
 
 [[package]]
 name = "sha2"
