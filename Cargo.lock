@@ -5147,7 +5147,6 @@ dependencies = [
 name = "opentalk-roomserver-types-chat"
 version = "0.0.0-dev"
 dependencies = [
- "chrono",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",

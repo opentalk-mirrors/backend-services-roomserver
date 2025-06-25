@@ -22,6 +22,5 @@ opentalk-types-signaling-chat = { workspace = true, features = [
 serde.workspace = true
 
 [dev-dependencies]
-chrono.workspace = true
 pretty_assertions.workspace = true
 serde_json.workspace = true

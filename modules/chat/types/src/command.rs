@@ -34,7 +34,6 @@ impl CreateReplica<ChatEvent> for ChatCommand {
 
 #[cfg(test)]
 mod tests {
-    use chrono::SecondsFormat;
     use opentalk_types_common::time::Timestamp;
     use opentalk_types_signaling_chat::Scope;
     use pretty_assertions::assert_eq;
@@ -88,16 +87,11 @@ mod tests {
     fn serialize_set_last_seen_timestamp() {
         let set_last_seen = SetLastSeenTimestamp {
             scope: Scope::Global,
-            timestamp: Timestamp::now(),
+            timestamp: Timestamp::unix_epoch(),
         };
         let command = ChatCommand::SetLastSeenTimestamp(set_last_seen.clone());
         let serialized = serde_json::to_string(&command).expect("Serialization failed");
-        let expected = format!(
-            r#"{{"action":"set_last_seen_timestamp","scope":"global","timestamp":"{}"}}"#,
-            set_last_seen
-                .timestamp
-                .to_rfc3339_opts(SecondsFormat::Nanos, true)
-        );
+        let expected = r#"{"action":"set_last_seen_timestamp","scope":"global","timestamp":"1970-01-01T00:00:00Z"}"#;
         assert_eq!(serialized, expected);
     }
 
