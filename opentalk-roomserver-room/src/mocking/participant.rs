@@ -154,10 +154,13 @@ impl MockParticipant<JoinSuccess> {
             .unwrap();
 
         for p in others {
-            assert!(matches!(
-                p.receive::<BreakoutEvent>().await.unwrap().content,
-                BreakoutEvent::ParticipantSwitchedRoom { .. },
-            ));
+            let event = p.receive::<BreakoutEvent>().await.unwrap().content;
+            assert!(
+                matches!(event, BreakoutEvent::ParticipantSwitchedRoom { .. },),
+                "Error for {}, Expected BreakoutEvent::ParticipantSwitchedRoom, got: {:?}",
+                p.id(),
+                event
+            );
         }
 
         self.receive::<BreakoutEvent>().await.unwrap().content
@@ -251,6 +254,27 @@ impl<S> MockParticipant<S> {
             profile,
             role: Role::User,
             secret: DeviceSecret::from_str(&format!("Charlie Device Secret {device_number}"))
+                .expect("Valid device secret"),
+        }
+    }
+
+    pub fn dave(device_number: usize) -> MockParticipantBuilder<PublicUserProfile> {
+        let profile = PublicUserProfile {
+            id: UserId::from_u128(0xdae),
+            email: "dave@example.com".to_string(),
+            user_info: UserInfo {
+                title: "".parse().expect("Valid title"),
+                firstname: "Dave".to_string(),
+                lastname: "Dove".to_string(),
+                display_name: "Dave the daring".parse().expect("Valid DisplayName"),
+                avatar_url: "https://example.com/avatar-of-dave".to_string(),
+            },
+        };
+
+        MockParticipantBuilder {
+            profile,
+            role: Role::User,
+            secret: DeviceSecret::from_str(&format!("Dave Device Secret {device_number}"))
                 .expect("Valid device secret"),
         }
     }

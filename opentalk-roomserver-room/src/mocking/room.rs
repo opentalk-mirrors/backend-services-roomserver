@@ -185,6 +185,13 @@ impl TestRoom {
             .unwrap()
     }
 
+    pub async fn join_dave(&mut self, device_number: usize) -> MockParticipantJoined {
+        MockParticipantJoining::dave(device_number)
+            .join(self)
+            .await
+            .unwrap()
+    }
+
     pub async fn join_gustav_guest(&mut self) -> MockParticipantJoined {
         MockParticipantJoining::gustav().join(self).await.unwrap()
     }
