@@ -5043,6 +5043,7 @@ dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-chat",
+ "opentalk-roomserver-types-e2ee",
  "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-ping",
  "opentalk-types-common",
@@ -5118,7 +5119,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-e2ee"
-version = "0.0.0-dev"
+version = "0.0.2-dev"
 dependencies = [
  "bytes",
  "opentalk-roomserver-room",
@@ -5289,7 +5290,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-e2ee"
-version = "0.0.0-dev"
+version = "0.0.2-dev"
 dependencies = [
  "bytes",
  "opentalk-roomserver-signaling",

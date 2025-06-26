@@ -4,13 +4,16 @@
 use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::breakout::command::BreakoutCommand;
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
-// reexport commands for easier usage
-pub use opentalk_roomserver_types_livekit::{
-    LIVEKIT_MODULE_ID, LiveKitCommand, MicrophoneRestrictionState,
-};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, command::PingCommand};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
+// reexport commands for easier usage
+pub use {
+    opentalk_roomserver_types_e2ee::{E2EE_MODULE_ID, E2eeCommand},
+    opentalk_roomserver_types_livekit::{
+        LIVEKIT_MODULE_ID, LiveKitCommand, MicrophoneRestrictionState,
+    },
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignalingCommand {
@@ -46,6 +49,8 @@ pub enum SignalingModuleCommand {
 
     #[serde(rename = "livekit")]
     LiveKit(LiveKitCommand),
+
+    E2ee(E2eeCommand),
 }
 
 impl SignalingModuleCommand {
@@ -55,6 +60,7 @@ impl SignalingModuleCommand {
             Self::Ping(..) => PING_MODULE_ID,
             Self::Chat(..) => CHAT_MODULE_ID,
             Self::LiveKit(..) => LIVEKIT_MODULE_ID,
+            Self::E2ee(..) => E2EE_MODULE_ID,
         }
     }
 }
