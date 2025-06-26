@@ -321,6 +321,7 @@ impl LiveKitModule {
                     ingress_admin: false,
                     hidden,
                     recorder: false,
+                    destination_room: String::new(),
                 })
                 .with_ttl(ACCESS_TOKEN_TTL)
                 .to_jwt()
@@ -497,6 +498,7 @@ impl LiveKitModule {
                 ingress_admin: false,
                 hidden: true,
                 recorder: false,
+                destination_room: String::new(),
             })
             .with_ttl(ACCESS_TOKEN_TTL)
             .to_jwt()
