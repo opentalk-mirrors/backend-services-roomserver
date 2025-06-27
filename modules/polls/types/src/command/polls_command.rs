@@ -129,7 +129,7 @@ mod serde_tests {
             assert_eq!(
                 choices,
                 Choices::Multiple {
-                    choice_ids: BTreeSet::from_iter(vec![ChoiceId::from(322), ChoiceId::from(323)]),
+                    choice_ids: BTreeSet::from([ChoiceId::from(322), ChoiceId::from(323)]),
                 }
             );
         } else {

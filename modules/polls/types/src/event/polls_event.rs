@@ -135,7 +135,7 @@ mod serde_tests {
         let voted = PollsEvent::Voted(Vote {
             poll_id: PollId::nil(),
             choices: Choices::Multiple {
-                choice_ids: BTreeSet::from_iter([ChoiceId::from_u32(0), ChoiceId::from_u32(1)]),
+                choice_ids: BTreeSet::from([ChoiceId::from_u32(0), ChoiceId::from_u32(1)]),
             },
         });
 
