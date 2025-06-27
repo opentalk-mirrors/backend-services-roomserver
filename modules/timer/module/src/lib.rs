@@ -61,8 +61,8 @@ impl SignalingModule for TimerModule {
 
     fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self {
-            timers: HashMap::from_iter([(RoomKind::Main, None)]),
-            ready_participants: HashMap::from_iter([(RoomKind::Main, BTreeSet::new())]),
+            timers: HashMap::from([(RoomKind::Main, None)]),
+            ready_participants: HashMap::from([(RoomKind::Main, BTreeSet::new())]),
         })
     }
 

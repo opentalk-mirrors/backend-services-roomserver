@@ -145,7 +145,7 @@ mod tests {
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
-                connections: HashMap::from_iter([(ConnectionId::generate(), DeviceId::nil())]),
+                connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
             },
         );
 
@@ -157,7 +157,7 @@ mod tests {
                 room: RoomKind::Main,
                 kind: ParticipantKind::Guest,
                 role: Role::User,
-                connections: HashMap::from_iter([(ConnectionId::generate(), DeviceId::nil())]),
+                connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
             },
         );
 
@@ -169,7 +169,7 @@ mod tests {
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
-                connections: HashMap::from_iter([]),
+                connections: HashMap::from([]),
             },
         );
 
@@ -178,7 +178,7 @@ mod tests {
                 .connected()
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
-            HashSet::from_iter([connected_participant_0, connected_participant_1])
+            HashSet::from([connected_participant_0, connected_participant_1])
         );
 
         assert_eq!(
@@ -186,7 +186,7 @@ mod tests {
                 .disconnected()
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
-            HashSet::from_iter([disconnected_participant])
+            HashSet::from([disconnected_participant])
         );
     }
 
@@ -202,7 +202,7 @@ mod tests {
                 room: RoomKind::Breakout(BreakoutId::from(0)),
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
-                connections: HashMap::from_iter([(ConnectionId::generate(), DeviceId::nil())]),
+                connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
             },
         );
 
@@ -214,7 +214,7 @@ mod tests {
                 room: RoomKind::Breakout(BreakoutId::from(0)),
                 kind: ParticipantKind::Guest,
                 role: Role::User,
-                connections: HashMap::from_iter([]),
+                connections: HashMap::from([]),
             },
         );
 
@@ -226,7 +226,7 @@ mod tests {
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
-                connections: HashMap::from_iter([]),
+                connections: HashMap::from([]),
             },
         );
 
@@ -237,7 +237,7 @@ mod tests {
                 .room(RoomKind::Breakout(BreakoutId::from(0)))
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
-            HashSet::from_iter([disconnected_breakout, connected_breakout])
+            HashSet::from([disconnected_breakout, connected_breakout])
         );
 
         // Connected participants in breakout room 0
@@ -248,7 +248,7 @@ mod tests {
                 .connected()
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
-            HashSet::from_iter([connected_breakout])
+            HashSet::from([connected_breakout])
         );
 
         // Disconnected participants in breakout room 0
@@ -259,7 +259,7 @@ mod tests {
                 .disconnected()
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
-            HashSet::from_iter([disconnected_main])
+            HashSet::from([disconnected_main])
         );
 
         // Participants in main room
@@ -269,7 +269,7 @@ mod tests {
                 .room(RoomKind::Main)
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
-            HashSet::from_iter([disconnected_main])
+            HashSet::from([disconnected_main])
         );
 
         // Connected participants in main room
@@ -291,7 +291,7 @@ mod tests {
                 .disconnected()
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
-            HashSet::from_iter([disconnected_main])
+            HashSet::from([disconnected_main])
         );
     }
 
@@ -307,7 +307,7 @@ mod tests {
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
-                connections: HashMap::from_iter([(ConnectionId::generate(), DeviceId::nil())]),
+                connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
             },
         );
 
@@ -341,7 +341,7 @@ mod tests {
                 .visibility(ParticipationVisibility::Visible)
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
-            HashSet::from_iter([user, guest]),
+            HashSet::from([user, guest]),
         );
 
         assert_eq!(
@@ -350,7 +350,7 @@ mod tests {
                 .visibility(ParticipationVisibility::Hidden)
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
-            HashSet::from_iter([recorder]),
+            HashSet::from([recorder]),
         );
     }
 }
