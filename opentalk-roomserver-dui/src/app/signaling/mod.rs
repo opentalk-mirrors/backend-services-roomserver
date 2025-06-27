@@ -400,10 +400,15 @@ impl SignalingView {
         loop {
             match event_rx.try_recv() {
                 Ok(msg) => {
+                    let mut known_type = false;
                     if let RunnerEventType::Received { message } = &msg.event_type {
-                        received.push(message.clone().into());
+                        let recv: Received = message.clone().into();
+                        known_type = !recv.is_invalid();
+                        received.push(recv);
                     }
-                    self.messages.push(msg.into());
+                    let mut event_widget = EventWidget::from(msg);
+                    event_widget.set_type_known(known_type);
+                    self.messages.push(event_widget);
                 }
                 Err(TryRecvError::Empty) => return Ok(received),
                 Err(TryRecvError::Disconnected) => {

@@ -3,6 +3,7 @@
 
 use std::fmt::Display;
 
+use anyhow::Context as _;
 use livekit::{RoomEvent, RoomOptions};
 use opentalk_roomserver_client::api::event::Credentials;
 use tokio::{
@@ -56,8 +57,8 @@ impl LiveKitRunner {
             livekit: State::Disconnected,
         };
 
-        runtime.spawn(this.run());
-        RunnerHandle::new(event_rx, command_tx, status_rx)
+        let join_handle = runtime.spawn(this.run());
+        RunnerHandle::new(event_rx, command_tx, status_rx, join_handle)
     }
 
     async fn run(mut self) -> anyhow::Result<()> {
@@ -91,7 +92,7 @@ impl LiveKitRunner {
 
     async fn handle_command_credentials(&mut self, credentials: Credentials) -> anyhow::Result<()> {
         let _ = warn_log_err(
-            "failed to close livekit connection when using new token",
+            "failed to close LiveKit connection when using new token",
             self.disconnect().await,
         );
 
@@ -100,22 +101,39 @@ impl LiveKitRunner {
     }
 
     async fn handle_event(&mut self, event: RoomEvent) -> anyhow::Result<()> {
-        self.event_tx.send(event)?;
+        if let RoomEvent::Disconnected { .. } = &event {
+            self.livekit = State::Disconnected;
+            self.status_tx
+                .send(Status::Disconnected)
+                .context("Failed to send disconnected status")?;
+        }
+        self.event_tx
+            .send(event)
+            .context("Failed to send LiveKit signaling event")?;
         Ok(())
     }
 
     async fn disconnect(&mut self) -> anyhow::Result<()> {
         if let State::Connected { room, .. } = &self.livekit {
-            room.close().await?;
+            room.close()
+                .await
+                .context("Failed to close LiveKit room connection")?;
         }
         self.livekit = State::Disconnected;
-        self.status_tx.send(Status::Disconnected)?;
+        self.status_tx
+            .send(Status::Disconnected)
+            .context("Failed to send disconnected status")?;
 
         Ok(())
     }
 
     async fn connect(&mut self, url: String, token: String) -> anyhow::Result<()> {
-        let (room, events) = livekit::Room::connect(&url, &token, RoomOptions::default()).await?;
+        let (room, events) = livekit::Room::connect(&url, &token, RoomOptions::default())
+            .await
+            .context("Failed to connect to LiveKit room")?;
+        self.status_tx
+            .send(Status::Connected)
+            .context("Failed to send connected status")?;
         self.livekit = State::Connected { room, events };
 
         self.status_tx.send(Status::Connected)?;

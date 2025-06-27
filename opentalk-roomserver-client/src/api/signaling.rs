@@ -53,7 +53,7 @@ impl SignalingConnection {
     }
 
     pub async fn send_raw_message(&mut self, message: &str) -> Result<(), SignalingError> {
-        log::debug!("send text message: {message:?}");
+        log::trace!("send text message: {message:?}");
         self.socket
             .send(Message::Text(message.into()))
             .await
@@ -68,7 +68,7 @@ impl SignalingConnection {
         };
         let msg = msg.context("receive error")?;
 
-        log::debug!("received message: {msg:?}");
+        log::trace!("received message: {msg:?}");
 
         match msg {
             Message::Text(utf8_bytes) => Ok(Some(utf8_bytes.to_string())),
