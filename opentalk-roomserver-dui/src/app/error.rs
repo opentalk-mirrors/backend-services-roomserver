@@ -11,7 +11,7 @@ pub struct RunnerGoneError;
 
 impl<T: Debug> From<SendError<T>> for RunnerGoneError {
     fn from(SendError(command): SendError<T>) -> Self {
-        log::error!("Failed to send command to runner: {:?}", command);
+        log::error!("Failed to send command to runner: {command:?}");
         Self
     }
 }

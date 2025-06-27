@@ -39,7 +39,7 @@ const SHUTDOWN_GRACE_PERIOD: Duration = Duration::from_secs(42);
 pub(crate) async fn wait_shutdown(mut app_state: watch::Receiver<ApplicationState>) {
     let res = app_state.wait_for(ApplicationState::is_shutting_down).await;
     if let Err(e) = res {
-        log::error!("AppState gone: {}", e);
+        log::error!("AppState gone: {e}");
     }
 }
 

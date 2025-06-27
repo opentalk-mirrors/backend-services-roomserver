@@ -299,7 +299,7 @@ impl LiveKitModule {
 
         let hidden = !ctx
             .participant_state(participant)
-            .with_context(|| format!("Participant '{}' has no state", participant))?
+            .with_context(|| format!("Participant '{participant}' has no state"))?
             .is_visible();
 
         let access_token =
@@ -631,5 +631,5 @@ impl LiveKitModule {
 }
 
 fn build_livekit_participant_id(participant: ParticipantId, connection: ConnectionId) -> String {
-    format!("{}:{}", participant, connection)
+    format!("{participant}:{connection}")
 }

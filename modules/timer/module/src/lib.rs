@@ -154,7 +154,7 @@ impl SignalingModule for TimerModule {
         let timer = self
             .timers
             .get(&new_room)
-            .with_context(|| format!("Room '{:?}' does not exist in timers", new_room))?;
+            .with_context(|| format!("Room '{new_room:?}' does not exist in timers"))?;
 
         // Timer is disabled, send empty JoinInfo
         let Some(timer) = timer else {
