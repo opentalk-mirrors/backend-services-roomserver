@@ -58,20 +58,20 @@ impl LiveKitPlugin {
             }
             Err(e) => {
                 self.events
-                    .push(format!("Failed to parse LiveKit state: {}", e));
+                    .push(format!("Failed to parse LiveKit state: {e}"));
             }
         }
         Ok(())
     }
 
     fn handle_livekit_error(&mut self, e: &LiveKitError) -> anyhow::Result<()> {
-        self.events.push(format!("LiveKit Error: {:?}", e));
+        self.events.push(format!("LiveKit Error: {e:?}"));
         let _ = self.handle.disconnect();
         Ok(())
     }
 
     fn handle_runner_event(&mut self, event: RoomEvent) {
-        self.events.push(format!("LiveKit Event: {:?}", event));
+        self.events.push(format!("LiveKit Event: {event:?}"));
     }
 
     fn connection_status_ui(&mut self, ui: &mut egui::Ui) {
@@ -142,7 +142,7 @@ impl SignalingPlugin for LiveKitPlugin {
             };
 
             if let Err(e) = res {
-                log::warn!("{}", e);
+                log::warn!("{e}");
             }
         }
 
@@ -152,7 +152,7 @@ impl SignalingPlugin for LiveKitPlugin {
             next_event = self.handle.recv_event();
         }
         if let Err(e) = next_event {
-            log::error!("LiveKitRunner gone! {}", e);
+            log::error!("LiveKitRunner gone! {e}");
             return Vec::new();
         }
 

@@ -212,7 +212,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                     };
 
                     if let Err(e) = self.send_event_to_websocket(&event).await {
-                        log::debug!("Failed to send websocket message: {}", e);
+                        log::debug!("Failed to send websocket message: {e}");
 
                         return ExitReason::UnexpectedDisconnection;
                     }
@@ -247,7 +247,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             return Err(ExitReason::UnexpectedDisconnection);
         };
         let Ok(message) = frame else {
-            log::debug!("Error while receiving msg from participant: {:?}", frame);
+            log::debug!("Error while receiving msg from participant: {frame:?}");
             return Err(ExitReason::UnexpectedDisconnection);
         };
 

@@ -127,7 +127,7 @@ impl LiveKitRunner {
 /// logs the error with a warning log and the given message. Handy for `map_err`.
 fn warn_log_err<T, E: Display>(msg: &str, any_result: Result<T, E>) -> Result<T, E> {
     any_result.map_err(|e| {
-        log::warn!("{}: {}", msg, e);
+        log::warn!("{msg}: {e}");
         e
     })
 }

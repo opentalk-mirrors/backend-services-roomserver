@@ -272,14 +272,14 @@ impl RoomBackend for Context {
             )
             .await
             .map_err(|err| {
-                log::info!("Failed to put room {}: {err}", room_id);
+                log::info!("Failed to put room {room_id}: {err}");
                 err
             })?;
 
         if !action.is_created() {
             // Refresh the idle timeout if the room was not created with this request
             task_handle.refresh_idle_timeout().await.map_err(|err| {
-                log::info!("Failed to refresh idle timeout for room {}: {err}", room_id);
+                log::info!("Failed to refresh idle timeout for room {room_id}: {err}");
                 err
             })?;
         }
