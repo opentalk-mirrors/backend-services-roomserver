@@ -8,13 +8,13 @@ use futures::{StreamExt as _, stream};
 use livekit_api::services::room::{RoomClient, UpdateParticipantOptions};
 use livekit_protocol::{ParticipantInfo, ParticipantPermission, TrackSource};
 use opentalk_roomserver_types::connection_id::ConnectionId;
+use opentalk_roomserver_types_livekit::MicrophoneRestrictionState;
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_livekit::MicrophoneRestrictionState;
 
 pub use crate::loopback::{
     create_room::create_room, force_mute::force_mute_participants,
     microphone_restriction::update_restricted_microphones, revoke_token::revoke_token,
-    screen_share_permissions::set_sceenshare_permissions,
+    screen_share_permissions::set_screenshare_permissions,
 };
 use crate::{LIVEKIT_MEDIA_SOURCES, PARALLEL_UPDATES};
 
@@ -26,6 +26,7 @@ mod screen_share_permissions;
 
 pub enum LiveKitLoopback {
     RoomCreated,
+    RoomRemoved,
 
     ParticipantsMuted {
         sender: ParticipantId,

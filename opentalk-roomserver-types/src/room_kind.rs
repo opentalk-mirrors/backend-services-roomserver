@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::breakout::breakout_id::BreakoutId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind", content = "id")]
 pub enum RoomKind {
     Main,

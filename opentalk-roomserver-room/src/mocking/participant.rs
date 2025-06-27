@@ -158,6 +158,33 @@ impl MockParticipant<JoinSuccess> {
 
         self.receive::<BreakoutEvent>().await.unwrap().content
     }
+
+    pub async fn stop_breakout_rooms(
+        &mut self,
+        others: &mut [&mut MockParticipantJoined],
+    ) -> BreakoutEvent {
+        self.send_breakout_command(BreakoutCommand::Stop { delay: None }, None)
+            .await
+            .unwrap();
+
+        for p in others.iter_mut() {
+            let event = p.receive::<BreakoutEvent>().await.unwrap().content;
+            assert!(
+                matches!(event, BreakoutEvent::Closing { .. }),
+                "Expected Closing notice, got: {event:?}"
+            );
+        }
+
+        for p in others.iter_mut() {
+            let event = p.receive::<BreakoutEvent>().await.unwrap().content;
+            assert!(
+                matches!(event, BreakoutEvent::Closed),
+                "Expected Closed notice, got: {event:?}"
+            );
+        }
+
+        self.receive::<BreakoutEvent>().await.unwrap().content
+    }
 }
 
 impl<S> MockParticipant<S> {

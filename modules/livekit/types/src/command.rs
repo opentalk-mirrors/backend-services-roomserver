@@ -6,7 +6,6 @@ use std::collections::BTreeSet;
 
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_livekit::command::UnrestrictedParticipants;
 
 use crate::event::LiveKitEvent;
 
@@ -52,4 +51,13 @@ impl CreateReplica<LiveKitEvent> for LiveKitCommand {
     fn replicate(&self) -> Option<LiveKitEvent> {
         None
     }
+}
+
+/// Request a number of participants to mute themselves
+///
+/// May only be processed if the issuer is a moderator
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct UnrestrictedParticipants {
+    /// Participants that are still allowed to unmute
+    pub unrestricted_participants: BTreeSet<ParticipantId>,
 }

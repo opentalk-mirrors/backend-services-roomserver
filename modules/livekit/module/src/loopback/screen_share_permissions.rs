@@ -10,13 +10,13 @@ use std::{
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_roomserver_types_livekit::error::LiveKitError;
+use opentalk_roomserver_types_livekit::LiveKitError;
 use opentalk_types_signaling::ParticipantId;
 
 use super::{LiveKitLoopback, update_participants_permission};
 use crate::build_livekit_participant_id;
 
-pub async fn set_sceenshare_permissions(
+pub async fn set_screenshare_permissions(
     livekit_client: Arc<RoomClient>,
     room: String,
     sender: ParticipantId,

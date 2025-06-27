@@ -6,12 +6,15 @@ use std::collections::BTreeSet;
 use livekit::{RoomEvent, RoomOptions};
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
-use opentalk_roomserver_types::core_event::CoreEvent;
+use opentalk_roomserver_types::{
+    breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
+    core_event::CoreEvent,
+    room_kind::RoomKind,
+};
 use opentalk_roomserver_types_livekit::{
-    command::LiveKitCommand, error::LiveKitError, event::LiveKitEvent,
+    LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState, UnrestrictedParticipants,
 };
 use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_livekit::{command::UnrestrictedParticipants, state::LiveKitState};
 use pretty_assertions::assert_eq;
 
 mod common;
@@ -46,7 +49,7 @@ async fn microphones_are_restricted() {
     // Bob should be able to publish audio
     common::publish_audio(&bob_room).await.unwrap();
 
-    let unrestricted = BTreeSet::from_iter([alice.id()]);
+    let unrestricted = BTreeSet::from([alice.id()]);
 
     // Alice sends the command
     alice
@@ -99,11 +102,8 @@ async fn permissions_are_updated() {
         .get_module::<LiveKitState>()
         .expect("LiveKit state must be deserializable")
         .expect("LiveKit state must be present");
+    flush_connected_events(&mut [&mut alice]).await;
 
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
     // join livekit to ensure participant exists and can be muted.
     let (bob_room, mut room_events) = livekit::Room::connect(
         &public_url,
@@ -117,7 +117,7 @@ async fn permissions_are_updated() {
     // Bob should be able to publish audio
     common::publish_audio(&bob_room).await.unwrap();
 
-    let unrestricted = BTreeSet::from_iter([alice.id()]);
+    let unrestricted = BTreeSet::from([alice.id()]);
 
     // Alice sends the command to restrict bob
     alice
@@ -147,7 +147,7 @@ async fn permissions_are_updated() {
         })
     );
 
-    let unrestricted = BTreeSet::from_iter([alice.id(), bob.id()]);
+    let unrestricted = BTreeSet::from([alice.id(), bob.id()]);
 
     // Alice sends the command to lift bobs restrictions
     alice
@@ -191,7 +191,7 @@ async fn enable_unknown_participant() {
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
 
-    let disconnected = BTreeSet::from_iter([disconnected_participant]);
+    let disconnected = BTreeSet::from([disconnected_participant]);
 
     // Alice sends the command
     alice
@@ -232,11 +232,8 @@ async fn disable_unknown_participant() {
         .get_module::<LiveKitState>()
         .expect("LiveKit state must be deserializable")
         .expect("LiveKit state must be present");
+    flush_connected_events(&mut [&mut alice]).await;
 
-    assert!(matches!(
-        alice.receive::<CoreEvent>().await.unwrap().content,
-        CoreEvent::ParticipantConnected { .. }
-    ));
     {
         // join livekit to ensure participant exists and can be muted.
         let (bob_room, mut room_events) = livekit::Room::connect(
@@ -251,7 +248,7 @@ async fn disable_unknown_participant() {
         // Bob should be able to publish audio
         common::publish_audio(&bob_room).await.unwrap();
 
-        let unrestricted = BTreeSet::from_iter([alice.id()]);
+        let unrestricted = BTreeSet::from([alice.id()]);
 
         // Alice sends the command
         alice
@@ -312,7 +309,7 @@ async fn enable_insufficient_permissions() {
     // Bob joins the meeting
     let mut bob = room.join_bob(0).await;
 
-    let unrestricted = BTreeSet::from_iter([disconnected_participant]);
+    let unrestricted = BTreeSet::from([disconnected_participant]);
 
     // Bob sends the command
     bob.send_command::<LiveKitModule>(
@@ -361,4 +358,162 @@ async fn barrier_should_be_freed() {
             })
         );
     }
+}
+
+#[test_log::test(tokio::test)]
+#[ignore]
+async fn alice_in_breakout_bob_in_main() {
+    let (_container, mut room, public_url) = common::build_livekit_room().await;
+
+    // Alice and Bob join the meeting
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let mut bob = room.join_bob(0).await;
+    let bob_livekit_state = bob
+        .join_success()
+        .get_module::<LiveKitState>()
+        .expect("LiveKit state must be deserializable")
+        .expect("LiveKit state must be present");
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // join livekit to ensure participant exists and can be muted.
+    let (bob_room, mut room_events) = livekit::Room::connect(
+        &public_url,
+        &bob_livekit_state.credentials.token,
+        RoomOptions::default(),
+    )
+    .await
+    .unwrap();
+    let connected = room_events.recv().await;
+    assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
+    // Bob should be able to publish audio
+    common::publish_audio(&bob_room).await.unwrap();
+
+    alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".to_string(),
+                    assignments: vec![],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
+        .await;
+
+    let unrestricted = BTreeSet::from([alice.id()]);
+
+    // Alice sends the command
+    alice
+        .send_command::<LiveKitModule>(
+            LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+                unrestricted_participants: unrestricted.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+
+    assert_eq!(
+        success_event.content,
+        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+            unrestricted_participants: unrestricted.clone(),
+        })
+    );
+
+    // Bob should not receive restriction state update since he is in another room
+    assert!(bob.received_nothing());
+
+    // Bob should be able to publish audio since he is in another breakout room.
+    common::publish_audio(&bob_room).await.unwrap();
+}
+
+#[test_log::test(tokio::test)]
+#[ignore]
+async fn alice_and_bob_in_breakout() {
+    let (_container, mut room, public_url) = common::build_livekit_room().await;
+
+    // Alice and Bob join the meeting
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let mut bob = room.join_bob(0).await;
+    let bob_livekit_state = bob
+        .join_success()
+        .get_module::<LiveKitState>()
+        .expect("LiveKit state must be deserializable")
+        .expect("LiveKit state must be present");
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // join livekit to ensure participant exists and can be muted.
+    let (bob_room, mut room_events) = livekit::Room::connect(
+        &public_url,
+        &bob_livekit_state.credentials.token,
+        RoomOptions::default(),
+    )
+    .await
+    .unwrap();
+    let connected = room_events.recv().await;
+    assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
+    // Bob should be able to publish audio
+    common::publish_audio(&bob_room).await.unwrap();
+
+    alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".to_string(),
+                    assignments: vec![],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
+        .await;
+    bob.switch_breakout_room(&mut [&mut alice], RoomKind::Breakout(0.into()))
+        .await;
+
+    let unrestricted = BTreeSet::from([alice.id()]);
+
+    // Alice sends the command
+    alice
+        .send_command::<LiveKitModule>(
+            LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+                unrestricted_participants: unrestricted.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+
+    assert_eq!(
+        success_event.content,
+        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+            unrestricted_participants: unrestricted.clone(),
+        })
+    );
+
+    // Bob should receive restriction state update
+    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    assert_eq!(
+        force_mute_event.content,
+        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+            unrestricted_participants: unrestricted
+        })
+    );
+
+    // Bob should not be able to send audio
+    assert!(common::publish_audio(&bob_room).await.is_err());
 }

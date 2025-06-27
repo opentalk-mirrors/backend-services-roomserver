@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_livekit::{Credentials, command::UnrestrictedParticipants};
+use std::collections::BTreeSet;
 
-use crate::error::LiveKitError;
+use opentalk_types_signaling::ParticipantId;
+
+use crate::{Credentials, command::UnrestrictedParticipants, error::LiveKitError};
 
 /// The events emitted for livekit
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -47,7 +48,7 @@ pub enum LiveKitEvent {
         /// `true` if screen share permissions where granted, `false` otherwise.
         grant: bool,
         /// The participants who received a screen share permission change.
-        participants: Vec<ParticipantId>,
+        participants: BTreeSet<ParticipantId>,
     },
 
     /// The last message couldn't be processed since an unexpected error occurred.

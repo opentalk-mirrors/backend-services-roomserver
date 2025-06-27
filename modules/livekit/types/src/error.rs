@@ -21,6 +21,7 @@ pub enum LiveKitError {
     ///
     /// The participant might have disconnected before the command was executed.
     UnknownParticipant {
+        /// A list of participants that are currently not part of the meeting.
         participant: BTreeSet<ParticipantId>,
     },
 

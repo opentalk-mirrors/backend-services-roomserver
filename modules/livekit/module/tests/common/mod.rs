@@ -89,11 +89,11 @@ pub async fn build_livekit_room() -> (ContainerAsync<GenericImage>, TestRoom, St
 pub async fn publish_audio(room: &livekit::Room) -> anyhow::Result<()> {
     tracing::info!("Try publishing audio");
     const SAMPLE_RATE: u32 = 48000;
-    const NUM_CHANNLES: u32 = 2;
+    const NUM_CHANNELS: u32 = 2;
     const SAMPLES_PER_CHANNEL: u32 = 480;
 
     let source =
-        NativeAudioSource::new(AudioSourceOptions::default(), SAMPLE_RATE, NUM_CHANNLES, 10);
+        NativeAudioSource::new(AudioSourceOptions::default(), SAMPLE_RATE, NUM_CHANNELS, 10);
 
     let track = LocalAudioTrack::create_audio_track("file", RtcAudioSource::Native(source.clone()));
     room.local_participant()
@@ -107,8 +107,9 @@ pub async fn publish_audio(room: &livekit::Room) -> anyhow::Result<()> {
         .await?;
     tracing::info!("Try capture audio frame");
 
-    let audio_frame = AudioFrame::new(SAMPLE_RATE, NUM_CHANNLES, SAMPLES_PER_CHANNEL);
+    let audio_frame = AudioFrame::new(SAMPLE_RATE, NUM_CHANNELS, SAMPLES_PER_CHANNEL);
     source.capture_frame(&audio_frame).await?;
 
+    tracing::info!("Audio frame captured");
     Ok(())
 }

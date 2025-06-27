@@ -21,7 +21,6 @@ opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-opentalk-types-signaling-livekit.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 
