@@ -3,6 +3,7 @@
 
 use std::{str::FromStr, time::Duration};
 
+use futures::channel::oneshot;
 use opentalk_roomserver_signaling::{
     breakout::BREAKOUT_MODULE_ID, signaling_event::SignalingEvent,
     signaling_module::SignalingModule,
@@ -311,12 +312,15 @@ impl<S> MockParticipant<S> {
         &self,
         command: serde_json::value::Value,
     ) -> Result<(), SendError> {
+        let (tx, rx) = oneshot::channel();
         self.sender
             .send(Ok(SignalingSocketItem {
                 message: SignalingSocketMessage::Text(command.to_string()),
-                done: None,
+                done: Some(tx),
             }))
             .await?;
+
+        let _ = rx.await;
         Ok(())
     }
 
@@ -494,15 +498,13 @@ impl MockParticipantBuilder<DisplayName> {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use crate::mocking::{
         mock_module::{MockCommand, MockModule},
         room::TestRoom,
     };
 
     #[test_log::test(tokio::test)]
-    async fn received_nothing() {
+    async fn received_nothing_ok() {
         let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
         let mut alice = room.join_alice_moderator(0).await;
 
@@ -510,7 +512,34 @@ mod tests {
             .send_command::<MockModule>(MockCommand::Valid, None)
             .await
             .unwrap();
-        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        // alice must have received something
+        assert!(!alice.received_nothing());
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn received_nothing_error() {
+        let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
+        let mut alice = room.join_alice_moderator(0).await;
+
+        alice
+            .send_command::<MockModule>(MockCommand::Invalid, None)
+            .await
+            .unwrap();
+
+        // alice must have received something
+        assert!(!alice.received_nothing());
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn received_nothing_panic() {
+        let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
+        let mut alice = room.join_alice_moderator(0).await;
+
+        alice
+            .send_command::<MockModule>(MockCommand::Panic, None)
+            .await
+            .unwrap();
 
         // alice must have received something
         assert!(!alice.received_nothing());
