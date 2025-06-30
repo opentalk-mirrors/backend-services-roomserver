@@ -14,6 +14,7 @@ pub struct MockModule {}
 pub enum MockCommand {
     Valid,
     Invalid,
+    Panic,
 }
 impl CreateReplica<MockEvent> for MockCommand {
     fn replicate(&self) -> Option<MockEvent> {
@@ -91,6 +92,7 @@ impl SignalingModule for MockModule {
                 Ok(())
             }
             MockCommand::Invalid => Err(Error.into()),
+            MockCommand::Panic => panic!("Don't panic! All is not lost."),
         }
     }
 
