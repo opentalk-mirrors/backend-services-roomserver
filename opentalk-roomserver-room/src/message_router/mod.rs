@@ -6,7 +6,6 @@
 use std::collections::{HashMap, hash_map::Entry};
 
 use anyhow::Context;
-use axum::extract::ws::{CloseFrame, close_code};
 use futures::SinkExt;
 pub use message::{CloseReason, MessageEnvelope, SignalingMessage};
 use opentalk_roomserver_common::application_state::ApplicationState;
@@ -17,7 +16,9 @@ use opentalk_roomserver_types::{
     shared_raw_json::SharedRawJson,
     signaling::module_error::FatalError,
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
+use opentalk_roomserver_web_api::v1::signaling::websocket::{
+    CloseFrame, SignalingSocket, SignalingSocketMessage,
+};
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 use serde::Serialize;
@@ -28,6 +29,8 @@ use crate::message_router::participant_connection::ConnectionHandle;
 
 mod message;
 mod participant_connection;
+
+const WS_CLOSE_ABNORMAL: u16 = 1006;
 
 /// Error that is returned when a new participant is registered with the [`MessageRouter`], but the
 /// participant ID already has a connection.
@@ -81,8 +84,8 @@ impl MessageRouter {
         let Entry::Vacant(vacant) = entry else {
             tokio::task::spawn(async move {
                 websocket
-                    .send(axum::extract::ws::Message::Close(Some(CloseFrame {
-                        code: close_code::ABNORMAL,
+                    .send(SignalingSocketMessage::Close(Some(CloseFrame {
+                        code: WS_CLOSE_ABNORMAL,
                         reason: "UUID collision, please retry".into(),
                     })))
                     .await
@@ -322,17 +325,20 @@ impl MessageRouter {
 
 #[cfg(test)]
 mod tests {
-    use axum::extract::ws::CloseFrame;
     use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
-    use opentalk_roomserver_web_api::v1::signaling::websocket::Message;
+    use opentalk_roomserver_web_api::v1::signaling::websocket::{
+        CloseFrame, SignalingSocketItem, SignalingSocketMessage,
+    };
     use opentalk_types_common::modules::module_id;
     use opentalk_types_signaling::ParticipantId;
     use serde_json::{json, value::to_raw_value};
     use tokio::sync::watch;
 
     use crate::{
-        message_router::{self, MessageEnvelope, MessageRouter, SignalingMessage},
+        message_router::{
+            self, MessageEnvelope, MessageRouter, SignalingMessage, WS_CLOSE_ABNORMAL,
+        },
         mocking::participant::create_participant_connection,
     };
 
@@ -346,10 +352,13 @@ mod tests {
         let connection = router.add_connection(p1_id, p1_socket).await.unwrap();
 
         p1.sender
-            .send(Ok(Message::Close(Some(CloseFrame {
-                code: 1006,
-                reason: "this is a test".to_string().into(),
-            }))))
+            .send(Ok(SignalingSocketItem {
+                message: SignalingSocketMessage::Close(Some(CloseFrame {
+                    code: WS_CLOSE_ABNORMAL,
+                    reason: "this is a test".to_string(),
+                })),
+                done: None,
+            }))
             .await
             .unwrap();
 

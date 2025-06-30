@@ -12,6 +12,7 @@ use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 
 use super::Context;
+use crate::api::websocket::WebSocketAdapter;
 
 #[async_trait]
 impl SignalingBackend for Context {
@@ -45,13 +46,13 @@ impl SignalingBackend for Context {
         };
 
         let mut res = task_handle
-            .accept_signaling_socket(socket, client_parameters)
+            .accept_signaling_socket(WebSocketAdapter::new(socket), client_parameters)
             .await;
 
         // handle that the socket might not reach the room task. In that case we need to close it ourself.
         if let Err(e) = &mut res {
             if let Some(Request::WsJoin { socket, .. }) = e.take_request() {
-                error_close_websocket(socket).await;
+                error_close_websocket(socket.into()).await;
                 return Err(ApiError::not_found());
             }
         }

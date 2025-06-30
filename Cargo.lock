@@ -5192,7 +5192,6 @@ version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum",
  "blake3",
  "chrono",
  "futures",
@@ -5327,11 +5326,14 @@ version = "0.0.0-dev"
 dependencies = [
  "async-trait",
  "axum",
+ "bytes",
  "futures",
  "log",
  "opentalk-roomserver-types",
  "opentalk-types-api-v1",
  "opentalk-types-common",
+ "thiserror 2.0.12",
+ "tokio-util",
  "tower",
  "tracing",
  "utoipa",
