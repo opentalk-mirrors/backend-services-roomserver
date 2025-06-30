@@ -75,7 +75,7 @@ impl RunnerHandle {
 #[derive(Debug)]
 pub enum Status {
     Disconnected,
-    Connected,
+    Connected { room_name: String },
 }
 
 impl Status {

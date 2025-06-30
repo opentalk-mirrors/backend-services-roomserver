@@ -24,6 +24,7 @@ livekit = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 log.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-roomserver-common.workspace = true
+opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-api-v1 = { workspace = true }
 opentalk-types-common.workspace = true

@@ -5083,6 +5083,7 @@ dependencies = [
  "log",
  "opentalk-roomserver-client",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-api-v1",
  "opentalk-types-common",

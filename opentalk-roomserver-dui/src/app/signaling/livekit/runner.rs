@@ -84,13 +84,13 @@ impl LiveKitRunner {
     async fn handle_command(&mut self, command: LiveKitRunnerCommand) -> anyhow::Result<()> {
         match command {
             LiveKitRunnerCommand::Connect { credentials } => {
-                self.handle_command_credentials(credentials).await
+                self.handle_command_connect(credentials).await
             }
             LiveKitRunnerCommand::Disconnect => self.disconnect().await,
         }
     }
 
-    async fn handle_command_credentials(&mut self, credentials: Credentials) -> anyhow::Result<()> {
+    async fn handle_command_connect(&mut self, credentials: Credentials) -> anyhow::Result<()> {
         let _ = warn_log_err(
             "failed to close LiveKit connection when using new token",
             self.disconnect().await,
@@ -132,11 +132,11 @@ impl LiveKitRunner {
             .await
             .context("Failed to connect to LiveKit room")?;
         self.status_tx
-            .send(Status::Connected)
+            .send(Status::Connected {
+                room_name: room.name(),
+            })
             .context("Failed to send connected status")?;
         self.livekit = State::Connected { room, events };
-
-        self.status_tx.send(Status::Connected)?;
 
         Ok(())
     }

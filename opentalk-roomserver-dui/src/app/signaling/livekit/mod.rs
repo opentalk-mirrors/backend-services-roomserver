@@ -5,19 +5,22 @@ use anyhow::Context as _;
 use egui::{Color32, RichText, Widget};
 use opentalk_roomserver_client::api::{
     command::{LiveKitCommand, SignalingCommand, SignalingModuleCommand},
-    event::{
-        Credentials, LiveKitError, LiveKitEvent, LiveKitState, SignalingEvent, SignalingModuleEvent,
-    },
+    event::{Credentials, LiveKitError, LiveKitEvent, LiveKitState, SignalingModuleEvent},
 };
-use opentalk_roomserver_types::{core_event::CoreEvent, join::join_success::JoinSuccess};
+use opentalk_roomserver_types::{
+    breakout::event::BreakoutEvent, core_event::CoreEvent, join::join_success::JoinSuccess,
+};
 use tokio::runtime::Runtime;
 
-use crate::app::{
-    shortcuts::TOGGLE_LIVEKIT_WINDOW_SHORTCUT,
-    signaling::{
-        livekit::{handle::RunnerHandle, runner::LiveKitRunner},
-        plugin::{Received, SignalingPlugin},
+use crate::{
+    app::{
+        shortcuts::TOGGLE_LIVEKIT_WINDOW_SHORTCUT,
+        signaling::{
+            livekit::{handle::RunnerHandle, runner::LiveKitRunner},
+            plugin::{Received, SignalingPlugin},
+        },
     },
+    settings::DuiSettings,
 };
 
 mod handle;
@@ -29,32 +32,29 @@ pub struct LiveKitPlugin {
     credentials: Option<Credentials>,
 
     handle: Option<RunnerHandle>,
+
+    /// Automatically join breakout rooms when switching rooms.
+    breakout_auto_connect: bool,
 }
 
 impl LiveKitPlugin {
-    pub fn new(runtime: &Runtime, ctx: egui::Context) -> Self {
+    pub fn new(runtime: &Runtime, ctx: egui::Context, settings: &DuiSettings) -> Self {
         let handle = LiveKitRunner::spawn(runtime, ctx);
         Self {
             events: Vec::new(),
             credentials: None,
             handle: Some(handle),
+            breakout_auto_connect: settings.livekit.breakout_auto_connect,
         }
     }
 
-    fn handle_join_success(&mut self, join: &JoinSuccess) -> anyhow::Result<()> {
+    fn handle_join_success(&mut self, join: &JoinSuccess) {
         log::debug!("Handle join event");
-        let Some(handle) = self.handle.as_ref() else {
-            return Ok(());
-        };
 
         match join.get_module::<LiveKitState>() {
             Ok(Some(state)) => {
-                self.events.push(format!(
-                    "Livekit state with token: {}",
-                    state.credentials.token
-                ));
-                self.credentials.replace(state.credentials.clone());
-                handle.connect(state.credentials)?;
+                self.events.push("Got initial credential".to_string());
+                self.handle_credentials(state.credentials, "Joined");
             }
             Ok(None) => {
                 self.events
@@ -65,17 +65,15 @@ impl LiveKitPlugin {
                     .push(format!("Failed to parse LiveKit state: {e}"));
             }
         }
-        Ok(())
     }
 
-    fn handle_livekit_error(&mut self, e: &LiveKitError) -> anyhow::Result<()> {
+    fn handle_livekit_error(&mut self, e: &LiveKitError) {
         let Some(handle) = self.handle.as_ref() else {
-            return Ok(());
+            return;
         };
 
         self.events.push(format!("LiveKit Error: {e:?}"));
         let _ = handle.disconnect();
-        Ok(())
     }
 
     fn handle_livekit_events(&mut self) {
@@ -106,7 +104,9 @@ impl LiveKitPlugin {
             handle::Status::Disconnected => {
                 ui.label(RichText::new("Disconnected").color(Color32::RED))
             }
-            handle::Status::Connected => ui.label(RichText::new("Connected").color(Color32::GREEN)),
+            handle::Status::Connected { room_name } => {
+                ui.label(RichText::new(format!("Connected to {room_name}")).color(Color32::GREEN))
+            }
         };
     }
 
@@ -140,45 +140,87 @@ impl LiveKitPlugin {
         Ok(())
     }
 
-    fn handle_credentials(&mut self, credentials: &Credentials) {
+    fn auto_connect_ui(&mut self, settings: &mut DuiSettings, ui: &mut egui::Ui) {
+        if ui
+            .checkbox(&mut settings.livekit.breakout_auto_connect, "auto")
+            .on_hover_text("Automatically connect to new LiveKit room when switching rooms")
+            .changed()
+        {
+            self.breakout_auto_connect = settings.livekit.breakout_auto_connect;
+        }
+    }
+
+    fn handle_credentials(&mut self, credentials: Credentials, reason: &str) {
+        self.events
+            .push(format!("Received new credentials, {reason}"));
         self.credentials.replace(credentials.clone());
+        if let Some(handle) = &self.handle
+            && self.breakout_auto_connect
+        {
+            let res = handle.connect(credentials);
+            if res.is_err() {
+                self.events
+                    .push("runner error, failed to send command".to_string());
+            }
+        }
+    }
+
+    fn handle_breakout(&mut self, event: &BreakoutEvent) {
+        if let BreakoutEvent::SwitchedRoom {
+            module_data,
+            new_room,
+            old_room,
+            ..
+        } = event
+        {
+            match module_data.get::<LiveKitState>() {
+                Ok(Some(state)) => {
+                    self.handle_credentials(
+                        state.credentials,
+                        &format!("Switched room {old_room:?} => {new_room:?}"),
+                    );
+                }
+                Ok(None) => {
+                    self.events
+                        .push("Missing LiveKit credentials in SwitchRoom event".to_string());
+                }
+                Err(e) => {
+                    self.events.push(
+                        format!("Failed to parse LiveKit ModuleData in SwitchRoom event: {e}")
+                            .to_string(),
+                    );
+                }
+            }
+        }
     }
 
     fn handle_opentalk_events(&mut self, received: &[Received]) {
         log::trace!("received {} events", received.len());
         for msg in received {
-            let res = match msg {
-                Received::SignalingEvent(SignalingEvent {
-                    content: SignalingModuleEvent::Core(CoreEvent::JoinSuccess(join)),
-                    ..
-                }) => self.handle_join_success(join),
-                Received::SignalingEvent(SignalingEvent {
-                    content: SignalingModuleEvent::LiveKit(LiveKitEvent::Error(e)),
-                    ..
-                }) => self.handle_livekit_error(e),
-                Received::SignalingEvent(SignalingEvent {
-                    content: SignalingModuleEvent::LiveKit(LiveKitEvent::Credentials(credentials)),
-                    ..
-                }) => {
-                    self.handle_credentials(credentials);
-                    Ok(())
-                }
-                _ => Ok(()),
+            let Received::SignalingEvent(event) = msg else {
+                continue;
             };
-
-            if let Err(e) = res {
-                log::warn!("{e}");
-            }
+            match &event.content {
+                SignalingModuleEvent::Core(CoreEvent::JoinSuccess(join)) => {
+                    self.handle_join_success(join)
+                }
+                SignalingModuleEvent::LiveKit(LiveKitEvent::Error(e)) => {
+                    self.handle_livekit_error(e)
+                }
+                SignalingModuleEvent::LiveKit(LiveKitEvent::Credentials(credentials)) => {
+                    self.handle_credentials(credentials.clone(), "Credentials event");
+                }
+                SignalingModuleEvent::Breakout(event) => {
+                    self.handle_breakout(event);
+                }
+                _ => {}
+            };
         }
     }
 }
 
 impl SignalingPlugin for LiveKitPlugin {
-    fn handle_events(
-        &mut self,
-        _settings: &mut crate::settings::DuiSettings,
-        received: &[Received],
-    ) -> Vec<String> {
+    fn handle_events(&mut self, _settings: &mut DuiSettings, received: &[Received]) -> Vec<String> {
         self.handle_opentalk_events(received);
 
         self.handle_livekit_events();
@@ -186,11 +228,7 @@ impl SignalingPlugin for LiveKitPlugin {
         Vec::new()
     }
 
-    fn ui(
-        &mut self,
-        ui: &mut egui::Ui,
-        _settings: &mut crate::settings::DuiSettings,
-    ) -> Vec<String> {
+    fn ui(&mut self, ui: &mut egui::Ui, settings: &mut DuiSettings) -> Vec<String> {
         let mut messages = Vec::new();
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
@@ -198,6 +236,7 @@ impl SignalingPlugin for LiveKitPlugin {
                 if let Err(e) = self.toggle_connection_ui(&mut messages, ui) {
                     log::error!("{e:?}");
                 }
+                self.auto_connect_ui(settings, ui);
             });
 
             ui.separator();
