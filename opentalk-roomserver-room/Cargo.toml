@@ -36,6 +36,9 @@ uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
+test-log.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+tokio-util.workspace = true
 
 [features]
 mock = ["dep:tokio-util"]

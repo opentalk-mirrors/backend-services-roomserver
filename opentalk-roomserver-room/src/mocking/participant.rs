@@ -483,3 +483,28 @@ impl MockParticipantBuilder<DisplayName> {
         .await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use crate::mocking::{
+        mock_module::{MockCommand, MockModule},
+        room::TestRoom,
+    };
+
+    #[test_log::test(tokio::test)]
+    async fn received_nothing() {
+        let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
+        let mut alice = room.join_alice_moderator(0).await;
+
+        alice
+            .send_command::<MockModule>(MockCommand::Valid, None)
+            .await
+            .unwrap();
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        // alice must have received something
+        assert!(!alice.received_nothing());
+    }
+}
