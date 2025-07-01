@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_room::mocking::{
-    mock_module::{Command, MockModule},
+    mock_module::{MockCommand, MockModule},
     room::TestRoom,
 };
 use opentalk_roomserver_types::error::SignalingError;
@@ -17,7 +17,7 @@ async fn response_contains_transaction_id() {
 
     // When no transaction id is sent, the response will not contain one
     alice
-        .send_command::<MockModule>(Command::Valid, None)
+        .send_command::<MockModule>(MockCommand::Valid, None)
         .await
         .unwrap();
 
@@ -26,7 +26,7 @@ async fn response_contains_transaction_id() {
 
     // When a transaction id is sent, the response will contain the same one
     alice
-        .send_command::<MockModule>(Command::Valid, Some(0))
+        .send_command::<MockModule>(MockCommand::Valid, Some(0))
         .await
         .unwrap();
     let event = alice.receive_event::<MockModule>().await.unwrap();
@@ -41,7 +41,7 @@ async fn error_contains_transaction_id() {
     let mut alice = room.join_alice_moderator(0).await;
 
     alice
-        .send_command::<MockModule>(Command::Invalid, Some(0))
+        .send_command::<MockModule>(MockCommand::Invalid, Some(0))
         .await
         .unwrap();
     let event = alice.receive_event::<MockModule>().await.unwrap();
