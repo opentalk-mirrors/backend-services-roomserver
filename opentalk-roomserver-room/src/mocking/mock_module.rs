@@ -11,24 +11,25 @@ use serde::{Deserialize, Serialize};
 pub struct MockModule {}
 
 #[derive(Serialize, Deserialize)]
-pub enum Command {
+pub enum MockCommand {
     Valid,
     Invalid,
+    Panic,
 }
-impl CreateReplica<Event> for Command {
-    fn replicate(&self) -> Option<Event> {
+impl CreateReplica<MockEvent> for MockCommand {
+    fn replicate(&self) -> Option<MockEvent> {
         None
     }
 }
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub enum Event {
+pub enum MockEvent {
     Success,
     Error,
 }
 
-impl From<Error> for Event {
+impl From<Error> for MockEvent {
     fn from(_: Error) -> Self {
-        Event::Error
+        MockEvent::Error
     }
 }
 
@@ -40,9 +41,9 @@ impl ModuleError for Error {}
 impl SignalingModule for MockModule {
     const NAMESPACE: ModuleId = module_id!("mock");
 
-    type Incoming = Command;
+    type Incoming = MockCommand;
 
-    type Outgoing = Event;
+    type Outgoing = MockEvent;
 
     type Loopback = ();
 
@@ -86,11 +87,12 @@ impl SignalingModule for MockModule {
         content: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match content {
-            Command::Valid => {
-                ctx.send_ws_message([sender], Event::Success).unwrap();
+            MockCommand::Valid => {
+                ctx.send_ws_message([sender], MockEvent::Success).unwrap();
                 Ok(())
             }
-            Command::Invalid => Err(Error.into()),
+            MockCommand::Invalid => Err(Error.into()),
+            MockCommand::Panic => panic!("Don't panic! All is not lost."),
         }
     }
 

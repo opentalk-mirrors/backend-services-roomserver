@@ -6,7 +6,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
 use axum::{
-    extract::{MatchedPath, ws::WebSocket},
+    extract::MatchedPath,
     http::{Request, Response},
 };
 use opentalk_roomserver_common::settings::Settings;
@@ -34,12 +34,13 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{ApplicationState, wait_shutdown};
+use crate::{ApplicationState, api::websocket::WebSocketAdapter, wait_shutdown};
 
 pub(crate) type Router = axum::Router<Context>;
 
 pub mod signaling;
 mod token_store;
+pub mod websocket;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -199,7 +200,7 @@ fn setup_registry() -> ModuleRegistry {
 pub(crate) struct Context {
     settings: Arc<Settings>,
     /// Global list of room tasks and their handles
-    room_tasks: RoomTaskRegistry<WebSocket>,
+    room_tasks: RoomTaskRegistry<WebSocketAdapter>,
     // A list of eligible participants and their join tokens
     token_store: Arc<Mutex<TokenStore>>,
     module_registry: Arc<ModuleRegistry>,

@@ -11,7 +11,8 @@ use opentalk_roomserver_types::{
     signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
-    CloseFrame, Message, SignalingSink, SignalingSocket, SignalingStream,
+    CloseFrame, SignalingSink, SignalingSocket, SignalingSocketItem, SignalingSocketMessage,
+    SignalingStream,
 };
 use opentalk_types_signaling::ParticipantId;
 use tokio::{
@@ -235,7 +236,13 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
     async fn allocated_receive(
         sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
         stream: &mut Pin<&mut Peekable<Stream>>,
-    ) -> Result<(OwnedPermit<MessageEnvelope<SignalingMessage>>, Message), ExitReason> {
+    ) -> Result<
+        (
+            OwnedPermit<MessageEnvelope<SignalingMessage>>,
+            SignalingSocketItem,
+        ),
+        ExitReason,
+    > {
         let _ = stream.as_mut().peek().await;
 
         let Ok(permit) = sender.clone().reserve_owned().await else {
@@ -257,12 +264,14 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
     #[tracing::instrument(skip_all, fields(opentalk.participant_id = %self.participant_id))]
     async fn handle_websocket_frame(
         &mut self,
-        frame: Message,
+        frame: SignalingSocketItem,
         permit: OwnedPermit<MessageEnvelope<SignalingMessage>>,
     ) -> Result<(), ExitReason> {
-        match frame {
-            Message::Text(message) => self.handle_text_frame(message.to_string(), permit).await,
-            Message::Close(close_frame) => {
+        match frame.message {
+            SignalingSocketMessage::Text(message) => {
+                self.handle_text_frame(message.to_string(), permit).await
+            }
+            SignalingSocketMessage::Close(close_frame) => {
                 log::debug!(
                     "Connection closed by participant `{:?}`: {close_frame:?}",
                     self.participant_id
@@ -388,7 +397,9 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         }));
 
         if let Some(close_frame) = exit_reason.close_frame() {
-            let _ = sink.send(Message::Close(Some(close_frame))).await;
+            let _ = sink
+                .send(SignalingSocketMessage::Close(Some(close_frame)))
+                .await;
             // Wait for a close frame for the duration of `CLOSE_TIMEOUT` until we forcefully terminate the connection
             let _ = tokio::time::timeout(CLOSE_TIMEOUT, wait_close(stream)).await;
         }
@@ -399,7 +410,11 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
 async fn wait_close<Stream: SignalingStream>(mut stream: Stream) {
     while let Some(msg) = stream.next().await {
         match msg {
-            Ok(Message::Close(_)) | Err(_) => return,
+            Ok(SignalingSocketItem {
+                message: SignalingSocketMessage::Close(_),
+                ..
+            })
+            | Err(_) => return,
             // Discard all messages, but error and close
             _ => {}
         }
@@ -412,6 +427,9 @@ mod tests {
 
     use futures::{StreamExt as _, pin_mut};
     use opentalk_roomserver_types::{connection_id::ConnectionId, signaling::SignalingCommand};
+    use opentalk_roomserver_web_api::v1::signaling::websocket::{
+        SignalingSocketItem, SignalingSocketMessage,
+    };
     use opentalk_types_signaling::ParticipantId;
     use tokio::sync::mpsc;
     use tracing::Span;
@@ -484,7 +502,13 @@ mod tests {
         assert!(
             matches!(
                 receive_future,
-                Ok(Ok((_, axum::extract::ws::Message::Text(_)))),
+                Ok(Ok((
+                    _,
+                    SignalingSocketItem {
+                        message: SignalingSocketMessage::Text(_),
+                        ..
+                    }
+                ))),
             ),
             "Receive expired, but a message should be received"
         )

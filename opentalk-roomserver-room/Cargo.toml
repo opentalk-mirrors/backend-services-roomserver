@@ -13,7 +13,6 @@ version.workspace = true
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
-axum.workspace = true
 blake3.workspace = true
 chrono.workspace = true
 futures.workspace = true
@@ -36,6 +35,9 @@ uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
+test-log.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+tokio-util.workspace = true
 
 [features]
 mock = ["dep:tokio-util"]

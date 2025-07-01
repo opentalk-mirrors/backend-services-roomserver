@@ -3,7 +3,7 @@
 
 use std::{str::FromStr, time::Duration};
 
-use axum::extract::ws::Message;
+use futures::channel::oneshot;
 use opentalk_roomserver_signaling::{
     breakout::BREAKOUT_MODULE_ID, signaling_event::SignalingEvent,
     signaling_module::SignalingModule,
@@ -17,7 +17,9 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
     signaling::SignalingCommand,
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket;
+use opentalk_roomserver_web_api::v1::signaling::websocket::{
+    self, SignalingSocketItem, SignalingSocketMessage,
+};
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     roomserver::DeviceSecret,
@@ -44,16 +46,16 @@ pub enum ReceiveError {
     Timeout,
     InvalidJson {
         error: serde_json::Error,
-        message: Message,
+        message: SignalingSocketMessage,
     },
-    UnexpectedMessage(Message),
+    UnexpectedMessage(SignalingSocketMessage),
 }
 
 #[derive(Debug)]
 pub enum SendError {
     Closed,
     InvalidJson(serde_json::Error),
-    UnexpectedMessage(Message),
+    UnexpectedMessage(SignalingSocketMessage),
 }
 
 impl<T> From<mpsc::error::SendError<T>> for SendError {
@@ -73,8 +75,8 @@ pub type MockParticipantJoined = MockParticipant<JoinSuccess>;
 
 #[derive(Debug)]
 pub struct MockParticipant<S> {
-    pub(crate) sender: mpsc::Sender<Result<Message, websocket::Error>>,
-    pub(crate) receiver: mpsc::Receiver<Message>,
+    pub(crate) sender: mpsc::Sender<Result<SignalingSocketItem, websocket::Error>>,
+    pub(crate) receiver: mpsc::Receiver<SignalingSocketMessage>,
     pub(crate) state: S,
 }
 
@@ -86,11 +88,11 @@ impl MockParticipant<()> {
             return Err(ReceiveError::Closed);
         };
         match received {
-            Message::Text(text) => {
+            SignalingSocketMessage::Text(text) => {
                 let event: SignalingEvent<CoreEvent> =
                     serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
                         error,
-                        message: Message::Text(text.clone()),
+                        message: SignalingSocketMessage::Text(text.clone()),
                     })?;
 
                 if let CoreEvent::JoinSuccess(msg) = event.content {
@@ -100,7 +102,9 @@ impl MockParticipant<()> {
                         state: *msg,
                     })
                 } else {
-                    Err(ReceiveError::UnexpectedMessage(Message::Text(text)))
+                    Err(ReceiveError::UnexpectedMessage(
+                        SignalingSocketMessage::Text(text),
+                    ))
                 }
             }
             other => Err(ReceiveError::UnexpectedMessage(other)),
@@ -260,17 +264,19 @@ impl<S> MockParticipant<S> {
     }
 
     async fn static_send_ping(
-        sender: &mut mpsc::Sender<Result<Message, websocket::Error>>,
+        sender: &mut mpsc::Sender<Result<SignalingSocketItem, websocket::Error>>,
     ) -> Result<(), SendError> {
         sender
-            .send(Ok(axum::extract::ws::Message::Text(
-                json!( {
-                    "namespace": "ping",
-                    "content": serde_json::Value::Null,
-                })
-                .to_string()
-                .into(),
-            )))
+            .send(Ok(SignalingSocketItem {
+                message: SignalingSocketMessage::Text(
+                    json!( {
+                        "namespace": "ping",
+                        "content": serde_json::Value::Null,
+                    })
+                    .to_string(),
+                ),
+                done: None,
+            }))
             .await?;
         Ok(())
     }
@@ -306,9 +312,15 @@ impl<S> MockParticipant<S> {
         &self,
         command: serde_json::value::Value,
     ) -> Result<(), SendError> {
+        let (tx, rx) = oneshot::channel();
         self.sender
-            .send(Ok(Message::Text(command.to_string().into())))
+            .send(Ok(SignalingSocketItem {
+                message: SignalingSocketMessage::Text(command.to_string()),
+                done: Some(tx),
+            }))
             .await?;
+
+        let _ = rx.await;
         Ok(())
     }
 
@@ -335,11 +347,11 @@ impl<S> MockParticipant<S> {
             return Err(ReceiveError::Closed);
         };
         match received {
-            Message::Text(text) => {
+            SignalingSocketMessage::Text(text) => {
                 let event: SignalingEvent<M::Outgoing> =
                     serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
                         error,
-                        message: Message::Text(text),
+                        message: SignalingSocketMessage::Text(text),
                     })?;
                 Ok(event)
             }
@@ -354,11 +366,11 @@ impl<S> MockParticipant<S> {
             return Err(ReceiveError::Closed);
         };
         match received {
-            Message::Text(text) => {
+            SignalingSocketMessage::Text(text) => {
                 let event: SignalingEvent<E> =
                     serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
                         error,
-                        message: Message::Text(text),
+                        message: SignalingSocketMessage::Text(text),
                     })?;
 
                 Ok(event)
@@ -481,5 +493,55 @@ impl MockParticipantBuilder<DisplayName> {
             role: self.role,
         })
         .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::mocking::{
+        mock_module::{MockCommand, MockModule},
+        room::TestRoom,
+    };
+
+    #[test_log::test(tokio::test)]
+    async fn received_nothing_ok() {
+        let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
+        let mut alice = room.join_alice_moderator(0).await;
+
+        alice
+            .send_command::<MockModule>(MockCommand::Valid, None)
+            .await
+            .unwrap();
+
+        // alice must have received something
+        assert!(!alice.received_nothing());
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn received_nothing_error() {
+        let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
+        let mut alice = room.join_alice_moderator(0).await;
+
+        alice
+            .send_command::<MockModule>(MockCommand::Invalid, None)
+            .await
+            .unwrap();
+
+        // alice must have received something
+        assert!(!alice.received_nothing());
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn received_nothing_panic() {
+        let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
+        let mut alice = room.join_alice_moderator(0).await;
+
+        alice
+            .send_command::<MockModule>(MockCommand::Panic, None)
+            .await
+            .unwrap();
+
+        // alice must have received something
+        assert!(!alice.received_nothing());
     }
 }
