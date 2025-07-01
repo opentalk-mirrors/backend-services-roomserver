@@ -14,21 +14,11 @@ pub enum PingCommand {
     /// A normal ping
     Ping,
     /// A ping with delayed response
-    BlockingDelayedPing {
-        /// The duration that the pong is delayed for.
-        #[serde(with = "opentalk_types_common::utils::duration_seconds")]
-        delay: Duration,
-    },
-    /// A ping with delayed response
     AsyncDelayedPing {
         /// The duration that the pong is delayed for.
         #[serde(with = "opentalk_types_common::utils::duration_seconds")]
         delay: Duration,
     },
-    /// A ping that will result in a [`PingError`](crate::error::PingError)
-    PingError,
-    /// Ping all participants
-    Broadcast,
     /// Request the ping module to die by returning a
     /// [`FatalError`](opentalk_roomserver_types::signaling::module_error::FatalError)
     Die,
