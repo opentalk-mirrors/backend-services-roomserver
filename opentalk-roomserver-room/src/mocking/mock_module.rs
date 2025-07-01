@@ -95,13 +95,4 @@ impl SignalingModule for MockModule {
             MockCommand::Panic => panic!("Don't panic! All is not lost."),
         }
     }
-
-    #[allow(unused_variables)]
-    fn on_loopback_event(
-        &mut self,
-        ctx: &mut opentalk_roomserver_signaling::module_context::ModuleContext<'_, Self>,
-        event: Self::Loopback,
-    ) -> Result<(), SignalingModuleError<Self::Error>> {
-        Ok(())
-    }
 }
