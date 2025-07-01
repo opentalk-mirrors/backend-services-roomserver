@@ -11,6 +11,7 @@ use axum::{
 };
 use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_module_chat::ChatModule;
+use opentalk_roomserver_module_e2ee::E2eeModule;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_ping::PingModule;
 use opentalk_roomserver_module_polls::PollsModule;
@@ -192,6 +193,7 @@ fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<LiveKitModule>();
     module_registry.add_module::<TimerModule>();
     module_registry.add_module::<PollsModule>();
+    module_registry.add_module::<E2eeModule>();
     module_registry
 }
 

@@ -4,13 +4,16 @@
 use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core_event::CoreEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
-// reexport events for easier usage
-pub use opentalk_roomserver_types_livekit::{
-    Credentials, LIVEKIT_MODULE_ID, LiveKitError, LiveKitEvent, LiveKitState,
-};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, event::PingEvent};
 use opentalk_types_common::modules::{CORE_MODULE_ID, ModuleId};
 use serde::{Deserialize, Serialize};
+// reexport events for easier usage
+pub use {
+    opentalk_roomserver_types_e2ee::{E2EE_MODULE_ID, E2eeEvent},
+    opentalk_roomserver_types_livekit::{
+        Credentials, LIVEKIT_MODULE_ID, LiveKitError, LiveKitEvent, LiveKitState,
+    },
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalingEvent {
@@ -45,6 +48,8 @@ pub enum SignalingModuleEvent {
 
     #[serde(rename = "livekit")]
     LiveKit(LiveKitEvent),
+
+    E2ee(E2eeEvent),
 }
 
 impl SignalingModuleEvent {
@@ -55,6 +60,7 @@ impl SignalingModuleEvent {
             Self::Ping(_) => PING_MODULE_ID,
             Self::Chat(_) => CHAT_MODULE_ID,
             Self::LiveKit(_) => LIVEKIT_MODULE_ID,
+            Self::E2ee(_) => E2EE_MODULE_ID,
         }
     }
 }

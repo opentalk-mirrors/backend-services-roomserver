@@ -126,11 +126,14 @@ pub trait SignalingModule: Send + Sync + Sized {
         Ok(())
     }
 
+    #[allow(unused_variables)]
     fn on_loopback_event(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
-    ) -> Result<(), SignalingModuleError<Self::Error>>;
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        Ok(())
+    }
 
     /// Destroy the module and remove all associated resources
     ///

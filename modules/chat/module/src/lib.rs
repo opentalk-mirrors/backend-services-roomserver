@@ -177,14 +177,6 @@ impl SignalingModule for ChatModule {
 
         Ok(())
     }
-
-    fn on_loopback_event(
-        &mut self,
-        _ctx: &mut ModuleContext<'_, Self>,
-        _event: Self::Loopback,
-    ) -> Result<(), SignalingModuleError<Self::Error>> {
-        Ok(())
-    }
 }
 
 impl ChatModule {

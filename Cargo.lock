@@ -890,6 +890,9 @@ name = "bytes"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bzip2"
@@ -4994,6 +4997,7 @@ dependencies = [
  "log",
  "opentalk-roomserver-common",
  "opentalk-roomserver-module-chat",
+ "opentalk-roomserver-module-e2ee",
  "opentalk-roomserver-module-livekit",
  "opentalk-roomserver-module-ping",
  "opentalk-roomserver-module-polls",
@@ -5039,6 +5043,7 @@ dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-chat",
+ "opentalk-roomserver-types-e2ee",
  "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-ping",
  "opentalk-types-common",
@@ -5108,6 +5113,22 @@ dependencies = [
  "opentalk-types-signaling",
  "pretty_assertions",
  "serde",
+ "test-log",
+ "tokio",
+]
+
+[[package]]
+name = "opentalk-roomserver-module-e2ee"
+version = "0.0.2-dev"
+dependencies = [
+ "bytes",
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-e2ee",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
  "test-log",
  "tokio",
 ]
@@ -5265,6 +5286,20 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-e2ee"
+version = "0.0.2-dev"
+dependencies = [
+ "bytes",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
