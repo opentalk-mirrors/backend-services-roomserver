@@ -4,18 +4,16 @@
 
 //! Signaling events for the `chat` namespace
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     command::SetLastSeenTimestamp,
     event::{ChatDisabled, ChatEnabled, Error, HistoryCleared, MessageSent},
 };
 
 /// A chat event which occurred
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(tag = "message", rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "message", rename_all = "snake_case")]
 pub enum ChatEvent {
     /// Chat event where chat was enabled see [ChatEnabled]
     ChatEnabled(ChatEnabled),
@@ -72,7 +70,7 @@ impl From<SetLastSeenTimestamp> for ChatEvent {
     }
 }
 
-#[cfg(all(test, feature = "serde"))]
+#[cfg(test)]
 mod serde_tests {
     use opentalk_types_common::{time::Timestamp, users::GroupName};
     use opentalk_types_signaling::ParticipantId;

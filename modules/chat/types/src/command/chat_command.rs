@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     command::{SendMessage, SetLastSeenTimestamp},
@@ -10,12 +11,8 @@ use crate::{
 };
 
 /// Commands for the `chat` namespace
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(tag = "action", rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "action", rename_all = "snake_case")]
 pub enum ChatCommand {
     /// Enable chat messaging
     EnableChat,
@@ -39,7 +36,7 @@ impl CreateReplica<ChatEvent> for ChatCommand {
     }
 }
 
-#[cfg(all(test, feature = "serde"))]
+#[cfg(test)]
 mod serde_tests {
     use opentalk_types_common::{time::Timestamp, users::GroupName};
     use opentalk_types_signaling::ParticipantId;

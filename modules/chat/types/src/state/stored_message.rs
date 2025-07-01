@@ -4,14 +4,14 @@
 
 use opentalk_types_common::time::Timestamp;
 use opentalk_types_signaling::ParticipantId;
+use serde::{Deserialize, Serialize};
 
 use crate::{MessageId, Scope};
 
 /// Message type stores in redis
 ///
 /// This needs to have a inner timestamp.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct StoredMessage {
     /// ID of message
     pub id: MessageId,
@@ -26,6 +26,6 @@ pub struct StoredMessage {
     pub content: String,
 
     /// Scope of the message
-    #[cfg_attr(feature = "serde", serde(flatten))]
+    #[serde(flatten)]
     pub scope: Scope,
 }

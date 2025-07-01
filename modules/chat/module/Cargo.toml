@@ -15,10 +15,7 @@ anyhow.workspace = true
 log.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
-opentalk-roomserver-types-chat = { workspace = true, features = [
-  "rand",
-  "serde",
-] }
+opentalk-roomserver-types-chat = { workspace = true, features = ["rand"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 serde.workspace = true

@@ -3,11 +3,25 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use derive_more::{AsRef, Display, From, FromStr, Into};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// ID of the message
-#[derive(Debug, Clone, Copy, Eq, PartialEq, AsRef, Display, From, FromStr, Into, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    Eq,
+    PartialEq,
+    AsRef,
+    Display,
+    From,
+    FromStr,
+    Into,
+    Hash,
+)]
 pub struct MessageId(Uuid);
 
 impl MessageId {
