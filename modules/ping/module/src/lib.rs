@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{thread, time::Duration};
+use std::time::Duration;
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
@@ -78,17 +78,9 @@ impl SignalingModule for PingModule {
             PingCommand::Ping | PingCommand::ReplicatedPing => {
                 ctx.send_ws_message([participant_id], PingEvent::Pong)?
             }
-            PingCommand::BlockingDelayedPing { delay } => {
-                ctx.spawn_blocking(move || Self::handle_ping_delayed(participant_id, delay));
-            }
             PingCommand::AsyncDelayedPing { delay } => {
                 ctx.spawn(Self::handle_async_ping_delayed(participant_id, delay));
             }
-            PingCommand::PingError => Self::ping_error()?,
-            PingCommand::Broadcast => ctx.send_ws_message(
-                ctx.participants.connected().iter().map(|(id, _)| *id),
-                PingEvent::Pong,
-            )?,
             PingCommand::Die => {
                 return Err(
                     FatalError(anyhow::anyhow!("Dying as requested, cya later alligator")).into(),
@@ -110,21 +102,12 @@ impl SignalingModule for PingModule {
 }
 
 impl PingModule {
-    fn handle_ping_delayed(participant_id: ParticipantId, delay: Duration) -> DelayedPingCompleted {
-        thread::sleep(delay);
-        DelayedPingCompleted(participant_id)
-    }
-
     async fn handle_async_ping_delayed(
         participant_id: ParticipantId,
         delay: Duration,
     ) -> DelayedPingCompleted {
         tokio::time::sleep(delay).await;
         DelayedPingCompleted(participant_id)
-    }
-
-    fn ping_error() -> Result<(), PingError> {
-        Err(PingError)
     }
 }
 
