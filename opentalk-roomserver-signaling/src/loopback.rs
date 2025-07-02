@@ -9,7 +9,7 @@ use tracing::Span;
 
 use crate::event_origin::EventOrigin;
 
-pub type LoopbackFuture = Pin<Box<dyn Future<Output = Option<LoopbackMessage>> + Send + Sync>>;
+pub type LoopbackFuture = Pin<Box<dyn Future<Output = Option<LoopbackMessage>> + Send>>;
 
 pub struct LoopbackMessage {
     pub namespace: ModuleId,

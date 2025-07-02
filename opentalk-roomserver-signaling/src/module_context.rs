@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{cell::RefCell, future::Future, marker::PhantomData, time::Duration};
+use std::{cell::RefCell, future::Future, marker::PhantomData, sync::Arc, time::Duration};
 
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
@@ -29,6 +29,8 @@ use crate::{
     room_info::RoomTaskInfo,
     signaling_event::SignalingEvent,
     signaling_module::SignalingModule,
+    storage::{AssetMetaData, StorageProvider, UploadResult},
+    storage_quota::StorageQuota,
 };
 
 /// Contains the room state and provides an interface to send websocket messages.
@@ -45,7 +47,8 @@ where
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
     pub timestamp: Timestamp,
-    loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
+    loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
+    storage: Arc<dyn StorageProvider>,
 
     m: PhantomData<fn() -> M>,
 }
@@ -63,7 +66,8 @@ where
         messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
         participants: &'ctx mut Participants,
         timestamp: Timestamp,
-        loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
+        loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
+        storage: Arc<dyn StorageProvider>,
     ) -> ModuleContext<'ctx, M> {
         Self {
             room_id,
@@ -74,6 +78,7 @@ where
             participants,
             timestamp,
             loopback_futures,
+            storage,
             m: PhantomData,
         }
     }
@@ -88,6 +93,7 @@ where
             participants: self.participants,
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
+            storage: Arc::clone(&self.storage),
             m: PhantomData,
         }
     }
@@ -265,7 +271,7 @@ where
     /// The room task will panic if the provided future panics.
     pub fn spawn<F>(&self, future: F)
     where
-        F: Future<Output = M::Loopback> + Send + Sync + 'static,
+        F: Future<Output = M::Loopback> + Send + 'static,
     {
         let origin = self.event_origin;
         let room = self.room;
@@ -336,6 +342,28 @@ where
         self.participant_role(participant_id)
             .map(|r| r == Role::Moderator)
             .unwrap_or(false)
+    }
+}
+
+impl<M> ModuleContext<'_, M>
+where
+    M: SignalingModule,
+    M::Loopback: From<UploadResult>,
+{
+    pub fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) {
+        let storage = Arc::clone(&self.storage);
+        self.spawn(async move { storage.upload_file(file, metadata).await.into() });
+    }
+}
+
+impl<M> ModuleContext<'_, M>
+where
+    M: SignalingModule,
+    M::Loopback: From<StorageQuota>,
+{
+    pub fn remaining_quota(&self) {
+        let storage = Arc::clone(&self.storage);
+        self.spawn(async move { storage.remaining_quota().await.into() });
     }
 }
 

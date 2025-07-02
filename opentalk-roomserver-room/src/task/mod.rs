@@ -47,6 +47,7 @@ use opentalk_roomserver_signaling::{
     participant_state::{ParticipantKind, ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
+    storage::StorageProvider,
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters},
@@ -81,6 +82,7 @@ use crate::{
 
 pub mod breakout;
 pub mod core;
+pub mod fs_storage;
 pub mod handle;
 pub mod idle_timeout;
 
@@ -124,6 +126,8 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
     participants: Participants,
 
     modules: Modules,
+
+    storage: Arc<dyn StorageProvider>,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -133,6 +137,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         room_id: RoomId,
         room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
+        storage: Arc<dyn StorageProvider>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
@@ -141,6 +146,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             room_parameters,
             app_state,
             module_registry,
+            storage,
             settings,
             IDLE_TIMEOUT,
         )
@@ -153,6 +159,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         mut room_parameters: Arc<RoomParameters>,
         app_state: watch::Receiver<ApplicationState>,
         module_registry: Arc<ModuleRegistry>,
+        storage: Arc<dyn StorageProvider>,
         settings: Arc<Settings>,
         timeout: Duration,
     ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
@@ -200,6 +207,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 app_state,
                 participants: Participants::new(),
                 modules,
+                storage,
             };
 
             room_task.run().await;
@@ -308,7 +316,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.message_router,
             &mut self.participants,
             msg.timestamp,
-            &self.loopback_futures,
+            Arc::clone(&self.storage),
+            &mut self.loopback_futures,
         );
         if let Err(err) = module
             .on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value))
@@ -429,7 +438,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     &mut self.message_router,
                     &mut self.participants,
                     Timestamp::now(),
-                    &self.loopback_futures,
+                    Arc::clone(&self.storage),
+                    &mut self.loopback_futures,
                 );
 
                 if let Err(err) = module
@@ -583,7 +593,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.message_router,
             &mut self.participants,
             Timestamp::now(),
-            &self.loopback_futures,
+            Arc::clone(&self.storage),
+            &mut self.loopback_futures,
         )
     }
 

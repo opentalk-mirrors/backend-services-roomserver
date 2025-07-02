@@ -18,7 +18,7 @@ use super::participant::{MockParticipantJoined, MockParticipantJoining, ReceiveE
 use crate::{
     ModuleRegistry, RoomTaskHandle, RoomTaskHandleError,
     mocking::{participant::create_participant_connection, socket::MockSocket},
-    task::RoomTask,
+    task::{RoomTask, fs_storage::FsStorage},
 };
 
 #[derive(Debug)]
@@ -129,10 +129,16 @@ impl TestRoom {
     ) -> Self {
         let settings = Arc::new(settings);
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
+
+        let quota = 5 * 1024u64.pow(3); // 5GiB
+        let storage = FsStorage::new(quota, None).expect("Failed to create storage");
+        let storage = Arc::new(storage);
+
         let (room_handle, _) = RoomTask::spawn(
             room_id,
             room_parameters.into(),
             Arc::new(module_registry),
+            storage,
             Arc::clone(&settings),
             rx,
         );

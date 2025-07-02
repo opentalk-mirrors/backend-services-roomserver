@@ -18,6 +18,11 @@ pub mod registry;
 pub mod signaling;
 pub mod task;
 
+pub use opentalk_roomserver_signaling::{
+    storage::{AssetMetaData, AssetUploaded, StorageError, StorageProvider},
+    storage_quota::StorageQuota,
+};
+
 pub use crate::{
     registry::RoomTaskRegistry,
     signaling::module_initializer::ModuleRegistry,
@@ -44,7 +49,7 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{participant::create_participant_connection, socket::MockSocket},
-        task::RoomTask,
+        task::{RoomTask, fs_storage::FsStorage},
     };
 
     const TIMEOUT: Duration = Duration::from_millis(500);
@@ -55,8 +60,19 @@ mod tests {
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
+        let storage = FsStorage::new(1024, None).expect("Failed to create storage");
+        let storage = Arc::new(storage);
         (
-            RoomTask::spawn_with_timeout(id, params, state, module_registry, settings, TIMEOUT).0,
+            RoomTask::spawn_with_timeout(
+                id,
+                params,
+                state,
+                module_registry,
+                storage,
+                settings,
+                TIMEOUT,
+            )
+            .0,
             sender,
         )
     }

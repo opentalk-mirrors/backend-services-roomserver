@@ -5137,6 +5137,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "url",
  "uuid",
 ]
 
@@ -5145,6 +5146,7 @@ name = "opentalk-roomserver-signaling"
 version = "0.0.3-dev"
 dependencies = [
  "anyhow",
+ "async-trait",
  "futures",
  "log",
  "opentalk-roomserver-common",
@@ -5155,6 +5157,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]
