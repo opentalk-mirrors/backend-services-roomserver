@@ -21,23 +21,15 @@ backend = [
   "opentalk-types-common/backend",
   "opentalk-types-signaling/backend",
   "rand",
-  "serde",
 ]
 frontend = [
   "opentalk-types-common/frontend",
   "opentalk-types-signaling/frontend",
-  "serde",
 ]
 rand = [
   "opentalk-types-common/rand",
   "opentalk-types-signaling/rand",
   "uuid/v4",
-]
-serde = [
-  "dep:serde",
-  "opentalk-types-common/serde",
-  "opentalk-types-signaling/serde",
-  "uuid/serde",
 ]
 
 [dependencies]
@@ -50,9 +42,9 @@ derive_more = { workspace = true, features = [
 ] }
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
-opentalk-types-common.workspace = true
-opentalk-types-signaling.workspace = true
-serde = { workspace = true, optional = true }
+opentalk-types-common = { workspace = true, features = ["serde"] }
+opentalk-types-signaling = { workspace = true, features = ["serde"] }
+serde.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]

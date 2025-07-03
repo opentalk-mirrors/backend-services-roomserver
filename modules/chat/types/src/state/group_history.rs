@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_common::users::GroupName;
+use serde::{Deserialize, Serialize};
 
 use crate::state::StoredMessage;
 
 /// Group chat history
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GroupHistory {
     /// Name of the group
     pub name: GroupName,

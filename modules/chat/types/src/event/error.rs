@@ -3,14 +3,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_types::signaling::module_error::ModuleError;
+use serde::{Deserialize, Serialize};
 
 /// Errors from the `chat` module namespace
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(tag = "error", rename_all = "snake_case")
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "error", rename_all = "snake_case")]
 pub enum Error {
     /// Request while chat is disabled
     ChatDisabled,

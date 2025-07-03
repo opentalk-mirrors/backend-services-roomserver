@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_signaling::ParticipantId;
+use serde::{Deserialize, Serialize};
 
 use crate::{MessageId, Scope};
 
 /// A message was sent
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MessageSent {
     /// Id of the message
     pub id: MessageId,
@@ -20,6 +20,6 @@ pub struct MessageSent {
     pub content: String,
 
     /// Scope of the message
-    #[cfg_attr(feature = "serde", serde(flatten))]
+    #[serde(flatten)]
     pub scope: Scope,
 }

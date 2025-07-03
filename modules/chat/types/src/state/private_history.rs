@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_types_signaling::ParticipantId;
+use serde::{Deserialize, Serialize};
 
 use crate::state::StoredMessage;
 
 /// Private chat history
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PrivateHistory {
     /// Private chat correspondent
     pub correspondent: ParticipantId,
