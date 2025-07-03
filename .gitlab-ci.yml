@@ -16,10 +16,10 @@ stages:
 variables:
   KANIKO_IMAGE: gcr.io/kaniko-project/executor:debug
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1
-  DEFAULT_FLAVOR: bookworm
+  DEFAULT_FLAVOR: alpine
 
 .template_vars:
-  FLAVORS: [bookworm, noble]
+  FLAVORS: [alpine, bookworm, noble]
 
 .default_job_condition: &default_job_condition
   needs: []
