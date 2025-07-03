@@ -13,7 +13,8 @@ version.workspace = true
 [dependencies]
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
-opentalk-types-signaling-timer.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
 pretty_assertions.workspace = true
 serde.workspace = true
 serde_json.workspace = true

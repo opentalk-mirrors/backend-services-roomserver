@@ -3,10 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
-use opentalk_types_signaling_timer::command::Start;
 use serde::{Deserialize, Serialize};
 
-use crate::event::TimerEvent;
+use crate::{Start, event::TimerEvent};
 
 /// Incoming websocket messages
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,11 +33,11 @@ impl From<Start> for TimerCommand {
 
 #[cfg(test)]
 mod serde_tests {
-    use opentalk_types_signaling_timer::command::Kind;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::*;
+    use crate::command::kind::Kind;
 
     #[test]
     fn countdown_start() {

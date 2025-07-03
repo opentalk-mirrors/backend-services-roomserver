@@ -5213,7 +5213,6 @@ dependencies = [
  "opentalk-roomserver-types-timer",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-timer",
  "test-log",
  "tokio",
 ]
@@ -5358,7 +5357,6 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-timer",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -5486,19 +5484,6 @@ dependencies = [
  "opentalk-types-signaling",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "opentalk-types-signaling-timer"
-version = "0.36.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff95397b529064c71a2aa98964d5f42e5ccb75168c7211c6694a2ce7d961b8eb"
-dependencies = [
- "derive_more",
- "opentalk-types-common",
- "opentalk-types-signaling",
- "serde",
- "uuid",
 ]
 
 [[package]]

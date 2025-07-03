@@ -19,20 +19,13 @@ use opentalk_roomserver_types::{
     signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_timer::{
-    command::TimerCommand, error::TimerError, event::TimerEvent,
-};
-use opentalk_types_common::{modules::ModuleId, time::Timestamp};
-use opentalk_types_signaling::ParticipantId;
-use opentalk_types_signaling_timer::{
-    Kind, MODULE_ID, TimerConfig, TimerId,
-    command::{
-        Kind::{Countdown, Stopwatch},
-        Start,
-    },
-    event::{Started, StopKind, Stopped, UpdatedReadyStatus},
+    Kind, Start, StopKind, TIMER_MODULE_ID, TimerCommand, TimerConfig, TimerError, command,
+    event::{Started, Stopped, TimerEvent, updated_ready_status::UpdatedReadyStatus},
     peer_state::TimerPeerState,
     state::TimerState,
 };
+use opentalk_types_common::{modules::ModuleId, time::Timestamp};
+use opentalk_types_signaling::ParticipantId;
 
 use crate::timer::Timer;
 
@@ -45,7 +38,7 @@ pub struct TimerModule {
 }
 
 impl SignalingModule for TimerModule {
-    const NAMESPACE: ModuleId = MODULE_ID;
+    const NAMESPACE: ModuleId = TIMER_MODULE_ID;
 
     type Incoming = TimerCommand;
 
@@ -263,8 +256,8 @@ impl TimerModule {
         let started_at = ctx.timestamp;
         let mut tx_cancel = None;
         let kind = match start.kind {
-            Stopwatch => Kind::Stopwatch,
-            Countdown { duration } => {
+            command::Kind::Stopwatch => Kind::Stopwatch,
+            command::Kind::Countdown { duration } => {
                 let signed_duration = duration
                     .try_into()
                     .map_err(|_| TimerError::InvalidDuration)?;
@@ -273,7 +266,6 @@ impl TimerModule {
                     .ok_or(TimerError::InvalidDuration)?;
 
                 let tx = ctx.loopback_after(Duration::from_secs(duration), || Stopped {
-                    timer_id: TimerId::nil(),
                     kind: StopKind::Expired,
                     reason: None,
                 });
@@ -287,7 +279,6 @@ impl TimerModule {
 
         *timer = Some(Timer {
             config: TimerConfig {
-                timer_id: TimerId::nil(),
                 started_at,
                 kind,
                 style: start.style.clone(),
@@ -301,7 +292,6 @@ impl TimerModule {
             ctx.participants.filter().room(ctx.room).ids(),
             TimerEvent::Started(Started {
                 config: TimerConfig {
-                    timer_id: TimerId::nil(),
                     started_at,
                     kind,
                     style: start.style,
@@ -325,7 +315,6 @@ impl TimerModule {
 
         if let Some(mut timer) = self.remove_timer(ctx.room)? {
             let stopped = Stopped {
-                timer_id: TimerId::nil(),
                 kind: StopKind::ByModerator(sender),
                 reason,
             };
@@ -406,7 +395,6 @@ impl TimerModule {
                 ctx.participants.filter().room(ctx.room).ids(),
                 TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
                     participant_id: sender,
-                    timer_id: TimerId::nil(),
                     status: ready,
                 }),
             )?;
