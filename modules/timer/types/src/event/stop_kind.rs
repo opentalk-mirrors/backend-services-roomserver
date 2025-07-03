@@ -6,7 +6,7 @@ use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 /// The stop reason
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind", content = "participant_id")]
 pub enum StopKind {
     /// The timer has been stopped by a moderator
