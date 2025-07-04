@@ -62,7 +62,6 @@ opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = 
 opentalk-types-api-v1 = { version = "0.39.1", features = ["axum"] }
 opentalk-types-common = { version = "0.35.2", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.36.0", features = ["serde"] }
-opentalk-types-signaling-chat = { version = "0.36.0" }
 opentalk-types-signaling-control = { version = "0.36.0", features = ["serde"] }
 
 anyhow = "1"
