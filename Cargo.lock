@@ -4949,6 +4949,7 @@ dependencies = [
  "opentalk-roomserver-types-e2ee",
  "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-ping",
+ "opentalk-roomserver-types-polls",
  "opentalk-roomserver-types-timer",
  "opentalk-types-common",
  "opentalk-types-signaling",

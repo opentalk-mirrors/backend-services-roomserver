@@ -5,6 +5,7 @@ use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core_event::CoreEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, event::PingEvent};
+use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
 use opentalk_types_common::modules::{CORE_MODULE_ID, ModuleId};
 use serde::{Deserialize, Serialize};
@@ -53,6 +54,7 @@ pub enum SignalingModuleEvent {
     E2ee(E2eeEvent),
 
     Timer(TimerEvent),
+    Polls(PollsEvent),
 }
 
 impl SignalingModuleEvent {
@@ -65,6 +67,7 @@ impl SignalingModuleEvent {
             Self::LiveKit(_) => LIVEKIT_MODULE_ID,
             Self::E2ee(_) => E2EE_MODULE_ID,
             Self::Timer(_) => TIMER_MODULE_ID,
+            Self::Polls(_) => POLLS_MODULE_ID,
         }
     }
 }
@@ -78,6 +81,11 @@ mod tests {
     use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
     use opentalk_roomserver_types_livekit::LiveKitEvent;
     use opentalk_roomserver_types_ping::event::PingEvent;
+    use opentalk_roomserver_types_polls::{
+        ChoiceId, PollId,
+        command::{Choices, Vote},
+        event::PollsEvent,
+    };
     use opentalk_roomserver_types_timer::{
         TimerEvent, event::updated_ready_status::UpdatedReadyStatus,
     };
@@ -233,6 +241,35 @@ mod tests {
             "message": "updated_ready_status",
             "participant_id": "00000000-0000-0000-0000-000000000000",
             "status": true
+          }
+        }
+        "#);
+
+        // Check that the ModuleId from the actual SignalingModule matches what we serialize.
+        let namespace_only: NamespaceOnly = serde_json::from_str(&raw).unwrap();
+        assert_eq!(namespace_only.namespace, event.namespace());
+    }
+
+    #[test]
+    fn serialize_event_polls() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            content: SignalingModuleEvent::Polls(PollsEvent::Voted(Vote {
+                poll_id: PollId::nil(),
+                choices: Choices::Single {
+                    choice_id: ChoiceId::from_u32(0),
+                },
+            })),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "polls",
+          "content": {
+            "message": "voted",
+            "poll_id": "00000000-0000-0000-0000-000000000000",
+            "choice_id": 0
           }
         }
         "#);
