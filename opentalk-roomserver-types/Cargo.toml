@@ -3,6 +3,7 @@
 
 [package]
 authors.workspace = true
+description = "Opentalk RoomServer Types"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
