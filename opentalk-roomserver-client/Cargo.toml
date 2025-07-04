@@ -27,7 +27,7 @@ opentalk-roomserver-types-livekit.workspace = true
 opentalk-roomserver-types-ping.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-reqwest = { workspace = true, features = ["json"] }
+reqwest = { workspace = true, default-features = false, features = ["json"] }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
@@ -40,21 +40,3 @@ url.workspace = true
 insta.workspace = true
 tokio.workspace = true
 url.workspace = true
-
-[features]
-default = ["default-tls", "reqwest/default"]
-
-default-tls = ["reqwest/default-tls"]
-native-tls = ["reqwest/native-tls"]
-native-tls-alpn = ["reqwest/native-tls-alpn"]
-native-tls-vendored = ["reqwest/native-tls-vendored"]
-
-rustls-tls = ["reqwest/rustls-tls"]
-rustls-tls-no-provider = ["reqwest/rustls-tls-no-provider"]
-
-rustls-tls-manual-roots = ["reqwest/rustls-tls-manual-roots"]
-rustls-tls-manual-roots-no-provider = [
-  "reqwest/rustls-tls-manual-roots-no-provider",
-]
-rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
-rustls-tls-webpki-roots = ["reqwest/rustls-tls-webpki-roots"]
