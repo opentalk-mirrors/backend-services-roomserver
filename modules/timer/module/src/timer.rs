@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_signaling_timer::{TimerConfig, event::Stopped};
+use opentalk_roomserver_types_timer::{TimerConfig, event::Stopped};
 use tokio::sync::oneshot::Sender;
 
 /// A timer

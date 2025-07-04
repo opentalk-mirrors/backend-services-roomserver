@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_signaling_timer::event::{Started, Stopped, UpdatedReadyStatus};
 use serde::{Deserialize, Serialize};
 
-use crate::error::TimerError;
+use super::error::TimerError;
+use crate::event::{Started, Stopped, updated_ready_status::UpdatedReadyStatus};
 
 /// Outgoing websocket messages
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,10 +46,10 @@ mod tests {
     use chrono::{DateTime, Duration};
     use opentalk_types_common::time::Timestamp;
     use opentalk_types_signaling::ParticipantId;
-    use opentalk_types_signaling_timer::{Kind, TimerConfig, TimerId, event::StopKind};
     use serde_json::json;
 
     use super::*;
+    use crate::{Kind, TimerConfig, event::stop_kind::StopKind};
 
     #[test]
     fn countdown_started() {
@@ -61,7 +61,6 @@ mod tests {
 
         let started = TimerEvent::Started(Started {
             config: TimerConfig {
-                timer_id: TimerId::nil(),
                 started_at,
                 kind: Kind::Countdown { ends_at },
                 style: Some("coffee_break".into()),
@@ -74,7 +73,6 @@ mod tests {
             serde_json::to_value(started).unwrap(),
             json!({
                 "message": "started",
-                "timer_id": "00000000-0000-0000-0000-000000000000",
                 "started_at": "1970-01-01T00:00:00Z",
                 "kind": "countdown",
                 "ends_at": "1970-01-01T00:00:05Z",
@@ -90,7 +88,6 @@ mod tests {
 
         let started = TimerEvent::Started(Started {
             config: TimerConfig {
-                timer_id: TimerId::nil(),
                 started_at,
                 kind: Kind::Stopwatch,
                 style: None,
@@ -103,7 +100,6 @@ mod tests {
             serde_json::to_value(started).unwrap(),
             json!({
                 "message": "started",
-                "timer_id": "00000000-0000-0000-0000-000000000000",
                 "started_at": "1970-01-01T00:00:00Z",
                 "kind": "stopwatch",
                 "title": "Testing the timer!",
@@ -115,7 +111,6 @@ mod tests {
     #[test]
     fn stopped_by_moderator() {
         let stopped = TimerEvent::Stopped(Stopped {
-            timer_id: TimerId::nil(),
             kind: StopKind::ByModerator(ParticipantId::nil()),
             reason: Some("A good reason!".into()),
         });
@@ -124,7 +119,6 @@ mod tests {
             serde_json::to_value(stopped).unwrap(),
             json!({
                 "message": "stopped",
-                "timer_id": "00000000-0000-0000-0000-000000000000",
                 "kind": "by_moderator",
                 "participant_id": "00000000-0000-0000-0000-000000000000",
                 "reason": "A good reason!"
@@ -135,7 +129,6 @@ mod tests {
     #[test]
     fn expired() {
         let stopped = TimerEvent::Stopped(Stopped {
-            timer_id: TimerId::nil(),
             kind: StopKind::Expired,
             reason: None,
         });
@@ -144,7 +137,6 @@ mod tests {
             serde_json::to_value(stopped).unwrap(),
             json!({
                 "message": "stopped",
-                "timer_id": "00000000-0000-0000-0000-000000000000",
                 "kind": "expired",
             }),
         )

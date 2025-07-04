@@ -19,7 +19,6 @@ opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-timer.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-opentalk-types-signaling-timer.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]

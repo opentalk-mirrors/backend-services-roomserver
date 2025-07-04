@@ -14,12 +14,9 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_timer::{
-    command::TimerCommand, error::TimerError, event::TimerEvent,
-};
-use opentalk_types_signaling_timer::{
-    TimerId,
-    command::{Kind, Start},
-    event::{StopKind, Stopped, UpdatedReadyStatus},
+    Start, StopKind, TimerCommand, TimerError, TimerEvent,
+    command::Kind,
+    event::{Stopped, updated_ready_status::UpdatedReadyStatus},
     state::TimerState,
 };
 
@@ -202,7 +199,6 @@ async fn stop_timer() {
     assert_eq!(
         alice.receive_event::<TimerModule>().await.unwrap().content,
         TimerEvent::Stopped(Stopped {
-            timer_id: TimerId::nil(),
             kind: StopKind::ByModerator(alice.id()),
             reason: Some("test".into())
         })
@@ -298,7 +294,6 @@ async fn update_ready_status() {
         TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
             participant_id: bob.id(),
             status: true,
-            timer_id: TimerId::nil(),
         }),
     );
 
@@ -307,7 +302,6 @@ async fn update_ready_status() {
         TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
             participant_id: bob.id(),
             status: true,
-            timer_id: TimerId::nil(),
         }),
     );
 }
@@ -345,7 +339,6 @@ async fn ready_state_persists() {
         TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
             participant_id: alice.id(),
             status: true,
-            timer_id: TimerId::nil(),
         }),
     );
 
@@ -491,7 +484,6 @@ async fn breakout_room_ready_state() {
         TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
             participant_id: alice.id(),
             status: true,
-            timer_id: TimerId::nil(),
         }),
     );
 
