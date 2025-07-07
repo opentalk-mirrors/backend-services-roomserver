@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::event::stop_kind::StopKind;
 
 /// The current timer has been stopped
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Stopped {
     /// The stop kind
     #[serde(flatten)]

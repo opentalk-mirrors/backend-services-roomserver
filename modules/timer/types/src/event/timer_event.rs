@@ -8,7 +8,7 @@ use super::error::TimerError;
 use crate::event::{Started, Stopped, updated_ready_status::UpdatedReadyStatus};
 
 /// Outgoing websocket messages
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "message")]
 pub enum TimerEvent {
     /// A timer has been started

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::TimerConfig;
 
 /// A timer has been started
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Started {
     /// Config of the started timer
     #[serde(flatten)]

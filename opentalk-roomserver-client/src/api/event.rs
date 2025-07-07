@@ -5,6 +5,7 @@ use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core_event::CoreEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, event::PingEvent};
+use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
 use opentalk_types_common::modules::{CORE_MODULE_ID, ModuleId};
 use serde::{Deserialize, Serialize};
 // reexport events for easier usage
@@ -50,6 +51,8 @@ pub enum SignalingModuleEvent {
     LiveKit(LiveKitEvent),
 
     E2ee(E2eeEvent),
+
+    Timer(TimerEvent),
 }
 
 impl SignalingModuleEvent {
@@ -61,6 +64,7 @@ impl SignalingModuleEvent {
             Self::Chat(_) => CHAT_MODULE_ID,
             Self::LiveKit(_) => LIVEKIT_MODULE_ID,
             Self::E2ee(_) => E2EE_MODULE_ID,
+            Self::Timer(_) => TIMER_MODULE_ID,
         }
     }
 }
@@ -74,6 +78,9 @@ mod tests {
     use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
     use opentalk_roomserver_types_livekit::LiveKitEvent;
     use opentalk_roomserver_types_ping::event::PingEvent;
+    use opentalk_roomserver_types_timer::{
+        TimerEvent, event::updated_ready_status::UpdatedReadyStatus,
+    };
     use opentalk_types_common::modules::ModuleId;
     use opentalk_types_signaling::ParticipantId;
     use serde::Deserialize;
@@ -197,6 +204,35 @@ mod tests {
           "namespace": "livekit",
           "content": {
             "message": "microphone_restrictions_disabled"
+          }
+        }
+        "#);
+
+        // Check that the ModuleId from the actual SignalingModule matches what we serialize.
+        let namespace_only: NamespaceOnly = serde_json::from_str(&raw).unwrap();
+        assert_eq!(namespace_only.namespace, event.namespace());
+    }
+
+    #[test]
+    fn serialize_event_timer() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            content: SignalingModuleEvent::Timer(TimerEvent::UpdatedReadyStatus(
+                UpdatedReadyStatus {
+                    participant_id: ParticipantId::nil(),
+                    status: true,
+                },
+            )),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "timer",
+          "content": {
+            "message": "updated_ready_status",
+            "participant_id": "00000000-0000-0000-0000-000000000000",
+            "status": true
           }
         }
         "#);

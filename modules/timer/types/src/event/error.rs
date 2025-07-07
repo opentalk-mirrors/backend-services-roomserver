@@ -5,7 +5,7 @@
 use opentalk_roomserver_types::signaling::module_error::ModuleError;
 
 /// Errors from the `timer` module namespace
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case", tag = "error")]
 pub enum TimerError {
     /// An invalid timer duration has been configured

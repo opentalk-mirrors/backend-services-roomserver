@@ -5,6 +5,7 @@ use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::breakout::command::BreakoutCommand;
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, command::PingCommand};
+use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
 // reexport commands for easier usage
@@ -51,6 +52,8 @@ pub enum SignalingModuleCommand {
     LiveKit(LiveKitCommand),
 
     E2ee(E2eeCommand),
+
+    Timer(TimerCommand),
 }
 
 impl SignalingModuleCommand {
@@ -61,6 +64,7 @@ impl SignalingModuleCommand {
             Self::Chat(..) => CHAT_MODULE_ID,
             Self::LiveKit(..) => LIVEKIT_MODULE_ID,
             Self::E2ee(..) => E2EE_MODULE_ID,
+            Self::Timer(..) => TIMER_MODULE_ID,
         }
     }
 }
@@ -72,6 +76,7 @@ mod tests {
     use opentalk_roomserver_types_chat::command::ChatCommand;
     use opentalk_roomserver_types_livekit::LiveKitCommand;
     use opentalk_roomserver_types_ping::command::PingCommand;
+    use opentalk_roomserver_types_timer::{Start, TimerCommand, command::Kind};
     use opentalk_types_common::modules::ModuleId;
     use serde::Deserialize;
 
@@ -162,6 +167,36 @@ mod tests {
           "namespace": "livekit",
           "content": {
             "action": "create_new_access_token"
+          }
+        }
+        "#);
+
+        // Check that the ModuleId from the actual SignalingModule matches what we serialize.
+        let namespace_only: NamespaceOnly = serde_json::from_str(&raw).unwrap();
+        assert_eq!(namespace_only.namespace, command.namespace());
+    }
+    #[test]
+    fn serialize_command_timer() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            content: SignalingModuleCommand::Timer(TimerCommand::Start(Start {
+                kind: Kind::Stopwatch,
+                style: None,
+                title: None,
+                enable_ready_check: false,
+            })),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "timer",
+          "content": {
+            "action": "start",
+            "kind": "stopwatch",
+            "style": null,
+            "title": null,
+            "enable_ready_check": false
           }
         }
         "#);
