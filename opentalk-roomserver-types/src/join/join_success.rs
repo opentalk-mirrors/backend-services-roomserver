@@ -6,13 +6,13 @@ use opentalk_types_common::{
     events::MeetingDetails, tariffs::TariffResource, time::Timestamp, users::DisplayName,
 };
 use opentalk_types_signaling::{ParticipantId, Role};
-use opentalk_types_signaling_control::room::RoomInfo;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     connection_id::ConnectionId,
     device_id::DeviceId,
     join::{connection_info::ConnectionInfo, event_info::EventInfo, participant::Participant},
+    room_info::RoomInfo,
 };
 
 /// The data received by a participant upon successfully joining a meeting

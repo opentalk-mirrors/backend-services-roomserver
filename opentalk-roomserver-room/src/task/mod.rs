@@ -45,7 +45,7 @@ use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantKind, ParticipantState, Participants},
-    room_info::RoomInfo,
+    room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
 };
 use opentalk_roomserver_types::{
@@ -102,7 +102,7 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 /// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
 /// exits.
 pub struct RoomTask<Socket: SignalingSocket + 'static> {
-    info: RoomInfo,
+    info: RoomTaskInfo,
 
     /// The receiver for web server API request that target this room
     api_rx: mpsc::Receiver<TaskMessage<Socket>>,
@@ -131,7 +131,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     #[tracing::instrument(level = "debug", skip_all, fields(opentalk.room_id = %room_id))]
     pub fn spawn(
         room_id: RoomId,
-        room_parameters: RoomParameters,
+        room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
@@ -150,7 +150,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     #[tracing::instrument(level = "info", skip_all, fields(opentalk.room_id = %room_id))]
     pub fn spawn_with_timeout(
         room_id: RoomId,
-        mut room_parameters: RoomParameters,
+        mut room_parameters: Arc<RoomParameters>,
         app_state: watch::Receiver<ApplicationState>,
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
@@ -162,24 +162,28 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let join_handle = tokio::task::spawn(async move {
             let (modules, uninitialized) = module_registry
-                .initialize_modules(
-                    room_parameters.tariff.modules.keys(),
-                    SignalingModuleInitData {
-                        settings: Arc::clone(&settings),
-                    },
-                )
+                .initialize_modules(SignalingModuleInitData {
+                    settings: Arc::clone(&settings),
+                    room_parameters: Arc::clone(&room_parameters),
+                })
                 .await;
 
-            // Remove unknown modules from the room parameters
-            for module_id in uninitialized {
-                log::debug!("Unable to initialize unknown module {module_id} for room {room_id}");
-                room_parameters.tariff.modules.remove(&module_id);
+            if !uninitialized.is_empty() {
+                // Remove unknown modules from the room parameters
+                let mut params = (*room_parameters).clone();
+                for module_id in uninitialized {
+                    log::debug!(
+                        "Unable to initialize unknown module {module_id} for room {room_id}"
+                    );
+                    params.tariff.modules.remove(&module_id);
+                }
+                room_parameters = Arc::new(params);
             }
 
-            let room_info = RoomInfo {
+            let room_info = RoomTaskInfo {
                 room_id,
                 closes_at: room_parameters.calc_time_limit_quota(Timestamp::now()),
-                room: room_parameters,
+                room: (*room_parameters).clone(),
             };
 
             let loopback_futures: FuturesUnordered<LoopbackFuture> = FuturesUnordered::new();

@@ -28,6 +28,7 @@ opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-api-v1 = { workspace = true }
 opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
 opentalk-version.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

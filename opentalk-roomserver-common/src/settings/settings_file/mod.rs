@@ -8,7 +8,6 @@ use conference::Conference;
 use config::{Config, Environment, File, FileFormat};
 use defaults::Defaults;
 use http::Http;
-use livekit::LiveKitSettings;
 use serde::Deserialize;
 use telemetry::{Metrics, Monitoring, Tracing};
 use thiserror::Error;
@@ -42,9 +41,6 @@ pub struct SettingsFile {
 
     #[serde(default)]
     pub(crate) conference: Conference,
-
-    #[serde(default)]
-    pub(crate) livekit: Option<LiveKitSettings>,
 
     #[serde(default)]
     pub(crate) defaults: Option<Defaults>,

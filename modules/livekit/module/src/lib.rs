@@ -11,7 +11,6 @@ use std::{
 use futures::{StreamExt as _, stream};
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
-use opentalk_roomserver_common::settings::LiveKitSettings;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData},
@@ -21,7 +20,8 @@ use opentalk_roomserver_types::{
     signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_livekit::{
-    LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState, MicrophoneRestrictionState,
+    LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitSettings, LiveKitState,
+    MicrophoneRestrictionState,
 };
 use opentalk_types_common::{
     modules::{ModuleId, module_id},
@@ -78,9 +78,12 @@ impl SignalingModule for LiveKitModule {
     type Error = LiveKitError;
 
     fn init(init_data: SignalingModuleInitData) -> Option<Self> {
-        let Some(livekit_settings) = &init_data.settings.livekit else {
-            return None;
-        };
+        let livekit_settings = (init_data
+            .room_parameters
+            .module_data
+            .get::<LiveKitSettings>()
+            .ok()?)?;
+
         let default_screenshare_permission = init_data
             .settings
             .defaults

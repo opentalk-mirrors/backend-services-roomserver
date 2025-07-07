@@ -9,6 +9,7 @@ use opentalk_roomserver_types::{
     breakout::BreakoutRoom,
     connection_id::ConnectionId,
     room_kind::RoomKind,
+    room_parameters::RoomParameters,
     shared_raw_json::SharedRawJson,
     signaling::module_error::{FatalError, ModuleError, SignalingModuleError},
 };
@@ -272,4 +273,6 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
 pub struct SignalingModuleInitData {
     /// The roomserver settings
     pub settings: Arc<Settings>,
+    /// The room parameters that are used to initialize the room
+    pub room_parameters: Arc<RoomParameters>,
 }

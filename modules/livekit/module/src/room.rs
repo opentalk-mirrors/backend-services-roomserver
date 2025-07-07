@@ -13,7 +13,6 @@ use livekit_api::{
     services::{ServiceError, TwirpError, TwirpErrorCode, room::RoomClient},
 };
 use livekit_protocol::TrackSource;
-use opentalk_roomserver_common::settings::LiveKitSettings;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{JoinInfo, PeerJoinInfoMap, SignalingModule},
@@ -22,8 +21,8 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId, room_kind::RoomKind, signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_livekit::{
-    Credentials, LiveKitError, LiveKitEvent, LiveKitState, MicrophoneRestrictionState,
-    UnrestrictedParticipants,
+    Credentials, LiveKitError, LiveKitEvent, LiveKitSettings, LiveKitState,
+    MicrophoneRestrictionState, UnrestrictedParticipants,
 };
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;

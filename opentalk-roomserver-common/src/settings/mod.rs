@@ -10,7 +10,6 @@ pub use runtime_settings::{
     conference::Conference,
     defaults::Defaults,
     http::Http,
-    livekit::LiveKitSettings,
     telemetry::{Metrics, Monitoring, Tracing},
 };
 pub use settings_file::SettingsFile;

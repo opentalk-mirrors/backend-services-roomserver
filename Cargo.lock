@@ -4910,6 +4910,7 @@ dependencies = [
  "opentalk-roomserver-web-api",
  "opentalk-types-api-v1",
  "opentalk-types-common",
+ "opentalk-types-signaling",
  "opentalk-version",
  "opentelemetry",
  "opentelemetry-otlp",
@@ -4997,6 +4998,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-types-api-v1",
  "opentalk-types-common",
+ "opentalk-types-signaling",
  "opentalk-version",
  "serde",
  "serde_json",
@@ -5047,7 +5049,6 @@ dependencies = [
  "livekit",
  "livekit-api",
  "livekit-protocol",
- "opentalk-roomserver-common",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5128,7 +5129,6 @@ dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-control",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -5167,7 +5167,6 @@ dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "opentalk-types-signaling-control",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -5355,9 +5354,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling"
-version = "0.36.0"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be4b2b5c8c01b45bad75d78fb2cba70aee8a48e30ed5e727e45fb5f9482d5666"
+checksum = "46a53f1b3dc3c3344bef3405caf220d07c1cbcdfc8079d9187999c900c9df592"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
@@ -5365,19 +5364,8 @@ dependencies = [
  "serde",
  "serde_json",
  "strum 0.27.1",
+ "utoipa",
  "uuid",
-]
-
-[[package]]
-name = "opentalk-types-signaling-control"
-version = "0.36.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a015ce6532f9441d5314ec9b692812276142d990645e5ba45da99e82f005833"
-dependencies = [
- "opentalk-types-common",
- "opentalk-types-signaling",
- "serde",
- "serde_json",
 ]
 
 [[package]]
