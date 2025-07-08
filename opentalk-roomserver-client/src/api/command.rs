@@ -5,6 +5,7 @@ use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::breakout::command::BreakoutCommand;
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, command::PingCommand};
+use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, command::PollsCommand};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
@@ -54,6 +55,7 @@ pub enum SignalingModuleCommand {
     E2ee(E2eeCommand),
 
     Timer(TimerCommand),
+    Polls(PollsCommand),
 }
 
 impl SignalingModuleCommand {
@@ -65,6 +67,7 @@ impl SignalingModuleCommand {
             Self::LiveKit(..) => LIVEKIT_MODULE_ID,
             Self::E2ee(..) => E2EE_MODULE_ID,
             Self::Timer(..) => TIMER_MODULE_ID,
+            Self::Polls(..) => POLLS_MODULE_ID,
         }
     }
 }
@@ -76,6 +79,10 @@ mod tests {
     use opentalk_roomserver_types_chat::command::ChatCommand;
     use opentalk_roomserver_types_livekit::LiveKitCommand;
     use opentalk_roomserver_types_ping::command::PingCommand;
+    use opentalk_roomserver_types_polls::{
+        ChoiceId, PollId,
+        command::{Choices, PollsCommand, Vote},
+    };
     use opentalk_roomserver_types_timer::{Start, TimerCommand, command::Kind};
     use opentalk_types_common::modules::ModuleId;
     use serde::Deserialize;
@@ -175,6 +182,7 @@ mod tests {
         let namespace_only: NamespaceOnly = serde_json::from_str(&raw).unwrap();
         assert_eq!(namespace_only.namespace, command.namespace());
     }
+
     #[test]
     fn serialize_command_timer() {
         let command = SignalingCommand {
@@ -197,6 +205,35 @@ mod tests {
             "style": null,
             "title": null,
             "enable_ready_check": false
+          }
+        }
+        "#);
+
+        // Check that the ModuleId from the actual SignalingModule matches what we serialize.
+        let namespace_only: NamespaceOnly = serde_json::from_str(&raw).unwrap();
+        assert_eq!(namespace_only.namespace, command.namespace());
+    }
+
+    #[test]
+    fn serialize_command_polls() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            content: SignalingModuleCommand::Polls(PollsCommand::Vote(Vote {
+                poll_id: PollId::nil(),
+                choices: Choices::Single {
+                    choice_id: ChoiceId::from_u32(0),
+                },
+            })),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "polls",
+          "content": {
+            "action": "vote",
+            "poll_id": "00000000-0000-0000-0000-000000000000",
+            "choice_id": 0
           }
         }
         "#);
