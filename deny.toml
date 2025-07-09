@@ -250,6 +250,7 @@ skip = [
   { name = "thiserror-impl", version = "1" },
   { name = "tokio-tungstenite", version = "0.20.1" },
   { name = "tokio-tungstenite", version = "0.26" },
+  { name = "toml_datetime", version = "0.6.11" },
   { name = "tungstenite", version = "0.20" },
   { name = "tungstenite", version = "0.26" },
   { name = "zip", version = "0.6" },
