@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::cell::RefCell;
+use std::{cell::RefCell, sync::Arc};
 
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
     event_origin::EventOrigin, loopback::LoopbackFuture, module_context::ModuleContext,
     participant_state::Participants, room_info::RoomTaskInfo, signaling_module::SignalingModule,
+    storage::StorageProvider,
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, room_kind::RoomKind, shared_raw_json::SharedRawJson,
@@ -24,7 +25,8 @@ pub struct DynModuleContext<'ctx> {
     pub message_router: &'ctx mut MessageRouter,
     pub participants: &'ctx mut Participants,
     pub timestamp: Timestamp,
-    loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
+    pub storage: Arc<dyn StorageProvider>,
+    loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
 }
 
 impl<'ctx> DynModuleContext<'ctx> {
@@ -37,7 +39,8 @@ impl<'ctx> DynModuleContext<'ctx> {
         message_router: &'ctx mut MessageRouter,
         participants: &'ctx mut Participants,
         timestamp: Timestamp,
-        loopback_futures: &'ctx FuturesUnordered<LoopbackFuture>,
+        storage: Arc<dyn StorageProvider>,
+        loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
     ) -> Self {
         Self {
             room_id,
@@ -48,6 +51,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             participants,
             timestamp,
             loopback_futures,
+            storage,
         }
     }
 
@@ -62,6 +66,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             participants: self.participants,
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
+            storage: Arc::clone(&self.storage),
         }
     }
 
@@ -78,6 +83,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             self.participants,
             self.timestamp,
             self.loopback_futures,
+            self.storage,
         )
     }
 }

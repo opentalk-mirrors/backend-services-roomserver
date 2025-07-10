@@ -4,6 +4,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
+use opentalk_roomserver_signaling::storage::StorageProvider;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
 use opentalk_types_common::rooms::RoomId;
@@ -15,6 +16,7 @@ use tokio::{
 use super::signaling::module_initializer::ModuleRegistry;
 use crate::task::{
     RoomTask,
+    fs_storage::FsStorage,
     handle::{RoomTaskHandle, RoomTaskHandleError},
 };
 
@@ -67,10 +69,13 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             return Ok((RoomAction::Updated, task_handle.clone()));
         }
 
+        let storage = create_storage_provider();
+
         let (task_handle, join_handle) = RoomTask::spawn(
             room_id,
             room_parameters,
             module_registry,
+            storage,
             settings,
             app_state,
         );
@@ -112,10 +117,13 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             return Some(task_handle.clone());
         }
 
+        let storage = create_storage_provider();
+
         let (task_handle, join_handle) = RoomTask::spawn(
             room_id,
             room_parameters,
             module_registry,
+            storage,
             settings,
             app_state,
         );
@@ -156,4 +164,11 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         log::trace!("Remove room task handle from registry: {room_id}");
         room_list.remove(&room_id);
     }
+}
+
+// TODO: this function will be replaced once a real storage provider has been implemented
+fn create_storage_provider() -> Arc<dyn StorageProvider> {
+    let quota = 5 * 1024u64.pow(3); // 5 GiB
+    let storage = FsStorage::new(quota, None).expect("Failed to create storage");
+    Arc::new(storage)
 }

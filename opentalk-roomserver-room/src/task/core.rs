@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 
 use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
@@ -178,7 +178,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         &mut self.message_router,
                         &mut self.participants,
                         Timestamp::now(),
-                        &self.loopback_futures,
+                        Arc::clone(&self.storage),
+                        &mut self.loopback_futures,
                     ),
                     &mut event,
                 )
