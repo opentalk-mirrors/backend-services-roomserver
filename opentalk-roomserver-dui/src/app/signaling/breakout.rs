@@ -181,7 +181,6 @@ impl BreakoutPlugin {
     fn room_select_ui(ui: &mut egui::Ui, rooms: &[BreakoutRoom]) -> Option<BreakoutCommand> {
         let res = ui.menu_button("switch room", |ui| {
             if ui.button(RichText::new("main").strong()).clicked() {
-                ui.close_menu();
                 return Some(BreakoutCommand::SwitchRoom(RoomKind::Main));
             }
             for room in rooms {
@@ -190,7 +189,6 @@ impl BreakoutPlugin {
                     .on_hover_text(room.id.to_string())
                     .clicked()
                 {
-                    ui.close_menu();
                     return Some(BreakoutCommand::SwitchRoom(RoomKind::Breakout(room.id)));
                 }
             }

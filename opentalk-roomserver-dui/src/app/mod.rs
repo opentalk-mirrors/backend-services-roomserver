@@ -6,7 +6,7 @@ use std::path::Path;
 use connecting::ConnectingView;
 use connection_config::ConnectionConfigView;
 use eframe::CreationContext;
-use egui::{Button, RichText, menu};
+use egui::{Button, RichText};
 use error::RunnerGoneError;
 use error_view::ErrorView;
 use opentalk_roomserver_types::{
@@ -134,7 +134,7 @@ impl RoomServerApp {
 
     fn menu_ui(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 egui::widgets::global_theme_preference_switch(ui);
 
                 ui.menu_button("File", |ui| {

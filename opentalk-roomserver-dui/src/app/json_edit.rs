@@ -6,9 +6,14 @@ use egui::Widget;
 pub(crate) fn json_editor(ui: &mut egui::Ui, text: &mut String) -> egui::Response {
     let theme = egui_extras::syntax_highlighting::CodeTheme::from_memory(ui.ctx(), ui.style());
 
-    let mut layouter = |ui: &egui::Ui, buf: &str, wrap_width: f32| {
-        let mut layout_job =
-            egui_extras::syntax_highlighting::highlight(ui.ctx(), ui.style(), &theme, buf, "json");
+    let mut layouter = |ui: &egui::Ui, buf: &dyn egui::TextBuffer, wrap_width: f32| {
+        let mut layout_job = egui_extras::syntax_highlighting::highlight(
+            ui.ctx(),
+            ui.style(),
+            &theme,
+            buf.as_str(),
+            "json",
+        );
         layout_job.wrap.max_width = wrap_width;
         ui.fonts(|f| f.layout_job(layout_job))
     };
