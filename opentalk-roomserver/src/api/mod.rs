@@ -232,7 +232,7 @@ impl Context {
             .room_tasks
             .create_or_get(
                 room_id,
-                room_parameters,
+                room_parameters.into(),
                 Arc::clone(&self.module_registry),
                 Arc::clone(&self.settings),
                 self.app_state.subscribe(),
@@ -268,7 +268,7 @@ impl RoomBackend for Context {
             .room_tasks
             .put_room(
                 room_id,
-                room_parameters,
+                room_parameters.into(),
                 Arc::clone(&self.module_registry),
                 Arc::clone(&self.settings),
                 self.app_state.subscribe(),
@@ -329,6 +329,7 @@ mod test {
         users::{DisplayName, UserId, UserInfo, UserTitle},
         utils::ExampleData,
     };
+    use opentalk_types_signaling::ModuleData;
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -387,6 +388,7 @@ mod test {
             tariff: TariffResource::example_data(),
             streaming_links: vec![],
             e2e_encryption: false,
+            module_data: ModuleData::example_data(),
         }
     }
 

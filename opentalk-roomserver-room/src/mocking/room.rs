@@ -5,7 +5,7 @@ use std::{collections::BTreeSet, net::Ipv6Addr, sync::Arc};
 
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
-    settings::{Http, LiveKitSettings, Settings},
+    settings::{Http, Settings},
 };
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{
@@ -51,7 +51,6 @@ fn settings() -> Settings {
         metrics: Default::default(),
         tracing: Default::default(),
         conference: Default::default(),
-        livekit: Default::default(),
         defaults: Default::default(),
     }
 }
@@ -94,11 +93,6 @@ impl TestRoomBuilder {
         self
     }
 
-    pub fn settings_livekit(mut self, settings: LiveKitSettings) -> Self {
-        self.settings.livekit = Some(settings);
-        self
-    }
-
     pub fn spawn(self) -> TestRoom {
         TestRoom::spawn(
             self.room_id,
@@ -137,7 +131,7 @@ impl TestRoom {
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
         let (room_handle, _) = RoomTask::spawn(
             room_id,
-            room_parameters,
+            room_parameters.into(),
             Arc::new(module_registry),
             Arc::clone(&settings),
             rx,

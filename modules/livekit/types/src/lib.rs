@@ -20,6 +20,7 @@ mod credentials;
 mod error;
 mod event;
 mod microphone_restriction_state;
+mod settings;
 mod state;
 
 use opentalk_types_common::modules::{ModuleId, module_id};
@@ -30,6 +31,7 @@ pub use crate::{
     error::LiveKitError,
     event::LiveKitEvent,
     microphone_restriction_state::MicrophoneRestrictionState,
+    settings::LiveKitSettings,
     state::LiveKitState,
 };
 

@@ -42,12 +42,11 @@ impl ModuleRegistry {
     /// separate list.
     pub(crate) async fn initialize_modules(
         &self,
-        modules: impl IntoIterator<Item = &ModuleId>,
         init_data: SignalingModuleInitData,
     ) -> (Modules, Vec<ModuleId>) {
         let mut initializers = Vec::new();
 
-        for module_id in modules {
+        for module_id in init_data.room_parameters.tariff.modules.keys() {
             let init_data = init_data.clone();
 
             initializers

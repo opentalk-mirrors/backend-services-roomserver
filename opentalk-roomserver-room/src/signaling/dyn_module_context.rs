@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
     event_origin::EventOrigin, loopback::LoopbackFuture, module_context::ModuleContext,
-    participant_state::Participants, room_info::RoomInfo, signaling_module::SignalingModule,
+    participant_state::Participants, room_info::RoomTaskInfo, signaling_module::SignalingModule,
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, room_kind::RoomKind, shared_raw_json::SharedRawJson,
@@ -20,7 +20,7 @@ pub struct DynModuleContext<'ctx> {
     pub room_id: RoomId,
     pub room: RoomKind,
     pub event_origin: EventOrigin,
-    pub room_info: &'ctx mut RoomInfo,
+    pub room_task_info: &'ctx mut RoomTaskInfo,
     pub message_router: &'ctx mut MessageRouter,
     pub participants: &'ctx mut Participants,
     pub timestamp: Timestamp,
@@ -33,7 +33,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         room_id: RoomId,
         room: RoomKind,
         event_origin: EventOrigin,
-        room_info: &'ctx mut RoomInfo,
+        room_task_info: &'ctx mut RoomTaskInfo,
         message_router: &'ctx mut MessageRouter,
         participants: &'ctx mut Participants,
         timestamp: Timestamp,
@@ -43,7 +43,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             room_id,
             room,
             event_origin,
-            room_info,
+            room_task_info,
             message_router,
             participants,
             timestamp,
@@ -57,7 +57,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             room_id: self.room_id,
             room: self.room,
             event_origin: self.event_origin,
-            room_info: self.room_info,
+            room_task_info: self.room_task_info,
             message_router: self.message_router,
             participants: self.participants,
             timestamp: self.timestamp,
@@ -73,7 +73,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             self.room_id,
             self.room,
             self.event_origin,
-            self.room_info,
+            self.room_task_info,
             messages,
             self.participants,
             self.timestamp,

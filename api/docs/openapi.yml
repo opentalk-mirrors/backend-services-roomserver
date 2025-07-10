@@ -277,6 +277,29 @@ components:
       format: uuid
       description: An invite code
       example: 00000000-0000-0000-0000-0000deadbeef
+    ModuleData:
+      type: object
+      description: |-
+        A struct containing data for multiple signaling modules, each associated
+        with the module's namespace.
+      additionalProperties: {}
+      propertyNames:
+        anyOf:
+          - type: string
+            description: A module identifier
+            examples:
+              - mymodule
+            maxLength: 255
+            minLength: 1
+            pattern: "^[_0-9a-z]*$"
+        default: core
+        example: mymodule
+      example:
+        livekit:
+          api_key: devkey
+          api_secret: secret
+          public_url: "http://localhost:7880"
+          service_url: "http://localhost:7880"
     NumericId:
       type: string
       description: A string containing number characters
@@ -330,6 +353,7 @@ components:
         - tariff
         - streaming_links
         - e2e_encryption
+        - module_data
       properties:
         call_in:
           $ref: "#/components/schemas/CallInInfo"
@@ -342,6 +366,9 @@ components:
           $ref: "#/components/schemas/EventContext"
         invite_code:
           $ref: "#/components/schemas/InviteCode"
+        module_data:
+          $ref: "#/components/schemas/ModuleData"
+          description: Additional configuration options that are used by modules during initialization.
         password:
           $ref: "#/components/schemas/RoomPassword"
         streaming_links:
@@ -376,6 +403,12 @@ components:
               url: "https://cloud.example.com/shares/abc123"
           title: Team Event
         invite_code: 00000000-0000-0000-0000-0000deadbeef
+        module_data:
+          livekit:
+            api_key: devkey
+            api_secret: secret
+            public_url: "http://localhost:7880"
+            service_url: "http://localhost:7880"
         password: "1234"
         streaming_links:
           - name: My OwnCast Stream
@@ -601,6 +634,12 @@ components:
                 url: "https://cloud.example.com/shares/abc123"
             title: Team Event
           invite_code: 00000000-0000-0000-0000-0000deadbeef
+          module_data:
+            livekit:
+              api_key: devkey
+              api_secret: secret
+              public_url: "http://localhost:7880"
+              service_url: "http://localhost:7880"
           password: "1234"
           streaming_links:
             - name: My OwnCast Stream

@@ -51,7 +51,7 @@ mod tests {
 
     fn create_room_task() -> (RoomTaskHandle<MockSocket>, watch::Sender<ApplicationState>) {
         let id = RoomId::from_u128(0xc270ab35_5cdb_4614_b872_8dd66ceefc70);
-        let params = RoomParameters::example_data();
+        let params = Arc::new(RoomParameters::example_data());
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));

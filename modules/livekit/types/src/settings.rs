@@ -2,10 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::settings::settings_file;
-
 /// LiveKit settings.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LiveKitSettings {
     /// The API key for connecting to LiveKit.
     pub api_key: String,
@@ -20,13 +18,7 @@ pub struct LiveKitSettings {
     pub service_url: String,
 }
 
-impl From<settings_file::livekit::LiveKitSettings> for LiveKitSettings {
-    fn from(value: settings_file::livekit::LiveKitSettings) -> Self {
-        Self {
-            api_key: value.api_key,
-            api_secret: value.api_secret,
-            public_url: value.public_url,
-            service_url: value.service_url,
-        }
-    }
+impl opentalk_types_signaling::SignalingModuleFrontendData for LiveKitSettings {
+    const NAMESPACE: Option<opentalk_types_common::modules::ModuleId> =
+        Some(crate::LIVEKIT_MODULE_ID);
 }

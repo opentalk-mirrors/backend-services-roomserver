@@ -5,7 +5,7 @@ use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_types_common::{rooms::RoomId, time::Timestamp};
 
 #[derive(Debug, Clone)]
-pub struct RoomInfo {
+pub struct RoomTaskInfo {
     /// the identifier of the room
     pub room_id: RoomId,
     /// The start parameters for the room task

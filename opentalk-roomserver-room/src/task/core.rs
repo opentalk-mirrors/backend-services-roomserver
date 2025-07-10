@@ -19,6 +19,7 @@ use opentalk_roomserver_types::{
         connection_info::ConnectionInfo, event_info::EventInfo, join_success::JoinSuccess,
         participant::Participant,
     },
+    room_info::RoomInfo,
     room_kind::RoomKind,
     signaling::module_error::FatalError,
 };
@@ -29,7 +30,6 @@ use opentalk_types_common::{
     time::Timestamp,
 };
 use opentalk_types_signaling::{ModuleData, ModulePeerData, ParticipantId, Role};
-use opentalk_types_signaling_control::room::RoomInfo;
 
 use super::RoomTask;
 use crate::signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext};
@@ -270,7 +270,7 @@ fn build_join_success(
             profile.user_info.display_name,
             Role::User,
             Some(profile.user_info.avatar_url),
-            ctx.room_info.room.created_by.id == profile.id,
+            ctx.room_task_info.room.created_by.id == profile.id,
         ),
         ClientKind::Guest { display_name } => (display_name, Role::Guest, None, false),
         ClientKind::Service(service_kind) => {
@@ -279,7 +279,7 @@ fn build_join_success(
     };
 
     let event_info = ctx
-        .room_info
+        .room_task_info
         .room
         .event
         .as_ref()
@@ -288,13 +288,13 @@ fn build_join_success(
             room_id: ctx.room_id,
             title: event_context.title.clone(),
             is_adhoc: event_context.is_adhoc,
-            e2e_encryption: ctx.room_info.room.e2e_encryption,
+            e2e_encryption: ctx.room_task_info.room.e2e_encryption,
         });
 
     let meeting_details = MeetingDetails {
-        invite_code_id: ctx.room_info.room.invite_code,
-        call_in: ctx.room_info.room.call_in.clone(),
-        streaming_links: ctx.room_info.room.streaming_links.clone(),
+        invite_code_id: ctx.room_task_info.room.invite_code,
+        call_in: ctx.room_task_info.room.call_in.clone(),
+        streaming_links: ctx.room_task_info.room.streaming_links.clone(),
     };
 
     let other_connections = ctx
@@ -322,14 +322,14 @@ fn build_join_success(
         display_name,
         avatar_url,
         role,
-        closes_at: ctx.room_info.closes_at,
-        tariff: Box::new(ctx.room_info.room.tariff.clone()),
+        closes_at: ctx.room_task_info.closes_at,
+        tariff: Box::new(ctx.room_task_info.room.tariff.clone()),
         participants,
         event_info,
         room_info: RoomInfo {
             id: ctx.room_id,
-            password: ctx.room_info.room.password.clone(),
-            created_by: ctx.room_info.room.created_by.user_info.clone(),
+            password: ctx.room_task_info.room.password.clone(),
+            created_by: ctx.room_task_info.room.created_by.user_info.clone(),
         },
         meeting_details,
         is_room_owner,
@@ -346,6 +346,7 @@ mod tests {
         connection_id::ConnectionId,
         device_id::DeviceId,
         join::{connection_info::ConnectionInfo, join_success::JoinSuccess},
+        room_info::RoomInfo,
         shared_raw_json::SharedRawJson,
     };
     use opentalk_types_common::{
@@ -357,7 +358,6 @@ mod tests {
         utils::ExampleData,
     };
     use opentalk_types_signaling::{ModuleData, ParticipantId, Role, SignalingModuleFrontendData};
-    use opentalk_types_signaling_control::room::RoomInfo;
     use pretty_assertions::assert_eq;
     use serde::{Deserialize, Serialize};
     use serde_json::{json, value::to_raw_value};

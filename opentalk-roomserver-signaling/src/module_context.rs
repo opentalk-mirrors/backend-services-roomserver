@@ -26,7 +26,7 @@ use crate::{
     event_origin::EventOrigin,
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantState, Participants},
-    room_info::RoomInfo,
+    room_info::RoomTaskInfo,
     signaling_event::SignalingEvent,
     signaling_module::SignalingModule,
 };
@@ -39,7 +39,7 @@ where
     pub room_id: RoomId,
     pub room: RoomKind,
     pub event_origin: EventOrigin,
-    room_info: &'ctx mut RoomInfo,
+    room_task_info: &'ctx mut RoomTaskInfo,
     /// The websocket messages that are sent out after the module finished its event handling
     messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
     /// Contains all participants including disconnected ones
@@ -59,7 +59,7 @@ where
         room_id: RoomId,
         room: RoomKind,
         event_origin: EventOrigin,
-        room_info: &'ctx mut RoomInfo,
+        room_task_info: &'ctx mut RoomTaskInfo,
         messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
         participants: &'ctx mut Participants,
         timestamp: Timestamp,
@@ -69,7 +69,7 @@ where
             room_id,
             room,
             event_origin,
-            room_info,
+            room_task_info,
             messages,
             participants,
             timestamp,
@@ -83,7 +83,7 @@ where
             room_id: self.room_id,
             room: self.room,
             event_origin: self.event_origin,
-            room_info: self.room_info,
+            room_task_info: self.room_task_info,
             messages: self.messages,
             participants: self.participants,
             timestamp: self.timestamp,
@@ -92,8 +92,8 @@ where
         }
     }
 
-    pub fn room_info(&self) -> &RoomInfo {
-        self.room_info
+    pub fn room_task_info(&self) -> &RoomTaskInfo {
+        self.room_task_info
     }
 
     /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given `participant_ids`

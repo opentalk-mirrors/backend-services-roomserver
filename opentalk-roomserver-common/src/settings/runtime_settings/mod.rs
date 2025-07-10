@@ -6,7 +6,6 @@ use std::net::{IpAddr, Ipv4Addr};
 use conference::Conference;
 use defaults::Defaults;
 use http::Http;
-use livekit::LiveKitSettings;
 use telemetry::{Metrics, Monitoring, Tracing};
 
 use super::{settings_file::SettingsFile, signaling_salt::SignalingSalt};
@@ -14,7 +13,6 @@ use super::{settings_file::SettingsFile, signaling_salt::SignalingSalt};
 pub mod conference;
 pub mod defaults;
 pub mod http;
-pub mod livekit;
 pub mod telemetry;
 
 #[derive(Debug, Clone)]
@@ -29,8 +27,6 @@ pub struct Settings {
     pub tracing: Option<Tracing>,
 
     pub conference: Conference,
-
-    pub livekit: Option<LiveKitSettings>,
 
     pub defaults: Option<Defaults>,
 }
@@ -53,7 +49,6 @@ impl Settings {
             conference: Conference {
                 signaling_salt: SignalingSalt("abcdefghijklmnopqrstuvwx".into()),
             },
-            livekit: None,
             defaults: None,
         }
     }
@@ -67,7 +62,6 @@ impl From<SettingsFile> for Settings {
             metrics: value.metrics.map(Into::into),
             tracing: value.tracing.map(Into::into),
             conference: value.conference.into(),
-            livekit: value.livekit.map(Into::into),
             defaults: value.defaults.map(Into::into),
         }
     }

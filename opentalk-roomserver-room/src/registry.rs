@@ -53,7 +53,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     pub async fn put_room(
         &self,
         room_id: RoomId,
-        room_parameters: RoomParameters,
+        room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
@@ -61,7 +61,9 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         let registry = self.inner.write().await;
 
         if let Some(task_handle) = registry.get(&room_id) {
-            task_handle.update_parameter(room_parameters).await?;
+            task_handle
+                .update_parameter((*room_parameters).clone())
+                .await?;
             return Ok((RoomAction::Updated, task_handle.clone()));
         }
 
@@ -99,7 +101,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     pub async fn create_or_get(
         &self,
         room_id: RoomId,
-        room_parameters: RoomParameters,
+        room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,

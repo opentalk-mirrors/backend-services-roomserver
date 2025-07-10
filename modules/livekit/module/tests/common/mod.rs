@@ -9,7 +9,6 @@ use livekit::{
         prelude::{AudioFrame, AudioSourceOptions, RtcAudioSource},
     },
 };
-use opentalk_roomserver_common::settings::LiveKitSettings;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::TestRoom;
 use testcontainers::{
@@ -73,12 +72,6 @@ pub async fn build_livekit_room() -> (ContainerAsync<GenericImage>, TestRoom, St
 
     let room = TestRoom::builder()
         .register_module::<LiveKitModule>()
-        .settings_livekit(LiveKitSettings {
-            api_key: LIVEKIT_KEY.to_string(),
-            api_secret: LIVEKIT_SECRET.to_string(),
-            public_url: url.clone(),
-            service_url: url.clone(),
-        })
         .spawn();
     (livekit_container, room, url)
 }
