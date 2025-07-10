@@ -6,7 +6,7 @@ use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    command::{SendMessage, SetLastSeenTimestamp},
+    command::{GetHistoryChunk, SendMessage, SetLastSeenTimestamp},
     event::ChatEvent,
 };
 
@@ -23,6 +23,9 @@ pub enum ChatCommand {
     /// Send chat message
     SendMessage(SendMessage),
 
+    /// Get a chunk of the chat history
+    GetHistoryChunk(GetHistoryChunk),
+
     /// Clear chat history
     ClearHistory,
 
@@ -38,6 +41,7 @@ impl CreateReplica<ChatEvent> for ChatCommand {
 
 #[cfg(test)]
 mod serde_tests {
+    use insta::assert_snapshot;
     use opentalk_types_common::{time::Timestamp, users::GroupName};
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
@@ -226,5 +230,41 @@ mod serde_tests {
         } else {
             panic!()
         }
+    }
+
+    #[test]
+    fn serialize_get_history_chunk() {
+        let command = ChatCommand::GetHistoryChunk(GetHistoryChunk {
+            message_index: 1,
+            scope: Scope::Global,
+        });
+        let produced = serde_json::to_string_pretty(&command).expect("Serialization failed");
+
+        assert_snapshot!(produced, @r#"
+        {
+          "action": "get_history_chunk",
+          "message_index": 1,
+          "scope": "global"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_get_history_chunk() {
+        let json = json!({
+            "action": "get_history_chunk",
+            "message_index": 1,
+            "scope": "global",
+        });
+
+        let msg: ChatCommand = serde_json::from_value(json).unwrap();
+
+        assert_eq!(
+            msg,
+            ChatCommand::GetHistoryChunk(GetHistoryChunk {
+                message_index: 1,
+                scope: Scope::Global
+            })
+        )
     }
 }

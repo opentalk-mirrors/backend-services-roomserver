@@ -10,7 +10,7 @@ use opentalk_types_common::{time::Timestamp, users::GroupName};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::state::{GroupHistory, PrivateHistory, StoredMessage};
+use crate::state::{ChatChunk, GroupHistory, PrivateHistory};
 
 /// The state of the `chat` module
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -21,13 +21,13 @@ pub struct ChatState {
     /// Chat history for the whole conference room
     ///
     /// Can still be accessed when the participant is in a breakout room
-    pub global_history: Vec<StoredMessage>,
+    pub global_history: ChatChunk,
 
     /// Chat history for the current breakout room
     ///
     /// Only present when the associated participant is in a breakout room
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub breakout_room_history: Option<Vec<StoredMessage>>,
+    pub breakout_room_history: Option<ChatChunk>,
 
     /// All group chat history in the room
     pub groups_history: Vec<GroupHistory>,
@@ -59,7 +59,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::{MessageId, Scope};
+    use crate::{MessageId, Scope, state::StoredMessage};
 
     #[test]
     fn server_message() {

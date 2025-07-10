@@ -5867,6 +5867,7 @@ name = "opentalk-roomserver-types-chat"
 version = "0.0.4-dev"
 dependencies = [
  "derive_more",
+ "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",

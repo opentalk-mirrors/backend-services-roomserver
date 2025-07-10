@@ -11,15 +11,21 @@ use opentalk_roomserver_types::{
     breakout::{
         breakout_config::{BreakoutConfig, BreakoutRoomConfig},
         breakout_id::BreakoutId,
+        event::BreakoutEvent,
     },
+    core::CoreEvent,
     join::join_success::JoinSuccess,
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_chat::{
-    Scope,
-    command::{ChatCommand, SendMessage, SetLastSeenTimestamp},
+    MessageId, Scope,
+    command::{ChatCommand, GetHistoryChunk, SendMessage, SetLastSeenTimestamp},
     event::{
         ChatDisabled, ChatEnabled, ChatEvent, Error as ChatError, HistoryCleared, MessageSent,
+    },
+    state::{
+        BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, GroupHistory, PrivateHistory,
+        StoredMessage,
     },
 };
 use opentalk_types_common::time::Timestamp;
@@ -360,7 +366,7 @@ async fn global_chat_is_cleared() {
         .expect("ChatState must be valid")
         .expect("ChatState must exist");
 
-    assert!(chat_state.global_history.is_empty());
+    assert!(chat_state.global_history.messages.is_empty());
     assert_eq!(
         chat_state
             .private_history
@@ -373,6 +379,7 @@ async fn global_chat_is_cleared() {
     assert_eq!(
         chat_state.private_history[0]
             .history
+            .messages
             .iter()
             .map(|m| m.content.as_str())
             .collect::<Vec<_>>(),
@@ -925,4 +932,295 @@ async fn start_breakout_scenario() -> BreakoutScenario<JoinSuccess> {
         bob,
         charlie,
     }
+}
+
+#[tokio::test]
+async fn room_chat_history_chunks() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+
+    // Chat history is empty
+    let chat_state = alice
+        .join_success()
+        .get_module::<ChatState>()
+        .expect("Did not receive chat state")
+        .expect("Chat state must not be empty");
+    assert!(chat_state.global_history.messages.is_empty());
+
+    let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
+    fill_messages(&mut alice, Scope::Global, message_count).await;
+
+    alice.disconnect();
+    let mut alice = room.join_alice_moderator(1).await;
+    // Alice receives her own disconnect because she reconnects before the event is sent
+    alice.receive::<CoreEvent>().await.unwrap();
+
+    let chunk = alice
+        .join_success()
+        .get_module::<ChatState>()
+        .expect("Did not receive chat state")
+        .expect("Chat state must not be empty")
+        .global_history;
+
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
+
+    let chunk = get_chunk(&mut alice, Scope::Global, chunk.next_index.unwrap()).await;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(0));
+
+    let chunk = get_chunk(&mut alice, Scope::Global, chunk.next_index.unwrap()).await;
+    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.next_index, None);
+
+    // Out of bounds
+    let chunk = get_chunk(&mut alice, Scope::Global, CHAT_CHUNK_SIZE * 100).await;
+    assert_eq!(chunk, ChatChunk::default());
+}
+
+#[tokio::test]
+async fn breakout_chat_history_chunks() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+
+    alice
+        .start_breakout_rooms(
+            &mut [],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "breakout".into(),
+                    assignments: vec![alice.id()],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    let event = alice
+        .switch_breakout_room(&mut [], RoomKind::Breakout(BreakoutId::from(0)))
+        .await;
+    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+        panic!("Received wrong breakout event");
+    };
+    let chunk = module_data
+        .get::<ChatState>()
+        .expect("Did not receive chat state")
+        .expect("Chat state must not be empty")
+        .breakout_room_history
+        .expect("Breakout history must not be None");
+    assert_eq!(chunk, ChatChunk::default());
+
+    let breakout_id = BreakoutId::from(0);
+    let scope = Scope::Breakout(breakout_id);
+    let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
+    fill_messages(&mut alice, scope.clone(), message_count).await;
+
+    alice.switch_breakout_room(&mut [], RoomKind::Main).await;
+    let event = alice
+        .switch_breakout_room(&mut [], RoomKind::Breakout(breakout_id))
+        .await;
+    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+        panic!("Received wrong breakout event");
+    };
+
+    let chunk = module_data
+        .get::<ChatState>()
+        .expect("Did not receive chat state")
+        .expect("Chat state must not be empty")
+        .breakout_room_history
+        .expect("Breakout history must not be None");
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
+
+    let chunk = get_chunk(&mut alice, scope.clone(), chunk.next_index.unwrap()).await;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(0));
+
+    let chunk = get_chunk(&mut alice, scope.clone(), chunk.next_index.unwrap()).await;
+    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.next_index, None);
+
+    // Out of bounds
+    let chunk = get_chunk(&mut alice, scope.clone(), CHAT_CHUNK_SIZE * 100).await;
+    assert_eq!(chunk, ChatChunk::default());
+}
+
+#[tokio::test]
+async fn private_chat_history_chunks() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+
+    // Private chat history is empty
+    let private_history = alice
+        .join_success()
+        .get_module::<ChatState>()
+        .expect("Did not receive chat state")
+        .expect("Chat state must not be empty")
+        .private_history;
+    assert!(private_history.is_empty());
+
+    let recipient_id = ParticipantId::generate();
+    let scope = Scope::Private(recipient_id);
+
+    let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
+    fill_messages(&mut alice, scope.clone(), message_count).await;
+
+    alice.disconnect();
+    let mut alice = room.join_alice_moderator(1).await;
+    // Alice receives her own disconnect because she reconnects before the event is sent
+    alice.receive::<CoreEvent>().await.unwrap();
+
+    let chunk = &alice
+        .join_success()
+        .get_module::<ChatState>()
+        .expect("Did not receive chat state")
+        .expect("Chat state must not be empty")
+        .private_history[0]
+        .history;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
+
+    let scope = Scope::Private(recipient_id);
+    let chunk = get_chunk(&mut alice, scope.clone(), chunk.next_index.unwrap()).await;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(0));
+
+    let chunk = get_chunk(&mut alice, scope.clone(), chunk.next_index.unwrap()).await;
+    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.next_index, None);
+
+    // Out of bounds
+    let chunk = get_chunk(&mut alice, scope, CHAT_CHUNK_SIZE * 100).await;
+    assert_eq!(chunk, ChatChunk::default());
+}
+
+async fn get_chunk(
+    participant: &mut MockParticipant<JoinSuccess>,
+    scope: Scope,
+    message_index: u64,
+) -> ChatChunk {
+    participant
+        .send_command::<ChatModule>(
+            ChatCommand::GetHistoryChunk(GetHistoryChunk {
+                message_index,
+                scope: scope.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = participant
+        .receive_event::<ChatModule>()
+        .await
+        .unwrap()
+        .content;
+
+    match (scope, event) {
+        (Scope::Global, ChatEvent::RoomChatHistoryChunk { history }) => history,
+        (
+            Scope::Breakout(..),
+            ChatEvent::BreakoutChatHistoryChunk(BreakoutHistory { history, .. }),
+        ) => history,
+        (Scope::Group(..), ChatEvent::GroupChatHistoryChunk(GroupHistory { history, .. })) => {
+            history
+        }
+        (
+            Scope::Private(..),
+            ChatEvent::PrivateChatHistoryChunk(PrivateHistory { history, .. }),
+        ) => history,
+        _ => panic!("Received wrong event"),
+    }
+}
+
+async fn fill_messages(
+    sender: &mut MockParticipant<JoinSuccess>,
+    scope: Scope,
+    message_count: u64,
+) {
+    for i in 0..message_count {
+        sender
+            .send_command::<ChatModule>(
+                ChatCommand::SendMessage(SendMessage {
+                    content: i.to_string(),
+                    scope: scope.clone(),
+                }),
+                None,
+            )
+            .await
+            .unwrap();
+        sender.receive::<ChatEvent>().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn private_chat_history_on_join() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+    let mut bob = room.join_bob(1).await;
+    flush_connected_events(&mut [&mut alice]).await;
+    let mut charlie = room.join_charlie(1).await;
+    flush_connected_events(&mut [&mut alice, &mut bob]).await;
+
+    // Alice sends a private message to Bob
+    alice
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: "hello Bob".into(),
+                scope: Scope::Private(bob.id()),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    alice.receive::<ChatEvent>().await.unwrap();
+    bob.receive::<ChatEvent>().await.unwrap();
+    assert!(charlie.received_nothing());
+
+    // Bob reconnects
+    bob.disconnect();
+    let bob = room.join_bob(1).await;
+
+    // Bobs JoinSuccess contains the message from alice
+    let mut chat_state = bob
+        .join_success()
+        .module_data
+        .get::<ChatState>()
+        .expect("Did not receive chat state")
+        .expect("Chat state must not be empty");
+    for private_history in chat_state.private_history.iter_mut() {
+        for message in private_history.history.messages.iter_mut() {
+            message.id = MessageId::nil();
+            message.timestamp = Timestamp::unix_epoch();
+        }
+    }
+    assert_eq!(
+        chat_state.private_history,
+        vec![PrivateHistory {
+            correspondent: alice.id(),
+            history: ChatChunk {
+                messages: vec![StoredMessage {
+                    id: MessageId::nil(),
+                    source: alice.id(),
+                    timestamp: Timestamp::unix_epoch(),
+                    content: "hello Bob".into(),
+                    scope: Scope::Private(bob.id())
+                }],
+                next_index: None
+            }
+        }]
+    );
+
+    // Charlie reconnects
+    charlie.disconnect();
+    let charlie = room.join_charlie(1).await;
+
+    // Charlies JoinSuccess does not contain any private chat messages
+    let chat_state = charlie
+        .join_success()
+        .get_module::<ChatState>()
+        .expect("Did not receive chat state")
+        .expect("Chat state must not be empty");
+    assert_eq!(chat_state.private_history, Vec::new());
 }

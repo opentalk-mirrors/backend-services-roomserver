@@ -17,12 +17,15 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_chat::{
     CHAT_MODULE_ID, MessageId, Scope,
-    command::{ChatCommand, SendMessage, SetLastSeenTimestamp},
+    command::{ChatCommand, GetHistoryChunk, SendMessage, SetLastSeenTimestamp},
     event::{
         ChatDisabled, ChatEnabled, ChatEvent, Error as ChatError, HistoryCleared, MessageSent,
     },
     peer_state::ChatPeerState,
-    state::{ChatState, PrivateHistory, StoredMessage},
+    state::{
+        BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, GroupHistory, PrivateHistory,
+        StoredMessage,
+    },
 };
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
@@ -73,7 +76,9 @@ impl SignalingModule for ChatModule {
         _is_first_connection: bool,
     ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
         let mut join_info = JoinInfo {
-            join_success: Some(self.chat_state_for_participant(p_joined, RoomKind::Main)),
+            join_success: Some(
+                self.chat_state_latest_chunks_for_participant(p_joined, RoomKind::Main),
+            ),
             ..Default::default()
         };
 
@@ -116,6 +121,12 @@ impl SignalingModule for ChatModule {
             ChatCommand::SendMessage(SendMessage { content, scope }) => {
                 self.send_message(ctx, participant_id, content, scope)?;
             }
+            ChatCommand::GetHistoryChunk(GetHistoryChunk {
+                message_index,
+                scope,
+            }) => {
+                self.get_history_chunk(ctx, participant_id, message_index, scope)?;
+            }
             ChatCommand::ClearHistory => {
                 self.clear_messages(ctx, participant_id)?;
             }
@@ -153,7 +164,7 @@ impl SignalingModule for ChatModule {
         new_room: RoomKind,
     ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
         let mut switch_info = SwitchInfo::<Self>::new();
-        let chat_state = self.chat_state_for_participant(participant_id, new_room);
+        let chat_state = self.chat_state_latest_chunks_for_participant(participant_id, new_room);
 
         let connections = ctx
             .participants
@@ -182,7 +193,7 @@ impl SignalingModule for ChatModule {
 }
 
 impl ChatModule {
-    fn chat_state_for_participant(
+    fn chat_state_latest_chunks_for_participant(
         &mut self,
         participant: ParticipantId,
         room_kind: RoomKind,
@@ -190,24 +201,24 @@ impl ChatModule {
         let (breakout_room_history, last_seen_timestamp_breakout) = match room_kind {
             RoomKind::Main => (None, None),
             RoomKind::Breakout(breakout_id) => {
-                let history = self
-                    .history
-                    .entry(ChatId::Breakout(breakout_id))
-                    .or_default()
-                    .clone();
+                let history = self.history.get(&ChatId::Breakout(breakout_id));
+                let chunk = Self::get_latest_chunk_or_default(history);
 
                 let last_seen = self.last_seen_breakout(participant, breakout_id);
 
-                (Some(history), last_seen)
+                (Some(chunk), last_seen)
             }
         };
 
+        let global_history = self.history.get(&ChatId::Global);
+        let global_history = Self::get_latest_chunk_or_default(global_history);
+
         ChatState {
             enabled: self.enabled,
-            global_history: self.history.entry(ChatId::Global).or_default().clone(),
+            global_history,
             breakout_room_history,
             groups_history: Vec::new(),
-            private_history: self.private_chat_histories(participant),
+            private_history: self.private_chat_histories_latest_chunk(participant),
             last_seen_timestamp_global: self.last_seen_global(participant),
             last_seen_timestamp_breakout,
             last_seen_timestamps_private: self.last_seen_timestamps_private(participant),
@@ -229,13 +240,17 @@ impl ChatModule {
         last_seen_timestamps_private
     }
 
-    fn private_chat_histories(&mut self, participant: ParticipantId) -> Vec<PrivateHistory> {
+    fn private_chat_histories_latest_chunk(
+        &mut self,
+        participant: ParticipantId,
+    ) -> Vec<PrivateHistory> {
         if let Some(chat_states) = self.chat_state.get(&participant) {
             chat_states
                 .keys()
                 .filter_map(|id| {
-                    id.as_private()
-                        .and_then(|private_id| self.private_history(participant, private_id))
+                    id.as_private().and_then(|private_id| {
+                        self.private_history_latest_chunk(participant, private_id)
+                    })
                 })
                 .collect()
         } else {
@@ -265,12 +280,12 @@ impl ChatModule {
             .flatten()
     }
 
-    fn private_history(
+    fn private_history_latest_chunk(
         &self,
         participant: ParticipantId,
         chat_id: PrivateChatId,
     ) -> Option<PrivateHistory> {
-        let Some(history) = self.history.get(&ChatId::Private(chat_id)).cloned() else {
+        let Some(history) = self.history.get(&ChatId::Private(chat_id)) else {
             tracing::debug!("No private history found for chat: {chat_id:?}");
             return None;
         };
@@ -279,12 +294,52 @@ impl ChatModule {
             history.len()
         );
 
+        let chunk = Self::get_latest_chunk(history);
         let correspondent = chat_id.other(participant);
 
         Some(PrivateHistory {
             correspondent,
-            history,
+            history: chunk,
         })
+    }
+
+    /// Retrieves the latest [`ChatChunk`] from the provided `history` or returns a
+    /// default (empty) [`ChatChunk`] when `history` is `None`.
+    fn get_latest_chunk_or_default(history: Option<&Vec<StoredMessage>>) -> ChatChunk {
+        if let Some(history) = history {
+            Self::get_latest_chunk(history)
+        } else {
+            ChatChunk::default()
+        }
+    }
+
+    /// Retrieves the latest [`ChatChunk`] from the provided `history`
+    fn get_latest_chunk(history: &[StoredMessage]) -> ChatChunk {
+        let message_index = history.len().saturating_sub(1) as u64;
+        Self::get_chunk(history, message_index)
+    }
+
+    /// Retrieves the chunk that starts at the message with index `message_index`
+    /// or a default [`ChatChunk`] when `history` is [`None`].
+    fn get_chunk_or_default(history: Option<&Vec<StoredMessage>>, message_index: u64) -> ChatChunk {
+        if let Some(history) = history {
+            Self::get_chunk(history, message_index)
+        } else {
+            ChatChunk::default()
+        }
+    }
+
+    /// Retrieves the chunk that starts at the message with index `message_index`.
+    fn get_chunk(history: &[StoredMessage], message_index: u64) -> ChatChunk {
+        let start = message_index.saturating_sub(CHAT_CHUNK_SIZE - 1);
+        let Some(messages) = history.get(start as usize..=message_index as usize) else {
+            return ChatChunk::default();
+        };
+
+        ChatChunk {
+            messages: messages.to_vec(),
+            next_index: start.checked_sub(1),
+        }
     }
 
     fn set_chat_state(
@@ -401,6 +456,58 @@ impl ChatModule {
                 }
             }
         }
+        Ok(())
+    }
+
+    /// Sends the [`ChatChunk`] starting at `message_index` in the history of the
+    /// requested `scope` to the participant
+    fn get_history_chunk(
+        &self,
+        ctx: &ModuleContext<'_, ChatModule>,
+        sender: ParticipantId,
+        message_index: u64,
+        scope: Scope,
+    ) -> Result<(), SignalingModuleError<ChatError>> {
+        // Only moderators are allowed to access messages of other breakout rooms
+        if let Scope::Breakout(breakout_id) = scope
+            && !ctx.is_moderator(sender)
+        {
+            let room = ctx
+                .participant_state(sender)
+                .with_context(|| format!("Participant {sender} has not state"))?
+                .room;
+            if room != RoomKind::Breakout(breakout_id) {
+                return Err(ChatError::InsufficientPermissions.into());
+            }
+        }
+
+        let chat_id = ChatId::from_scope_and_source(scope.clone(), sender);
+        let history = self.history.get(&chat_id);
+        let history = Self::get_chunk_or_default(history, message_index);
+
+        let event = match scope {
+            Scope::Global => ChatEvent::RoomChatHistoryChunk { history },
+            Scope::Breakout(breakout_id) => ChatEvent::BreakoutChatHistoryChunk(BreakoutHistory {
+                breakout_id,
+                history,
+            }),
+            Scope::Private(participant_id) => ChatEvent::PrivateChatHistoryChunk(PrivateHistory {
+                correspondent: participant_id,
+                history,
+            }),
+            Scope::Group(name) => {
+                // Groups don't exist in the room server. Send an empty history for
+                // backward compatibility.
+                tracing::warn!("Sending empty group history");
+                ChatEvent::GroupChatHistoryChunk(GroupHistory {
+                    name,
+                    history: ChatChunk::default(),
+                })
+            }
+        };
+
+        ctx.send_ws_message([sender], event)?;
+
         Ok(())
     }
 

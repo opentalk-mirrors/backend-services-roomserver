@@ -4,11 +4,15 @@
 
 //! Signaling state for the `chat` namespace
 
+mod breakout_history;
+mod chat_chunk;
 mod chat_state;
 mod group_history;
 mod private_history;
 mod stored_message;
 
+pub use breakout_history::BreakoutHistory;
+pub use chat_chunk::{CHAT_CHUNK_SIZE, ChatChunk};
 pub use chat_state::ChatState;
 pub use group_history::GroupHistory;
 pub use private_history::PrivateHistory;
