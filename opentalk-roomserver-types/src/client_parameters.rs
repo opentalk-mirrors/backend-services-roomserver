@@ -79,6 +79,16 @@ pub enum Role {
     Moderator,
 }
 
+impl Role {
+    /// Returns `true` if the role is [`Moderator`].
+    ///
+    /// [`Moderator`]: Role::Moderator
+    #[must_use]
+    pub fn is_moderator(&self) -> bool {
+        matches!(self, Self::Moderator)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use opentalk_types_api_v1::users::PublicUserProfile;

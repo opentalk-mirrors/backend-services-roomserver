@@ -48,7 +48,10 @@
 //! [`PublicUserProfile`]: opentalk_types_api_v1::users::PublicUserProfile
 
 use std::{
-    collections::hash_map::Entry::{Occupied, Vacant},
+    collections::{
+        HashMap,
+        hash_map::Entry::{Occupied, Vacant},
+    },
     future::pending,
     sync::Arc,
     time::Duration,
@@ -72,6 +75,7 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     device_id::DeviceId,
     error::SignalingError,
+    moderation::MODERATION_MODULE_ID,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
     signaling::SignalingCommand,
@@ -96,6 +100,7 @@ use crate::{
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
         idle_timeout::IdleTimeout,
+        moderation::WaitingParticipant,
     },
 };
 
@@ -104,6 +109,7 @@ pub mod core;
 pub mod fs_storage;
 pub mod handle;
 pub mod idle_timeout;
+pub mod moderation;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
@@ -147,6 +153,9 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
     modules: Modules,
 
     storage: Arc<dyn StorageProvider>,
+
+    /// Collection of participants in the waiting room.
+    waiting_participants: HashMap<ParticipantId, WaitingParticipant>,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -227,6 +236,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 participants: Participants::new(),
                 modules,
                 storage,
+                waiting_participants: HashMap::new(),
             };
 
             room_task.run().await;
@@ -442,7 +452,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 tracing::trace!(
                     "Websocket closed for participant {participant_id}: {close_reason:?}"
                 );
-                self.disconnect_participant(
+                self.handle_disconnect(
                     EventOrigin::Participant(ParticipantOrigin {
                         id: participant_id,
                         connection_id,
@@ -482,6 +492,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
             m if *m == breakout::BREAKOUT_MODULE_ID => {
                 self.handle_breakout_command(participant_origin, signaling_command)
+                    .await;
+            }
+            m if *m == MODERATION_MODULE_ID => {
+                self.handle_moderation_command(participant_origin, signaling_command)
                     .await;
             }
             _ => {
@@ -576,6 +590,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     async fn connect_participant(&mut self, socket: Socket, client_parameters: ClientParameters) {
         let device_id = self.derive_device_id(&client_parameters.device_secret);
         let participant_id = build_participant_id(&client_parameters.kind, device_id);
+        let role = client_parameters.role;
 
         // If we ever run into the issue of an uuid collision, a guest could hijack a user session and vice versa. We'd
         // rather decline the new connection when the participant id is known, but the participant kinds differ.
@@ -600,16 +615,34 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
-        self.join_room(client_parameters, device_id, participant_id, connection_id)
-            .await;
+        if self.info.room.waiting_room
+            && !role.is_moderator()
+            && !self
+                .participants
+                .all_unfiltered
+                .contains_key(&participant_id)
+        {
+            if let Err(err) = self
+                .join_waiting_room(connection_id, participant_id, device_id, client_parameters)
+                .await
+            {
+                tracing::error!("failed to add participant to waiting room {err:#?}");
+
+                self.disconnect_waiting_participant(participant_id, connection_id)
+                    .await;
+            }
+        } else {
+            self.join_room(participant_id, connection_id, device_id, client_parameters)
+                .await;
+        }
     }
 
     async fn join_room(
         &mut self,
-        client_parameters: ClientParameters,
-        device_id: DeviceId,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        device_id: DeviceId,
+        client_parameters: ClientParameters,
     ) {
         let email = match &client_parameters.kind {
             ClientKind::Registered { profile } => Some(profile.email.clone()),
@@ -654,6 +687,24 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 CloseReason::InternalError,
             )
             .await;
+        }
+    }
+
+    /// This method either disconnects a waiting room participant or a participant that already joined the room.
+    /// For that it either calls [`Self::disconnect_participant`] or [`Self::disconnect_waiting_participant`].
+    async fn handle_disconnect(
+        &mut self,
+        origin: EventOrigin,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+        reason: CloseReason,
+    ) {
+        if self.waiting_participants.contains_key(&participant_id) {
+            self.disconnect_waiting_participant(participant_id, connection_id)
+                .await;
+        } else {
+            self.disconnect_participant(origin, participant_id, connection_id, reason)
+                .await;
         }
     }
 
