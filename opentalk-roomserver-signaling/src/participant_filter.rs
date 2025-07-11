@@ -31,6 +31,16 @@ macro_rules! impl_filter_functions {
             self.filter.visibility = Some(visibility);
             self
         }
+
+        pub fn moderators(mut self) -> Self {
+            self.filter.moderator_only = Some(true);
+            self
+        }
+
+        pub fn non_moderators(mut self) -> Self {
+            self.filter.moderator_only = Some(false);
+            self
+        }
     };
 }
 
@@ -40,26 +50,33 @@ struct ParticipantStateFilter {
     room: Option<RoomKind>,
     connected: Option<bool>,
     visibility: Option<ParticipationVisibility>,
+    moderator_only: Option<bool>,
 }
 
 impl ParticipantStateFilter {
     fn apply(&self, state: &ParticipantState) -> bool {
-        if let Some(connected) = self.connected {
-            if state.is_connected() != connected {
-                return false;
-            }
+        if let Some(connected) = self.connected
+            && state.is_connected() != connected
+        {
+            return false;
         }
 
-        if let Some(room) = self.room {
-            if state.room != room {
-                return false;
-            }
+        if let Some(room) = self.room
+            && state.room != room
+        {
+            return false;
         }
 
-        if let Some(visibility) = self.visibility {
-            if state.kind.visibility() != visibility {
-                return false;
-            }
+        if let Some(visibility) = self.visibility
+            && state.kind.visibility() != visibility
+        {
+            return false;
+        }
+
+        if let Some(only_moderator) = self.moderator_only
+            && only_moderator != state.is_moderator()
+        {
+            return false;
         }
 
         true

@@ -37,6 +37,14 @@ impl Participants {
         ParticipantsFiltered::new(self).room(room)
     }
 
+    pub fn moderators(&self) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).moderators()
+    }
+
+    pub fn non_moderators(&self) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).non_moderators()
+    }
+
     pub fn connections(&self) -> BTreeMap<ParticipantId, BTreeSet<ConnectionId>> {
         self.all_unfiltered
             .iter()
@@ -58,7 +66,7 @@ pub struct ParticipantState {
     /// The participants display name
     pub display_name: DisplayName,
 
-    /// The breakout room of the participant. Is `None` when in the main room
+    /// The breakout room of the participant.
     pub room: RoomKind,
 
     /// The kind of the participant
@@ -351,6 +359,106 @@ mod tests {
                 .ids()
                 .collect::<HashSet<ParticipantId>>(),
             HashSet::from([recorder]),
+        );
+    }
+
+    #[test]
+    fn moderators() {
+        let mut participants = Participants::new();
+
+        let user = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            user,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("User"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::User,
+                role: Role::Moderator,
+                connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
+            },
+        );
+
+        let guest = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            guest,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Guest"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::Guest,
+                role: Role::User,
+                connections: HashMap::new(),
+            },
+        );
+
+        let recorder = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            recorder,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Recorder"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::Service(ServiceKind::Recorder),
+                role: Role::User,
+                connections: HashMap::new(),
+            },
+        );
+
+        assert_eq!(
+            participants
+                .filter()
+                .moderators()
+                .ids()
+                .collect::<HashSet<ParticipantId>>(),
+            HashSet::from([user]),
+        );
+    }
+
+    #[test]
+    fn non_moderators() {
+        let mut participants = Participants::new();
+
+        let user = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            user,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("User"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::User,
+                role: Role::Moderator,
+                connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
+            },
+        );
+
+        let guest = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            guest,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Guest"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::Guest,
+                role: Role::User,
+                connections: HashMap::new(),
+            },
+        );
+
+        let recorder = ParticipantId::generate();
+        participants.all_unfiltered.insert(
+            recorder,
+            ParticipantState {
+                display_name: DisplayName::from_str_lossy("Recorder"),
+                room: RoomKind::Main,
+                kind: ParticipantKind::Service(ServiceKind::Recorder),
+                role: Role::User,
+                connections: HashMap::new(),
+            },
+        );
+
+        assert_eq!(
+            participants
+                .filter()
+                .non_moderators()
+                .ids()
+                .collect::<HashSet<ParticipantId>>(),
+            HashSet::from([guest, recorder]),
         );
     }
 }
