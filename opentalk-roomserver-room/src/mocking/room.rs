@@ -321,7 +321,7 @@ pub async fn flush_connected_events(others: &mut [&mut MockParticipantJoined]) {
             })
             .unwrap();
         assert!(
-            matches!(event.content, CoreEvent::ParticipantConnected { .. },),
+            matches!(event.payload, CoreEvent::ParticipantConnected { .. },),
             "Participant `{}` didn't receive CoreEvent::ParticipantConnected",
             p.join_success().display_name.as_str()
         );

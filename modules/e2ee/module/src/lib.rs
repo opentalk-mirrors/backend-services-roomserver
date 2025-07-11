@@ -70,9 +70,9 @@ impl SignalingModule for E2eeModule {
         ctx: &mut ModuleContext<'_, Self>,
         _sender: ParticipantId,
         connection_id: ConnectionId,
-        content: Self::Incoming,
+        payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match content {
+        match payload {
             E2eeCommand::Invite(invite) => self.publish_invite(ctx, connection_id, invite),
             E2eeCommand::Message(message) => self.forward_message(ctx, connection_id, message),
         }

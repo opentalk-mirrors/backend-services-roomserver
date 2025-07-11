@@ -239,9 +239,9 @@ impl ScopedRouter {
         connections: impl IntoIterator<Item = ConnectionId>,
         namespace: ModuleId,
         transaction_id: Option<u64>,
-        content: impl Serialize,
+        payload: impl Serialize,
     ) -> Result<(), FatalError> {
-        let shared_json = Self::serialize_event(namespace, transaction_id, content)?;
+        let shared_json = Self::serialize_event(namespace, transaction_id, payload)?;
         self.send_event(connections, shared_json).await;
 
         Ok(())
@@ -254,9 +254,9 @@ impl ScopedRouter {
         &self,
         namespace: ModuleId,
         transaction_id: Option<u64>,
-        content: impl Serialize,
+        payload: impl Serialize,
     ) -> Result<(), FatalError> {
-        let shared_json = Self::serialize_event(namespace, transaction_id, content)?;
+        let shared_json = Self::serialize_event(namespace, transaction_id, payload)?;
         self.broadcast_event(shared_json, &[]).await;
 
         Ok(())
@@ -269,10 +269,10 @@ impl ScopedRouter {
         &self,
         namespace: ModuleId,
         transaction_id: Option<u64>,
-        content: impl Serialize,
+        payload: impl Serialize,
         excluded_connections: &[ConnectionId],
     ) -> Result<(), FatalError> {
-        let shared_json = Self::serialize_event(namespace, transaction_id, content)?;
+        let shared_json = Self::serialize_event(namespace, transaction_id, payload)?;
         self.broadcast_event(shared_json, excluded_connections)
             .await;
 
@@ -282,12 +282,12 @@ impl ScopedRouter {
     fn serialize_event(
         namespace: ModuleId,
         transaction_id: Option<u64>,
-        content: impl Serialize,
+        payload: impl Serialize,
     ) -> Result<SharedRawJson, FatalError> {
         let event = SignalingEvent {
             namespace,
             transaction_id,
-            content,
+            payload,
         };
         let shared_json = serde_json::value::to_raw_value(&event)
             .with_context(|| {
@@ -314,7 +314,7 @@ impl ScopedRouter {
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
             transaction_id,
-            content: error,
+            payload: error,
         };
         let shared_json = match serde_json::value::to_raw_value(&event) {
             Ok(value) => value.into(),
@@ -336,7 +336,7 @@ impl ScopedRouter {
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
             transaction_id,
-            content: error,
+            payload: error,
         };
         let shared_json = match serde_json::value::to_raw_value(&event) {
             Ok(value) => value.into(),
@@ -411,7 +411,7 @@ mod tests {
         let event = SignalingEvent {
             namespace: module_id!("ping"),
             transaction_id: None,
-            content: to_raw_value(&json!({
+            payload: to_raw_value(&json!({
                 "cool": 12,
                 "thing": true,
             }))

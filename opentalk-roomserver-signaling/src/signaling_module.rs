@@ -90,7 +90,7 @@ pub trait SignalingModule: Send + Sync + Sized {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         connection_id: ConnectionId,
-        content: Self::Incoming,
+        payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>>;
 
     #[allow(unused_variables)]

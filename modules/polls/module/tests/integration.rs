@@ -44,7 +44,7 @@ async fn can_not_start_second_poll() {
 
     // Poll is started successfully
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started(..)
     ));
 
@@ -65,7 +65,7 @@ async fn can_not_start_second_poll() {
 
     // An error is returned
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::StillRunning)
     );
 }
@@ -91,7 +91,7 @@ async fn non_moderator_cant_start_poll() {
 
     // Bob receives an error message because he is not a moderator
     assert_eq!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InsufficientPermissions)
     );
 }
@@ -117,7 +117,7 @@ async fn can_not_start_poll_with_invalid_duration() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidDuration { .. })
     ));
 }
@@ -143,7 +143,7 @@ async fn can_not_start_poll_with_invalid_topic_length() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidTopicLength { .. })
     ));
 }
@@ -169,7 +169,7 @@ async fn can_not_start_polls_with_invalid_choice_count() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidChoiceCount { .. })
     ));
 
@@ -189,7 +189,7 @@ async fn can_not_start_polls_with_invalid_choice_count() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidChoiceCount { .. })
     ));
 }
@@ -215,7 +215,7 @@ async fn can_not_start_poll_with_invalid_option_length() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidChoiceDescriptionLength { .. })
     ));
 }
@@ -240,7 +240,7 @@ async fn can_not_vote_on_wrong_poll() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidPollId)
     );
 
@@ -261,7 +261,7 @@ async fn can_not_vote_on_wrong_poll() {
 
     // Poll started successfully
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started(..)
     ));
 
@@ -280,7 +280,7 @@ async fn can_not_vote_on_wrong_poll() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidPollId)
     );
 }
@@ -305,7 +305,7 @@ async fn can_not_give_multiple_choices_on_single_choice_poll() {
         .await
         .unwrap();
 
-    let event = alice.receive_event::<PollsModule>().await.unwrap().content;
+    let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
     };
@@ -325,7 +325,7 @@ async fn can_not_give_multiple_choices_on_single_choice_poll() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::MultipleChoicesNotAllowed)
     );
 }
@@ -350,7 +350,7 @@ async fn can_not_vote_on_invalid_choice() {
         .await
         .unwrap();
 
-    let event = alice.receive_event::<PollsModule>().await.unwrap().content;
+    let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
     };
@@ -370,7 +370,7 @@ async fn can_not_vote_on_invalid_choice() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidChoiceId)
     );
 }
@@ -397,7 +397,7 @@ async fn non_moderator_can_not_finish_poll() {
         .await
         .unwrap();
 
-    let event = bob.receive_event::<PollsModule>().await.unwrap().content;
+    let event = bob.receive_event::<PollsModule>().await.unwrap().payload;
     // Bob receives the started event
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
@@ -409,7 +409,7 @@ async fn non_moderator_can_not_finish_poll() {
         .unwrap();
 
     assert_eq!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InsufficientPermissions)
     );
 }
@@ -436,7 +436,7 @@ async fn can_not_finish_poll_with_invalid_id() {
 
     // Poll is started successfully
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started(..)
     ));
 
@@ -451,7 +451,7 @@ async fn can_not_finish_poll_with_invalid_id() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidPollId)
     );
 }
@@ -479,13 +479,13 @@ async fn receiving_live_update_when_enabled() {
         .unwrap();
 
     // Poll is started successfully
-    let event = alice.receive_event::<PollsModule>().await.unwrap().content;
+    let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
     };
 
     assert!(matches!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started(..)
     ));
 
@@ -516,11 +516,11 @@ async fn receiving_live_update_when_enabled() {
     ];
     let event = PollsEvent::LiveUpdate(Results { id, results });
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         event
     );
     assert_eq!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         event
     );
 }
@@ -548,13 +548,13 @@ async fn not_receiving_live_update_when_disabled() {
         .unwrap();
 
     // Poll is started successfully
-    let event = alice.receive_event::<PollsModule>().await.unwrap().content;
+    let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
     };
 
     assert!(matches!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started(..)
     ));
 
@@ -600,13 +600,13 @@ async fn single_choice_poll() {
         .unwrap();
 
     // Poll is started successfully
-    let event = alice.receive_event::<PollsModule>().await.unwrap().content;
+    let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
     };
 
     assert!(matches!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started(..)
     ));
 
@@ -658,11 +658,11 @@ async fn single_choice_poll() {
         ],
     });
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         event
     );
     assert_eq!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         event
     );
 }
@@ -690,13 +690,13 @@ async fn multiple_choice_poll() {
         .unwrap();
 
     // Poll is started successfully
-    let event = alice.receive_event::<PollsModule>().await.unwrap().content;
+    let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
     };
 
     assert!(matches!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started(..)
     ));
 
@@ -748,11 +748,11 @@ async fn multiple_choice_poll() {
         ],
     });
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         event
     );
     assert_eq!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         event
     );
 }
@@ -778,7 +778,7 @@ async fn can_update_vote() {
         .unwrap();
 
     // Poll is started successfully
-    let event = alice.receive_event::<PollsModule>().await.unwrap().content;
+    let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
     };
@@ -832,7 +832,7 @@ async fn can_update_vote() {
         ],
     });
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         event
     );
 }
@@ -861,21 +861,21 @@ async fn polls_expire() {
 
     // Alice and Bob receive the started event
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started(..)
     ));
     assert!(matches!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started(..)
     ));
 
     // Alice and Bob receive the done event
     assert!(matches!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Done(..)
     ));
     assert!(matches!(
-        bob.receive_event::<PollsModule>().await.unwrap().content,
+        bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Done(..)
     ));
 }
@@ -932,7 +932,7 @@ async fn breakout_scopes() {
         .unwrap();
 
     // Alice receives the started event
-    let event = alice.receive_event::<PollsModule>().await.unwrap().content;
+    let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
     };
@@ -967,7 +967,7 @@ async fn breakout_scopes() {
     ];
     let event = PollsEvent::LiveUpdate(Results { id, results });
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         event
     );
 
@@ -995,7 +995,7 @@ async fn breakout_scopes() {
         ],
     });
     assert_eq!(
-        alice.receive_event::<PollsModule>().await.unwrap().content,
+        alice.receive_event::<PollsModule>().await.unwrap().payload,
         event
     );
 
@@ -1050,7 +1050,7 @@ async fn switch_breakout_room_join_module_data() {
         .unwrap();
 
     // Alice receives the started event
-    let event = alice.receive_event::<PollsModule>().await.unwrap().content;
+    let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
     let PollsEvent::Started(Started { id, .. }) = event else {
         unreachable!("Poll did not start");
     };

@@ -38,7 +38,7 @@ async fn unknown_participant() {
 
     let error_event = alice.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        error_event.content,
+        error_event.payload,
         LiveKitEvent::Error(LiveKitError::UnknownParticipant {
             participant: BTreeSet::from([disconnected_participant])
         })
@@ -66,7 +66,7 @@ async fn insufficient_permissions() {
 
     let error_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        error_event.content,
+        error_event.payload,
         LiveKitEvent::Error(LiveKitError::InsufficientPermissions)
     )
 }
@@ -109,7 +109,7 @@ async fn revoke_bob() {
 
     let event = alice.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        event.content,
+        event.payload,
         LiveKitEvent::ScreenSharePermissionsUpdated {
             grant: false,
             participants: BTreeSet::from([bob.id()]),
@@ -175,7 +175,7 @@ async fn alice_in_breakout_bob_in_main() {
 
     let event = alice.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        event.content,
+        event.payload,
         LiveKitEvent::ScreenSharePermissionsUpdated {
             grant: false,
             participants: BTreeSet::from([bob.id()]),

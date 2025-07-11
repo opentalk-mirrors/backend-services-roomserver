@@ -71,14 +71,14 @@ async fn chat_is_disabled() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap().content,
+        alice.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::ChatDisabled(ChatDisabled {
             issued_by: alice.id()
         })
     );
 
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap().content,
+        bob.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::ChatDisabled(ChatDisabled {
             issued_by: alice.id()
         })
@@ -97,7 +97,7 @@ async fn chat_is_disabled() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap().content,
+        alice.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::Error(ChatError::ChatDisabled)
     );
 
@@ -114,7 +114,7 @@ async fn chat_is_disabled() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap().content,
+        alice.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::Error(ChatError::ChatDisabled)
     );
 
@@ -129,7 +129,7 @@ async fn chat_is_disabled() {
     .await
     .unwrap();
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap().content,
+        bob.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::Error(ChatError::ChatDisabled)
     );
 }
@@ -150,13 +150,13 @@ async fn chat_works_after_enabling() {
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap().content,
+        alice.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::ChatDisabled(ChatDisabled {
             issued_by: alice.id()
         })
     );
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap().content,
+        bob.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::ChatDisabled(ChatDisabled {
             issued_by: alice.id()
         })
@@ -168,13 +168,13 @@ async fn chat_works_after_enabling() {
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap().content,
+        alice.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::ChatEnabled(ChatEnabled {
             issued_by: alice.id()
         })
     );
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap().content,
+        bob.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::ChatEnabled(ChatEnabled {
             issued_by: alice.id()
         })
@@ -195,13 +195,13 @@ async fn chat_works_after_enabling() {
         &Scope::Global,
         "Hi there",
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap().content,
+        &alice.receive_event::<ChatModule>().await.unwrap().payload,
     );
     assert_message_eq!(
         &Scope::Global,
         "Hi there",
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap().content,
+        &bob.receive_event::<ChatModule>().await.unwrap().payload,
     );
 
     // Alice can send a private message, bob and alice should receive the message
@@ -219,13 +219,13 @@ async fn chat_works_after_enabling() {
         &Scope::Private(bob.id()),
         "Hi there",
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap().content,
+        &alice.receive_event::<ChatModule>().await.unwrap().payload,
     );
     assert_message_eq!(
         &Scope::Private(alice.id()),
         "Hi there",
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap().content,
+        &bob.receive_event::<ChatModule>().await.unwrap().payload,
     );
 }
 
@@ -257,13 +257,13 @@ async fn private_messages_are_private() {
         &Scope::Private(bob.id()),
         "Hi there",
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap().content,
+        &alice.receive_event::<ChatModule>().await.unwrap().payload,
     );
     assert_message_eq!(
         &Scope::Private(alice.id()),
         "Hi there",
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap().content,
+        &bob.receive_event::<ChatModule>().await.unwrap().payload,
     );
     assert!(charlie.received_nothing());
 }
@@ -304,13 +304,13 @@ async fn global_chat_is_cleared() {
         &Scope::Global,
         global_message,
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap().content,
+        &alice.receive_event::<ChatModule>().await.unwrap().payload,
     );
     assert_message_eq!(
         &Scope::Global,
         global_message,
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap().content,
+        &bob.receive_event::<ChatModule>().await.unwrap().payload,
     );
 
     // Alice can send a private message, bob and alice should receive the message
@@ -329,13 +329,13 @@ async fn global_chat_is_cleared() {
         &Scope::Private(bob.id()),
         private_message,
         alice.id(),
-        &alice.receive_event::<ChatModule>().await.unwrap().content,
+        &alice.receive_event::<ChatModule>().await.unwrap().payload,
     );
     assert_message_eq!(
         &Scope::Private(alice.id()),
         private_message,
         alice.id(),
-        &bob.receive_event::<ChatModule>().await.unwrap().content,
+        &bob.receive_event::<ChatModule>().await.unwrap().payload,
     );
 
     // clear the chat
@@ -344,13 +344,13 @@ async fn global_chat_is_cleared() {
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap().content,
+        alice.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::HistoryCleared(HistoryCleared {
             issued_by: alice.id()
         })
     );
     assert_eq!(
-        bob.receive_event::<ChatModule>().await.unwrap().content,
+        bob.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::HistoryCleared(HistoryCleared {
             issued_by: alice.id()
         })
@@ -416,7 +416,7 @@ async fn last_seen_timestamp_should_be_stored() {
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap().content,
+        alice.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp {
             scope: Scope::Global,
             timestamp,
@@ -435,7 +435,7 @@ async fn last_seen_timestamp_should_be_stored() {
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<ChatModule>().await.unwrap().content,
+        alice.receive_event::<ChatModule>().await.unwrap().payload,
         ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp {
             scope: Scope::Private(other_participant),
             timestamp,
@@ -500,7 +500,7 @@ async fn breakout_scope_messages() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     // Bob receives the message
@@ -512,7 +512,7 @@ async fn breakout_scope_messages() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     // Charlie is clueless
@@ -555,7 +555,7 @@ async fn invalid_breakout_scope() {
             .receive::<ChatEvent>()
             .await
             .unwrap()
-            .content,
+            .payload,
         ChatEvent::Error(ChatError::InvalidBreakoutScope)
     );
 
@@ -602,7 +602,7 @@ async fn send_global_message_from_breakout_room() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     assert_message_eq!(
@@ -613,7 +613,7 @@ async fn send_global_message_from_breakout_room() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     assert_message_eq!(
@@ -624,7 +624,7 @@ async fn send_global_message_from_breakout_room() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 }
 
@@ -667,7 +667,7 @@ async fn send_global_message_to_breakout_room() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     assert_message_eq!(
@@ -678,7 +678,7 @@ async fn send_global_message_to_breakout_room() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     assert_message_eq!(
@@ -689,7 +689,7 @@ async fn send_global_message_to_breakout_room() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 }
 
@@ -731,7 +731,7 @@ async fn send_private_message_breakout_to_breakout() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     // Bob receives the message from Alice
@@ -743,7 +743,7 @@ async fn send_private_message_breakout_to_breakout() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     // Charlie wasn't involved
@@ -788,7 +788,7 @@ async fn send_private_message_breakout_to_main() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     // Charlie receives the message from Bob
@@ -800,7 +800,7 @@ async fn send_private_message_breakout_to_main() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     // Alice wasn't involved
@@ -845,7 +845,7 @@ async fn send_private_message_main_to_breakout() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     // Alice receives the message from charlie
@@ -857,7 +857,7 @@ async fn send_private_message_main_to_breakout() {
             .receive_event::<ChatModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
     );
 
     // Bob wasn't involved
@@ -880,7 +880,7 @@ async fn send_private_message_unknown_participant() {
         .await
         .unwrap();
 
-    let event = alice.receive_event::<ChatModule>().await.unwrap().content;
+    let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
     assert_eq!(event, ChatEvent::Error(ChatError::UnknownParticipant));
 }
 
@@ -1156,7 +1156,7 @@ async fn other_breakout_room_history_chunk() {
     .await
     .unwrap();
 
-    let event = bob.receive_event::<ChatModule>().await.unwrap().content;
+    let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
     assert_eq!(event, ChatEvent::Error(ChatError::InsufficientPermissions));
 
     // Alice is allowed to search the messages of the breakout room
@@ -1171,7 +1171,7 @@ async fn other_breakout_room_history_chunk() {
         .await
         .unwrap();
 
-    let event = alice.receive_event::<ChatModule>().await.unwrap().content;
+    let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
     assert_eq!(
         event,
         ChatEvent::BreakoutChatHistoryChunk(BreakoutHistory {
@@ -1201,7 +1201,7 @@ async fn get_chunk(
         .receive_event::<ChatModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
 
     match (scope, event) {
         (Scope::Global, ChatEvent::RoomChatHistoryChunk { history }) => history,
@@ -1238,7 +1238,7 @@ async fn fill_messages(
             )
             .await
             .unwrap();
-        let event = sender.receive_event::<ChatModule>().await.unwrap().content;
+        let event = sender.receive_event::<ChatModule>().await.unwrap().payload;
         assert!(matches!(event, ChatEvent::MessageSent(..)));
 
         // Messages must be received because otherwise the channel fills up and
@@ -1338,7 +1338,7 @@ async fn invalid_search_term_length() {
         .await
         .unwrap();
 
-    let event = alice.receive_event::<ChatModule>().await.unwrap().content;
+    let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
     assert!(matches!(
         event,
         ChatEvent::Error(ChatError::InvalidSearchTermLength { .. })
@@ -1568,7 +1568,7 @@ async fn search(
         .receive_event::<ChatModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
 
     match event {
         ChatEvent::SearchResults(SearchResults { matches, scope }) => {
@@ -1616,7 +1616,7 @@ async fn search_other_breakout_room() {
     .await
     .unwrap();
 
-    let event = bob.receive_event::<ChatModule>().await.unwrap().content;
+    let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
     assert_eq!(event, ChatEvent::Error(ChatError::InsufficientPermissions));
 
     // Alice is allowed to search the messages of the breakout room
@@ -1632,7 +1632,7 @@ async fn search_other_breakout_room() {
         .await
         .unwrap();
 
-    let event = alice.receive_event::<ChatModule>().await.unwrap().content;
+    let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
     assert_eq!(
         event,
         ChatEvent::SearchResults(SearchResults {

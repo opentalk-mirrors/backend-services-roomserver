@@ -113,6 +113,13 @@ impl Role {
     pub fn is_moderator(&self) -> bool {
         matches!(self, Self::Moderator)
     }
+
+    pub fn to_opentalk_types_signaling_role(self) -> opentalk_types_signaling::Role {
+        match self {
+            Self::User => opentalk_types_signaling::Role::User,
+            Self::Moderator => opentalk_types_signaling::Role::Moderator,
+        }
+    }
 }
 
 #[cfg(test)]

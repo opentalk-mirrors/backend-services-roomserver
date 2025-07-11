@@ -34,7 +34,7 @@ async fn insufficient_permissions() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(
         event,
         ModerationEvent::Error(ModerationError::InsufficientPermissions)
@@ -67,7 +67,7 @@ async fn display_name_too_short() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(
         event,
         ModerationEvent::Error(ModerationError::InvalidDisplayName)
@@ -100,7 +100,7 @@ async fn display_name_too_long() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(
         event,
         ModerationEvent::Error(ModerationError::InvalidDisplayName)
@@ -131,7 +131,7 @@ async fn unknown_participant() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(
         event,
         ModerationEvent::Error(ModerationError::UnknownParticipant)
@@ -163,7 +163,7 @@ async fn cannot_change_name_of_registered_users() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(
         event,
         ModerationEvent::Error(ModerationError::CannotChangeNameOfRegisteredUsers)
@@ -203,13 +203,13 @@ async fn change_display_name() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, expected.clone());
 
     let event = gustav
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, expected);
 }

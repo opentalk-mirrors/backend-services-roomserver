@@ -103,9 +103,9 @@ impl SignalingModule for PollsModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         _connection_id: ConnectionId,
-        content: Self::Incoming,
+        payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Error>> {
-        match content {
+        match payload {
             PollsCommand::Start(start) => self.start_poll(ctx, sender, start),
             PollsCommand::Vote(vote) => self.vote(ctx, sender, vote),
             PollsCommand::Finish(finish) => self.finish_poll(ctx, sender, finish.id),

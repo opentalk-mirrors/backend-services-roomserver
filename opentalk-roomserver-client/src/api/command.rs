@@ -31,20 +31,20 @@ pub struct SignalingCommand {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<u64>,
     #[serde(flatten)]
-    pub content: SignalingModuleCommand,
+    pub payload: SignalingModuleCommand,
 }
 
 impl SignalingCommand {
     pub fn namespace(&self) -> ModuleId {
-        self.content.namespace()
+        self.payload.namespace()
     }
 }
 
 impl From<SignalingModuleCommand> for SignalingCommand {
-    fn from(content: SignalingModuleCommand) -> Self {
+    fn from(payload: SignalingModuleCommand) -> Self {
         Self {
             transaction_id: None,
-            content,
+            payload,
         }
     }
 }
@@ -117,7 +117,7 @@ mod tests {
     fn serialize_command_core() {
         let command = SignalingCommand {
             transaction_id: None,
-            content: SignalingModuleCommand::Core(CoreCommand::EnterRoom),
+            payload: SignalingModuleCommand::Core(CoreCommand::EnterRoom),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
         assert_snapshot!(raw, @r#"
@@ -134,7 +134,7 @@ mod tests {
     fn serialize_command_breakout() {
         let command = SignalingCommand {
             transaction_id: None,
-            content: SignalingModuleCommand::Breakout(BreakoutCommand::Stop { delay: None }),
+            payload: SignalingModuleCommand::Breakout(BreakoutCommand::Stop { delay: None }),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
 
@@ -156,7 +156,7 @@ mod tests {
     fn serialize_command_chat() {
         let command = SignalingCommand {
             transaction_id: None,
-            content: SignalingModuleCommand::Chat(ChatCommand::DisableChat),
+            payload: SignalingModuleCommand::Chat(ChatCommand::DisableChat),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
 
@@ -178,7 +178,7 @@ mod tests {
     fn serialize_command_ping() {
         let command = SignalingCommand {
             transaction_id: None,
-            content: SignalingModuleCommand::Ping(PingCommand::Ping),
+            payload: SignalingModuleCommand::Ping(PingCommand::Ping),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
 
@@ -200,7 +200,7 @@ mod tests {
     fn serialize_command_livekit() {
         let command = SignalingCommand {
             transaction_id: None,
-            content: SignalingModuleCommand::LiveKit(LiveKitCommand::CreateNewAccessToken),
+            payload: SignalingModuleCommand::LiveKit(LiveKitCommand::CreateNewAccessToken),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
 
@@ -222,7 +222,7 @@ mod tests {
     fn serialize_command_timer() {
         let command = SignalingCommand {
             transaction_id: None,
-            content: SignalingModuleCommand::Timer(TimerCommand::Start(Start {
+            payload: SignalingModuleCommand::Timer(TimerCommand::Start(Start {
                 kind: Kind::Stopwatch,
                 style: None,
                 title: None,
@@ -253,7 +253,7 @@ mod tests {
     fn serialize_command_polls() {
         let command = SignalingCommand {
             transaction_id: None,
-            content: SignalingModuleCommand::Polls(PollsCommand::Vote(Vote {
+            payload: SignalingModuleCommand::Polls(PollsCommand::Vote(Vote {
                 poll_id: PollId::nil(),
                 choices: Choices::Single {
                     choice_id: ChoiceId::from_u32(0),
@@ -282,7 +282,7 @@ mod tests {
     fn serialize_command_meeting_report() {
         let command = SignalingCommand {
             transaction_id: None,
-            content: SignalingModuleCommand::MeetingReport(
+            payload: SignalingModuleCommand::MeetingReport(
                 MeetingReportCommand::GenerateAttendanceReport {
                     include_email_addresses: false,
                 },
@@ -305,7 +305,7 @@ mod tests {
     fn serialize_command_moderation() {
         let command = SignalingCommand {
             transaction_id: None,
-            content: SignalingModuleCommand::Moderation(ModerationCommand::Accept(Accept {
+            payload: SignalingModuleCommand::Moderation(ModerationCommand::Accept(Accept {
                 target: ParticipantId::nil(),
             })),
         };

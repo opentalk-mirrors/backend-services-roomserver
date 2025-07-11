@@ -66,7 +66,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let room_scope = participant_state.room;
 
-        let breakout_command = match serde_json::from_str(command.content.get()) {
+        let breakout_command = match serde_json::from_str(command.payload.get()) {
             Ok(breakout_command) => breakout_command,
             Err(err) => {
                 self.message_router
@@ -383,7 +383,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .await?;
         }
 
-        let content = BreakoutEvent::ParticipantSwitchedRoom {
+        let payload = BreakoutEvent::ParticipantSwitchedRoom {
             participant_id,
             old_room: previous_room,
             new_room: room,
@@ -394,7 +394,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .serialize_and_broadcast_exclude_connections(
                 BREAKOUT_MODULE_ID,
                 None,
-                content,
+                payload,
                 &excluded_connections,
             )
             .await?;

@@ -9,5 +9,5 @@ pub struct SignalingEvent<C> {
     pub namespace: ModuleId,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<u64>,
-    pub content: C,
+    pub payload: C,
 }

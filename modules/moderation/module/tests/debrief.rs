@@ -36,7 +36,7 @@ async fn insufficient_permissions() {
     // Bob receives an error because he is not a moderator
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        event.content,
+        event.payload,
         ModerationEvent::Error(ModerationError::InsufficientPermissions)
     );
 }
@@ -59,13 +59,13 @@ async fn debrief_all() {
 
     // Everyone receives the waiting room enabled event
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
 
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
 
     let event = gustav.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
 
     // Everyone gets kicked
     let expected = BTreeSet::from_iter([
@@ -108,7 +108,7 @@ async fn debrief_users_and_guests() {
     // Alice receives the debriefing started event
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        event.content,
+        event.payload,
         ModerationEvent::DebriefingStarted(DebriefingStarted {
             issued_by: alice.id()
         })
@@ -116,13 +116,13 @@ async fn debrief_users_and_guests() {
 
     // Everyone receives the waiting room enabled event
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
 
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
 
     let event = gustav.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
 
     // Alice does not get kicked, because she is a moderator
     let expected = BTreeSet::from_iter([
@@ -159,7 +159,7 @@ async fn debrief_guests() {
     // Alice receives the debriefing started event
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        event.content,
+        event.payload,
         ModerationEvent::DebriefingStarted(DebriefingStarted {
             issued_by: alice.id()
         })
@@ -168,7 +168,7 @@ async fn debrief_guests() {
     // Bob receives the debriefing started event
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        event.content,
+        event.payload,
         ModerationEvent::DebriefingStarted(DebriefingStarted {
             issued_by: alice.id()
         })
@@ -176,13 +176,13 @@ async fn debrief_guests() {
 
     // Everyone receives the waiting room enabled event
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
 
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
 
     let event = gustav.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
 
     // Alice does not get kicked, because she isn't a guest
     let expected = BTreeSet::from_iter([(gustav.id(), gustav.connection_id())]);
@@ -210,12 +210,12 @@ async fn verify_disconnects(
     let mut received_close = false;
     for _ in 0..expected_messages {
         match participant.receive::<CoreEvent>().await {
-            Ok(SignalingEvent { content, .. }) => {
+            Ok(SignalingEvent { payload, .. }) => {
                 let CoreEvent::ParticipantDisconnected {
                     participant_id,
                     connection_id,
                     reason,
-                } = content
+                } = payload
                 else {
                     panic!("Received unexpected CoreEvent");
                 };
@@ -231,7 +231,7 @@ async fn verify_disconnects(
                     ModerationEvent::Kicked,
                     serde_json::from_str::<SignalingEvent<ModerationEvent>>(&text)
                         .unwrap()
-                        .content
+                        .payload
                 );
                 received_kick = true;
             }

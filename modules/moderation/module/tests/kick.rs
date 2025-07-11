@@ -33,7 +33,7 @@ async fn insufficient_permissions() {
     // Bob receives an error because he is not a moderator
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        event.content,
+        event.payload,
         ModerationEvent::Error(ModerationError::InsufficientPermissions)
     );
 }
@@ -57,7 +57,7 @@ async fn unknown_participant() {
 
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        event.content,
+        event.payload,
         ModerationEvent::Error(ModerationError::UnknownParticipant)
     );
 }
@@ -78,7 +78,7 @@ async fn kick_participant() {
 
     // Bob receives the kicked event
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.content, ModerationEvent::Kicked);
+    assert_eq!(event.payload, ModerationEvent::Kicked);
 
     assert_eq!(
         bob.receive_close_frame().await.unwrap(),
@@ -91,7 +91,7 @@ async fn kick_participant() {
     // Alice receives the disconnect event
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::ParticipantDisconnected {
             participant_id,
             reason,

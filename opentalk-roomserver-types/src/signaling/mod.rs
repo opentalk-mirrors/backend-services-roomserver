@@ -21,19 +21,19 @@ pub struct SignalingCommand {
     pub namespace: ModuleId,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<u64>,
-    pub content: Box<serde_json::value::RawValue>,
+    pub payload: Box<serde_json::value::RawValue>,
 }
 
 impl SignalingCommand {
     pub fn new(
         namespace: ModuleId,
         transaction_id: Option<u64>,
-        content: Box<serde_json::value::RawValue>,
+        payload: Box<serde_json::value::RawValue>,
     ) -> Self {
         Self {
             namespace,
             transaction_id,
-            content,
+            payload,
         }
     }
 }
