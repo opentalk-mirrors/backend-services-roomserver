@@ -13,6 +13,15 @@
       ],
       "groupName": "opentalk",
       "groupSlug": "opentalk"
+    },
+    {
+      "matchPackagePatterns": [
+        "egui-*",
+        "egui_*",
+        "eframe"
+      ],
+      "groupName": "egui",
+      "groupSlug": "egui"
     }
   ]
 }
