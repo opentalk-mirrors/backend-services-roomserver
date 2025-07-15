@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_types::signaling::module_error::ModuleError;
-use opentalk_types_common::shared_folders::SharedFolder;
+pub use opentalk_types_common::shared_folders::SharedFolder;
 use opentalk_types_signaling::{ForRole, Role};
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

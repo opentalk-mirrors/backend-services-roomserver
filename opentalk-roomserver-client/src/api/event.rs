@@ -15,6 +15,10 @@ pub use {
     opentalk_roomserver_types_livekit::{
         Credentials, LIVEKIT_MODULE_ID, LiveKitError, LiveKitEvent, LiveKitState,
     },
+    opentalk_roomserver_types_shared_folder::{
+        event::{SharedFolder, SharedFolderError},
+        {SHARED_FOLDER_MODULE_ID, event::SharedFolderEvent},
+    },
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,6 +59,7 @@ pub enum SignalingModuleEvent {
 
     Timer(TimerEvent),
     Polls(PollsEvent),
+    SharedFolder(SharedFolderEvent),
 }
 
 impl SignalingModuleEvent {
@@ -68,6 +73,7 @@ impl SignalingModuleEvent {
             Self::E2ee(_) => E2EE_MODULE_ID,
             Self::Timer(_) => TIMER_MODULE_ID,
             Self::Polls(_) => POLLS_MODULE_ID,
+            Self::SharedFolder(_) => SHARED_FOLDER_MODULE_ID,
         }
     }
 }

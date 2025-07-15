@@ -18,9 +18,6 @@ pub struct SharedFolderState {
 
     /// Read-write access information for the shared folder
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    // Field is non-required already, utoipa adds a `nullable: true` entry
-    // by default which creates a false positive in the spectral linter when
-    // combined with example data.
     pub read_write: Option<SharedFolderAccess>,
 }
 

@@ -27,6 +27,7 @@ opentalk-roomserver-types-e2ee.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
 opentalk-roomserver-types-ping.workspace = true
 opentalk-roomserver-types-polls.workspace = true
+opentalk-roomserver-types-shared-folder.workspace = true
 opentalk-roomserver-types-timer.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
