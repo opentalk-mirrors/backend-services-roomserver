@@ -111,6 +111,14 @@ impl TestRoomBuilder {
         self
     }
 
+    pub fn add_init_module_data<T: SignalingModuleFrontendData>(
+        mut self,
+        data: &T,
+    ) -> Result<Self, serde_json::Error> {
+        self.room_parameters.module_data.insert(data)?;
+        Ok(self)
+    }
+
     pub fn room_id(mut self, room_id: RoomId) -> Self {
         self.room_id = room_id;
         self
