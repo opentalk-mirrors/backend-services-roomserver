@@ -100,6 +100,11 @@ commit-release: _check_yq
     git commit -a -m "chore(release): prepare release {{ current_version }}"
     git log HEAD^..HEAD
 
+# Create the release tag
+tag-release:
+    git tag -s -m v{{ current_version }} v{{ current_version }}
+    git show --no-patch v{{ current_version }}
+
 # Update generated or derived parts of the documentation
 update-docs: _check_ci_doc_updater
     cargo build --release
