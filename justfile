@@ -6,6 +6,8 @@
 
 set quiet := true
 
+current_version := `cat Cargo.toml | yq -ptoml .workspace.package.version`
+
 [no-exit-message]
 _check_cargo_set_version:
     #!/usr/bin/env bash
@@ -95,15 +97,11 @@ update-changelog VERSION: _check_git_cliff
 
 # Create the release commit
 commit-release: _check_yq
-    #!/usr/bin/env bash
-    set -eu -o pipefail
-    VERSION=$(cat Cargo.toml | yq -ptoml ".workspace.package.version")
-    git commit -a -m "chore(release): prepare release ${VERSION}"
+    git commit -a -m "chore(release): prepare release {{ current_version }}"
     git log HEAD^..HEAD
 
 # Update generated or derived parts of the documentation
 update-docs: _check_ci_doc_updater
-    #!/usr/bin/env bash
     cargo build --release
     ./ci/docs-update-generated-parts.sh
 
