@@ -56,7 +56,7 @@ _check_yq:
     #!/usr/bin/env bash
     set -euo pipefail
     if ! yq --help &>/dev/null; then
-        echo 'yq is not available, see https://github.com/kislyuk/yq' >&2
+        echo 'yq is not available, see https://github.com/mikefarah/yq' >&2
         exit 1
     fi
 
