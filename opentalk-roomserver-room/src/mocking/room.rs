@@ -231,9 +231,20 @@ impl TestRoom {
 
 pub async fn flush_connected_events(others: &mut [&mut MockParticipantJoined]) {
     for p in others {
-        assert!(matches!(
-            p.receive::<CoreEvent>().await.unwrap().content,
-            CoreEvent::ParticipantConnected { .. }
-        ));
+        let event = p
+            .receive::<CoreEvent>()
+            .await
+            .with_context(|| {
+                format!(
+                    "`{}` didn't receive an event",
+                    p.join_success().display_name
+                )
+            })
+            .unwrap();
+        assert!(
+            matches!(event.content, CoreEvent::ParticipantConnected { .. },),
+            "Participant `{}` didn't receive CoreEvent::ParticipantConnected",
+            p.join_success().display_name.as_str()
+        );
     }
 }
