@@ -40,14 +40,18 @@ use super::{
 
 const RECV_TIMEOUT: Duration = Duration::from_millis(500);
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ReceiveError {
+    #[error("Closed")]
     Closed,
+    #[error("Timeout")]
     Timeout,
+    #[error("InvalidJson {message:?}: {error:?}")]
     InvalidJson {
         error: serde_json::Error,
         message: SignalingSocketMessage,
     },
+    #[error("UnexpectedMessage {0:?}")]
     UnexpectedMessage(SignalingSocketMessage),
 }
 
@@ -196,17 +200,7 @@ impl MockParticipant<JoinSuccess> {
 
 impl<S> MockParticipant<S> {
     pub fn alice(device_number: usize) -> MockParticipantBuilder<PublicUserProfile> {
-        let profile = PublicUserProfile {
-            id: UserId::from_u128(0xa11ce),
-            email: "alice@example.com".to_string(),
-            user_info: UserInfo {
-                title: "M.Sc.".parse().expect("Valid title"),
-                firstname: "Alice".to_string(),
-                lastname: "Aal".to_string(),
-                display_name: "Alice the angry".parse().expect("Valid DisplayName"),
-                avatar_url: "https://example.com/avatar-of-alice".to_string(),
-            },
-        };
+        let profile = alice_public_profile();
 
         MockParticipantBuilder {
             profile,
@@ -410,6 +404,20 @@ impl<S> MockParticipant<S> {
     pub fn disconnect(self) {
         // Dropping the sender will result in a disconnect
         drop(self.sender);
+    }
+}
+
+pub fn alice_public_profile() -> PublicUserProfile {
+    PublicUserProfile {
+        id: UserId::from_u128(0xa11ce),
+        email: "alice@example.com".to_string(),
+        user_info: UserInfo {
+            title: "M.Sc.".parse().expect("Valid title"),
+            firstname: "Alice".to_string(),
+            lastname: "Aal".to_string(),
+            display_name: "Alice the angry".parse().expect("Valid DisplayName"),
+            avatar_url: "https://example.com/avatar-of-alice".to_string(),
+        },
     }
 }
 
