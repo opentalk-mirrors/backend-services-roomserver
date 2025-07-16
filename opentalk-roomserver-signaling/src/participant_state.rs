@@ -3,6 +3,7 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+use chrono::{DateTime, Utc};
 use opentalk_roomserver_types::{
     client_parameters::{Role, ServiceKind},
     connection_id::ConnectionId,
@@ -77,6 +78,12 @@ pub struct ParticipantState {
 
     /// All connections and their associated device
     pub connections: HashMap<ConnectionId, DeviceId>,
+
+    /// The time the participant joined the meeting with their first connection
+    pub joined_at: DateTime<Utc>,
+
+    /// The time the participant left the meeting with their last connection
+    pub left_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,13 +103,20 @@ impl ParticipantKind {
 }
 
 impl ParticipantState {
-    pub fn new(display_name: DisplayName, kind: ParticipantKind, role: Role) -> Self {
+    pub fn new(
+        display_name: DisplayName,
+        kind: ParticipantKind,
+        role: Role,
+        joined_at: DateTime<Utc>,
+    ) -> Self {
         Self {
             display_name,
             room: RoomKind::Main,
             kind,
             role,
             connections: HashMap::new(),
+            joined_at,
+            left_at: None,
         }
     }
 
@@ -137,6 +151,7 @@ impl ParticipantState {
 mod tests {
     use std::collections::HashSet;
 
+    use chrono::Duration;
     use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
 
     use super::*;
@@ -154,6 +169,8 @@ mod tests {
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: None,
             },
         );
 
@@ -166,6 +183,8 @@ mod tests {
                 kind: ParticipantKind::Guest,
                 role: Role::User,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: None,
             },
         );
 
@@ -178,6 +197,8 @@ mod tests {
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
                 connections: HashMap::from([]),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
             },
         );
 
@@ -211,6 +232,8 @@ mod tests {
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: None,
             },
         );
 
@@ -223,6 +246,8 @@ mod tests {
                 kind: ParticipantKind::Guest,
                 role: Role::User,
                 connections: HashMap::from([]),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
             },
         );
 
@@ -235,6 +260,8 @@ mod tests {
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
                 connections: HashMap::from([]),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
             },
         );
 
@@ -316,6 +343,8 @@ mod tests {
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: None,
             },
         );
 
@@ -328,6 +357,8 @@ mod tests {
                 kind: ParticipantKind::Guest,
                 role: Role::User,
                 connections: HashMap::new(),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
             },
         );
 
@@ -340,6 +371,8 @@ mod tests {
                 kind: ParticipantKind::Service(ServiceKind::Recorder),
                 role: Role::User,
                 connections: HashMap::new(),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
             },
         );
 
@@ -375,6 +408,8 @@ mod tests {
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: None,
             },
         );
 
@@ -387,6 +422,8 @@ mod tests {
                 kind: ParticipantKind::Guest,
                 role: Role::User,
                 connections: HashMap::new(),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
             },
         );
 
@@ -399,6 +436,8 @@ mod tests {
                 kind: ParticipantKind::Service(ServiceKind::Recorder),
                 role: Role::User,
                 connections: HashMap::new(),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
             },
         );
 
@@ -425,6 +464,8 @@ mod tests {
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: None,
             },
         );
 
@@ -437,6 +478,8 @@ mod tests {
                 kind: ParticipantKind::Guest,
                 role: Role::User,
                 connections: HashMap::new(),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: None,
             },
         );
 
@@ -449,6 +492,8 @@ mod tests {
                 kind: ParticipantKind::Service(ServiceKind::Recorder),
                 role: Role::User,
                 connections: HashMap::new(),
+                joined_at: DateTime::UNIX_EPOCH,
+                left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
             },
         );
 

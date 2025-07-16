@@ -36,9 +36,15 @@
 //!
 //! [`SignalingModule`]: opentalk_roomserver_signaling::signaling_module::SignalingModule
 
-use std::{future::pending, sync::Arc, time::Duration};
+use std::{
+    collections::hash_map::Entry::{Occupied, Vacant},
+    future::pending,
+    sync::Arc,
+    time::Duration,
+};
 
 use breakout::state::BreakoutState;
+use chrono::Utc;
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
@@ -516,10 +522,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
-        self.participants
-            .all_unfiltered
-            .entry(participant_id)
-            .or_insert_with(|| ParticipantState::new(display_name, kind, role))
+        let mut occupied = match self.participants.all_unfiltered.entry(participant_id) {
+            Occupied(mut occupied) => {
+                let state = occupied.get_mut();
+                // Set join/leave timestamps when this is the first device
+                if !state.is_connected() {
+                    state.joined_at = Utc::now();
+                    state.left_at = None;
+                }
+                occupied
+            }
+            Vacant(vacant) => {
+                vacant.insert_entry(ParticipantState::new(display_name, kind, role, Utc::now()))
+            }
+        };
+        occupied
+            .get_mut()
             .connections
             .insert(connection_id, device_id);
 
@@ -552,6 +570,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         state.connections.remove(&connection_id);
+        // Set the left_at timestamp if this was the last connection
+        if !state.is_connected() {
+            state.left_at = Some(Utc::now());
+        }
 
         let room = state.room;
 

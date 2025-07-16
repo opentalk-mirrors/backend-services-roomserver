@@ -5039,6 +5039,7 @@ version = "0.0.4-dev"
 dependencies = [
  "anyhow",
  "async-trait",
+ "chrono",
  "futures",
  "log",
  "opentalk-roomserver-common",
