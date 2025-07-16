@@ -3,6 +3,7 @@
 
 use egui::Widget;
 
+/// JSON EDITOR MUST BE LAST SINCE ITS USING ALL AVAILABLE SPACE!
 pub(crate) fn json_editor(ui: &mut egui::Ui, text: &mut String) -> egui::Response {
     let theme = egui_extras::syntax_highlighting::CodeTheme::from_memory(ui.ctx(), ui.style());
 
