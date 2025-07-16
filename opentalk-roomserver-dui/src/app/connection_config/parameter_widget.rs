@@ -28,7 +28,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
 
     pub(crate) fn ui(
         &mut self,
-        collection: &mut Vec<(String, T)>,
+        collection: &mut Vec<(String, String)>,
         selected_index: &mut usize,
         delete_mode: bool,
         builder: StripBuilder<'_>,
@@ -53,12 +53,18 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                             });
 
                             strip.cell(|ui| {
+                                ui.horizontal(|ui| {
+                                    ui.add(
+                                        TextEdit::singleline(&mut self.new_name).hint_text("Name"),
+                                    );
+                                    self.save_ui(ui, collection, selected_index);
+                                });
+
+                                // The JSON editor has to be last since it's using all available space.
                                 let res = json_editor(ui, &mut self.edit);
                                 if res.changed() {
                                     self.parsed = serde_json::from_str(&self.edit);
                                 }
-                                ui.add(TextEdit::singleline(&mut self.new_name).hint_text("Name"));
-                                self.save_ui(ui, collection, selected_index);
                             });
                         });
                 });
@@ -67,7 +73,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
 
     pub(crate) fn table_ui(
         &mut self,
-        collection: &mut Vec<(String, T)>,
+        collection: &mut Vec<(String, String)>,
         selected_index: &mut usize,
         delete_mode: bool,
         ui: &mut egui::Ui,
@@ -109,9 +115,8 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                     if row.response().clicked() {
                         *selected_index = row_index;
                         if let Some((_, item)) = collection.get(row_index) {
-                            self.parsed = Ok(item.clone());
-                            self.edit = serde_json::to_string_pretty(&item)
-                                .expect("RoomParameters are serializable");
+                            self.parsed = serde_json::from_str(item);
+                            self.edit = item.clone();
                         }
                     }
                 });
@@ -129,24 +134,20 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
     fn save_ui(
         &mut self,
         ui: &mut egui::Ui,
-        collection: &mut Vec<(String, T)>,
+        collection: &mut Vec<(String, String)>,
         selected_index: &mut usize,
     ) {
-        ui.horizontal(|ui| {
-            if ui
-                .add_enabled(self.parsed.is_ok(), egui::Button::new("save"))
-                .clicked()
-            {
-                if let Ok(parameters) = &self.parsed {
-                    collection.push((self.new_name.clone(), parameters.clone()));
-                    self.new_name.clear();
-                    *selected_index = collection.len() - 1;
-                }
-            }
-            if let Some(e) = self.parsed.as_ref().err() {
-                let err_text = RichText::new(e.to_string()).invalid_input_style();
-                ui.label(err_text);
-            }
-        });
+        if ui
+            .add_enabled(self.parsed.is_ok(), egui::Button::new("save"))
+            .clicked()
+        {
+            collection.push((self.new_name.clone(), self.edit.clone()));
+            self.new_name.clear();
+            *selected_index = collection.len() - 1;
+        }
+        if let Some(e) = self.parsed.as_ref().err() {
+            let err_text = RichText::new(e.to_string()).invalid_input_style();
+            ui.label(err_text);
+        }
     }
 }

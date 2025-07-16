@@ -13,13 +13,7 @@ use super::{
     shortcuts::SUBMIT_SHORTCUT,
     style::{InvalidInputStyle as _, delete_btn, delete_mode_btn},
 };
-use crate::{
-    app::connection_config::parameter_widget::ParameterWidget,
-    settings::{
-        DuiSettings,
-        room::{default_client_parameters, default_room_parameters},
-    },
-};
+use crate::{app::connection_config::parameter_widget::ParameterWidget, settings::DuiSettings};
 
 mod parameter_widget;
 
@@ -39,26 +33,22 @@ impl ConnectionConfigView {
             .get(settings.selected_room_parameters)
             .map(|(_, param)| param)
             .cloned()
-            .unwrap_or_else(default_room_parameters);
+            .unwrap_or_else(String::new);
         let client_param = settings
             .client_parameters
             .get(settings.selected_client_parameters)
             .map(|(_, param)| param)
             .cloned()
-            .unwrap_or_else(default_client_parameters);
+            .unwrap_or_else(String::new);
 
         Self {
             new_room_id: RoomId::generate().to_string(),
             new_room_id_name: String::new(),
 
-            room_parameters_select: ParameterWidget::new(
-                "Room Parameters".to_string(),
-                serde_json::to_string_pretty(&room_param).expect("RoomParameters are serializable"),
-            ),
+            room_parameters_select: ParameterWidget::new("Room Parameters".to_string(), room_param),
             client_parameters_select: ParameterWidget::new(
                 "Client Parameters".to_string(),
-                serde_json::to_string_pretty(&client_param)
-                    .expect("ClientParameters are serializable"),
+                client_param,
             ),
         }
     }
