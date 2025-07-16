@@ -21,6 +21,7 @@ members = [
   "opentalk-roomserver",
   "opentalk-roomserver-client",
   "opentalk-roomserver-dui",
+  "opentalk-roomserver-report-generation",
   "opentalk-roomserver-room",
   "opentalk-roomserver-types",
   "opentalk-roomserver-web-api",
@@ -50,6 +51,7 @@ opentalk-roomserver-module-ping = { path = "modules/ping/module", version = "0.0
 opentalk-roomserver-module-polls = { path = "modules/polls/module", version = "0.0.4-dev" }
 opentalk-roomserver-module-shared-folder = { path = "modules/shared_folder/module", version = "0.0.4-dev" }
 opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.4-dev" }
+opentalk-roomserver-report-generation = { path = "opentalk-roomserver-report-generation", version = "0.0.4-dev" }
 opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.4-dev" }
 opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.4-dev" }
 opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.4-dev", features = [
@@ -77,10 +79,12 @@ axum-prometheus = "0.8.0"
 blake3 = "1.8"
 bytes = "1.10.1"
 chrono = "0.4"
+chrono-tz = "0.10"
 clap = { version = "4.5", features = ["derive"] }
 config = { version = "0.15", default-features = false, features = ["toml"] }
 derive_more = { version = "2", features = ["display"] }
 dirs = "6.0.0"
+ecow = "0.2"
 eframe = "0.32.0"
 egui = "0.32.0"
 egui_extras = { version = "0.32.0", default-features = false }
@@ -125,6 +129,11 @@ tracing-subscriber = { version = "0.3", features = [
   "parking_lot",
 ] }
 tungstenite = "0.27.0"
+typst = "0.13"
+typst-kit = { version = "0.13", default-features = false, features = [
+  "embed-fonts",
+] }
+typst-pdf = "0.13"
 url = "2.5.2"
 utoipa = { version = "5.3.1", features = ["yaml"] }
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }

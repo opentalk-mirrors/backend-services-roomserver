@@ -34,6 +34,13 @@ ignore = [
   #     └── egui_extras v0.31.1
   #         └── opentalk-roomserver-dui
   "RUSTSEC-2024-0320",
+  # paste is unmaintained
+  # paste
+  # └── biblatex
+  #     └── hayagriva
+  #         └── typst-library
+  #             └── typst
+  "RUSTSEC-2024-0436",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -113,6 +120,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-module-timer" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-report-generation" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-room" },
@@ -235,9 +245,16 @@ skip = [
   { name = "http", version = "0.2.12" },
   { name = "http-body", version = "0.4.6" },
   { name = "hyper", version = "0.14.32" },
+  { name = "icu_collections", version = "1" },
+  { name = "icu_properties", version = "1" },
+  { name = "icu_properties_data", version = "1" },
+  { name = "icu_provider", version = "1" },
   { name = "itertools", version = "0.11" },
   { name = "itertools", version = "0.12" },
   { name = "linux-raw-sys", version = "0.4" },
+  { name = "litemap", version = "0.7" },
+  { name = "phf", version = "0.11" },
+  { name = "phf_shared", version = "0.11" },
   { name = "prost", version = "0.12.6" },
   { name = "prost-derive", version = "0.12.6" },
   { name = "quick-xml", version = "0.36" },
@@ -249,14 +266,26 @@ skip = [
   { name = "regex-syntax", version = "0.6" },
   { name = "reqwest", version = "0.11.27" },
   { name = "rustix", version = "0.38" },
+  { name = "serde_spanned", version = "0.6" },
+  { name = "strum", version = "0.26" },
+  { name = "strum_macros", version = "0.26" },
   { name = "sync_wrapper", version = "0.1.2" },
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
+  { name = "tinystr", version = "0.7" },
   { name = "tokio-tungstenite", version = "0.20.1" },
   { name = "tokio-tungstenite", version = "0.26" },
+  { name = "toml", version = "0.8" },
   { name = "toml_datetime", version = "0.6.11" },
+  { name = "ttf-parser", version = "0.24" },
   { name = "tungstenite", version = "0.20" },
   { name = "tungstenite", version = "0.26" },
+  { name = "writeable", version = "0.5" },
+  { name = "yoke", version = "0.7" },
+  { name = "yoke-derive", version = "0.7" },
+  { name = "zerotrie", version = "0.1" },
+  { name = "zerovec", version = "0.10" },
+  { name = "zerovec-derive", version = "0.10" },
   { name = "zip", version = "0.6" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
