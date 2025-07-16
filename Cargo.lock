@@ -5658,6 +5658,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-types-meeting-report"
+version = "0.0.0"
+dependencies = [
+ "opentalk-types-common",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "opentalk-roomserver-types-ping"
 version = "0.0.4-dev"
 dependencies = [
