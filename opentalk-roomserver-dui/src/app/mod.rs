@@ -59,7 +59,7 @@ impl RoomServerApp {
             .enable_all()
             .build()?;
 
-        let settings = DuiSettings::load(cc, roomserver_config)?;
+        let settings = crate::settings::load(cc, roomserver_config)?;
 
         let (event_rx, command_tx, signaling_state_rx) = RoomServerRunner::spawn(
             &runtime,
@@ -282,7 +282,7 @@ impl eframe::App for RoomServerApp {
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        self.settings.save(storage);
+        crate::settings::save(&self.settings, storage);
     }
 }
 
