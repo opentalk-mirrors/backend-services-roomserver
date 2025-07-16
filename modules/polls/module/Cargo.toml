@@ -3,6 +3,7 @@
 
 [package]
 authors.workspace = true
+description = "Poll module for the OpenTalk RoomServer."
 edition = "2024"
 homepage.workspace = true
 license.workspace = true

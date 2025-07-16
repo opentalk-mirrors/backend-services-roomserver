@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::BTreeSet, net::Ipv6Addr, sync::Arc};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    net::Ipv6Addr,
+    sync::Arc,
+};
 
+use anyhow::Context as _;
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
     settings::{Http, Settings},
@@ -11,13 +16,20 @@ use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, core_event::CoreEvent, room_parameters::RoomParameters,
 };
-use opentalk_types_common::{rooms::RoomId, tariffs::TariffModuleResource, utils::ExampleData};
+use opentalk_types_common::{
+    rooms::RoomId,
+    tariffs::{TariffId, TariffModuleResource, TariffResource},
+};
+use opentalk_types_signaling::{ModuleData, SignalingModuleFrontendData};
 use tokio::sync::watch;
 
 use super::participant::{MockParticipantJoined, MockParticipantJoining, ReceiveError};
 use crate::{
     ModuleRegistry, RoomTaskHandle, RoomTaskHandleError,
-    mocking::{participant::create_participant_connection, socket::MockSocket},
+    mocking::{
+        participant::{alice_public_profile, create_participant_connection},
+        socket::MockSocket,
+    },
     task::{RoomTask, fs_storage::FsStorage},
 };
 
@@ -67,7 +79,23 @@ impl TestRoomBuilder {
         Self {
             room_id: RoomId::from_u128(1),
             settings: settings(),
-            room_parameters: RoomParameters::example_data(),
+            room_parameters: RoomParameters {
+                created_by: alice_public_profile(),
+                password: None,
+                waiting_room: false,
+                call_in: None,
+                event: None,
+                invite_code: None,
+                tariff: TariffResource {
+                    id: TariffId::from_u128(1),
+                    name: "Default Tariff".to_string(),
+                    quotas: BTreeMap::default(),
+                    modules: BTreeMap::default(),
+                },
+                streaming_links: Vec::new(),
+                e2e_encryption: false,
+                module_data: ModuleData::new(),
+            },
             module_registry: ModuleRegistry::new(),
         }
     }
@@ -81,6 +109,14 @@ impl TestRoomBuilder {
             },
         );
         self
+    }
+
+    pub fn add_init_module_data<T: SignalingModuleFrontendData>(
+        mut self,
+        data: &T,
+    ) -> Result<Self, serde_json::Error> {
+        self.room_parameters.module_data.insert(data)?;
+        Ok(self)
     }
 
     pub fn room_id(mut self, room_id: RoomId) -> Self {
@@ -203,9 +239,20 @@ impl TestRoom {
 
 pub async fn flush_connected_events(others: &mut [&mut MockParticipantJoined]) {
     for p in others {
-        assert!(matches!(
-            p.receive::<CoreEvent>().await.unwrap().content,
-            CoreEvent::ParticipantConnected { .. }
-        ));
+        let event = p
+            .receive::<CoreEvent>()
+            .await
+            .with_context(|| {
+                format!(
+                    "`{}` didn't receive an event",
+                    p.join_success().display_name
+                )
+            })
+            .unwrap();
+        assert!(
+            matches!(event.content, CoreEvent::ParticipantConnected { .. },),
+            "Participant `{}` didn't receive CoreEvent::ParticipantConnected",
+            p.join_success().display_name.as_str()
+        );
     }
 }
