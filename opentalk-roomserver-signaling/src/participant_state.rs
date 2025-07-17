@@ -53,6 +53,10 @@ impl Participants {
             .collect()
     }
 
+    pub fn visible(&self) -> ParticipantsFiltered {
+        ParticipantsFiltered::new(self).visibility(ParticipationVisibility::Visible)
+    }
+
     pub fn filter(&self) -> ParticipantsFiltered {
         ParticipantsFiltered::new(self)
     }
