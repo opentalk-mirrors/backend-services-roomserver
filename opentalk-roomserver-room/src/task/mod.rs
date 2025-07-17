@@ -479,16 +479,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let device_id = self.derive_device_id(&client_parameters.device_secret);
         let role = client_parameters.role;
 
-        let (participant_id, display_name, kind) = match &client_parameters.kind {
+        let (participant_id, display_name, email, kind) = match &client_parameters.kind {
             ClientKind::Registered { profile } => (
                 ParticipantId::from(Uuid::from(profile.id)),
                 profile.user_info.display_name.clone(),
+                Some(profile.email.clone()),
                 ParticipantKind::User,
             ),
             ClientKind::Guest { display_name } => {
                 let participant_id = ParticipantId::from(Uuid::from(device_id));
 
-                (participant_id, display_name.clone(), ParticipantKind::Guest)
+                (
+                    participant_id,
+                    display_name.clone(),
+                    None,
+                    ParticipantKind::Guest,
+                )
             }
             ClientKind::Service(service_kind) => {
                 let participant_id = ParticipantId::from(Uuid::from(device_id));
@@ -496,6 +502,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 (
                     participant_id,
                     service_kind.display_name(),
+                    None,
                     ParticipantKind::Service(*service_kind),
                 )
             }
@@ -532,9 +539,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 }
                 occupied
             }
-            Vacant(vacant) => {
-                vacant.insert_entry(ParticipantState::new(display_name, kind, role, Utc::now()))
-            }
+            Vacant(vacant) => vacant.insert_entry(ParticipantState::new(
+                display_name,
+                email,
+                kind,
+                role,
+                Utc::now(),
+            )),
         };
         occupied
             .get_mut()

@@ -67,6 +67,9 @@ pub struct ParticipantState {
     /// The participants display name
     pub display_name: DisplayName,
 
+    /// The e-mail address of the participant
+    pub email: Option<String>,
+
     /// The breakout room of the participant.
     pub room: RoomKind,
 
@@ -105,12 +108,14 @@ impl ParticipantKind {
 impl ParticipantState {
     pub fn new(
         display_name: DisplayName,
+        email: Option<String>,
         kind: ParticipantKind,
         role: Role,
         joined_at: DateTime<Utc>,
     ) -> Self {
         Self {
             display_name,
+            email,
             room: RoomKind::Main,
             kind,
             role,
@@ -165,6 +170,7 @@ mod tests {
             connected_participant_0,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Connected 0"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
@@ -179,6 +185,7 @@ mod tests {
             connected_participant_1,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Connected 1"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::Guest,
                 role: Role::User,
@@ -193,6 +200,7 @@ mod tests {
             disconnected_participant,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Disconnected"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
@@ -228,6 +236,7 @@ mod tests {
             connected_breakout,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Connected 0"),
+                email: None,
                 room: RoomKind::Breakout(BreakoutId::from(0)),
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
@@ -242,6 +251,7 @@ mod tests {
             disconnected_breakout,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Connected 1"),
+                email: None,
                 room: RoomKind::Breakout(BreakoutId::from(0)),
                 kind: ParticipantKind::Guest,
                 role: Role::User,
@@ -256,6 +266,7 @@ mod tests {
             disconnected_main,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Disconnected"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
@@ -339,6 +350,7 @@ mod tests {
             user,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("User"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
@@ -353,6 +365,7 @@ mod tests {
             guest,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Guest"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::Guest,
                 role: Role::User,
@@ -367,6 +380,7 @@ mod tests {
             recorder,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Recorder"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::Service(ServiceKind::Recorder),
                 role: Role::User,
@@ -404,6 +418,7 @@ mod tests {
             user,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("User"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
@@ -418,6 +433,7 @@ mod tests {
             guest,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Guest"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::Guest,
                 role: Role::User,
@@ -432,6 +448,7 @@ mod tests {
             recorder,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Recorder"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::Service(ServiceKind::Recorder),
                 role: Role::User,
@@ -460,6 +477,7 @@ mod tests {
             user,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("User"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::User,
                 role: Role::Moderator,
@@ -474,6 +492,7 @@ mod tests {
             guest,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Guest"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::Guest,
                 role: Role::User,
@@ -488,6 +507,7 @@ mod tests {
             recorder,
             ParticipantState {
                 display_name: DisplayName::from_str_lossy("Recorder"),
+                email: None,
                 room: RoomKind::Main,
                 kind: ParticipantKind::Service(ServiceKind::Recorder),
                 role: Role::User,
