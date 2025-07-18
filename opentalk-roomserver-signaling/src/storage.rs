@@ -62,6 +62,7 @@ impl Display for AssetMetaData {
 /// Information about an asset that has been uploaded to a storage backend
 pub struct AssetUploaded {
     pub id: AssetId,
+    pub filename: String,
     pub remaining_quota: u64,
     pub url: Url,
 }

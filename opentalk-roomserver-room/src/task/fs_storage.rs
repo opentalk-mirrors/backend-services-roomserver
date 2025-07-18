@@ -86,6 +86,7 @@ impl StorageProvider for FsStorage {
 
         Ok(AssetUploaded {
             id,
+            filename: metadata.to_string(),
             remaining_quota: self.remaining_quota().await.into(),
             url,
         })
