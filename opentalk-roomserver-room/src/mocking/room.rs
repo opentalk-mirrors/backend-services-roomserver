@@ -4,6 +4,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     net::Ipv6Addr,
+    path::PathBuf,
     sync::Arc,
 };
 
@@ -155,6 +156,7 @@ impl Default for TestRoomBuilder {
 pub struct TestRoom {
     room_id: RoomId,
     room_handle: RoomTaskHandle<MockSocket>,
+    storage: Arc<FsStorage>,
     _settings: Arc<Settings>,
     _app_state_tx: watch::Sender<ApplicationState>,
 }
@@ -176,12 +178,13 @@ impl TestRoom {
         let quota = 5 * 1024u64.pow(3); // 5GiB
         let storage = FsStorage::new(quota, None).expect("Failed to create storage");
         let storage = Arc::new(storage);
+        let tmp = Arc::clone(&storage);
 
         let (room_handle, _) = RoomTask::spawn(
             room_id,
             room_parameters.into(),
             Arc::new(module_registry),
-            storage,
+            tmp,
             Arc::clone(&settings),
             rx,
         );
@@ -189,6 +192,7 @@ impl TestRoom {
         Self {
             room_id,
             room_handle,
+            storage,
             _settings: settings,
             _app_state_tx: app_state_tx,
         }
@@ -241,6 +245,10 @@ impl TestRoom {
 
     pub fn id(&self) -> RoomId {
         self.room_id
+    }
+
+    pub fn stored_files(&self) -> Vec<PathBuf> {
+        self.storage.paths()
     }
 }
 

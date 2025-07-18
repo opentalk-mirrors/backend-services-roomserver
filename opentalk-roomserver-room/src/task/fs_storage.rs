@@ -61,6 +61,10 @@ impl FsStorage {
             paths: Mutex::new(Vec::new()),
         })
     }
+
+    pub fn paths(&self) -> Vec<PathBuf> {
+        self.paths.lock().unwrap().clone()
+    }
 }
 
 #[async_trait]
