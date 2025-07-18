@@ -230,22 +230,39 @@ components:
       properties:
         description:
           $ref: "#/components/schemas/EventDescription"
+        ends_at:
+          type:
+            - string
+            - "null"
+          format: date-time
         id:
           $ref: "#/components/schemas/EventId"
         is_adhoc:
           type: boolean
         shared_folder:
           $ref: "#/components/schemas/SharedFolder"
+        starts_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        timezone:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/TimeZone"
         title:
           $ref: "#/components/schemas/EventTitle"
       example:
         description: The Weekly Team Event
+        ends_at: "1970-01-01T01:00:00Z"
         id: 00000000-0000-0000-0000-004433221100
         is_adhoc: false
         shared_folder:
           read:
             password: v3rys3cr3t
             url: "https://cloud.example.com/shares/abc123"
+        starts_at: "1970-01-01T00:00:00Z"
+        timezone: Europe/Berlin
         title: Team Event
     EventDescription:
       type: string
@@ -395,12 +412,15 @@ components:
         e2e_encryption: false
         event:
           description: The Weekly Team Event
+          ends_at: "1970-01-01T01:00:00Z"
           id: 00000000-0000-0000-0000-004433221100
           is_adhoc: false
           shared_folder:
             read:
               password: v3rys3cr3t
               url: "https://cloud.example.com/shares/abc123"
+          starts_at: "1970-01-01T00:00:00Z"
+          timezone: Europe/Berlin
           title: Team Event
         invite_code: 00000000-0000-0000-0000-0000deadbeef
         module_data:
@@ -577,6 +597,11 @@ components:
         name: Starter tariff
         quotas:
           max_storage: 50000
+    TimeZone:
+      type: string
+      description: A time zone
+      examples:
+        - Europe/Berlin
     Token:
       type: string
       format: uuid
@@ -626,12 +651,15 @@ components:
           e2e_encryption: false
           event:
             description: The Weekly Team Event
+            ends_at: "1970-01-01T01:00:00Z"
             id: 00000000-0000-0000-0000-004433221100
             is_adhoc: false
             shared_folder:
               read:
                 password: v3rys3cr3t
                 url: "https://cloud.example.com/shares/abc123"
+            starts_at: "1970-01-01T00:00:00Z"
+            timezone: Europe/Berlin
             title: Team Event
           invite_code: 00000000-0000-0000-0000-0000deadbeef
           module_data:
