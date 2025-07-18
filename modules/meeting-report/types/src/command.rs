@@ -4,7 +4,10 @@
 
 //! Signaling commands for the `meeting_report` namespace
 
+use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use serde::{Deserialize, Serialize};
+
+use crate::event::MeetingReportEvent;
 
 /// Incoming websocket messages
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -16,6 +19,19 @@ pub enum MeetingReportCommand {
         /// report
         include_email_addresses: bool,
     },
+}
+
+impl CreateReplica<MeetingReportEvent> for MeetingReportCommand {
+    fn replicate(&self) -> Option<MeetingReportEvent> {
+        let event = match self {
+            MeetingReportCommand::GenerateAttendanceReport {
+                include_email_addresses,
+            } => MeetingReportEvent::ReportGenerationStarted {
+                include_email_addresses: *include_email_addresses,
+            },
+        };
+        Some(event)
+    }
 }
 
 #[cfg(test)]

@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{Error, PdfAsset};
+use super::{MeetingReportError, PdfAsset};
 
 /// Events sent out by the `meeting_report` module
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,8 +15,14 @@ pub enum MeetingReportEvent {
     /// A PDF asset has been created
     PdfAsset(PdfAsset),
 
+    ReportGenerationStarted {
+        /// Wether or not to the e-mail addresses of the participants were requested
+        /// to be included in the report
+        include_email_addresses: bool,
+    },
+
     /// An error happened when executing a `meeting_report` command
-    Error(Error),
+    Error(MeetingReportError),
 }
 
 impl From<PdfAsset> for MeetingReportEvent {
@@ -25,8 +31,8 @@ impl From<PdfAsset> for MeetingReportEvent {
     }
 }
 
-impl From<Error> for MeetingReportEvent {
-    fn from(value: Error) -> Self {
+impl From<MeetingReportError> for MeetingReportEvent {
+    fn from(value: MeetingReportError) -> Self {
         Self::Error(value)
     }
 }
@@ -36,7 +42,7 @@ mod serde_tests {
     use opentalk_types_common::assets::AssetId;
     use serde_json::json;
 
-    use super::{Error, MeetingReportEvent, PdfAsset};
+    use super::{MeetingReportError, MeetingReportEvent, PdfAsset};
 
     #[test]
     fn serialize_meeting_report_event_pdf_asset() {
@@ -57,7 +63,7 @@ mod serde_tests {
 
     #[test]
     fn serialize_meeting_report_event_error() {
-        let pdf_event = MeetingReportEvent::Error(Error::Generate);
+        let pdf_event = MeetingReportEvent::Error(MeetingReportError::Generate);
         let value = serde_json::to_value(pdf_event).expect("Must be serializable");
         assert_eq!(
             value,

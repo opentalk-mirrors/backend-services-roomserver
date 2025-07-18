@@ -13,7 +13,7 @@ mod report_date_time;
 mod report_generation_error;
 mod world;
 
-use std::{borrow::Cow, collections::BTreeMap, fs, path::Path};
+use std::{borrow::Cow, collections::BTreeMap, path::Path};
 
 pub use report_date_time::{ReportDateTime, ToReportDateTime};
 pub use report_generation_error::ReportGenerationError;
@@ -25,45 +25,22 @@ use world::World;
 pub fn generate_pdf_report(
     source: String,
     data: BTreeMap<&Path, Cow<'static, [u8]>>,
-    dump_to_path: Option<&Path>,
 ) -> Result<Vec<u8>, ReportGenerationError> {
-    if let Some(dump_path) = dump_to_path {
-        log::info!("Dumping raw data and generated report file to {dump_path:?}");
-
-        fs::create_dir_all(dump_path)
-            .map_err(|source| ReportGenerationError::DumpDirectoryCreation { source })?;
-        fs::write(dump_path.join("report.typ"), &source)
-            .map_err(|source| ReportGenerationError::DumpFileExport { source })?;
-
-        for (path, content) in &data {
-            fs::write(dump_path.join(path), content)
-                .map_err(|source| ReportGenerationError::DumpFileExport { source })?;
-        }
-    }
-
     let world = World::new(source, data);
 
     let report = match generate_pdf_report_inner(&world) {
         Ok(d) => d,
         Err(e) => {
             for diagnostic in &e {
-                let range = world
-                    .source(*world::MAIN_ID)
-                    .expect("Source not found")
-                    .range(diagnostic.span);
-
-                tracing::warn!("{}: {:?}", diagnostic.message, range);
+                if let Ok(source) = world.source(*world::MAIN_ID) {
+                    let range = source.range(diagnostic.span);
+                    tracing::warn!("{}: {:?}", diagnostic.message, range);
+                }
             }
             return Err(e.into());
         }
     };
 
-    if let Some(dump_path) = dump_to_path {
-        fs::create_dir_all(dump_path)
-            .map_err(|source| ReportGenerationError::DumpDirectoryCreation { source })?;
-        fs::write(dump_path.join("report.pdf"), &report)
-            .map_err(|source| ReportGenerationError::DumpFileExport { source })?;
-    }
     Ok(report)
 }
 

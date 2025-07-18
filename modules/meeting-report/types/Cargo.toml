@@ -9,8 +9,11 @@ homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-types-meeting-report"
 repository.workspace = true
+version.workspace = true
 
 [dependencies]
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true
 serde.workspace = true
 
