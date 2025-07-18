@@ -75,6 +75,7 @@ pub struct TestRoomBuilder {
     settings: Settings,
     room_parameters: RoomParameters,
     module_registry: ModuleRegistry,
+    storage_quota: u64,
 }
 
 impl TestRoomBuilder {
@@ -100,6 +101,7 @@ impl TestRoomBuilder {
                 module_data: ModuleData::new(),
             },
             module_registry: ModuleRegistry::new(),
+            storage_quota: 5 * 1024u64.pow(3), // 5GiB
         }
     }
 
@@ -137,12 +139,18 @@ impl TestRoomBuilder {
         self
     }
 
+    pub fn storage_quota(mut self, quota: u64) -> Self {
+        self.storage_quota = quota;
+        self
+    }
+
     pub fn spawn(self) -> TestRoom {
         TestRoom::spawn(
             self.room_id,
             self.room_parameters,
             self.module_registry,
             self.settings,
+            self.storage_quota,
         )
     }
 }
@@ -171,12 +179,12 @@ impl TestRoom {
         room_parameters: RoomParameters,
         module_registry: ModuleRegistry,
         settings: Settings,
+        storage_quota: u64,
     ) -> Self {
         let settings = Arc::new(settings);
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
 
-        let quota = 5 * 1024u64.pow(3); // 5GiB
-        let storage = FsStorage::new(quota, None).expect("Failed to create storage");
+        let storage = FsStorage::new(storage_quota, None).expect("Failed to create storage");
         let storage = Arc::new(storage);
         let tmp = Arc::clone(&storage);
 
