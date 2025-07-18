@@ -266,17 +266,15 @@ fn build_join_success(
         })
         .collect();
 
-    let (display_name, role, avatar_url, is_room_owner) = match client_parameters.kind {
+    let display_name = client_parameters.kind.display_name();
+    let (role, avatar_url, is_room_owner) = match client_parameters.kind {
         ClientKind::Registered { profile } => (
-            profile.user_info.display_name,
             Role::User,
             Some(profile.user_info.avatar_url),
             ctx.room_task_info.room.created_by.id == profile.id,
         ),
-        ClientKind::Guest { display_name } => (display_name, Role::Guest, None, false),
-        ClientKind::Service(service_kind) => {
-            (service_kind.display_name(), Role::Guest, None, false)
-        }
+        ClientKind::Guest { .. } => (Role::Guest, None, false),
+        ClientKind::Recorder => (Role::Guest, None, false),
     };
 
     let event_info = ctx

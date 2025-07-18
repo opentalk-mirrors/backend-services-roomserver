@@ -5,13 +5,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use chrono::{DateTime, Utc};
 use opentalk_roomserver_types::{
-    client_parameters::{Role, ServiceKind},
-    connection_id::ConnectionId,
-    device_id::DeviceId,
-    room_kind::RoomKind,
+    client_parameters::Role, connection_id::ConnectionId, device_id::DeviceId, room_kind::RoomKind,
 };
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::{ParticipantId, ParticipationVisibility};
+use serde::{Deserialize, Serialize};
 
 use crate::participant_filter::{ParticipantsFiltered, ParticipantsFilteredMut};
 
@@ -93,18 +91,19 @@ pub struct ParticipantState {
     pub left_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind")]
 pub enum ParticipantKind {
     User,
     Guest,
-    Service(ServiceKind),
+    Recorder,
 }
 
 impl ParticipantKind {
     pub fn visibility(&self) -> ParticipationVisibility {
         match self {
             ParticipantKind::User | ParticipantKind::Guest => ParticipationVisibility::Visible,
-            ParticipantKind::Service(service_kind) => service_kind.visibility(),
+            ParticipantKind::Recorder => ParticipationVisibility::Hidden,
         }
     }
 }
@@ -386,7 +385,7 @@ mod tests {
                 display_name: DisplayName::from_str_lossy("Recorder"),
                 email: None,
                 room: RoomKind::Main,
-                kind: ParticipantKind::Service(ServiceKind::Recorder),
+                kind: ParticipantKind::Recorder,
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -454,7 +453,7 @@ mod tests {
                 display_name: DisplayName::from_str_lossy("Recorder"),
                 email: None,
                 room: RoomKind::Main,
-                kind: ParticipantKind::Service(ServiceKind::Recorder),
+                kind: ParticipantKind::Recorder,
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -513,7 +512,7 @@ mod tests {
                 display_name: DisplayName::from_str_lossy("Recorder"),
                 email: None,
                 room: RoomKind::Main,
-                kind: ParticipantKind::Service(ServiceKind::Recorder),
+                kind: ParticipantKind::Recorder,
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
