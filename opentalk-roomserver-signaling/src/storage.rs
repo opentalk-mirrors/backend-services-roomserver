@@ -10,18 +10,15 @@ use opentalk_types_common::{
 };
 use url::Url;
 
-use crate::storage_quota::StorageQuota;
-
 pub type UploadFuture<'a> = Pin<Box<dyn Future<Output = UploadResult> + Send + 'a>>;
 pub type UploadResult = Result<AssetUploaded, StorageError>;
-pub type QuotaFuture<'a> = Pin<Box<dyn Future<Output = StorageQuota> + Send + 'a>>;
 
 #[async_trait]
 pub trait StorageProvider: Send + Sync {
     /// Uploads a file to the storage backend
     async fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) -> UploadResult;
 
-    async fn remaining_quota(&self) -> StorageQuota;
+    async fn remaining_quota(&self) -> u64;
 }
 
 #[derive(Debug)]

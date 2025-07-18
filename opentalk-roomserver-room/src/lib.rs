@@ -18,9 +18,8 @@ pub mod registry;
 pub mod signaling;
 pub mod task;
 
-pub use opentalk_roomserver_signaling::{
-    storage::{AssetMetaData, AssetUploaded, StorageError, StorageProvider},
-    storage_quota::StorageQuota,
+pub use opentalk_roomserver_signaling::storage::{
+    AssetMetaData, AssetUploaded, StorageError, StorageProvider,
 };
 
 pub use crate::{

@@ -12,9 +12,8 @@ use std::{
 
 use anyhow::Context;
 use async_trait::async_trait;
-use opentalk_roomserver_signaling::{
-    storage::{AssetMetaData, AssetUploaded, StorageError, StorageProvider, UploadResult},
-    storage_quota::StorageQuota,
+use opentalk_roomserver_signaling::storage::{
+    AssetMetaData, AssetUploaded, StorageError, StorageProvider, UploadResult,
 };
 use opentalk_types_common::assets::AssetId;
 use url::Url;
@@ -91,15 +90,13 @@ impl StorageProvider for FsStorage {
         Ok(AssetUploaded {
             id,
             filename: metadata.to_string(),
-            remaining_quota: self.remaining_quota().await.into(),
+            remaining_quota: self.remaining_quota().await,
             url,
         })
     }
 
-    async fn remaining_quota(&self) -> StorageQuota {
-        self.quota
-            .saturating_sub(self.used.load(Ordering::Relaxed))
-            .into()
+    async fn remaining_quota(&self) -> u64 {
+        self.quota.saturating_sub(self.used.load(Ordering::Relaxed))
     }
 }
 
