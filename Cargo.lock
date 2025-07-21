@@ -4778,6 +4778,7 @@ dependencies = [
  "opentalk-roomserver-module-livekit",
  "opentalk-roomserver-module-ping",
  "opentalk-roomserver-module-polls",
+ "opentalk-roomserver-module-shared-folder",
  "opentalk-roomserver-module-timer",
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
@@ -4825,6 +4826,7 @@ dependencies = [
  "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-ping",
  "opentalk-roomserver-types-polls",
+ "opentalk-roomserver-types-shared-folder",
  "opentalk-roomserver-types-timer",
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -4967,6 +4969,22 @@ dependencies = [
  "opentalk-types-signaling",
  "test-log",
  "tokio",
+]
+
+[[package]]
+name = "opentalk-roomserver-module-shared-folder"
+version = "0.0.4-dev"
+dependencies = [
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-shared-folder",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "test-log",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -5116,6 +5134,17 @@ dependencies = [
  "serde_json",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-shared-folder"
+version = "0.0.4-dev"
+dependencies = [
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
 ]
 
 [[package]]

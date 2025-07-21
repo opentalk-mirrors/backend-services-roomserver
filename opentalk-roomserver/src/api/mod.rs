@@ -15,6 +15,7 @@ use opentalk_roomserver_module_e2ee::E2eeModule;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_ping::PingModule;
 use opentalk_roomserver_module_polls::PollsModule;
+use opentalk_roomserver_module_shared_folder::SharedFolderModule;
 use opentalk_roomserver_module_timer::TimerModule;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
@@ -185,7 +186,7 @@ where
     Ok(())
 }
 
-/// Initialize the registry with all modules that are available for meetingsz
+/// Initialize the registry with all modules that are available for meetings
 fn setup_registry() -> ModuleRegistry {
     let mut module_registry = ModuleRegistry::new();
     module_registry.add_module::<PingModule>();
@@ -194,6 +195,7 @@ fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<TimerModule>();
     module_registry.add_module::<PollsModule>();
     module_registry.add_module::<E2eeModule>();
+    module_registry.add_module::<SharedFolderModule>();
     module_registry
 }
 

@@ -26,6 +26,7 @@ opentalk-roomserver-module-e2ee.workspace = true
 opentalk-roomserver-module-livekit.workspace = true
 opentalk-roomserver-module-ping.workspace = true
 opentalk-roomserver-module-polls.workspace = true
+opentalk-roomserver-module-shared-folder.workspace = true
 opentalk-roomserver-module-timer.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true

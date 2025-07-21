@@ -14,7 +14,9 @@ use opentalk_roomserver_common::{
 };
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, core_event::CoreEvent, room_parameters::RoomParameters,
+    client_parameters::ClientParameters,
+    core_event::CoreEvent,
+    room_parameters::{EventContext, RoomParameters},
 };
 use opentalk_types_common::{
     rooms::RoomId,
@@ -98,6 +100,11 @@ impl TestRoomBuilder {
             },
             module_registry: ModuleRegistry::new(),
         }
+    }
+
+    pub fn event(mut self, event: EventContext) -> Self {
+        self.room_parameters.event = Some(event);
+        self
     }
 
     pub fn register_module<M: SignalingModule + 'static>(mut self) -> Self {

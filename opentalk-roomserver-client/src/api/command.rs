@@ -15,6 +15,9 @@ pub use {
     opentalk_roomserver_types_livekit::{
         LIVEKIT_MODULE_ID, LiveKitCommand, MicrophoneRestrictionState,
     },
+    opentalk_roomserver_types_shared_folder::{
+        SHARED_FOLDER_MODULE_ID, command::SharedFolderCommand,
+    },
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -56,6 +59,7 @@ pub enum SignalingModuleCommand {
 
     Timer(TimerCommand),
     Polls(PollsCommand),
+    SharedFolder(SharedFolderCommand),
 }
 
 impl SignalingModuleCommand {
@@ -68,6 +72,7 @@ impl SignalingModuleCommand {
             Self::E2ee(..) => E2EE_MODULE_ID,
             Self::Timer(..) => TIMER_MODULE_ID,
             Self::Polls(..) => POLLS_MODULE_ID,
+            Self::SharedFolder(..) => SHARED_FOLDER_MODULE_ID,
         }
     }
 }
