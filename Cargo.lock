@@ -5203,9 +5203,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.35.2"
+version = "0.35.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92d0a412e922b818b6160c988a8953d28db7d298070ea2492f6f6af1f229b2c5"
+checksum = "3cc9bcb203c613bd3b57268ba01c79f84784aed0a47673e31eb1956d0bf7c870"
 dependencies = [
  "chrono",
  "chrono-tz",
