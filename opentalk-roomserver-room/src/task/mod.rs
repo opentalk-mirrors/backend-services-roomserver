@@ -216,7 +216,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         (RoomTaskHandle { sender: tx }, join_handle)
     }
 
-    async fn run(self) {
+    async fn run(mut self) {
         log::debug!("Spawn room with modules: {:?}", self.modules.keys());
         let room_id = self.info.room_id;
 
@@ -224,10 +224,15 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             log::error!("RoomTask exited with error {e}");
         }
 
+        log::debug!("Shutting down modules");
+        for (_, module_handle) in self.modules.drain() {
+            module_handle.destroy(room_id).await;
+        }
+
         log::debug!("Closing room {room_id}");
     }
 
-    async fn inner_run(mut self) -> anyhow::Result<()> {
+    async fn inner_run(&mut self) -> anyhow::Result<()> {
         loop {
             tokio::select! {
                 msg = self.api_rx.recv() => {
