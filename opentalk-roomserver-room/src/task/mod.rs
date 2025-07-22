@@ -185,7 +185,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 // Remove unknown modules from the room parameters
                 let mut params = (*room_parameters).clone();
                 for module_id in uninitialized {
-                    log::debug!(
+                    tracing::debug!(
                         "Unable to initialize unknown module {module_id} for room {room_id}"
                     );
                     params.tariff.modules.remove(&module_id);
@@ -223,19 +223,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     async fn run(mut self) {
-        log::debug!("Spawn room with modules: {:?}", self.modules.keys());
+        tracing::debug!("Spawn room with modules: {:?}", self.modules.keys());
         let room_id = self.info.room_id;
 
         if let Err(e) = self.inner_run().await {
-            log::error!("RoomTask exited with error {e}");
+            tracing::error!("RoomTask exited with error {e}");
         }
 
-        log::debug!("Shutting down modules");
+        tracing::debug!("Shutting down modules");
         for (_, module_handle) in self.modules.drain() {
             module_handle.destroy(room_id).await;
         }
 
-        log::debug!("Closing room {room_id}");
+        tracing::debug!("Closing room {room_id}");
     }
 
     async fn inner_run(&mut self) -> anyhow::Result<()> {
@@ -244,14 +244,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 msg = self.api_rx.recv() => {
                     let Some(msg) = msg else {
                         // TaskHandle dropped, exiting
-                        log::warn!("Room tasks {} api channel was dropped, exiting", self.info.room_id);
+                        tracing::warn!("Room tasks {} api channel was dropped, exiting", self.info.room_id);
                         return Ok(());
                     };
 
                     self.handle_api_request(msg).await?;
                 },
                 msg = self.message_router.recv() => {
-                    log::trace!("received {msg:?}");
+                    tracing::trace!("received {msg:?}");
                     self.handle_message(msg).await;
 
                 }
@@ -259,7 +259,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     self.handle_loopback(msg).await;
                 },
                 () = self.idle_timeout.has_timed_out() => {
-                    log::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
+                    tracing::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
                     return Ok(());
                 }
                 () = Self::check_breakout_timeout(&mut self.breakout_config) => {
@@ -267,7 +267,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 }
                 result = self.app_state.changed() => {
                     if result.is_err() || self.app_state.borrow().is_shutting_down() {
-                        log::debug!("Room task {} received shutdown signal, exiting", self.info.room_id);
+                        tracing::debug!("Room task {} received shutdown signal, exiting", self.info.room_id);
                         return Ok(())
                     }
 
@@ -303,7 +303,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     async fn handle_loopback(&mut self, msg: Option<LoopbackMessage>) {
         let Some(msg) = msg else {
-            log::error!("Signaling module channel was dropped");
+            tracing::error!("Signaling module channel was dropped");
             return;
         };
 
@@ -313,7 +313,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     async fn handle_loopback_message(&mut self, msg: LoopbackMessage) {
         let Some(module) = self.modules.get_mut(&msg.namespace) else {
-            log::error!(
+            tracing::error!(
                 "Received loopback event for unknown module {}",
                 msg.namespace
             );
@@ -368,7 +368,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) {
         match message {
             SignalingMessage::Closed(close_reason) => {
-                log::trace!("Websocket closed for participant {participant_id}: {close_reason:?}");
+                tracing::trace!(
+                    "Websocket closed for participant {participant_id}: {close_reason:?}"
+                );
                 self.disconnect_participant(
                     EventOrigin::Participant(ParticipantOrigin {
                         id: participant_id,
@@ -383,7 +385,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
 
             SignalingMessage::Command(signaling_command) => {
-                log::trace!("received signaling command: {signaling_command:?}");
+                tracing::trace!("received signaling command: {signaling_command:?}");
 
                 let participant_origin = ParticipantOrigin {
                     id: participant_id,
@@ -393,7 +395,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
                 let Some(participant_state) = self.participants.all_unfiltered.get(&participant_id)
                 else {
-                    log::error!(
+                    tracing::error!(
                         "failed to get participant state for participant `{participant_id}`"
                     );
 
@@ -414,7 +416,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
                 match &signaling_command.namespace {
                     m if *m == core::NAMESPACE => {
-                        log::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                        tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
                         return;
                     }
                     m if *m == breakout::BREAKOUT_MODULE_ID => {
@@ -501,7 +503,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         // rather decline the new connection when the participant id is known, but the participant kinds differ.
         if let Some(existing_participant) = self.participants.all_unfiltered.get(&participant_id) {
             if existing_participant.kind != kind {
-                log::error!("ParticipantId collision, dropping new participant ({participant_id})");
+                tracing::error!(
+                    "ParticipantId collision, dropping new participant ({participant_id})"
+                );
                 return;
             }
         };
@@ -513,7 +517,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         {
             Ok(conn_id) => conn_id,
             Err(AlreadyConnectedError) => {
-                log::debug!("rejecting participant connection: already connected");
+                tracing::debug!("rejecting participant connection: already connected");
                 return;
             }
         };
@@ -545,7 +549,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .participant_joined(participant_id, connection_id, device_id, client_parameters)
             .await
         {
-            log::error!("failed to add participant to conference {err:#?}");
+            tracing::error!("failed to add participant to conference {err:#?}");
 
             self.disconnect_participant(
                 EventOrigin::Internal,
@@ -565,7 +569,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         reason: CloseReason,
     ) {
         let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
-            log::error!("Attempted to disconnect participant who does not exist");
+            tracing::error!("Attempted to disconnect participant who does not exist");
             return;
         };
 
@@ -597,7 +601,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         transaction_id: Option<u64>,
         namespace: String,
     ) {
-        log::debug!(
+        tracing::debug!(
             "Received signaling message with unknown namespace: {}",
             &namespace
         );

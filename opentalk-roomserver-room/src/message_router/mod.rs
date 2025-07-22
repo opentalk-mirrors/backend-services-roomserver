@@ -118,12 +118,12 @@ impl MessageRouter {
 
         for id in participant_connections {
             let Some(handle) = connections.get(&id) else {
-                log::debug!("failed to get connection handle, connection does not exist");
+                tracing::debug!("failed to get connection handle, connection does not exist");
                 continue;
             };
 
             if handle.send_event(event.clone()).await.is_err() {
-                log::debug!("failed to message participant, connection is closed");
+                tracing::debug!("failed to message participant, connection is closed");
                 connections.remove(&id);
             }
         }
@@ -149,7 +149,7 @@ impl MessageRouter {
 
             send_futures.push(async move {
                 if connection_handle.send_event(cloned_event).await.is_err() {
-                    log::debug!("Attempted to message participant who has already left");
+                    tracing::debug!("Attempted to message participant who has already left");
                     return Some(*connection_id);
                 }
                 None
@@ -274,7 +274,7 @@ impl MessageRouter {
         let shared_json = match serde_json::value::to_raw_value(&event) {
             Ok(value) => value.into(),
             Err(err) => {
-                log::error!("Failed to serialize SignalingError type: {err}");
+                tracing::error!("Failed to serialize SignalingError type: {err}");
                 RawValue::from_string(r#"{"error": "internal"}"#.into())
                     .unwrap()
                     .into()
@@ -296,7 +296,7 @@ impl MessageRouter {
         let shared_json = match serde_json::value::to_raw_value(&event) {
             Ok(value) => value.into(),
             Err(err) => {
-                log::error!("Failed to serialize SignalingError type: {err}");
+                tracing::error!("Failed to serialize SignalingError type: {err}");
                 RawValue::from_string(r#"{"error": "internal"}"#.into())
                     .unwrap()
                     .into()

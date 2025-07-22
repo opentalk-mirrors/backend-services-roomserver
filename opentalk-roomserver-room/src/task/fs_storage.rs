@@ -105,7 +105,7 @@ impl Drop for FsStorage {
         // Delete all stored files
         for path in self.paths.lock().unwrap().drain(..) {
             if path.exists() && fs::remove_file(&path).is_err() {
-                log::error!(
+                tracing::error!(
                     "Failed to remove stored file at '{}'",
                     path.to_string_lossy()
                 );

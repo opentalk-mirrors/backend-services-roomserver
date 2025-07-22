@@ -79,7 +79,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         if let Err(e) = result {
             match e {
                 SignalingModuleError::Internal(err) => {
-                    log::error!("internal error in breakout module: {err:?}");
+                    tracing::error!("internal error in breakout module: {err:?}");
 
                     self.message_router
                         .send_error(
@@ -90,7 +90,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         .await;
                 }
                 SignalingModuleError::Fatal(err) => {
-                    log::error!("fatal error in breakout module: {err:?}");
+                    tracing::error!("fatal error in breakout module: {err:?}");
 
                     self.message_router
                         .send_error(
@@ -112,7 +112,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         .await;
 
                     if let Err(fatal_error) = result {
-                        log::error!("failed to send error in breakout module: {fatal_error:?}");
+                        tracing::error!("failed to send error in breakout module: {fatal_error:?}");
 
                         self.message_router
                             .send_error(
@@ -377,7 +377,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     pub(crate) async fn breakout_expired(&mut self) {
         if let Err(err) = self.close_breakout_rooms(EventOrigin::Internal).await {
-            log::error!("Fatal error on breakout expiry: {err:?}");
+            tracing::error!("Fatal error on breakout expiry: {err:?}");
         }
     }
 
@@ -470,7 +470,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             rooms,
             expires: breakout_config.expires_at,
         }) {
-            log::error!("Failed to add breakout module data to join success: {e:?}")
+            tracing::error!("Failed to add breakout module data to join success: {e:?}")
         }
     }
 }

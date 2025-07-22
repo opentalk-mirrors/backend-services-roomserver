@@ -204,13 +204,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         transaction_id: Option<u64>,
         err: FatalError,
     ) {
-        log::error!(
+        tracing::error!(
             "The {namespace} module caused a fatal error and will be shut down: {:#?}",
             err.0
         );
 
         let Some(module) = self.modules.remove(&namespace) else {
-            log::error!("Attempted to remove non-existent module {namespace}");
+            tracing::error!("Attempted to remove non-existent module {namespace}");
             return;
         };
 

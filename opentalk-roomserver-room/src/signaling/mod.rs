@@ -244,7 +244,7 @@ where
         let content: <M as SignalingModule>::Incoming = match serde_json::from_str(command.get()) {
             Ok(content) => content,
             Err(err) => {
-                log::debug!(
+                tracing::debug!(
                     "failed to deserialize websocket message for namespace {}: {}",
                     M::NAMESPACE,
                     err
@@ -296,7 +296,7 @@ where
         match err {
             SignalingModuleError::Fatal(err) => return Err(err),
             SignalingModuleError::Internal(err) => {
-                log::error!(
+                tracing::error!(
                     "module '{}' returned an internal error: {err:#?}",
                     M::NAMESPACE
                 );
@@ -310,7 +310,7 @@ where
                         ctx.send_ws_message([participant_origin.id], msg)?;
                     }
                     EventOrigin::Internal => {
-                        log::warn!(
+                        tracing::warn!(
                             "module '{}' returned a websocket error message but the event origin is internal: {msg:?} ",
                             M::NAMESPACE
                         )

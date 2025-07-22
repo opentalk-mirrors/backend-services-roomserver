@@ -114,7 +114,7 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
     app_state: watch::Receiver<ApplicationState>,
 ) -> ConnectionHandle {
-    log::debug!("Creating new participant connection task for participant {participant_id}");
+    tracing::debug!("Creating new participant connection task for participant {participant_id}");
     let (event_sender, event_receiver) = mpsc::channel(EVENT_BUFFER_SIZE);
 
     spawn(
@@ -213,7 +213,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                     };
 
                     if let Err(e) = self.send_event_to_websocket(&event).await {
-                        log::debug!("Failed to send websocket message: {e}");
+                        tracing::debug!("Failed to send websocket message: {e}");
 
                         return ExitReason::UnexpectedDisconnection;
                     }
@@ -254,7 +254,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             return Err(ExitReason::UnexpectedDisconnection);
         };
         let Ok(message) = frame else {
-            log::debug!("Error while receiving msg from participant: {frame:?}");
+            tracing::debug!("Error while receiving msg from participant: {frame:?}");
             return Err(ExitReason::UnexpectedDisconnection);
         };
 
@@ -272,7 +272,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                 self.handle_text_frame(message.to_string(), permit).await
             }
             SignalingSocketMessage::Close(close_frame) => {
-                log::debug!(
+                tracing::debug!(
                     "Connection closed by participant `{:?}`: {close_frame:?}",
                     self.participant_id
                 );
@@ -281,7 +281,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             }
             _ => {
                 // Ping, Pong and Binary are ignored
-                log::debug!("Ignoring ping, pong or binary websocket message");
+                tracing::debug!("Ignoring ping, pong or binary websocket message");
                 Ok(())
             }
         }
@@ -295,7 +295,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         let command = match serde_json::from_str::<SignalingCommand>(&msg) {
             Ok(cmd) => cmd,
             Err(e) => {
-                log::debug!("Error parsing signaling command: {e}");
+                tracing::debug!("Error parsing signaling command: {e}");
                 let transaction_id = Self::parse_transaction_id(&msg);
                 return self.send_error(e, transaction_id).await;
             }
@@ -338,7 +338,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             .into();
 
         if let Err(e) = self.sink.send(error_message).await {
-            log::debug!(
+            tracing::debug!(
                 "Failed to send error to participant `{}`: {e}",
                 self.participant_id
             );
@@ -362,7 +362,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                     panic!("{error_msg}");
                 }
 
-                log::error!("{error_msg}");
+                tracing::error!("{error_msg}");
 
                 return Ok(());
             }

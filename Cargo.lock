@@ -5697,7 +5697,6 @@ dependencies = [
  "blake3",
  "chrono",
  "futures",
- "log",
  "opentalk-roomserver-common",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
