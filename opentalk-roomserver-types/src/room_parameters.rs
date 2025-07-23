@@ -3,7 +3,7 @@
 
 use std::{fmt::Debug, str::FromStr};
 
-use chrono::TimeDelta;
+use chrono::{DateTime, Duration, TimeDelta, Utc};
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     call_in::CallInInfo,
@@ -12,7 +12,7 @@ use opentalk_types_common::{
     shared_folders::SharedFolder,
     streaming::StreamingLink,
     tariffs::{QuotaType, TariffResource},
-    time::Timestamp,
+    time::{TimeZone, Timestamp},
     utils::ExampleData,
 };
 use opentalk_types_signaling::ModuleData;
@@ -119,6 +119,12 @@ pub struct EventContext {
 
     pub is_adhoc: bool,
 
+    pub starts_at: Option<DateTime<Utc>>,
+
+    pub ends_at: Option<DateTime<Utc>>,
+
+    pub timezone: Option<TimeZone>,
+
     // Field is non-required already, utoipa adds a `nullable: true` entry
     // by default which creates a false positive in the spectral linter when
     // combined with example data.
@@ -133,6 +139,9 @@ impl ExampleData for EventContext {
             title: EventTitle::example_data(),
             description: EventDescription::example_data(),
             is_adhoc: false,
+            starts_at: Some(DateTime::UNIX_EPOCH),
+            ends_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+            timezone: Some(TimeZone::example_data()),
             shared_folder: Some(SharedFolder::example_data()),
         }
     }
@@ -170,6 +179,9 @@ mod tests {
                     "description": "The Weekly Team Event",
                     "id": "00000000-0000-0000-0000-004433221100",
                     "is_adhoc": false,
+                    "starts_at": "1970-01-01T00:00:00Z",
+                    "ends_at": "1970-01-01T01:00:00Z",
+                    "timezone": "Europe/Berlin",
                     "shared_folder": {
                         "read": {
                             "password": "v3rys3cr3t",
@@ -231,6 +243,9 @@ mod tests {
             "title": "Team Event",
             "description": "The Weekly Team Event",
             "is_adhoc": false,
+            "starts_at": "1970-01-01T00:00:00Z",
+            "ends_at": "1970-01-01T01:00:00Z",
+            "timezone": "Europe/Berlin",
             "shared_folder": {
                 "read": {
                     "password": "v3rys3cr3t",

@@ -30,7 +30,6 @@ use crate::{
     signaling_event::SignalingEvent,
     signaling_module::SignalingModule,
     storage::{AssetMetaData, StorageProvider, UploadResult},
-    storage_quota::StorageQuota,
 };
 
 /// Contains the room state and provides an interface to send websocket messages.
@@ -343,6 +342,10 @@ where
             .map(|r| r == Role::Moderator)
             .unwrap_or(false)
     }
+
+    pub fn storage(&self) -> Arc<dyn StorageProvider> {
+        Arc::clone(&self.storage)
+    }
 }
 
 impl<M> ModuleContext<'_, M>
@@ -353,17 +356,6 @@ where
     pub fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) {
         let storage = Arc::clone(&self.storage);
         self.spawn(async move { storage.upload_file(file, metadata).await.into() });
-    }
-}
-
-impl<M> ModuleContext<'_, M>
-where
-    M: SignalingModule,
-    M::Loopback: From<StorageQuota>,
-{
-    pub fn remaining_quota(&self) {
-        let storage = Arc::clone(&self.storage);
-        self.spawn(async move { storage.remaining_quota().await.into() });
     }
 }
 

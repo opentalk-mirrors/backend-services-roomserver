@@ -4,6 +4,9 @@
 use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::breakout::command::BreakoutCommand;
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
+use opentalk_roomserver_types_meeting_report::{
+    MEETING_REPORT_MODULE_ID, command::MeetingReportCommand,
+};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, command::PingCommand};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, command::PollsCommand};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand};
@@ -60,6 +63,7 @@ pub enum SignalingModuleCommand {
     Timer(TimerCommand),
     Polls(PollsCommand),
     SharedFolder(SharedFolderCommand),
+    MeetingReport(MeetingReportCommand),
 }
 
 impl SignalingModuleCommand {
@@ -73,6 +77,7 @@ impl SignalingModuleCommand {
             Self::Timer(..) => TIMER_MODULE_ID,
             Self::Polls(..) => POLLS_MODULE_ID,
             Self::SharedFolder(..) => SHARED_FOLDER_MODULE_ID,
+            Self::MeetingReport(..) => MEETING_REPORT_MODULE_ID,
         }
     }
 }
@@ -83,6 +88,7 @@ mod tests {
     use opentalk_roomserver_types::breakout::command::BreakoutCommand;
     use opentalk_roomserver_types_chat::command::ChatCommand;
     use opentalk_roomserver_types_livekit::LiveKitCommand;
+    use opentalk_roomserver_types_meeting_report::command::MeetingReportCommand;
     use opentalk_roomserver_types_ping::command::PingCommand;
     use opentalk_roomserver_types_polls::{
         ChoiceId, PollId,
@@ -246,5 +252,28 @@ mod tests {
         // Check that the ModuleId from the actual SignalingModule matches what we serialize.
         let namespace_only: NamespaceOnly = serde_json::from_str(&raw).unwrap();
         assert_eq!(namespace_only.namespace, command.namespace());
+    }
+
+    #[test]
+    fn serialize_command_meeting_report() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            content: SignalingModuleCommand::MeetingReport(
+                MeetingReportCommand::GenerateAttendanceReport {
+                    include_email_addresses: false,
+                },
+            ),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "meeting_report",
+          "content": {
+            "action": "generate_attendance_report",
+            "include_email_addresses": false
+          }
+        }
+        "#);
     }
 }

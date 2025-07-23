@@ -36,9 +36,15 @@
 //!
 //! [`SignalingModule`]: opentalk_roomserver_signaling::signaling_module::SignalingModule
 
-use std::{future::pending, sync::Arc, time::Duration};
+use std::{
+    collections::hash_map::Entry::{Occupied, Vacant},
+    future::pending,
+    sync::Arc,
+    time::Duration,
+};
 
 use breakout::state::BreakoutState;
+use chrono::Utc;
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
@@ -473,25 +479,21 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let device_id = self.derive_device_id(&client_parameters.device_secret);
         let role = client_parameters.role;
 
-        let (participant_id, display_name, kind) = match &client_parameters.kind {
+        let (participant_id, email, kind) = match &client_parameters.kind {
             ClientKind::Registered { profile } => (
                 ParticipantId::from(Uuid::from(profile.id)),
-                profile.user_info.display_name.clone(),
+                Some(profile.email.clone()),
                 ParticipantKind::User,
             ),
-            ClientKind::Guest { display_name } => {
+            ClientKind::Guest { .. } => {
                 let participant_id = ParticipantId::from(Uuid::from(device_id));
 
-                (participant_id, display_name.clone(), ParticipantKind::Guest)
+                (participant_id, None, ParticipantKind::Guest)
             }
-            ClientKind::Service(service_kind) => {
+            ClientKind::Recorder => {
                 let participant_id = ParticipantId::from(Uuid::from(device_id));
 
-                (
-                    participant_id,
-                    service_kind.display_name(),
-                    ParticipantKind::Service(*service_kind),
-                )
+                (participant_id, None, ParticipantKind::Recorder)
             }
         };
 
@@ -516,10 +518,26 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
-        self.participants
-            .all_unfiltered
-            .entry(participant_id)
-            .or_insert_with(|| ParticipantState::new(display_name, kind, role))
+        let mut occupied = match self.participants.all_unfiltered.entry(participant_id) {
+            Occupied(mut occupied) => {
+                let state = occupied.get_mut();
+                // Set join/leave timestamps when this is the first device
+                if !state.is_connected() {
+                    state.joined_at = Utc::now();
+                    state.left_at = None;
+                }
+                occupied
+            }
+            Vacant(vacant) => vacant.insert_entry(ParticipantState::new(
+                client_parameters.kind.display_name(),
+                email,
+                kind,
+                role,
+                Utc::now(),
+            )),
+        };
+        occupied
+            .get_mut()
             .connections
             .insert(connection_id, device_id);
 
@@ -552,6 +570,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         state.connections.remove(&connection_id);
+        // Set the left_at timestamp if this was the last connection
+        if !state.is_connected() {
+            state.left_at = Some(Utc::now());
+        }
 
         let room = state.room;
 

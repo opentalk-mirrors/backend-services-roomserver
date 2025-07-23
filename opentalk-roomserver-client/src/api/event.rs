@@ -4,6 +4,9 @@
 use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
 use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core_event::CoreEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
+use opentalk_roomserver_types_meeting_report::{
+    MEETING_REPORT_MODULE_ID, event::MeetingReportEvent,
+};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, event::PingEvent};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
@@ -60,6 +63,7 @@ pub enum SignalingModuleEvent {
     Timer(TimerEvent),
     Polls(PollsEvent),
     SharedFolder(SharedFolderEvent),
+    MeetingReport(MeetingReportEvent),
 }
 
 impl SignalingModuleEvent {
@@ -74,6 +78,7 @@ impl SignalingModuleEvent {
             Self::Timer(_) => TIMER_MODULE_ID,
             Self::Polls(_) => POLLS_MODULE_ID,
             Self::SharedFolder(_) => SHARED_FOLDER_MODULE_ID,
+            Self::MeetingReport(_) => MEETING_REPORT_MODULE_ID,
         }
     }
 }
@@ -86,6 +91,7 @@ mod tests {
     };
     use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
     use opentalk_roomserver_types_livekit::LiveKitEvent;
+    use opentalk_roomserver_types_meeting_report::event::{MeetingReportEvent, PdfAsset};
     use opentalk_roomserver_types_ping::event::PingEvent;
     use opentalk_roomserver_types_polls::{
         ChoiceId, PollId,
@@ -95,7 +101,7 @@ mod tests {
     use opentalk_roomserver_types_timer::{
         TimerEvent, event::updated_ready_status::UpdatedReadyStatus,
     };
-    use opentalk_types_common::modules::ModuleId;
+    use opentalk_types_common::{assets::AssetId, modules::ModuleId};
     use opentalk_types_signaling::ParticipantId;
     use serde::Deserialize;
 
@@ -283,5 +289,28 @@ mod tests {
         // Check that the ModuleId from the actual SignalingModule matches what we serialize.
         let namespace_only: NamespaceOnly = serde_json::from_str(&raw).unwrap();
         assert_eq!(namespace_only.namespace, event.namespace());
+    }
+
+    #[test]
+    fn serialize_event_meeting_report() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            content: SignalingModuleEvent::MeetingReport(MeetingReportEvent::PdfAsset(PdfAsset {
+                filename: "name".into(),
+                asset_id: AssetId::nil(),
+            })),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "meeting_report",
+          "content": {
+            "message": "pdf_asset",
+            "filename": "name",
+            "asset_id": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+        "#);
     }
 }

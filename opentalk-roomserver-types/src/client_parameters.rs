@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use derive_more::Display;
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{roomserver::DeviceSecret, users::DisplayName, utils::ExampleData};
 use opentalk_types_signaling::ParticipationVisibility;
@@ -36,7 +35,17 @@ pub enum ClientKind {
         display_name: DisplayName,
     },
 
-    Service(ServiceKind),
+    Recorder,
+}
+
+impl ClientKind {
+    pub fn display_name(&self) -> DisplayName {
+        match self {
+            ClientKind::Registered { profile } => profile.user_info.display_name.clone(),
+            ClientKind::Guest { display_name } => display_name.clone(),
+            ClientKind::Recorder => DisplayName::from_str_lossy("recorder"),
+        }
+    }
 }
 
 impl ClientKind {
@@ -45,26 +54,7 @@ impl ClientKind {
             ClientKind::Registered { .. } | ClientKind::Guest { .. } => {
                 ParticipationVisibility::Visible
             }
-            ClientKind::Service(service_kind) => service_kind.visibility(),
-        }
-    }
-}
-
-#[derive(Display, Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "snake_case", tag = "kind")]
-pub enum ServiceKind {
-    Recorder,
-}
-
-impl ServiceKind {
-    pub fn display_name(&self) -> DisplayName {
-        DisplayName::from_str_lossy(&self.to_string())
-    }
-
-    pub fn visibility(&self) -> ParticipationVisibility {
-        match self {
-            ServiceKind::Recorder => ParticipationVisibility::Hidden,
+            ClientKind::Recorder => ParticipationVisibility::Hidden,
         }
     }
 }
@@ -96,7 +86,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
-    use super::{ClientKind, ServiceKind};
+    use super::ClientKind;
     use crate::client_parameters::{ClientParameters, Role};
 
     #[test]
@@ -160,7 +150,7 @@ mod tests {
     fn service() {
         let value = serde_json::to_value(ClientParameters {
             device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Service(ServiceKind::Recorder),
+            kind: ClientKind::Recorder,
             role: Role::User,
         })
         .unwrap();
