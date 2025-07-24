@@ -71,7 +71,6 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     device_id::DeviceId,
     error::SignalingError,
-    room_kind::RoomKind,
     room_parameters::RoomParameters,
     signaling::SignalingCommand,
 };
@@ -644,20 +643,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .send_error(origin, transaction_id, signaling_error)
             .await;
-    }
-
-    fn context(&mut self, origin: EventOrigin, room: RoomKind) -> DynModuleContext<'_> {
-        DynModuleContext::new(
-            self.info.room_id,
-            room,
-            origin,
-            &mut self.info,
-            &mut self.message_router,
-            &mut self.participants,
-            Timestamp::now(),
-            Arc::clone(&self.storage),
-            &mut self.loopback_futures,
-        )
     }
 
     /// Generate a [`DeviceId`] from a device secret
