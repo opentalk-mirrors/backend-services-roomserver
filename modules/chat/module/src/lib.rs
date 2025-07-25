@@ -109,7 +109,7 @@ impl SignalingModule for ChatModule {
                 scope: Scope::Group(_),
                 ..
             }) => {
-                log::warn!("Ignoring chat message to group");
+                tracing::warn!("Ignoring chat message to group");
             }
             ChatCommand::SendMessage(SendMessage { content, scope }) => {
                 self.send_message(ctx, participant_id, content, scope)?;
@@ -269,10 +269,10 @@ impl ChatModule {
         chat_id: PrivateChatId,
     ) -> Option<PrivateHistory> {
         let Some(history) = self.history.get(&ChatId::Private(chat_id)).cloned() else {
-            log::debug!("No private history found for chat: {chat_id:?}");
+            tracing::debug!("No private history found for chat: {chat_id:?}");
             return None;
         };
-        log::debug!(
+        tracing::debug!(
             "Private history found for chat `{chat_id:?}` with {} messages",
             history.len()
         );
