@@ -34,7 +34,18 @@
 //!                   └─────────────────┘
 //! ```
 //!
+//! # ConnectionId and ParticipantId
+//!
+//! Every connection to a Room is identified by the [`ConnectionId`]. The connection ID is generated
+//! by [`MessageRouter::add_connection`].
+//!
+//! For registered users, the [`ParticipantId`] is derived from the [`UserId`] that is part of the [`PublicUserProfile`].
+//! Guests and services don't have a such a profile. These clients provide a `device_secret` that is used
+//! to derive a [`DeviceId`] which in turn is used to derive the [`ParticipantId`].
+//!
 //! [`SignalingModule`]: opentalk_roomserver_signaling::signaling_module::SignalingModule
+//! [`UserId`]: opentalk_types_common::users::UserId
+//! [`PublicUserProfile`]: opentalk_types_api_v1::users::PublicUserProfile
 
 use std::{
     collections::hash_map::Entry::{Occupied, Vacant},
@@ -62,6 +73,7 @@ use opentalk_roomserver_types::{
     error::SignalingError,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
+    signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{rooms::RoomId, roomserver::DeviceSecret, time::Timestamp};
@@ -385,95 +397,101 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
 
             SignalingMessage::Command(signaling_command) => {
-                tracing::trace!("received signaling command: {signaling_command:?}");
-
-                let participant_origin = ParticipantOrigin {
-                    id: participant_id,
-                    connection_id,
-                    transaction_id: signaling_command.transaction_id,
-                };
-
-                let Some(participant_state) = self.participants.all_unfiltered.get(&participant_id)
-                else {
-                    tracing::error!(
-                        "failed to get participant state for participant `{participant_id}`"
-                    );
-
-                    // This scenario should never occur because we never delete known participants. We still attempt to
-                    // send an error to the non-existent connection in a best-effort approach.
-                    self.message_router
-                        .send_error(
-                            connection_id,
-                            signaling_command.transaction_id,
-                            SignalingError::Internal,
-                        )
-                        .await;
-
-                    return;
-                };
-
-                let room_scope = participant_state.room;
-
-                match &signaling_command.namespace {
-                    m if *m == core::NAMESPACE => {
-                        tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
-                        return;
-                    }
-                    m if *m == breakout::BREAKOUT_MODULE_ID => {
-                        self.handle_breakout_command(
-                            participant_origin,
-                            room_scope,
-                            signaling_command,
-                        )
-                        .await;
-
-                        return;
-                    }
-                    _ => (),
-                }
-
-                let Some(module) = self.modules.get_mut(&signaling_command.namespace) else {
-                    self.handle_unknown_namespace(
-                        connection_id,
-                        signaling_command.transaction_id,
-                        signaling_command.namespace.to_string(),
-                    )
+                self.handle_command(signaling_command, participant_id, connection_id)
                     .await;
-
-                    return;
-                };
-
-                let mut ctx = DynModuleContext::new(
-                    self.info.room_id,
-                    room_scope,
-                    participant_origin.into(),
-                    &mut self.info,
-                    &mut self.message_router,
-                    &mut self.participants,
-                    Timestamp::now(),
-                    Arc::clone(&self.storage),
-                    &mut self.loopback_futures,
-                );
-
-                if let Err(err) = module
-                    .on_event(
-                        &mut ctx,
-                        DynEvent::WebsocketMessage {
-                            participant_id,
-                            connection_id,
-                            command: signaling_command.content,
-                        },
-                    )
-                    .await
-                {
-                    self.handle_fatal_module_error(
-                        signaling_command.namespace,
-                        signaling_command.transaction_id,
-                        err,
-                    )
-                    .await;
-                }
             }
+        }
+    }
+
+    async fn handle_command(
+        &mut self,
+        signaling_command: SignalingCommand,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+    ) {
+        tracing::trace!("received signaling command: {signaling_command:?}");
+
+        let participant_origin = ParticipantOrigin {
+            id: participant_id,
+            connection_id,
+            transaction_id: signaling_command.transaction_id,
+        };
+
+        match &signaling_command.namespace {
+            m if *m == core::NAMESPACE => {
+                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                return;
+            }
+            m if *m == breakout::BREAKOUT_MODULE_ID => {
+                self.handle_breakout_command(participant_origin, signaling_command)
+                    .await;
+
+                return;
+            }
+            _ => (),
+        }
+
+        let Some(participant_state) = self.participants.all_unfiltered.get(&participant_origin.id)
+        else {
+            tracing::error!(
+                "failed to get participant state for participant `{}`",
+                participant_origin.id
+            );
+
+            // This scenario should never occur because we never delete known participants. We still attempt to
+            // send an error to the non-existent connection in a best-effort approach.
+            self.message_router
+                .send_error(
+                    participant_origin.connection_id,
+                    signaling_command.transaction_id,
+                    SignalingError::Internal,
+                )
+                .await;
+
+            return;
+        };
+        let room_scope = participant_state.room;
+
+        let Some(module) = self.modules.get_mut(&signaling_command.namespace) else {
+            self.handle_unknown_namespace(
+                connection_id,
+                signaling_command.transaction_id,
+                signaling_command.namespace.to_string(),
+            )
+            .await;
+
+            return;
+        };
+
+        let mut ctx = DynModuleContext::new(
+            self.info.room_id,
+            room_scope,
+            participant_origin.into(),
+            &mut self.info,
+            &mut self.message_router,
+            &mut self.participants,
+            Timestamp::now(),
+            Arc::clone(&self.storage),
+            &mut self.loopback_futures,
+        );
+
+        if let Err(err) = module
+            .on_event(
+                &mut ctx,
+                DynEvent::WebsocketMessage {
+                    participant_id,
+                    connection_id,
+                    command: signaling_command.content,
+                },
+            )
+            .await
+        {
+            self.handle_fatal_module_error(
+                signaling_command.namespace,
+                signaling_command.transaction_id,
+                err,
+            )
+            .await;
         }
     }
 

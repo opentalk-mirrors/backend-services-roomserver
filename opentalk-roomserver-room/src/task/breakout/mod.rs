@@ -44,9 +44,30 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(crate) async fn handle_breakout_command(
         &mut self,
         participant_origin: ParticipantOrigin,
-        room_scope: RoomKind,
         command: SignalingCommand,
     ) {
+        let Some(participant_state) = self.participants.all_unfiltered.get(&participant_origin.id)
+        else {
+            tracing::error!(
+                "failed to get participant state for participant `{}`",
+                participant_origin.id
+            );
+
+            // This scenario should never occur because we never delete known participants. We still attempt to
+            // send an error to the non-existent connection in a best-effort approach.
+            self.message_router
+                .send_error(
+                    participant_origin.connection_id,
+                    command.transaction_id,
+                    SignalingError::Internal,
+                )
+                .await;
+
+            return;
+        };
+
+        let room_scope = participant_state.room;
+
         let breakout_command = match serde_json::from_str(command.content.get()) {
             Ok(breakout_command) => breakout_command,
             Err(err) => {
