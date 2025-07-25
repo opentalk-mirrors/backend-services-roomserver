@@ -420,17 +420,30 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         match &signaling_command.namespace {
             m if *m == core::NAMESPACE => {
                 tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
-                return;
             }
             m if *m == breakout::BREAKOUT_MODULE_ID => {
                 self.handle_breakout_command(participant_origin, signaling_command)
                     .await;
-
-                return;
             }
-            _ => (),
+            _ => {
+                self.execute_signaling_module_command(
+                    signaling_command,
+                    participant_id,
+                    connection_id,
+                    participant_origin,
+                )
+                .await;
+            }
         }
+    }
 
+    async fn execute_signaling_module_command(
+        &mut self,
+        signaling_command: SignalingCommand,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+        participant_origin: ParticipantOrigin,
+    ) {
         let Some(participant_state) = self.participants.all_unfiltered.get(&participant_origin.id)
         else {
             tracing::error!(
