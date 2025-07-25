@@ -13,7 +13,7 @@ use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData},
+    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom, connection_id::ConnectionId, room_kind::RoomKind,
@@ -68,6 +68,8 @@ impl SignalingModule for LiveKitModule {
     type Incoming = LiveKitCommand;
 
     type Outgoing = LiveKitEvent;
+
+    type Internal = NoOp;
 
     type Loopback = Result<LiveKitLoopback, LiveKitError>;
 

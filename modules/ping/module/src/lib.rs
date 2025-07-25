@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData},
+    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
@@ -25,6 +25,8 @@ impl SignalingModule for PingModule {
     type Incoming = PingCommand;
 
     type Outgoing = PingEvent;
+
+    type Internal = NoOp;
 
     type Loopback = DelayedPingCompleted;
 

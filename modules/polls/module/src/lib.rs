@@ -11,7 +11,7 @@ use anyhow::Context;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
-        JoinInfo, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData, SwitchInfo,
+        JoinInfo, NoOp, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData, SwitchInfo,
     },
 };
 use opentalk_roomserver_types::{
@@ -52,6 +52,8 @@ impl SignalingModule for PollsModule {
     type Incoming = PollsCommand;
 
     type Outgoing = PollsEvent;
+
+    type Internal = NoOp;
 
     type Loopback = Result<StopKind, ChannelDroppedError>;
 

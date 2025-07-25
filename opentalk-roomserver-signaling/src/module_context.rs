@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{cell::RefCell, future::Future, marker::PhantomData, sync::Arc, time::Duration};
+use std::{
+    any::Any, cell::RefCell, future::Future, marker::PhantomData, sync::Arc, time::Duration,
+};
 
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
@@ -24,11 +26,12 @@ use tracing::{Instrument as _, debug_span};
 
 use crate::{
     event_origin::EventOrigin,
+    internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_event::SignalingEvent,
-    signaling_module::SignalingModule,
+    signaling_module::{InternalCommand, SignalingModule},
     storage::{AssetMetaData, StorageProvider, UploadResult},
 };
 
@@ -43,6 +46,7 @@ where
     room_task_info: &'ctx mut RoomTaskInfo,
     /// The websocket messages that are sent out after the module finished its event handling
     messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
+    internal_commands: &'ctx mut Vec<InterModuleMessage>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
     pub timestamp: Timestamp,
@@ -63,6 +67,7 @@ where
         event_origin: EventOrigin,
         room_task_info: &'ctx mut RoomTaskInfo,
         messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
+        internal_commands: &'ctx mut Vec<InterModuleMessage>,
         participants: &'ctx mut Participants,
         timestamp: Timestamp,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
@@ -74,6 +79,7 @@ where
             event_origin,
             room_task_info,
             messages,
+            internal_commands,
             participants,
             timestamp,
             loopback_futures,
@@ -89,6 +95,7 @@ where
             event_origin: self.event_origin,
             room_task_info: self.room_task_info,
             messages: self.messages,
+            internal_commands: self.internal_commands,
             participants: self.participants,
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
@@ -212,6 +219,38 @@ where
         }
 
         Ok(())
+    }
+
+    /// Send a command to another [`SignalingModule`]
+    ///
+    /// * `command` - The command to be sent. The type is defined by the receiving
+    ///   module.
+    /// * `handle_result` - Closure that receives the result of the command.
+    pub fn send_internal_command<R>(
+        &mut self,
+        command: R::Internal,
+        handle_result: impl FnOnce(<R::Internal as InternalCommand>::Result) + Send + 'static,
+    ) where
+        R: SignalingModule,
+    {
+        // Wrapper closure to downcast the result and send it to the sending module
+        let downcast = |any: Box<dyn Any + Send + 'static>| {
+            let Ok(result) = any.downcast() else {
+                tracing::error!(
+                    "Failed to downcast internal command result of module {}",
+                    R::NAMESPACE,
+                );
+                return;
+            };
+            handle_result(*result);
+        };
+        let command = InterModuleMessage {
+            sender: M::NAMESPACE,
+            receiver: R::NAMESPACE,
+            command: Box::new(command),
+            result_handle: Box::new(downcast),
+        };
+        self.internal_commands.push(command);
     }
 
     /// Invoke an error message of type [`SignalingError`]

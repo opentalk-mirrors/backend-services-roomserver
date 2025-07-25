@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_signaling::signaling_module::{
-    CreateReplica, JoinInfo, SignalingModule, SignalingModuleInitData,
+    CreateReplica, JoinInfo, NoOp, SignalingModule, SignalingModuleInitData,
 };
 use opentalk_roomserver_types::signaling::module_error::{ModuleError, SignalingModuleError};
 use opentalk_types_common::modules::{ModuleId, module_id};
@@ -44,6 +44,8 @@ impl SignalingModule for MockModule {
     type Incoming = MockCommand;
 
     type Outgoing = MockEvent;
+
+    type Internal = NoOp;
 
     type Loopback = ();
 

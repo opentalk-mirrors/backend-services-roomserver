@@ -8,7 +8,7 @@ use opentalk_roomserver_report_generation::ToReportDateTime;
 use opentalk_roomserver_room::{AssetUploaded, StorageProvider};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData},
+    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
     storage::AssetMetaData,
 };
 use opentalk_roomserver_types::{
@@ -42,6 +42,8 @@ impl SignalingModule for MeetingReportModule {
     type Incoming = MeetingReportCommand;
 
     type Outgoing = MeetingReportEvent;
+
+    type Internal = NoOp;
 
     type Loopback = Result<AssetUploaded, SignalingModuleError<MeetingReportError>>;
 

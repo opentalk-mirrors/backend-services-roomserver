@@ -5,9 +5,9 @@ use std::{cell::RefCell, sync::Arc};
 
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
-    event_origin::EventOrigin, loopback::LoopbackFuture, module_context::ModuleContext,
-    participant_state::Participants, room_info::RoomTaskInfo, signaling_module::SignalingModule,
-    storage::StorageProvider,
+    event_origin::EventOrigin, internal_module_message::InterModuleMessage,
+    loopback::LoopbackFuture, module_context::ModuleContext, participant_state::Participants,
+    room_info::RoomTaskInfo, signaling_module::SignalingModule, storage::StorageProvider,
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, room_kind::RoomKind, shared_raw_json::SharedRawJson,
@@ -26,6 +26,7 @@ pub struct DynModuleContext<'ctx> {
     pub participants: &'ctx mut Participants,
     pub timestamp: Timestamp,
     pub storage: Arc<dyn StorageProvider>,
+    pub internal_commands: &'ctx mut Vec<InterModuleMessage>,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
 }
 
@@ -40,6 +41,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         participants: &'ctx mut Participants,
         timestamp: Timestamp,
         storage: Arc<dyn StorageProvider>,
+        internal_commands: &'ctx mut Vec<InterModuleMessage>,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
     ) -> Self {
         Self {
@@ -50,8 +52,9 @@ impl<'ctx> DynModuleContext<'ctx> {
             message_router,
             participants,
             timestamp,
-            loopback_futures,
             storage,
+            internal_commands,
+            loopback_futures,
         }
     }
 
@@ -65,8 +68,9 @@ impl<'ctx> DynModuleContext<'ctx> {
             message_router: self.message_router,
             participants: self.participants,
             timestamp: self.timestamp,
-            loopback_futures: self.loopback_futures,
             storage: Arc::clone(&self.storage),
+            internal_commands: self.internal_commands,
+            loopback_futures: self.loopback_futures,
         }
     }
 
@@ -80,6 +84,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             self.event_origin,
             self.room_task_info,
             messages,
+            self.internal_commands,
             self.participants,
             self.timestamp,
             self.loopback_futures,

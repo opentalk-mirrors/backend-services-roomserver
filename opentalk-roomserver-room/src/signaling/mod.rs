@@ -20,6 +20,7 @@ use anyhow::Context;
 use dyn_module_context::DynModuleContext;
 use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
+    internal_module_message::ResultCallback,
     module_context::ModuleContext,
     signaling_module::{CreateReplica, SignalingModule},
 };
@@ -66,6 +67,11 @@ pub enum DynEvent {
         command: Box<RawValue>,
     },
     LoopbackEvent(Box<dyn Any + Send + 'static>),
+    InternalCommand {
+        sender: ModuleId,
+        command: Box<dyn Any + Send + 'static>,
+        return_result: ResultCallback,
+    },
 }
 
 pub enum DynBroadcastEvent<'evt> {
@@ -129,6 +135,14 @@ where
                     .await
             }
             DynEvent::LoopbackEvent(result) => self.handle_loopback_event(ctx, result).await,
+            DynEvent::InternalCommand {
+                sender,
+                command,
+                return_result,
+            } => {
+                self.handle_internal_command(ctx, sender, command, return_result)
+                    .await
+            }
         }
     }
 
@@ -287,6 +301,30 @@ where
         Ok(())
     }
 
+    /// Resolves a dynamic internal command that was received by [`ModuleHandle::on_event`] to the concrete
+    /// [`SignalingModule::IncomingInternal`] type.
+    #[tracing::instrument(skip(self, ctx, command, result_handle), fields(opentalk.module = %M::NAMESPACE))]
+    async fn handle_internal_command(
+        &mut self,
+        ctx: &mut ModuleContext<'_, M>,
+        sender: ModuleId,
+        command: Box<dyn Any + Send + 'static>,
+        result_handle: ResultCallback,
+    ) -> Result<(), SignalingModuleError<M::Error>> {
+        let command = command.downcast().ok().with_context(|| {
+            format!(
+                "Failed to downcast internal command type send from module '{sender}' to '{}'",
+                M::NAMESPACE
+            )
+        })?;
+
+        let result = self.module.on_internal_command(ctx, *command)?;
+        let span = tracing::info_span!("internal command return");
+        span.in_scope(|| result_handle(Box::new(result)));
+
+        Ok(())
+    }
+
     #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
     async fn handle_error(
         &mut self,
@@ -327,6 +365,7 @@ impl<M> ModuleHandle for ModuleDispatcher<M>
 where
     M: SignalingModule,
 {
+    #[tracing::instrument(skip_all, level = "debug")]
     async fn on_event(
         &mut self,
         ctx: &mut DynModuleContext<'_>,

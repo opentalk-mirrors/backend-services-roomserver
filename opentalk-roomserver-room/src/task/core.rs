@@ -166,6 +166,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         mut event: DynBroadcastEvent<'_>,
     ) {
         let mut errors = Vec::new();
+        let mut internal_commands = Vec::new();
+        let timestamp = Timestamp::now();
         for (namespace, module) in self.modules.iter_mut() {
             if let Err(err) = module
                 .on_broadcast_event(
@@ -176,8 +178,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         &mut self.info,
                         &mut self.message_router,
                         &mut self.participants,
-                        Timestamp::now(),
+                        timestamp,
                         Arc::clone(&self.storage),
+                        &mut internal_commands,
                         &mut self.loopback_futures,
                     ),
                     &mut event,
@@ -187,6 +190,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 errors.push((namespace.clone(), err));
             }
         }
+
+        self.handle_internal_commands(room_scope, origin, timestamp, internal_commands)
+            .await;
 
         for (namespace, err) in errors {
             self.handle_fatal_module_error(namespace, origin.transaction_id(), err)
