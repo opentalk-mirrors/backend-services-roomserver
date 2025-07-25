@@ -5864,7 +5864,6 @@ dependencies = [
  "axum",
  "bytes",
  "futures",
- "log",
  "opentalk-roomserver-types",
  "opentalk-types-api-v1",
  "opentalk-types-common",

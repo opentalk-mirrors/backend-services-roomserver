@@ -48,7 +48,7 @@ async fn open_signaling_socket<B: SignalingBackend + 'static>(
     Path(token): Path<Token>,
     ws: WebSocketUpgrade,
 ) -> Result<Response, B::Error> {
-    log::debug!("Received signaling connection request");
+    tracing::debug!("Received signaling connection request");
 
     // Verify and consume the users roomserver token
     let signaling_context = ctx.consume_token(token).await?;
@@ -70,12 +70,12 @@ async fn handle_socket<B: SignalingBackend + 'static>(
     room_id: RoomId,
     client_parameters: ClientParameters,
 ) {
-    log::debug!("Upgrade to websocket connection");
+    tracing::debug!("Upgrade to websocket connection");
     if let Err(e) = ctx
         .accept_client_stream(socket, room_id, client_parameters)
         .await
     {
-        log::info!("Failed to accept client stream: {e:?}");
+        tracing::info!("Failed to accept client stream: {e:?}");
     }
 }
 
