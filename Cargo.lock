@@ -5723,7 +5723,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "futures",
- "log",
  "opentalk-roomserver-common",
  "opentalk-roomserver-types",
  "opentalk-types-common",

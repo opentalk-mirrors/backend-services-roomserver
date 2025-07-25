@@ -16,7 +16,6 @@ anyhow.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
 futures.workspace = true
-log.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true
