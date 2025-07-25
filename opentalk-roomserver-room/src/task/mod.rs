@@ -61,7 +61,7 @@ use opentalk_roomserver_common::{application_state::ApplicationState, settings::
 use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
     loopback::{LoopbackFuture, LoopbackMessage},
-    participant_state::{ParticipantKind, ParticipantState, Participants},
+    participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
     storage::StorageProvider,
@@ -497,30 +497,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     async fn connect_participant(&mut self, socket: Socket, client_parameters: ClientParameters) {
         let device_id = self.derive_device_id(&client_parameters.device_secret);
-        let role = client_parameters.role;
-
-        let (participant_id, email, kind) = match &client_parameters.kind {
-            ClientKind::Registered { profile } => (
-                ParticipantId::from(Uuid::from(profile.id)),
-                Some(profile.email.clone()),
-                ParticipantKind::User,
-            ),
-            ClientKind::Guest { .. } => {
-                let participant_id = ParticipantId::from(Uuid::from(device_id));
-
-                (participant_id, None, ParticipantKind::Guest)
-            }
-            ClientKind::Recorder => {
-                let participant_id = ParticipantId::from(Uuid::from(device_id));
-
-                (participant_id, None, ParticipantKind::Recorder)
-            }
-        };
+        let participant_id = build_participant_id(&client_parameters.kind, device_id);
 
         // If we ever run into the issue of an uuid collision, a guest could hijack a user session and vice versa. We'd
         // rather decline the new connection when the participant id is known, but the participant kinds differ.
         if let Some(existing_participant) = self.participants.all_unfiltered.get(&participant_id) {
-            if existing_participant.kind != kind {
+            if existing_participant.kind != From::from(&client_parameters.kind) {
                 tracing::error!(
                     "ParticipantId collision, dropping new participant ({participant_id})"
                 );
@@ -540,7 +522,24 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
-        let mut occupied = match self.participants.all_unfiltered.entry(participant_id) {
+        self.join_room(client_parameters, device_id, participant_id, connection_id)
+            .await;
+    }
+
+    async fn join_room(
+        &mut self,
+        client_parameters: ClientParameters,
+        device_id: DeviceId,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+    ) {
+        let email = match &client_parameters.kind {
+            ClientKind::Registered { profile } => Some(profile.email.clone()),
+            ClientKind::Guest { .. } | ClientKind::Recorder => None,
+        };
+        let role = client_parameters.role;
+
+        match self.participants.all_unfiltered.entry(participant_id) {
             Occupied(mut occupied) => {
                 let state = occupied.get_mut();
                 // Set join/leave timestamps when this is the first device
@@ -548,20 +547,21 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     state.joined_at = Utc::now();
                     state.left_at = None;
                 }
-                occupied
+                state.connections.insert(connection_id, device_id);
             }
-            Vacant(vacant) => vacant.insert_entry(ParticipantState::new(
-                client_parameters.kind.display_name(),
-                email,
-                kind,
-                role,
-                Utc::now(),
-            )),
+            Vacant(vacant) => {
+                vacant
+                    .insert(ParticipantState::new(
+                        client_parameters.kind.display_name(),
+                        email,
+                        From::from(&client_parameters.kind),
+                        role,
+                        Utc::now(),
+                    ))
+                    .connections
+                    .insert(connection_id, device_id);
+            }
         };
-        occupied
-            .get_mut()
-            .connections
-            .insert(connection_id, device_id);
 
         if let Err(err) = self
             .participant_joined(participant_id, connection_id, device_id, client_parameters)
@@ -666,5 +666,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         hasher.finalize_xof().fill(&mut uuid_bytes);
 
         DeviceId::from(Uuid::from_bytes(uuid_bytes))
+    }
+}
+
+fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId {
+    match kind {
+        ClientKind::Registered { profile } => ParticipantId::from(Uuid::from(profile.id)),
+        ClientKind::Guest { .. } | ClientKind::Recorder => {
+            ParticipantId::from(Uuid::from(device_id))
+        }
     }
 }
