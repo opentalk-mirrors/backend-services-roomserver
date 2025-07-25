@@ -5661,7 +5661,6 @@ version = "0.0.4-dev"
 dependencies = [
  "anyhow",
  "chrono",
- "log",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5670,6 +5669,7 @@ dependencies = [
  "opentalk-types-signaling",
  "test-log",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

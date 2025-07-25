@@ -320,7 +320,7 @@ impl TimerModule {
             };
             if let Some(tx) = timer.tx_cancel.take() {
                 if tx.send(stopped).is_err() {
-                    log::debug!("Timer cancel sender has been dropped");
+                    tracing::debug!("Timer cancel sender has been dropped");
                 }
             } else {
                 // If there is no cancel sender, this means the timer does not use a
