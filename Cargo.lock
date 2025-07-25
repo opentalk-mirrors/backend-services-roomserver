@@ -5416,7 +5416,6 @@ dependencies = [
  "axum-prometheus",
  "clap",
  "futures",
- "log",
  "opentalk-roomserver-common",
  "opentalk-roomserver-module-chat",
  "opentalk-roomserver-module-e2ee",

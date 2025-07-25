@@ -39,7 +39,7 @@ const SHUTDOWN_GRACE_PERIOD: Duration = Duration::from_secs(42);
 pub(crate) async fn wait_shutdown(mut app_state: watch::Receiver<ApplicationState>) {
     let res = app_state.wait_for(ApplicationState::is_shutting_down).await;
     if let Err(e) = res {
-        log::error!("AppState gone: {e}");
+        tracing::error!("AppState gone: {e}");
     }
 }
 
@@ -88,13 +88,13 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
 
     match set.join_next().await {
         // No task was started, this should not happen
-        None => log::error!("Failed to start any task!"),
+        None => tracing::error!("Failed to start any task!"),
         // Task panicked
-        Some(Err(e)) => log::error!("Task panicked: {e:?}"),
+        Some(Err(e)) => tracing::error!("Task panicked: {e:?}"),
         // Task finished successfully
         Some(Ok(Ok(()))) => {}
         // Task returned an error
-        Some(Ok(Err(e))) => log::error!("{e:?}"),
+        Some(Ok(Err(e))) => tracing::error!("{e:?}"),
     };
     let result = graceful_shutdown(app_state, &mut set).await;
     if result.is_err() {
@@ -138,24 +138,24 @@ async fn graceful_shutdown(
     app_state: watch::Sender<ApplicationState>,
     set: &mut JoinSet<result::Result<(), anyhow::Error>>,
 ) -> anyhow::Result<()> {
-    log::debug!("Starting graceful shutdown");
+    tracing::debug!("Starting graceful shutdown");
     app_state.send_replace(ApplicationState::ShuttingDown);
     loop {
         let result = timeout_at(Instant::now() + SHUTDOWN_GRACE_PERIOD, set.join_next()).await;
         match result {
             // Timeout elapsed
             Err(_) => {
-                log::error!("Not all tasks exited in time!");
+                tracing::error!("Not all tasks exited in time!");
                 return Err(anyhow::anyhow!("Not all tasks exited in time!"));
             }
             // All tasks shut down
             Ok(None) => return Ok(()),
             // Task exited successfully
-            Ok(Some(Ok(Ok(())))) => log::info!("Task exited"),
+            Ok(Some(Ok(Ok(())))) => tracing::info!("Task exited"),
             // Task returned error
-            Ok(Some(Ok(Err(e)))) => log::error!("Task error: {e:?}"),
+            Ok(Some(Ok(Err(e)))) => tracing::error!("Task error: {e:?}"),
             // Task panicked
-            Ok(Some(Err(e))) => log::error!("Task Panic: {e:?}"),
+            Ok(Some(Err(e))) => tracing::error!("Task Panic: {e:?}"),
         };
     }
 }
