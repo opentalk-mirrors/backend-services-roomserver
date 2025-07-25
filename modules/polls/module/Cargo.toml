@@ -13,13 +13,13 @@ version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-log.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-polls.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 tokio.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
