@@ -107,8 +107,11 @@ impl MessageRouter {
         Ok(connection_id)
     }
 
-    /// Send a [`SignalingEvent`]
-    /// to a participant
+    pub async fn remove_connection(&mut self, connection_id: ConnectionId) {
+        self.connections.get_mut().remove(&connection_id);
+    }
+
+    /// Send a [`SignalingEvent`] to a participant
     pub async fn send_event(
         &self,
         participant_connections: impl IntoIterator<Item = ConnectionId>,
@@ -129,8 +132,7 @@ impl MessageRouter {
         }
     }
 
-    /// Send a [`SignalingEvent`]
-    /// to **all** participants
+    /// Send a [`SignalingEvent`] to **all** participants
     pub async fn broadcast_event(
         &self,
         event: SharedRawJson,
