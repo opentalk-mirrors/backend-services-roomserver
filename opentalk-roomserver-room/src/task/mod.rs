@@ -726,8 +726,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             state.left_at = Some(Utc::now());
         }
 
-        let room = state.room;
+        self.message_router.remove_connection(connection_id).await;
 
+        let room = state.room;
         self.participant_disconnected(origin, participant_id, connection_id, room, reason.into())
             .await;
 
