@@ -343,7 +343,7 @@ impl PollsModule {
 
         // Cancel the running poll
         if poll.tx_cancel.send(StopKind::ByModerator).is_err() {
-            log::debug!("Poll cancel sender has been dropped");
+            tracing::debug!("Poll cancel sender has been dropped");
         }
 
         Ok(())

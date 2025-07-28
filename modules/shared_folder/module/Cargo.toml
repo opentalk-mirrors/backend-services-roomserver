@@ -23,4 +23,4 @@ tracing.workspace = true
 [dev-dependencies]
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
-test-log.workspace = true
+test-log = { workspace = true, features = ["trace"] }

@@ -5416,7 +5416,6 @@ dependencies = [
  "axum-prometheus",
  "clap",
  "futures",
- "log",
  "opentalk-roomserver-common",
  "opentalk-roomserver-module-chat",
  "opentalk-roomserver-module-e2ee",
@@ -5533,7 +5532,6 @@ name = "opentalk-roomserver-module-chat"
 version = "0.0.4-dev"
 dependencies = [
  "anyhow",
- "log",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5544,6 +5542,7 @@ dependencies = [
  "serde",
  "test-log",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -5611,7 +5610,6 @@ name = "opentalk-roomserver-module-ping"
 version = "0.0.4-dev"
 dependencies = [
  "anyhow",
- "log",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5621,6 +5619,7 @@ dependencies = [
  "pretty_assertions",
  "test-log",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -5628,7 +5627,6 @@ name = "opentalk-roomserver-module-polls"
 version = "0.0.4-dev"
 dependencies = [
  "anyhow",
- "log",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5637,6 +5635,7 @@ dependencies = [
  "opentalk-types-signaling",
  "test-log",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -5661,7 +5660,6 @@ version = "0.0.4-dev"
 dependencies = [
  "anyhow",
  "chrono",
- "log",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5670,6 +5668,7 @@ dependencies = [
  "opentalk-types-signaling",
  "test-log",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -5697,7 +5696,6 @@ dependencies = [
  "blake3",
  "chrono",
  "futures",
- "log",
  "opentalk-roomserver-common",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5725,7 +5723,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "futures",
- "log",
  "opentalk-roomserver-common",
  "opentalk-roomserver-types",
  "opentalk-types-common",
@@ -5866,7 +5863,6 @@ dependencies = [
  "axum",
  "bytes",
  "futures",
- "log",
  "opentalk-roomserver-types",
  "opentalk-types-api-v1",
  "opentalk-types-common",

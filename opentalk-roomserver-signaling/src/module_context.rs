@@ -125,7 +125,7 @@ where
 
         for participant_id in participant_ids {
             let Some(state) = self.participants.connected().get(&participant_id) else {
-                log::error!(
+                tracing::error!(
                     "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
                     M::NAMESPACE
                 );
@@ -197,7 +197,7 @@ where
             .into();
 
         let Some(state) = self.participants.connected().get(&sender) else {
-            log::error!(
+            tracing::error!(
                 "Module '{}' attempted to replicate a command to unknown participant {sender}",
                 M::NAMESPACE
             );
@@ -223,7 +223,7 @@ where
         let participant_id = match self.event_origin {
             EventOrigin::Participant(participant_origin) => participant_origin.id,
             EventOrigin::Internal => {
-                log::error!(
+                tracing::error!(
                     "Signaling module '{}' returned an error on an event with internal origin: {error:?} ",
                     M::NAMESPACE
                 );
@@ -240,7 +240,7 @@ where
         let shared_json: SharedRawJson = match serde_json::value::to_raw_value(&event) {
             Ok(value) => value.into(),
             Err(err) => {
-                log::error!("Failed to serialize SignalingError type: {err}");
+                tracing::error!("Failed to serialize SignalingError type: {err}");
                 RawValue::from_string(r#"{"error": "internal"}"#.into())
                     .unwrap()
                     .into()
@@ -248,7 +248,7 @@ where
         };
 
         let Some(state) = self.participants.connected().get(&participant_id) else {
-            log::error!(
+            tracing::error!(
                 "Module '{}' attempted to send a websocket error message to unknown participant {}",
                 M::NAMESPACE,
                 participant_id,
@@ -312,7 +312,7 @@ where
 
         let future = Box::pin(async move {
             let Ok(value) = join_handle.await else {
-                log::error!("module {} panicked in loopback task", M::NAMESPACE);
+                tracing::error!("module {} panicked in loopback task", M::NAMESPACE);
                 return None;
             };
 

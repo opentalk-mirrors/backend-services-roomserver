@@ -45,7 +45,7 @@ impl SignalingModule for PingModule {
         _connection_id: ConnectionId,
         _is_first_connection: bool,
     ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
-        log::info!("Participant {participant_id} connected");
+        tracing::info!("Participant {participant_id} connected");
         let mut join_info = JoinInfo::default();
 
         for (participant_id, ..) in ctx.participants.connected().iter() {
@@ -63,7 +63,7 @@ impl SignalingModule for PingModule {
         participant_id: ParticipantId,
         _connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        log::info!("Participant {participant_id} disconnected");
+        tracing::info!("Participant {participant_id} disconnected");
         Ok(())
     }
 

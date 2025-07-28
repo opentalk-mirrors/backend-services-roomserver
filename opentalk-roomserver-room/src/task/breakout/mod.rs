@@ -44,9 +44,30 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(crate) async fn handle_breakout_command(
         &mut self,
         participant_origin: ParticipantOrigin,
-        room_scope: RoomKind,
         command: SignalingCommand,
     ) {
+        let Some(participant_state) = self.participants.all_unfiltered.get(&participant_origin.id)
+        else {
+            tracing::error!(
+                "failed to get participant state for participant `{}`",
+                participant_origin.id
+            );
+
+            // This scenario should never occur because we never delete known participants. We still attempt to
+            // send an error to the non-existent connection in a best-effort approach.
+            self.message_router
+                .send_error(
+                    participant_origin.connection_id,
+                    command.transaction_id,
+                    SignalingError::Internal,
+                )
+                .await;
+
+            return;
+        };
+
+        let room_scope = participant_state.room;
+
         let breakout_command = match serde_json::from_str(command.content.get()) {
             Ok(breakout_command) => breakout_command,
             Err(err) => {
@@ -79,7 +100,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         if let Err(e) = result {
             match e {
                 SignalingModuleError::Internal(err) => {
-                    log::error!("internal error in breakout module: {err:?}");
+                    tracing::error!("internal error in breakout module: {err:?}");
 
                     self.message_router
                         .send_error(
@@ -90,7 +111,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         .await;
                 }
                 SignalingModuleError::Fatal(err) => {
-                    log::error!("fatal error in breakout module: {err:?}");
+                    tracing::error!("fatal error in breakout module: {err:?}");
 
                     self.message_router
                         .send_error(
@@ -112,7 +133,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         .await;
 
                     if let Err(fatal_error) = result {
-                        log::error!("failed to send error in breakout module: {fatal_error:?}");
+                        tracing::error!("failed to send error in breakout module: {fatal_error:?}");
 
                         self.message_router
                             .send_error(
@@ -377,7 +398,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     pub(crate) async fn breakout_expired(&mut self) {
         if let Err(err) = self.close_breakout_rooms(EventOrigin::Internal).await {
-            log::error!("Fatal error on breakout expiry: {err:?}");
+            tracing::error!("Fatal error on breakout expiry: {err:?}");
         }
     }
 
@@ -470,7 +491,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             rooms,
             expires: breakout_config.expires_at,
         }) {
-            log::error!("Failed to add breakout module data to join success: {e:?}")
+            tracing::error!("Failed to add breakout module data to join success: {e:?}")
         }
     }
 }

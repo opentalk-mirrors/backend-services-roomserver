@@ -5,7 +5,10 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use chrono::{DateTime, Utc};
 use opentalk_roomserver_types::{
-    client_parameters::Role, connection_id::ConnectionId, device_id::DeviceId, room_kind::RoomKind,
+    client_parameters::{ClientKind, Role},
+    connection_id::ConnectionId,
+    device_id::DeviceId,
+    room_kind::RoomKind,
 };
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::{ParticipantId, ParticipationVisibility};
@@ -104,6 +107,16 @@ impl ParticipantKind {
         match self {
             ParticipantKind::User | ParticipantKind::Guest => ParticipationVisibility::Visible,
             ParticipantKind::Recorder => ParticipationVisibility::Hidden,
+        }
+    }
+}
+
+impl From<&ClientKind> for ParticipantKind {
+    fn from(value: &ClientKind) -> ParticipantKind {
+        match value {
+            ClientKind::Registered { .. } => ParticipantKind::User,
+            ClientKind::Guest { .. } => ParticipantKind::Guest,
+            ClientKind::Recorder => ParticipantKind::Recorder,
         }
     }
 }

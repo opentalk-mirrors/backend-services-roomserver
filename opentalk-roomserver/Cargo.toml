@@ -19,7 +19,6 @@ axum.workspace = true
 axum-prometheus.workspace = true
 clap.workspace = true
 futures.workspace = true
-log.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-module-chat.workspace = true
 opentalk-roomserver-module-e2ee.workspace = true

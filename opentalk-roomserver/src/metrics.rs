@@ -27,7 +27,7 @@ where
     let listener = tokio::net::TcpListener::bind((address, port))
         .await
         .context(format!("Failed to bind metrics to port {port}"))?;
-    log::info!(
+    tracing::info!(
         "Listening for metrics on http://{}",
         listener.local_addr().expect("Failed to get local address")
     );

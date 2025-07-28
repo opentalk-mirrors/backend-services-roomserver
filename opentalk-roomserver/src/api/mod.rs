@@ -176,7 +176,7 @@ where
     let listener =
         tokio::net::TcpListener::bind((settings.http.address, settings.http.port)).await?;
 
-    log::info!("Listening on http://{}", listener.local_addr()?);
+    tracing::info!("Listening on http://{}", listener.local_addr()?);
 
     set_service_state(ServiceState::Ready);
     axum::serve(listener, router)
@@ -248,7 +248,7 @@ impl Context {
         // refresh the idle timeout of the existing room to avoid race conditions
         if let Err(e) = room_handle.refresh_idle_timeout().await {
             // This can only fail if the rooms idle timeout has been reached or the room has been manually removed
-            log::error!("Failed to refresh idle timeout of room {room_id}: {e}");
+            tracing::error!("Failed to refresh idle timeout of room {room_id}: {e}");
 
             return Err(ApiError::internal());
         }
@@ -277,14 +277,14 @@ impl RoomBackend for Context {
             )
             .await
             .map_err(|err| {
-                log::info!("Failed to put room {room_id}: {err}");
+                tracing::info!("Failed to put room {room_id}: {err}");
                 err
             })?;
 
         if !action.is_created() {
             // Refresh the idle timeout if the room was not created with this request
             task_handle.refresh_idle_timeout().await.map_err(|err| {
-                log::info!("Failed to refresh idle timeout for room {room_id}: {err}");
+                tracing::info!("Failed to refresh idle timeout for room {room_id}: {err}");
                 err
             })?;
         }

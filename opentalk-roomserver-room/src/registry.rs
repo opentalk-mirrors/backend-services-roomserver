@@ -144,7 +144,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             Ok(_) => true,
             Err(RoomTaskHandleError::Gone { .. }) => false,
             Err(e) => {
-                log::error!("Unexpected error while refreshing idle timeout: {e}");
+                tracing::error!("Unexpected error while refreshing idle timeout: {e}");
                 false
             }
         }
@@ -161,7 +161,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     pub async fn remove_room(&self, room_id: RoomId) {
         let mut room_list = self.inner.write().await;
 
-        log::trace!("Remove room task handle from registry: {room_id}");
+        tracing::trace!("Remove room task handle from registry: {room_id}");
         room_list.remove(&room_id);
     }
 }
