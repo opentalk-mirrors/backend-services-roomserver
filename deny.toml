@@ -149,6 +149,9 @@ exceptions = [
   ], name = "opentalk-roomserver-types-meeting-report" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-moderation" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-ping" },
   { allow = [
     "EUPL-1.2",

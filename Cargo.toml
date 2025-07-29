@@ -12,6 +12,7 @@ members = [
   "modules/livekit/types",
   "modules/meeting-report/module",
   "modules/meeting-report/types",
+  "modules/moderation/types",
   "modules/ping/module",
   "modules/ping/types",
   "modules/polls/module",
@@ -64,6 +65,7 @@ opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.4
 opentalk-roomserver-types-e2ee = { path = "modules/e2ee/types", version = "0.0.4-dev" }
 opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = "0.0.4-dev" }
 opentalk-roomserver-types-meeting-report = { path = "modules/meeting-report/types", version = "0.0.4-dev" }
+opentalk-roomserver-types-moderation = { path = "modules/moderation/types", version = "0.0.4-dev" }
 opentalk-roomserver-types-ping = { path = "modules/ping/types", version = "0.0.4-dev" }
 opentalk-roomserver-types-polls = { path = "modules/polls/types", version = "0.0.4-dev" }
 opentalk-roomserver-types-shared-folder = { path = "modules/shared_folder/types", version = "0.0.4-dev" }

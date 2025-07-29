@@ -5908,6 +5908,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-types-moderation"
+version = "0.0.4-dev"
+dependencies = [
+ "insta",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "opentalk-roomserver-types-ping"
 version = "0.0.4-dev"
 dependencies = [
