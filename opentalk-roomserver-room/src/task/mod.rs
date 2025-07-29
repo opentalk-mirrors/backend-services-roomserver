@@ -398,7 +398,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     self.handle_internal_command(inter_module_message, room, origin, timestamp)
                         .await;
                 }
-                ModuleMessage::Instruction(instruction) => self.handle_instruction(instruction),
+                ModuleMessage::Instruction(instruction) => {
+                    self.handle_instruction(origin, instruction).await;
+                }
             }
         }
     }
@@ -453,8 +455,36 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    fn handle_instruction(&mut self, instruction: Instruction) {
-        match instruction {}
+    async fn handle_instruction(&mut self, origin: EventOrigin, instruction: Instruction) {
+        match instruction {
+            Instruction::Kick { participants } => {
+                self.kick_participants(origin, participants).await
+            }
+        };
+    }
+
+    async fn kick_participants(&mut self, origin: EventOrigin, participants: Vec<ParticipantId>) {
+        for participant_id in participants {
+            let Some(state) = self.participants.all_unfiltered.get(&participant_id) else {
+                tracing::error!(
+                    "Failed to get connections for unknown participant {participant_id}"
+                );
+                continue;
+            };
+            let connections: Vec<ConnectionId> = state.connections().collect();
+            for connection_id in connections {
+                // This needs boxing because disconnecting a participant invokes a
+                // broadcast event. This can lead to recursion because modules can
+                // invoke core commands from broadcast events.
+                Box::pin(self.disconnect_participant(
+                    origin,
+                    participant_id,
+                    connection_id,
+                    CloseReason::Kicked,
+                ))
+                .await;
+            }
+        }
     }
 
     #[tracing::instrument(level = "info", skip_all)]

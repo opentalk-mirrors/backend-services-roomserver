@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use opentalk_types_signaling::ParticipantId;
+
 #[derive(Debug)]
-pub enum Instruction {}
+pub enum Instruction {
+    Kick { participants: Vec<ParticipantId> },
+}

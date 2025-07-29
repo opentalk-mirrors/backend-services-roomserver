@@ -11,6 +11,8 @@ pub enum DisconnectReason {
     Leave,
     /// The connection was interrupted
     ConnectionLost,
+    /// The participant was kicked by a moderator
+    Kicked,
     /// The participant was removed due to an internal error
     InternalError,
 }

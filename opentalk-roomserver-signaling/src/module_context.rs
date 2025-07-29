@@ -270,6 +270,12 @@ where
             .push(ModuleMessage::InternalCommand(command));
     }
 
+    /// Kick the specified participants
+    pub fn kick_participants(&mut self, participants: Vec<ParticipantId>) {
+        let command = ModuleMessage::Instruction(Instruction::Kick { participants });
+        self.messages.get_mut().push(command);
+    }
+
     /// Invoke an error message of type [`SignalingError`]
     ///
     /// If the event origin is a signaling connection, the error will be sent to the participant.

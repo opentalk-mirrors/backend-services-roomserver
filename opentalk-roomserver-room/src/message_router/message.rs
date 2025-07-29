@@ -18,6 +18,9 @@ pub enum CloseReason {
     /// The connection to the participant was closed by sending a close frame to the participant.
     TaskClosed,
 
+    /// The participant was kicked by a moderator
+    Kicked,
+
     InternalError,
 }
 
@@ -26,6 +29,7 @@ impl From<CloseReason> for DisconnectReason {
         match value {
             CloseReason::ParticipantClosed => DisconnectReason::Leave,
             CloseReason::ConnectionLost => DisconnectReason::ConnectionLost,
+            CloseReason::Kicked => DisconnectReason::Kicked,
             CloseReason::InternalError | CloseReason::TaskClosed => DisconnectReason::InternalError,
         }
     }
