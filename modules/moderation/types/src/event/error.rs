@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 pub enum ModerationError {
     /// Insufficient permissions to perform a command
     InsufficientPermissions,
+    /// The requested participant is not connected
+    UnknownParticipant,
 }
 
 impl ModuleError for ModerationError {}

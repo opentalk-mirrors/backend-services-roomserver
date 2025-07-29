@@ -53,7 +53,7 @@ where
     pub room_id: RoomId,
     pub room: RoomKind,
     pub event_origin: EventOrigin,
-    room_task_info: &'ctx mut RoomTaskInfo,
+    pub room_task_info: &'ctx mut RoomTaskInfo,
     /// The websocket messages that are sent out after the module finished its event handling
     messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
     /// Contains all participants including disconnected ones
@@ -108,10 +108,6 @@ where
             storage: Arc::clone(&self.storage),
             m: PhantomData,
         }
-    }
-
-    pub fn room_task_info(&self) -> &RoomTaskInfo {
-        self.room_task_info
     }
 
     /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given `participant_ids`

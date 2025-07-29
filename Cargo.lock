@@ -5709,6 +5709,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-module-moderation"
+version = "0.0.4-dev"
+dependencies = [
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-moderation",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+]
+
+[[package]]
 name = "opentalk-roomserver-module-ping"
 version = "0.0.4-dev"
 dependencies = [

@@ -16,6 +16,12 @@ pub enum ModerationEvent {
     /// Sent out when debriefing of a session started
     DebriefingStarted(DebriefingStarted),
 
+    /// Sent out when the waiting room is enabled
+    WaitingRoomEnabled,
+
+    /// Sent out when the waiting room is disabled
+    WaitingRoomDisabled,
+
     /// An error happened when executing a `moderation` command
     Error(ModerationError),
 }

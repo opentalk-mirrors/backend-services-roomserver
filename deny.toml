@@ -113,6 +113,9 @@ exceptions = [
   ], name = "opentalk-roomserver-module-meeting-report" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-moderation" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-ping" },
   { allow = [
     "EUPL-1.2",

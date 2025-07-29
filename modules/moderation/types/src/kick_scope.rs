@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
+use opentalk_roomserver_signaling::participant_state::ParticipantKind;
+use opentalk_roomserver_types::client_parameters::Role;
 use serde::{Deserialize, Serialize};
 
 /// The scope of users to be kicked from the room
@@ -21,9 +22,9 @@ pub enum KickScope {
 
 impl KickScope {
     /// Query whether a specific role is kicked by the scope
-    pub fn kicks_role(&self, role: Role, kind: ClientKind) -> bool {
+    pub fn kicks(&self, role: Role, kind: ParticipantKind) -> bool {
         match self {
-            KickScope::Guests => matches!(kind, ClientKind::Guest { .. }),
+            KickScope::Guests => kind == ParticipantKind::Guest,
             KickScope::UsersAndGuests => !matches!(role, Role::Moderator),
             KickScope::All => true,
         }
