@@ -15,7 +15,7 @@
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData},
+    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
     client_parameters::Role, connection_id::ConnectionId,
@@ -36,7 +36,10 @@ impl SignalingModule for SharedFolderModule {
     const NAMESPACE: ModuleId = SHARED_FOLDER_MODULE_ID;
 
     type Incoming = SharedFolderCommand;
+
     type Outgoing = SharedFolderEvent;
+
+    type Internal = NoOp;
 
     type Loopback = ();
 

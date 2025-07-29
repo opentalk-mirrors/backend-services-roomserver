@@ -11,7 +11,7 @@ use anyhow::Context;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
-        JoinInfo, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData, SwitchInfo,
+        JoinInfo, NoOp, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData, SwitchInfo,
     },
 };
 use opentalk_roomserver_types::{
@@ -43,6 +43,8 @@ impl SignalingModule for TimerModule {
     type Incoming = TimerCommand;
 
     type Outgoing = TimerEvent;
+
+    type Internal = NoOp;
 
     type Loopback = Result<Stopped, ChannelDroppedError>;
 

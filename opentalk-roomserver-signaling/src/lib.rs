@@ -8,7 +8,10 @@
 
 pub mod breakout;
 pub mod event_origin;
-/// The `loopback` module is intended for internal use only
+/// The [`internal_module_message`] module is intended for internal use only
+#[doc(hidden)]
+pub mod internal_module_message;
+/// The [`loopback`] module is intended for internal use only
 #[doc(hidden)]
 pub mod loopback;
 pub mod module_context;

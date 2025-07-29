@@ -7,7 +7,7 @@ use anyhow::Context;
 use chat_id::{ChatId, PrivateChatId};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData, SwitchInfo},
+    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData, SwitchInfo},
 };
 use opentalk_roomserver_types::{
     breakout::{BreakoutRoom, breakout_id::BreakoutId},
@@ -46,6 +46,8 @@ impl SignalingModule for ChatModule {
     type Incoming = ChatCommand;
 
     type Outgoing = ChatEvent;
+
+    type Internal = NoOp;
 
     type Loopback = ();
 

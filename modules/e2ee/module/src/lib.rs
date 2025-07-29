@@ -4,7 +4,7 @@
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData},
+    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
@@ -24,6 +24,8 @@ impl SignalingModule for E2eeModule {
     type Incoming = E2eeCommand;
 
     type Outgoing = E2eeEvent;
+
+    type Internal = NoOp;
 
     type Loopback = ();
 

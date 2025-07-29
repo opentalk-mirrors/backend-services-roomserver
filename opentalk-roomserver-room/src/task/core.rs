@@ -83,8 +83,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.add_breakout_module_data(&mut module_data, current_breakout_room);
 
-        let join_success_msg = build_join_success(
-            &self.context(participant_origin.into(), current_breakout_room),
+        let join_success_msg = self.build_join_success(
             participant_id,
             connection_id,
             device_id,
@@ -167,6 +166,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         mut event: DynBroadcastEvent<'_>,
     ) {
         let mut errors = Vec::new();
+        let mut internal_commands = Vec::new();
+        let timestamp = Timestamp::now();
         for (namespace, module) in self.modules.iter_mut() {
             if let Err(err) = module
                 .on_broadcast_event(
@@ -177,8 +178,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         &mut self.info,
                         &mut self.message_router,
                         &mut self.participants,
-                        Timestamp::now(),
+                        timestamp,
                         Arc::clone(&self.storage),
+                        &mut internal_commands,
                         &mut self.loopback_futures,
                     ),
                     &mut event,
@@ -188,6 +190,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 errors.push((namespace.clone(), err));
             }
         }
+
+        self.handle_internal_commands(room_scope, origin, timestamp, internal_commands)
+            .await;
 
         for (namespace, err) in errors {
             self.handle_fatal_module_error(namespace, origin.transaction_id(), err)
@@ -226,113 +231,113 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )
             .await;
     }
-}
 
-fn build_join_success(
-    ctx: &DynModuleContext<'_>,
-    participant_id: ParticipantId,
-    connection_id: ConnectionId,
-    device_id: DeviceId,
-    client_parameters: ClientParameters,
-    module_data: ModuleData,
-) -> JoinSuccess {
-    let participants = ctx
-        .participants
-        .all_unfiltered
-        .iter()
-        .filter(|(id, ..)| id != &&participant_id)
-        .map(|(id, state)| {
-            let connections = state
-                .connections
-                .iter()
-                .map(|(conn, device)| ConnectionInfo {
-                    connection_id: *conn,
-                    device_id: *device,
-                })
-                .collect();
+    fn build_join_success(
+        &self,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+        device_id: DeviceId,
+        client_parameters: ClientParameters,
+        module_data: ModuleData,
+    ) -> JoinSuccess {
+        let participants = self
+            .participants
+            .all_unfiltered
+            .iter()
+            .filter(|(id, ..)| id != &&participant_id)
+            .map(|(id, state)| {
+                let connections = state
+                    .connections
+                    .iter()
+                    .map(|(conn, device)| ConnectionInfo {
+                        connection_id: *conn,
+                        device_id: *device,
+                    })
+                    .collect();
 
-            let mut module_peer_data = ModulePeerData::new();
+                let mut module_peer_data = ModulePeerData::new();
 
-            // TODO: temporary solution to let participants know which participant is in which breakout room
-            module_peer_data
-                .insert(&BreakoutPeerModuleData { room: state.room })
-                .expect("BreakoutPeerModuleData must be serializable");
+                // TODO: temporary solution to let participants know which participant is in which breakout room
+                module_peer_data
+                    .insert(&BreakoutPeerModuleData { room: state.room })
+                    .expect("BreakoutPeerModuleData must be serializable");
 
-            Participant {
-                id: *id,
-                connections,
-                module_data: module_peer_data, // TODO: needs implementation in the signaling module
-            }
-        })
-        .collect();
+                Participant {
+                    id: *id,
+                    connections,
+                    module_data: module_peer_data, // TODO: needs implementation in the signaling module
+                }
+            })
+            .collect();
 
-    let display_name = client_parameters.kind.display_name();
-    let (role, avatar_url, is_room_owner) = match client_parameters.kind {
-        ClientKind::Registered { profile } => (
-            Role::User,
-            Some(profile.user_info.avatar_url),
-            ctx.room_task_info.room.created_by.id == profile.id,
-        ),
-        ClientKind::Guest { .. } => (Role::Guest, None, false),
-        ClientKind::Recorder => (Role::Guest, None, false),
-    };
+        let display_name = client_parameters.kind.display_name();
+        let (role, avatar_url, is_room_owner) = match client_parameters.kind {
+            ClientKind::Registered { profile } => (
+                Role::User,
+                Some(profile.user_info.avatar_url),
+                self.info.room.created_by.id == profile.id,
+            ),
+            ClientKind::Guest { .. } => (Role::Guest, None, false),
+            ClientKind::Recorder => (Role::Guest, None, false),
+        };
 
-    let event_info = ctx
-        .room_task_info
-        .room
-        .event
-        .as_ref()
-        .map(|event_context| EventInfo {
-            id: event_context.id,
-            room_id: ctx.room_id,
-            title: event_context.title.clone(),
-            is_adhoc: event_context.is_adhoc,
-            e2e_encryption: ctx.room_task_info.room.e2e_encryption,
-        });
+        let event_info = self
+            .info
+            .room
+            .event
+            .as_ref()
+            .map(|event_context| EventInfo {
+                id: event_context.id,
+                room_id: self.info.room_id,
+                title: event_context.title.clone(),
+                is_adhoc: event_context.is_adhoc,
+                e2e_encryption: self.info.room.e2e_encryption,
+            });
 
-    let meeting_details = MeetingDetails {
-        invite_code_id: ctx.room_task_info.room.invite_code,
-        call_in: ctx.room_task_info.room.call_in.clone(),
-        streaming_links: ctx.room_task_info.room.streaming_links.clone(),
-    };
+        let meeting_details = MeetingDetails {
+            invite_code_id: self.info.room.invite_code,
+            call_in: self.info.room.call_in.clone(),
+            streaming_links: self.info.room.streaming_links.clone(),
+        };
 
-    let other_connections = ctx
-        .participants
-        .all_unfiltered
-        .get(&participant_id)
-        .map(|state| {
-            state
-                .connections
-                .iter()
-                .filter(|(conn, ..)| conn != &&connection_id)
-                .map(|(conn, device)| ConnectionInfo {
-                    connection_id: *conn,
-                    device_id: *device,
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+        let other_connections = self
+            .participants
+            .all_unfiltered
+            .get(&participant_id)
+            .map(|state| {
+                state
+                    .connections
+                    .iter()
+                    .filter(|(conn, ..)| conn != &&connection_id)
+                    .map(|(conn, device)| ConnectionInfo {
+                        connection_id: *conn,
+                        device_id: *device,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
 
-    JoinSuccess {
-        id: participant_id,
-        connection_id,
-        device_id,
-        connections: other_connections,
-        display_name,
-        avatar_url,
-        role,
-        closes_at: ctx.room_task_info.closes_at,
-        tariff: Box::new(ctx.room_task_info.room.tariff.clone()),
-        participants,
-        event_info,
-        room_info: RoomInfo {
-            id: ctx.room_id,
-            password: ctx.room_task_info.room.password.clone(),
-            created_by: ctx.room_task_info.room.created_by.user_info.clone(),
-        },
-        meeting_details,
-        is_room_owner,
-        module_data,
+        JoinSuccess {
+            id: participant_id,
+            connection_id,
+            device_id,
+            connections: other_connections,
+            display_name,
+            avatar_url,
+            role,
+            closes_at: self.info.closes_at,
+            tariff: Box::new(self.info.room.tariff.clone()),
+            participants,
+            event_info,
+            room_info: RoomInfo {
+                id: self.info.room_id,
+                password: self.info.room.password.clone(),
+                created_by: self.info.room.created_by.user_info.clone(),
+            },
+            meeting_details,
+            is_room_owner,
+            module_data,
+        }
     }
 }
 

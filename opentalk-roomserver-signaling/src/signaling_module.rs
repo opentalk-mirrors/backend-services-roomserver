@@ -3,7 +3,7 @@
 
 use std::{collections::BTreeMap, fmt::Debug, marker::PhantomData, sync::Arc, time::Duration};
 
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom,
@@ -38,6 +38,9 @@ pub trait SignalingModule: Send + Sync + Sized {
 
     /// The outgoing websocket payload that is sent to the clients
     type Outgoing: Serialize + PartialEq + Debug + From<Self::Error> + Send;
+
+    /// The incoming command which is received from other [`SignalingModule`]s
+    type Internal: InternalCommand;
 
     /// Internal result type for asynchronous tasks
     ///
@@ -136,6 +139,20 @@ pub trait SignalingModule: Send + Sync + Sized {
         Ok(())
     }
 
+    #[allow(unused_variables)]
+    fn on_internal_command(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        command: Self::Internal,
+    ) -> Result<<Self::Internal as InternalCommand>::Result, SignalingModuleError<Self::Error>>
+    {
+        Err(anyhow!(
+            "Received internal command in module {} that does not support internal commands",
+            Self::NAMESPACE
+        )
+        .into())
+    }
+
     /// Destroy the module and remove all associated resources
     ///
     /// Long running tasks must be spawned in a separate task
@@ -145,6 +162,17 @@ pub trait SignalingModule: Send + Sync + Sized {
 
 pub trait CreateReplica<T> {
     fn replicate(&self) -> Option<T>;
+}
+
+/// Trait that allows dynamic dispatch of [`SignalingModule::Internal`]
+pub trait InternalCommand: Send + 'static {
+    type Result: Send + 'static;
+}
+
+pub enum NoOp {}
+
+impl InternalCommand for NoOp {
+    type Result = NoOp;
 }
 
 pub struct JoinInfo<M: SignalingModule> {

@@ -60,6 +60,7 @@ use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
+    internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
@@ -331,6 +332,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             );
             return;
         };
+        let mut internal_commands = Vec::new();
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
             msg.room,
@@ -340,6 +342,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.participants,
             msg.timestamp,
             Arc::clone(&self.storage),
+            &mut internal_commands,
             &mut self.loopback_futures,
         );
         if let Err(err) = module
@@ -348,6 +351,62 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         {
             self.handle_fatal_module_error(msg.namespace, msg.origin.transaction_id(), err)
                 .await;
+        }
+
+        self.handle_internal_commands(msg.room, msg.origin, msg.timestamp, internal_commands)
+            .await;
+    }
+
+    async fn handle_internal_commands(
+        &mut self,
+        room: RoomKind,
+        origin: EventOrigin,
+        timestamp: Timestamp,
+        commands: Vec<InterModuleMessage>,
+    ) {
+        for command in commands {
+            let Some(module) = self.modules.get_mut(&command.receiver) else {
+                tracing::error!(
+                    "Received internal command for unknown module '{}' from module '{}'",
+                    command.receiver,
+                    command.sender,
+                );
+                continue;
+            };
+            tracing::debug!(
+                "Handling internal command from module '{}' to module '{}'",
+                command.sender,
+                command.receiver
+            );
+
+            let mut internal_commands = Vec::new();
+            let mut ctx = DynModuleContext::new(
+                self.info.room_id,
+                room,
+                origin,
+                &mut self.info,
+                &mut self.message_router,
+                &mut self.participants,
+                timestamp,
+                Arc::clone(&self.storage),
+                &mut internal_commands,
+                &mut self.loopback_futures,
+            );
+
+            if let Err(err) = module
+                .on_event(
+                    &mut ctx,
+                    DynEvent::InternalCommand {
+                        sender: command.sender,
+                        command: command.command,
+                        return_result: command.result_handle,
+                    },
+                )
+                .await
+            {
+                self.handle_fatal_module_error(command.receiver, origin.transaction_id(), err)
+                    .await;
+            }
         }
     }
 
@@ -476,15 +535,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
+        let timestamp = Timestamp::now();
+        let mut internal_commands = Vec::new();
+        let origin = participant_origin.into();
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
             room_scope,
-            participant_origin.into(),
+            origin,
             &mut self.info,
             &mut self.message_router,
             &mut self.participants,
-            Timestamp::now(),
+            timestamp,
             Arc::clone(&self.storage),
+            &mut internal_commands,
             &mut self.loopback_futures,
         );
 
@@ -506,6 +569,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )
             .await;
         }
+        self.handle_internal_commands(room_scope, origin, timestamp, internal_commands)
+            .await;
     }
 
     async fn connect_participant(&mut self, socket: Socket, client_parameters: ClientParameters) {
@@ -644,20 +709,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .send_error(origin, transaction_id, signaling_error)
             .await;
-    }
-
-    fn context(&mut self, origin: EventOrigin, room: RoomKind) -> DynModuleContext<'_> {
-        DynModuleContext::new(
-            self.info.room_id,
-            room,
-            origin,
-            &mut self.info,
-            &mut self.message_router,
-            &mut self.participants,
-            Timestamp::now(),
-            Arc::clone(&self.storage),
-            &mut self.loopback_futures,
-        )
     }
 
     /// Generate a [`DeviceId`] from a device secret
