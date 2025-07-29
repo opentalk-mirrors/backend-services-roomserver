@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::{cell::RefCell, collections::BTreeMap, sync::Arc};
 
 use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
@@ -166,7 +166,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         mut event: DynBroadcastEvent<'_>,
     ) {
         let mut errors = Vec::new();
-        let mut internal_commands = Vec::new();
+        let mut messages = RefCell::new(Vec::new());
         let timestamp = Timestamp::now();
         for (namespace, module) in self.modules.iter_mut() {
             if let Err(err) = module
@@ -176,11 +176,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         room_scope,
                         origin,
                         &mut self.info,
-                        &mut self.message_router,
                         &mut self.participants,
                         timestamp,
                         Arc::clone(&self.storage),
-                        &mut internal_commands,
+                        &mut messages,
                         &mut self.loopback_futures,
                     ),
                     &mut event,
@@ -191,7 +190,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         }
 
-        self.handle_internal_commands(room_scope, origin, timestamp, internal_commands)
+        self.handle_module_messages(messages, room_scope, origin, timestamp)
             .await;
 
         for (namespace, err) in errors {

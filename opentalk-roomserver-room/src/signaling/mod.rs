@@ -14,7 +14,7 @@
 //! Due to the generic nature of the [`ModuleDispatcher`] they cannot be stored in a single collection either,
 //! at least not when their generic type differs. This is where the [`ModuleHandle`] is used as an abstraction
 //! to remove any generic bounds. We achieve this with dynamic dispatch by storing them as a `Box<dyn ModuleDispatcher>`.
-use std::{any::Any, cell::RefCell, collections::BTreeMap, time::Duration};
+use std::{any::Any, collections::BTreeMap, time::Duration};
 
 use anyhow::Context;
 use dyn_module_context::DynModuleContext;
@@ -371,17 +371,10 @@ where
         ctx: &mut DynModuleContext<'_>,
         event: DynEvent,
     ) -> Result<(), FatalError> {
-        let mut messages = RefCell::new(Vec::new());
-        let mut module_context = ctx.reborrow().into_typed_context(&mut messages);
+        let mut module_context = ctx.reborrow().into_typed_context();
 
         if let Err(err) = self.handle_event(&mut module_context, event).await {
             self.handle_error(&mut module_context, err).await?;
-        }
-
-        for (connection_id, message) in messages.into_inner() {
-            ctx.message_router
-                .send_event([connection_id], message)
-                .await;
         }
 
         Ok(())
@@ -392,21 +385,13 @@ where
         ctx: &mut DynModuleContext<'_>,
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError> {
-        let mut messages = RefCell::new(Vec::new());
-        let mut module_context: ModuleContext<'_, M> =
-            ctx.reborrow().into_typed_context(&mut messages);
+        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into_typed_context();
 
         if let Err(err) = self
             .handle_broadcast_event(&mut module_context, event)
             .await
         {
             return self.handle_error(&mut module_context, err).await;
-        }
-
-        for (connection_id, message) in messages.into_inner() {
-            ctx.message_router
-                .send_event([connection_id], message)
-                .await;
         }
 
         Ok(())
