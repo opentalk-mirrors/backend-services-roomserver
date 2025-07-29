@@ -229,7 +229,7 @@ where
     pub fn send_internal_command<R>(
         &mut self,
         command: R::Internal,
-        handle_result: impl FnOnce(<R::Internal as InternalCommand>::Result) + Send + 'static,
+        result_callback: impl FnOnce(<R::Internal as InternalCommand>::Result) + Send + 'static,
     ) where
         R: SignalingModule,
     {
@@ -242,13 +242,13 @@ where
                 );
                 return;
             };
-            handle_result(*result);
+            result_callback(*result);
         };
         let command = InterModuleMessage {
             sender: M::NAMESPACE,
             receiver: R::NAMESPACE,
             command: Box::new(command),
-            result_handle: Box::new(downcast),
+            result_callback: Box::new(downcast),
         };
         self.internal_commands.push(command);
     }
