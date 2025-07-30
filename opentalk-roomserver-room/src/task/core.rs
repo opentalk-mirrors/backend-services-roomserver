@@ -11,7 +11,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
-    core_event::CoreEvent,
+    core::CoreEvent,
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     error::SignalingError,

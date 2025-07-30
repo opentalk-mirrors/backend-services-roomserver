@@ -72,16 +72,18 @@ use opentalk_roomserver_signaling::{
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
     storage::StorageProvider,
+    waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
+    core::{CoreCommand, CoreEvent},
     device_id::DeviceId,
     error::SignalingError,
     moderation::MODERATION_MODULE_ID,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
-    signaling::SignalingCommand,
+    signaling::{SignalingCommand, module_error::SignalingModuleError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{rooms::RoomId, roomserver::DeviceSecret, time::Timestamp};
@@ -103,7 +105,6 @@ use crate::{
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
         idle_timeout::IdleTimeout,
-        moderation::WaitingParticipant,
     },
 };
 
@@ -113,6 +114,7 @@ pub mod fs_storage;
 pub mod handle;
 pub mod idle_timeout;
 pub mod moderation;
+mod waiting_room;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
@@ -523,7 +525,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         match &signaling_command.namespace {
             m if *m == core::NAMESPACE => {
-                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                self.handle_core_command(participant_origin, signaling_command)
+                    .await;
             }
             m if *m == breakout::BREAKOUT_MODULE_ID => {
                 self.handle_breakout_command(participant_origin, signaling_command)
@@ -542,6 +545,83 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 )
                 .await;
             }
+        }
+    }
+
+    async fn handle_core_command(
+        &mut self,
+        participant_origin: ParticipantOrigin,
+        command: SignalingCommand,
+    ) {
+        let core_command: CoreCommand = match serde_json::from_str(command.content.get()) {
+            Ok(command) => command,
+            Err(err) => {
+                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                self.message_router
+                    .send_error(
+                        participant_origin.connection_id,
+                        participant_origin.transaction_id,
+                        SignalingError::InvalidJson {
+                            message: format!("{err:?}"),
+                        },
+                    )
+                    .await;
+                return;
+            }
+        };
+
+        let result = match core_command {
+            CoreCommand::EnterRoom => self.enter_room(participant_origin).await,
+        };
+
+        if let Err(e) = result {
+            match e {
+                SignalingModuleError::Internal(err) => {
+                    tracing::error!("internal error in core module: {err:?}");
+
+                    self.message_router
+                        .send_error(
+                            participant_origin.connection_id,
+                            command.transaction_id,
+                            SignalingError::Internal,
+                        )
+                        .await;
+                }
+                SignalingModuleError::Fatal(err) => {
+                    tracing::error!("fatal error in core module: {err:?}");
+
+                    self.message_router
+                        .send_error(
+                            participant_origin.connection_id,
+                            command.transaction_id,
+                            SignalingError::Internal,
+                        )
+                        .await;
+                }
+                SignalingModuleError::Module(module_error) => {
+                    let result = self
+                        .message_router
+                        .serialize_and_send(
+                            [participant_origin.connection_id],
+                            core::NAMESPACE,
+                            command.transaction_id,
+                            CoreEvent::Error(module_error),
+                        )
+                        .await;
+
+                    if let Err(fatal_error) = result {
+                        tracing::error!("failed to send error in core module: {fatal_error:?}");
+
+                        self.message_router
+                            .send_error(
+                                participant_origin.connection_id,
+                                command.transaction_id,
+                                SignalingError::Internal,
+                            )
+                            .await;
+                    }
+                }
+            };
         }
     }
 

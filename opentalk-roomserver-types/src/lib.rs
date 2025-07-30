@@ -8,7 +8,7 @@ pub mod api;
 pub mod breakout;
 pub mod client_parameters;
 pub mod connection_id;
-pub mod core_event;
+pub mod core;
 pub mod device_id;
 pub mod disconnect_reason;
 pub mod error;

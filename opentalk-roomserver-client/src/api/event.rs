@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
-use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core_event::CoreEvent};
+use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core::CoreEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID, event::MeetingReportEvent,
@@ -87,7 +87,7 @@ impl SignalingModuleEvent {
 mod tests {
     use insta::assert_snapshot;
     use opentalk_roomserver_types::{
-        breakout::event::BreakoutEvent, connection_id::ConnectionId, core_event::CoreEvent,
+        breakout::event::BreakoutEvent, connection_id::ConnectionId, core::CoreEvent,
     };
     use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
     use opentalk_roomserver_types_livekit::LiveKitEvent;

@@ -8,7 +8,7 @@ use opentalk_roomserver_client::api::{
     event::{Credentials, LiveKitError, LiveKitEvent, LiveKitState, SignalingModuleEvent},
 };
 use opentalk_roomserver_types::{
-    breakout::event::BreakoutEvent, core_event::CoreEvent, join::join_success::JoinSuccess,
+    breakout::event::BreakoutEvent, core::CoreEvent, join::join_success::JoinSuccess,
 };
 use tokio::runtime::Runtime;
 

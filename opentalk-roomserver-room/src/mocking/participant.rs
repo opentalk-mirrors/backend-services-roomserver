@@ -12,9 +12,9 @@ use opentalk_roomserver_types::{
     breakout::{breakout_config::BreakoutConfig, command::BreakoutCommand, event::BreakoutEvent},
     client_parameters::{ClientKind, ClientParameters, Role},
     connection_id::ConnectionId,
-    core_event::CoreEvent,
+    core::{CoreCommand, CoreEvent},
     join::join_success::JoinSuccess,
-    moderation::{MODERATION_MODULE_ID, command::ModerationCommand, event::ModerationEvent},
+    moderation::{MODERATION_MODULE_ID, command::ModerationCommand},
     room_kind::RoomKind,
     signaling::SignalingCommand,
 };
@@ -23,6 +23,7 @@ use opentalk_roomserver_web_api::v1::signaling::websocket::{
 };
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
+    modules::module_id,
     roomserver::DeviceSecret,
     users::{DisplayName, UserId, UserInfo},
 };
@@ -38,6 +39,7 @@ use super::{
     room::{self, TestRoom},
     socket::MockSocket,
 };
+use crate::task::core;
 
 const RECV_TIMEOUT: Duration = Duration::from_millis(500);
 
@@ -141,13 +143,13 @@ impl MockParticipant<()> {
         };
         match received {
             SignalingSocketMessage::Text(text) => {
-                let event: SignalingEvent<ModerationEvent> =
+                let event: SignalingEvent<CoreEvent> =
                     serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
                         error,
                         message: SignalingSocketMessage::Text(text.clone()),
                     })?;
 
-                if let ModerationEvent::InWaitingRoom {
+                if let CoreEvent::InWaitingRoom {
                     connection_id,
                     participant_id,
                 } = event.content
@@ -266,13 +268,15 @@ impl MockParticipantWaiting {
         };
         match received {
             SignalingSocketMessage::Text(text) => {
-                let event: SignalingEvent<ModerationEvent> =
-                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
+                let event: SignalingEvent<serde_json::Value> = serde_json::from_str(&text)
+                    .map_err(|error| ReceiveError::InvalidJson {
                         error,
                         message: SignalingSocketMessage::Text(text.clone()),
                     })?;
 
-                if let ModerationEvent::Accepted = event.content {
+                // The mocking module can not depend on the moderation module, so we
+                // can only verify the namespace here.
+                if event.namespace == module_id!("moderation") {
                     Ok(())
                 } else {
                     Err(ReceiveError::UnexpectedMessage(
@@ -285,15 +289,9 @@ impl MockParticipantWaiting {
     }
 
     pub async fn enter_room(&mut self) -> Result<(), ParticipantError> {
-        let command = SignalingCommand {
-            namespace: MODERATION_MODULE_ID,
-            transaction_id: None,
-            content: to_raw_value(&ModerationCommand::EnterRoom)
-                .expect("Command must be Serializable"),
-        };
-        let value = serde_json::to_value(&command).expect("SignalingCommand is serializable");
-        self.send_command_raw(value).await?;
-        Ok(())
+        self.send_core_command(CoreCommand::EnterRoom, None)
+            .await
+            .map_err(ParticipantError::from)
     }
 
     pub async fn join_success(mut self) -> Result<MockParticipantJoined, ParticipantError> {
@@ -501,6 +499,20 @@ impl<S> MockParticipant<S> {
             namespace: MODERATION_MODULE_ID,
             transaction_id,
             content: to_raw_value(&command).expect("ModerationCommand must be serializable"),
+        };
+        let value = serde_json::to_value(&command).expect("Command is serializable");
+        self.send_command_raw(value).await
+    }
+
+    pub async fn send_core_command(
+        &self,
+        command: CoreCommand,
+        transaction_id: Option<u64>,
+    ) -> Result<(), SendError> {
+        let command = SignalingCommand {
+            namespace: core::NAMESPACE,
+            transaction_id,
+            content: to_raw_value(&command).expect("CoreCommand must be serializable"),
         };
         let value = serde_json::to_value(&command).expect("Command is serializable");
         self.send_command_raw(value).await

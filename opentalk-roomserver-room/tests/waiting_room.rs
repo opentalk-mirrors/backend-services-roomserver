@@ -10,10 +10,10 @@ use opentalk_roomserver_room::mocking::{
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
-    core_event::CoreEvent,
+    core::{CoreEvent, LeftWaitingRoom},
     moderation::{
         command::{Accept, ModerationCommand},
-        event::{LeftWaitingRoom, ModerationError, ModerationEvent},
+        event::{ModerationError, ModerationEvent},
     },
 };
 use opentalk_types_signaling::ParticipantId;
@@ -22,10 +22,10 @@ async fn accept_participant(
     moderator: &mut MockParticipantJoined,
     mut joinee: MockParticipantWaiting,
 ) -> MockParticipantJoined {
-    let event = moderator.receive::<ModerationEvent>().await.unwrap();
+    let event = moderator.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.content,
-        ModerationEvent::JoinedWaitingRoom { id } if id == joinee.id()
+        CoreEvent::JoinedWaitingRoom { id } if id == joinee.id()
     ));
     assert!(joinee.received_nothing());
 
@@ -43,10 +43,10 @@ async fn accept_participant(
     joinee.enter_room().await.unwrap();
     let mut joinee = joinee.join_success().await.unwrap();
 
-    let event = moderator.receive::<ModerationEvent>().await.unwrap();
+    let event = moderator.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.content,
-        ModerationEvent::LeftWaitingRoom(
+        CoreEvent::LeftWaitingRoom(
             LeftWaitingRoom { id, connection_id }
         ) if joinee.id() == id && joinee.connection_id() == connection_id
     ));
@@ -82,17 +82,17 @@ async fn join_via_waiting_room() {
     let mut charlie = accept_participant(&mut alice, charlie).await;
 
     let mut bob_0 = room.waiting_room_bob(0).await;
-    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.content,
-        ModerationEvent::JoinedWaitingRoom { id } if id == bob_0.id()
+        CoreEvent::JoinedWaitingRoom { id } if id == bob_0.id()
     ));
 
     let mut bob_1 = room.waiting_room_bob(1).await;
-    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.content,
-        ModerationEvent::JoinedWaitingRoom{ id } if id == bob_1.id()
+        CoreEvent::JoinedWaitingRoom{ id } if id == bob_1.id()
     ));
 
     assert!(bob_0.received_nothing());
@@ -111,10 +111,10 @@ async fn join_via_waiting_room() {
     let bob_0 = bob_0.join_success().await.unwrap();
     let bob_1 = bob_1.join_success().await.unwrap();
 
-    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.content,
-        ModerationEvent::LeftWaitingRoom(
+        CoreEvent::LeftWaitingRoom(
             LeftWaitingRoom { id, connection_id }
         ) if bob_0.id() == id && bob_0.connection_id() == connection_id
     ));
@@ -279,16 +279,10 @@ async fn event_when_leaving_waiting_room() {
     let mut alice = room.join_alice_moderator(0).await;
 
     let bob = room.waiting_room_bob(0).await;
-    let event = alice.receive::<ModerationEvent>().await.unwrap();
-    assert!(matches!(
-        event.content,
-        ModerationEvent::JoinedWaitingRoom { .. }
-    ));
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(event.content, CoreEvent::JoinedWaitingRoom { .. }));
 
     bob.disconnect();
-    let event = alice.receive::<ModerationEvent>().await.unwrap();
-    assert!(matches!(
-        event.content,
-        ModerationEvent::LeftWaitingRoom(..)
-    ));
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(event.content, CoreEvent::LeftWaitingRoom(..)));
 }

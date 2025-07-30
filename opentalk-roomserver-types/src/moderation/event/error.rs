@@ -12,6 +12,4 @@ pub enum ModerationError {
     UnknownParticipant,
     /// The participant is not in the waiting room
     NotWaiting,
-    /// The participant cannot enter the room because they were not accepted by a moderator yet.
-    NotAccepted,
 }

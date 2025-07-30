@@ -5844,6 +5844,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "derive_more",
+ "insta",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",

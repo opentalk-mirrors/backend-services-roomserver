@@ -12,9 +12,6 @@ use opentalk_types_signaling::ParticipantId;
 pub enum ModerationCommand {
     /// Accept a participant from the waiting room into the meeting
     Accept(Accept),
-
-    /// Participant moves from the waiting room to the main room
-    EnterRoom,
 }
 
 /// Accept a participant into the meeting
@@ -27,7 +24,6 @@ pub struct Accept {
 #[cfg(test)]
 mod serde_tests {
     use opentalk_types_signaling::ParticipantId;
-    use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::*;
@@ -41,10 +37,11 @@ mod serde_tests {
 
         let msg: ModerationCommand = serde_json::from_value(json).unwrap();
 
-        if let ModerationCommand::Accept(Accept { target }) = msg {
-            assert_eq!(target, ParticipantId::nil());
-        } else {
-            panic!()
-        }
+        assert_eq!(
+            msg,
+            ModerationCommand::Accept(Accept {
+                target: ParticipantId::nil()
+            }),
+        );
     }
 }

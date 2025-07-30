@@ -22,3 +22,4 @@ pub mod room_info;
 pub mod signaling_event;
 pub mod signaling_module;
 pub mod storage;
+pub mod waiting_participant;
