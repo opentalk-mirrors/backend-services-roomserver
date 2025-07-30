@@ -5,16 +5,16 @@ use std::{cell::RefCell, sync::Arc};
 
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
-    event_origin::EventOrigin, internal_module_message::InterModuleMessage,
-    loopback::LoopbackFuture, module_context::ModuleContext, participant_state::Participants,
-    room_info::RoomTaskInfo, signaling_module::SignalingModule, storage::StorageProvider,
+    event_origin::EventOrigin,
+    loopback::LoopbackFuture,
+    module_context::{ModuleContext, ModuleMessage},
+    participant_state::Participants,
+    room_info::RoomTaskInfo,
+    signaling_module::SignalingModule,
+    storage::StorageProvider,
 };
-use opentalk_roomserver_types::{
-    connection_id::ConnectionId, room_kind::RoomKind, shared_raw_json::SharedRawJson,
-};
+use opentalk_roomserver_types::room_kind::RoomKind;
 use opentalk_types_common::{rooms::RoomId, time::Timestamp};
-
-use crate::message_router::MessageRouter;
 
 /// Contains the state of the [`RoomTask`](super::super::task::RoomTask) that is accessible to all [`SignalingModule`]s
 pub struct DynModuleContext<'ctx> {
@@ -22,11 +22,10 @@ pub struct DynModuleContext<'ctx> {
     pub room: RoomKind,
     pub event_origin: EventOrigin,
     pub room_task_info: &'ctx mut RoomTaskInfo,
-    pub message_router: &'ctx mut MessageRouter,
     pub participants: &'ctx mut Participants,
     pub timestamp: Timestamp,
     pub storage: Arc<dyn StorageProvider>,
-    pub internal_commands: &'ctx mut Vec<InterModuleMessage>,
+    pub messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
 }
 
@@ -37,11 +36,10 @@ impl<'ctx> DynModuleContext<'ctx> {
         room: RoomKind,
         event_origin: EventOrigin,
         room_task_info: &'ctx mut RoomTaskInfo,
-        message_router: &'ctx mut MessageRouter,
         participants: &'ctx mut Participants,
         timestamp: Timestamp,
         storage: Arc<dyn StorageProvider>,
-        internal_commands: &'ctx mut Vec<InterModuleMessage>,
+        messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
     ) -> Self {
         Self {
@@ -49,11 +47,10 @@ impl<'ctx> DynModuleContext<'ctx> {
             room,
             event_origin,
             room_task_info,
-            message_router,
             participants,
             timestamp,
             storage,
-            internal_commands,
+            messages,
             loopback_futures,
         }
     }
@@ -65,26 +62,21 @@ impl<'ctx> DynModuleContext<'ctx> {
             room: self.room,
             event_origin: self.event_origin,
             room_task_info: self.room_task_info,
-            message_router: self.message_router,
             participants: self.participants,
             timestamp: self.timestamp,
             storage: Arc::clone(&self.storage),
-            internal_commands: self.internal_commands,
+            messages: self.messages,
             loopback_futures: self.loopback_futures,
         }
     }
 
-    pub(crate) fn into_typed_context<M: SignalingModule>(
-        self,
-        messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
-    ) -> ModuleContext<'ctx, M> {
+    pub(crate) fn into_typed_context<M: SignalingModule>(self) -> ModuleContext<'ctx, M> {
         ModuleContext::new(
             self.room_id,
             self.room,
             self.event_origin,
             self.room_task_info,
-            messages,
-            self.internal_commands,
+            self.messages,
             self.participants,
             self.timestamp,
             self.loopback_futures,

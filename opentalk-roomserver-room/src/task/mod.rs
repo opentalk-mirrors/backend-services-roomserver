@@ -48,6 +48,7 @@
 //! [`PublicUserProfile`]: opentalk_types_api_v1::users::PublicUserProfile
 
 use std::{
+    cell::RefCell,
     collections::{
         HashMap,
         hash_map::Entry::{Occupied, Vacant},
@@ -62,9 +63,11 @@ use chrono::Utc;
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
+    core_command::CoreCommand,
     event_origin::{EventOrigin, ParticipantOrigin},
     internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
+    module_context::ModuleMessage,
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
@@ -342,82 +345,116 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             );
             return;
         };
-        let mut internal_commands = Vec::new();
+        let mut messages = RefCell::new(Vec::new());
+        let transaction_id = msg.origin.transaction_id();
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
             msg.room,
             msg.origin,
             &mut self.info,
-            &mut self.message_router,
             &mut self.participants,
             msg.timestamp,
             Arc::clone(&self.storage),
-            &mut internal_commands,
+            &mut messages,
             &mut self.loopback_futures,
         );
+
+        let room = ctx.room;
+        let origin = ctx.event_origin;
+        let timestamp = ctx.timestamp;
+
         if let Err(err) = module
             .on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value))
             .await
         {
-            self.handle_fatal_module_error(msg.namespace, msg.origin.transaction_id(), err)
+            self.handle_fatal_module_error(msg.namespace, transaction_id, err)
                 .await;
         }
 
-        self.handle_internal_commands(msg.room, msg.origin, msg.timestamp, internal_commands)
+        self.handle_module_messages(messages, room, origin, timestamp)
             .await;
     }
 
-    async fn handle_internal_commands(
+    async fn handle_module_messages(
         &mut self,
+        messages: RefCell<Vec<ModuleMessage>>,
         room: RoomKind,
         origin: EventOrigin,
         timestamp: Timestamp,
-        commands: Vec<InterModuleMessage>,
     ) {
-        for command in commands {
-            let Some(module) = self.modules.get_mut(&command.receiver) else {
-                tracing::error!(
-                    "Received internal command for unknown module '{}' from module '{}'",
-                    command.receiver,
-                    command.sender,
-                );
-                continue;
-            };
-            tracing::debug!(
-                "Handling internal command from module '{}' to module '{}'",
-                command.sender,
-                command.receiver
-            );
-
-            let mut internal_commands = Vec::new();
-            let mut ctx = DynModuleContext::new(
-                self.info.room_id,
-                room,
-                origin,
-                &mut self.info,
-                &mut self.message_router,
-                &mut self.participants,
-                timestamp,
-                Arc::clone(&self.storage),
-                &mut internal_commands,
-                &mut self.loopback_futures,
-            );
-
-            if let Err(err) = module
-                .on_event(
-                    &mut ctx,
-                    DynEvent::InternalCommand {
-                        sender: command.sender,
-                        command: command.command,
-                        return_result: command.result_handle,
-                    },
-                )
-                .await
-            {
-                self.handle_fatal_module_error(command.receiver, origin.transaction_id(), err)
-                    .await;
+        for message in messages.into_inner() {
+            match message {
+                ModuleMessage::Websocket {
+                    connection_id,
+                    message,
+                } => {
+                    self.message_router
+                        .send_event([connection_id], message)
+                        .await;
+                }
+                ModuleMessage::InternalCommand(inter_module_message) => {
+                    self.handle_internal_command(inter_module_message, room, origin, timestamp)
+                        .await;
+                }
+                ModuleMessage::CoreCommand(core_command) => {
+                    self.handle_core_command(core_command);
+                }
             }
         }
+    }
+
+    async fn handle_internal_command(
+        &mut self,
+        command: InterModuleMessage,
+        room: RoomKind,
+        origin: EventOrigin,
+        timestamp: Timestamp,
+    ) {
+        let Some(module) = self.modules.get_mut(&command.receiver) else {
+            tracing::error!(
+                "Received internal command for unknown module '{}' from module '{}'",
+                command.receiver,
+                command.sender,
+            );
+            return;
+        };
+        tracing::debug!(
+            "Handling internal command from module '{}' to module '{}'",
+            command.sender,
+            command.receiver
+        );
+
+        let mut messages = RefCell::new(Vec::new());
+        let mut ctx = DynModuleContext::new(
+            self.info.room_id,
+            room,
+            origin,
+            &mut self.info,
+            &mut self.participants,
+            timestamp,
+            Arc::clone(&self.storage),
+            &mut messages,
+            &mut self.loopback_futures,
+        );
+
+        if let Err(err) = module
+            .on_event(
+                &mut ctx,
+                DynEvent::InternalCommand {
+                    sender: command.sender,
+                    command: command.command,
+                    return_result: command.result_callback,
+                },
+            )
+            .await
+        {
+            self.handle_fatal_module_error(command.receiver, origin.transaction_id(), err)
+                .await;
+        }
+    }
+
+    fn handle_core_command(&mut self, command: CoreCommand) {
+        match command {}
     }
 
     #[tracing::instrument(level = "info", skip_all)]
@@ -550,20 +587,23 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         let timestamp = Timestamp::now();
-        let mut internal_commands = Vec::new();
+        let mut messages = RefCell::new(Vec::new());
         let origin = participant_origin.into();
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
             room_scope,
             origin,
             &mut self.info,
-            &mut self.message_router,
             &mut self.participants,
             timestamp,
             Arc::clone(&self.storage),
-            &mut internal_commands,
+            &mut messages,
             &mut self.loopback_futures,
         );
+
+        let room = ctx.room;
+        let origin = ctx.event_origin;
+        let timestamp = ctx.timestamp;
 
         if let Err(err) = module
             .on_event(
@@ -583,7 +623,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )
             .await;
         }
-        self.handle_internal_commands(room_scope, origin, timestamp, internal_commands)
+
+        self.handle_module_messages(messages, room, origin, timestamp)
             .await;
     }
 
@@ -726,8 +767,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             state.left_at = Some(Utc::now());
         }
 
-        let room = state.room;
+        self.message_router.remove_connection(connection_id).await;
 
+        let room = state.room;
         self.participant_disconnected(origin, participant_id, connection_id, room, reason.into())
             .await;
 

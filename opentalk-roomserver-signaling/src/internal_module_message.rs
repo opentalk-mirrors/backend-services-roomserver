@@ -21,5 +21,5 @@ pub struct InterModuleMessage {
     pub command: Box<dyn Any + Send + 'static>,
     /// A callback that is used to send the result of the [`command`](Self::command)
     /// back to the [`sender`](Self::sender).
-    pub result_handle: ResultCallback,
+    pub result_callback: ResultCallback,
 }

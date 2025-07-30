@@ -25,6 +25,7 @@ use tokio::{
 use tracing::{Instrument as _, debug_span};
 
 use crate::{
+    core_command::CoreCommand,
     event_origin::EventOrigin,
     internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
@@ -34,6 +35,15 @@ use crate::{
     signaling_module::{InternalCommand, SignalingModule},
     storage::{AssetMetaData, StorageProvider, UploadResult},
 };
+
+pub enum ModuleMessage {
+    Websocket {
+        connection_id: ConnectionId,
+        message: SharedRawJson,
+    },
+    InternalCommand(InterModuleMessage),
+    CoreCommand(CoreCommand),
+}
 
 /// Contains the room state and provides an interface to send websocket messages.
 pub struct ModuleContext<'ctx, M>
@@ -45,8 +55,7 @@ where
     pub event_origin: EventOrigin,
     room_task_info: &'ctx mut RoomTaskInfo,
     /// The websocket messages that are sent out after the module finished its event handling
-    messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
-    internal_commands: &'ctx mut Vec<InterModuleMessage>,
+    messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
     pub timestamp: Timestamp,
@@ -66,8 +75,7 @@ where
         room: RoomKind,
         event_origin: EventOrigin,
         room_task_info: &'ctx mut RoomTaskInfo,
-        messages: &'ctx mut RefCell<Vec<(ConnectionId, SharedRawJson)>>,
-        internal_commands: &'ctx mut Vec<InterModuleMessage>,
+        messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
         participants: &'ctx mut Participants,
         timestamp: Timestamp,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
@@ -79,7 +87,6 @@ where
             event_origin,
             room_task_info,
             messages,
-            internal_commands,
             participants,
             timestamp,
             loopback_futures,
@@ -95,7 +102,6 @@ where
             event_origin: self.event_origin,
             room_task_info: self.room_task_info,
             messages: self.messages,
-            internal_commands: self.internal_commands,
             participants: self.participants,
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
@@ -141,7 +147,10 @@ where
             let mut messages = self.messages.borrow_mut();
 
             for (connection_id, ..) in &state.connections {
-                messages.push((*connection_id, shared_json.clone()));
+                messages.push(ModuleMessage::Websocket {
+                    connection_id: *connection_id,
+                    message: shared_json.clone(),
+                });
             }
         }
 
@@ -172,7 +181,10 @@ where
 
         let mut messages = self.messages.borrow_mut();
         for connection_id in connection_ids {
-            messages.push((connection_id, shared_json.clone()));
+            messages.push(ModuleMessage::Websocket {
+                connection_id,
+                message: shared_json.clone(),
+            });
         }
 
         Ok(())
@@ -214,7 +226,10 @@ where
 
         for connection_id in state.connections.keys().copied() {
             if connection_id != source_connection {
-                messages.push((connection_id, shared_json.clone()));
+                messages.push(ModuleMessage::Websocket {
+                    connection_id,
+                    message: shared_json.clone(),
+                });
             }
         }
 
@@ -229,7 +244,7 @@ where
     pub fn send_internal_command<R>(
         &mut self,
         command: R::Internal,
-        handle_result: impl FnOnce(<R::Internal as InternalCommand>::Result) + Send + 'static,
+        result_callback: impl FnOnce(<R::Internal as InternalCommand>::Result) + Send + 'static,
     ) where
         R: SignalingModule,
     {
@@ -242,15 +257,17 @@ where
                 );
                 return;
             };
-            handle_result(*result);
+            result_callback(*result);
         };
         let command = InterModuleMessage {
             sender: M::NAMESPACE,
             receiver: R::NAMESPACE,
             command: Box::new(command),
-            result_handle: Box::new(downcast),
+            result_callback: Box::new(downcast),
         };
-        self.internal_commands.push(command);
+        self.messages
+            .get_mut()
+            .push(ModuleMessage::InternalCommand(command));
     }
 
     /// Invoke an error message of type [`SignalingError`]
@@ -298,7 +315,10 @@ where
         let mut messages = self.messages.borrow_mut();
 
         for (connection_id, ..) in &state.connections {
-            messages.push((*connection_id, shared_json.clone()));
+            messages.push(ModuleMessage::Websocket {
+                connection_id: *connection_id,
+                message: shared_json.clone(),
+            });
         }
     }
 
