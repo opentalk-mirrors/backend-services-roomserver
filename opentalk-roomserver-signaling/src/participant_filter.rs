@@ -160,7 +160,7 @@ impl<'a> ParticipantsFiltered<'a> {
             .map(|(k, _)| *k)
     }
 
-    pub fn connection_ids(&self) -> impl Iterator<Item = ConnectionId> + use<'_> {
+    pub fn connection_ids(self) -> impl Iterator<Item = ConnectionId> {
         let filter = self.filter;
 
         self.inner

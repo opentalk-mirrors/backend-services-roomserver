@@ -30,7 +30,9 @@ use super::participant::{MockParticipantJoined, MockParticipantJoining, ReceiveE
 use crate::{
     ModuleRegistry, RoomTaskHandle, RoomTaskHandleError,
     mocking::{
-        participant::{alice_public_profile, create_participant_connection},
+        participant::{
+            MockParticipantWaiting, alice_public_profile, create_participant_connection,
+        },
         socket::MockSocket,
     },
     task::{RoomTask, fs_storage::FsStorage},
@@ -129,6 +131,11 @@ impl TestRoomBuilder {
         Ok(self)
     }
 
+    pub fn waiting_room(mut self, enabled: bool) -> Self {
+        self.room_parameters.waiting_room = enabled;
+        self
+    }
+
     pub fn room_id(mut self, room_id: RoomId) -> Self {
         self.room_id = room_id;
         self
@@ -219,6 +226,19 @@ impl TestRoom {
         Ok(participant)
     }
 
+    pub async fn enter_waiting_room(
+        &mut self,
+        client_parameters: ClientParameters,
+    ) -> Result<MockParticipantWaiting, Error> {
+        let (socket, participant) = create_participant_connection();
+        self.room_handle
+            .accept_signaling_socket(socket, client_parameters)
+            .await?;
+        let participant = participant.join_waiting_room().await?;
+
+        Ok(participant)
+    }
+
     pub async fn join_alice_moderator(&mut self, device_number: usize) -> MockParticipantJoined {
         MockParticipantJoining::alice(device_number)
             .join(self)
@@ -249,6 +269,34 @@ impl TestRoom {
 
     pub async fn join_gustav_guest(&mut self) -> MockParticipantJoined {
         MockParticipantJoining::gustav().join(self).await.unwrap()
+    }
+
+    pub async fn waiting_room_bob(&mut self, device_number: usize) -> MockParticipantWaiting {
+        MockParticipantJoining::bob(device_number)
+            .enter_waiting_room(self)
+            .await
+            .unwrap()
+    }
+
+    pub async fn waiting_room_charlie(&mut self, device_number: usize) -> MockParticipantWaiting {
+        MockParticipantJoining::charlie(device_number)
+            .enter_waiting_room(self)
+            .await
+            .unwrap()
+    }
+
+    pub async fn waiting_room_dave(&mut self, device_number: usize) -> MockParticipantWaiting {
+        MockParticipantJoining::dave(device_number)
+            .enter_waiting_room(self)
+            .await
+            .unwrap()
+    }
+
+    pub async fn waiting_room_gustav_guest(&mut self) -> MockParticipantWaiting {
+        MockParticipantJoining::gustav()
+            .enter_waiting_room(self)
+            .await
+            .unwrap()
     }
 
     pub fn id(&self) -> RoomId {

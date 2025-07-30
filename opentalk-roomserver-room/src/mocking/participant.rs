@@ -14,6 +14,7 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     core_event::CoreEvent,
     join::join_success::JoinSuccess,
+    moderation::{MODERATION_MODULE_ID, command::ModerationCommand, event::ModerationEvent},
     room_kind::RoomKind,
     signaling::SignalingCommand,
 };
@@ -41,6 +42,16 @@ use super::{
 const RECV_TIMEOUT: Duration = Duration::from_millis(500);
 
 #[derive(Debug, thiserror::Error)]
+pub enum ParticipantError {
+    #[error("Send")]
+    Send(#[from] SendError),
+    #[error("Receive")]
+    Receive(#[from] ReceiveError),
+    #[error("Invalid json")]
+    InvalidJson(#[from] serde_json::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum ReceiveError {
     #[error("Closed")]
     Closed,
@@ -55,10 +66,13 @@ pub enum ReceiveError {
     UnexpectedMessage(SignalingSocketMessage),
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum SendError {
+    #[error("Closed")]
     Closed,
+    #[error("Invalid json: {0:?}")]
     InvalidJson(serde_json::Error),
+    #[error("UnexpectedMessage {0:?}")]
     UnexpectedMessage(SignalingSocketMessage),
 }
 
@@ -74,8 +88,14 @@ impl From<Elapsed> for ReceiveError {
     }
 }
 
+pub struct WaitingRoomState {
+    connection_id: ConnectionId,
+    participant_id: ParticipantId,
+}
+
 pub type MockParticipantJoining = MockParticipant<()>;
 pub type MockParticipantJoined = MockParticipant<JoinSuccess>;
+pub type MockParticipantWaiting = MockParticipant<WaitingRoomState>;
 
 #[derive(Debug)]
 pub struct MockParticipant<S> {
@@ -85,10 +105,8 @@ pub struct MockParticipant<S> {
 }
 
 impl MockParticipant<()> {
-    pub(crate) async fn join_success(
-        mut self,
-    ) -> Result<MockParticipant<JoinSuccess>, ReceiveError> {
-        let Some(received) = self.receiver.recv().await else {
+    pub(crate) async fn join_success(mut self) -> Result<MockParticipantJoined, ReceiveError> {
+        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         match received {
@@ -114,15 +132,56 @@ impl MockParticipant<()> {
             other => Err(ReceiveError::UnexpectedMessage(other)),
         }
     }
+
+    pub(crate) async fn join_waiting_room(
+        mut self,
+    ) -> Result<MockParticipantWaiting, ReceiveError> {
+        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
+            return Err(ReceiveError::Closed);
+        };
+        match received {
+            SignalingSocketMessage::Text(text) => {
+                let event: SignalingEvent<ModerationEvent> =
+                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
+                        error,
+                        message: SignalingSocketMessage::Text(text.clone()),
+                    })?;
+
+                if let ModerationEvent::InWaitingRoom {
+                    connection_id,
+                    participant_id,
+                } = event.content
+                {
+                    Ok(MockParticipant {
+                        sender: self.sender,
+                        receiver: self.receiver,
+                        state: WaitingRoomState {
+                            connection_id,
+                            participant_id,
+                        },
+                    })
+                } else {
+                    Err(ReceiveError::UnexpectedMessage(
+                        SignalingSocketMessage::Text(text),
+                    ))
+                }
+            }
+            other => Err(ReceiveError::UnexpectedMessage(other)),
+        }
+    }
 }
 
-impl MockParticipant<JoinSuccess> {
+impl MockParticipantJoined {
     pub fn join_success(&self) -> &JoinSuccess {
         &self.state
     }
 
     pub fn id(&self) -> ParticipantId {
         self.state.id
+    }
+
+    pub fn display_name(&self) -> &DisplayName {
+        &self.state.display_name
     }
 
     pub fn connection_id(&self) -> ConnectionId {
@@ -195,6 +254,83 @@ impl MockParticipant<JoinSuccess> {
         }
 
         self.receive::<BreakoutEvent>().await.unwrap().content
+    }
+}
+
+impl MockParticipantWaiting {
+    /// 1. Receive ModerationEvent::Accepted
+    /// 2. Receive JoinSuccess
+    pub async fn wait_accept(&mut self) -> Result<(), ReceiveError> {
+        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
+            return Err(ReceiveError::Closed);
+        };
+        match received {
+            SignalingSocketMessage::Text(text) => {
+                let event: SignalingEvent<ModerationEvent> =
+                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
+                        error,
+                        message: SignalingSocketMessage::Text(text.clone()),
+                    })?;
+
+                if let ModerationEvent::Accepted = event.content {
+                    Ok(())
+                } else {
+                    Err(ReceiveError::UnexpectedMessage(
+                        SignalingSocketMessage::Text(text),
+                    ))
+                }
+            }
+            other => Err(ReceiveError::UnexpectedMessage(other)),
+        }
+    }
+
+    pub async fn enter_room(&mut self) -> Result<(), ParticipantError> {
+        let command = SignalingCommand {
+            namespace: MODERATION_MODULE_ID,
+            transaction_id: None,
+            content: to_raw_value(&ModerationCommand::EnterRoom)
+                .expect("Command must be Serializable"),
+        };
+        let value = serde_json::to_value(&command).expect("SignalingCommand is serializable");
+        self.send_command_raw(value).await?;
+        Ok(())
+    }
+
+    pub async fn join_success(mut self) -> Result<MockParticipantJoined, ParticipantError> {
+        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv())
+            .await
+            .map_err(|_| ReceiveError::Timeout)?
+        else {
+            return Err(ReceiveError::Closed.into());
+        };
+        match received {
+            SignalingSocketMessage::Text(text) => {
+                let event: SignalingEvent<CoreEvent> =
+                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
+                        error,
+                        message: SignalingSocketMessage::Text(text.clone()),
+                    })?;
+
+                if let CoreEvent::JoinSuccess(msg) = event.content {
+                    Ok(MockParticipant {
+                        sender: self.sender,
+                        receiver: self.receiver,
+                        state: *msg,
+                    })
+                } else {
+                    Err(ReceiveError::UnexpectedMessage(SignalingSocketMessage::Text(text)).into())
+                }
+            }
+            other => Err(ReceiveError::UnexpectedMessage(other).into()),
+        }
+    }
+
+    pub fn id(&self) -> ParticipantId {
+        self.state.participant_id
+    }
+
+    pub fn connection_id(&self) -> ConnectionId {
+        self.state.connection_id
     }
 }
 
@@ -350,9 +486,23 @@ impl<S> MockParticipant<S> {
         let command = SignalingCommand {
             namespace: BREAKOUT_MODULE_ID,
             transaction_id,
-            content: to_raw_value(&command).expect("Command must be serializable"),
+            content: to_raw_value(&command).expect("BreakoutCommand must be serializable"),
         };
-        let value = serde_json::to_value(&command).expect("BreakoutCommand is serializable");
+        let value = serde_json::to_value(&command).expect("Command is serializable");
+        self.send_command_raw(value).await
+    }
+
+    pub async fn send_moderation_command(
+        &self,
+        command: ModerationCommand,
+        transaction_id: Option<u64>,
+    ) -> Result<(), SendError> {
+        let command = SignalingCommand {
+            namespace: MODERATION_MODULE_ID,
+            transaction_id,
+            content: to_raw_value(&command).expect("ModerationCommand must be serializable"),
+        };
+        let value = serde_json::to_value(&command).expect("Command is serializable");
         self.send_command_raw(value).await
     }
 
@@ -490,11 +640,22 @@ impl MockParticipantBuilder<PublicUserProfile> {
         self
     }
 
-    pub async fn join(
+    pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
+        room.join_participant(ClientParameters {
+            device_secret: self.secret,
+            kind: ClientKind::Registered {
+                profile: self.profile,
+            },
+            role: self.role,
+        })
+        .await
+    }
+
+    pub async fn enter_waiting_room(
         self,
         room: &mut TestRoom,
-    ) -> Result<MockParticipant<JoinSuccess>, room::Error> {
-        room.join_participant(ClientParameters {
+    ) -> Result<MockParticipantWaiting, room::Error> {
+        room.enter_waiting_room(ClientParameters {
             device_secret: self.secret,
             kind: ClientKind::Registered {
                 profile: self.profile,
@@ -513,11 +674,22 @@ impl MockParticipantBuilder<DisplayName> {
         self
     }
 
-    pub async fn join(
+    pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
+        room.join_participant(ClientParameters {
+            device_secret: self.secret,
+            kind: ClientKind::Guest {
+                display_name: self.profile,
+            },
+            role: self.role,
+        })
+        .await
+    }
+
+    pub async fn enter_waiting_room(
         self,
         room: &mut TestRoom,
-    ) -> Result<MockParticipant<JoinSuccess>, room::Error> {
-        room.join_participant(ClientParameters {
+    ) -> Result<MockParticipantWaiting, room::Error> {
+        room.enter_waiting_room(ClientParameters {
             device_secret: self.secret,
             kind: ClientKind::Guest {
                 display_name: self.profile,

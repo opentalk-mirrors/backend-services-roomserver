@@ -1,0 +1,303 @@
+// SPDX-License-Identifier: EUPL-1.2
+// SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+use std::collections::BTreeSet;
+
+use opentalk_roomserver_room::mocking::{
+    mock_module::MockModule,
+    participant::{MockParticipantJoined, MockParticipantWaiting},
+    room::TestRoom,
+};
+use opentalk_roomserver_types::{
+    connection_id::ConnectionId,
+    core_event::CoreEvent,
+    moderation::{
+        command::{Accept, ModerationCommand},
+        event::{LeftWaitingRoom, ModerationError, ModerationEvent},
+    },
+};
+use opentalk_types_signaling::{Participant, ParticipantId};
+
+async fn accept_participant(
+    moderator: &mut MockParticipantJoined,
+    mut joinee: MockParticipantWaiting,
+) -> MockParticipantJoined {
+    let event = moderator.receive::<ModerationEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        ModerationEvent::JoinedWaitingRoom(Participant {
+            id,
+            ..
+        }) if id == joinee.id()
+    ));
+    assert!(joinee.received_nothing());
+
+    moderator
+        .send_moderation_command(
+            ModerationCommand::Accept(Accept {
+                target: joinee.id(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    joinee.wait_accept().await.unwrap();
+    joinee.enter_room().await.unwrap();
+    let mut joinee = joinee.join_success().await.unwrap();
+
+    let event = moderator.receive::<ModerationEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        ModerationEvent::LeftWaitingRoom(
+            LeftWaitingRoom { id, connection_id }
+        ) if joinee.id() == id && joinee.connection_id() == connection_id
+    ));
+    let event = moderator.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        CoreEvent::ParticipantConnected {
+            participant_id,
+            connection_id,
+            ..
+            } if participant_id == joinee.id() && connection_id == joinee.connection_id()
+    ));
+    assert!(moderator.received_nothing());
+    assert!(joinee.received_nothing());
+    joinee
+}
+
+/// 1. Spawn room with activated waiting room
+/// 2. Alice joins as a moderator
+/// 3. Charlie joins via the waiting room (Test participant to verify events are send out correctly)
+/// 4. Bob joins twice and is put in the waiting room (multiple connections)
+/// 5. Alice accepts bob
+/// 6. Both of Bobs devices join the room
+/// 7. Moderators receive LeftWaitingRoom event; Normal users receive Joined event
+#[test_log::test(tokio::test)]
+async fn join_via_waiting_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<MockModule>()
+        .waiting_room(true)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let charlie = room.waiting_room_charlie(0).await;
+    let mut charlie = accept_participant(&mut alice, charlie).await;
+
+    let mut bob_0 = room.waiting_room_bob(0).await;
+    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        ModerationEvent::JoinedWaitingRoom(Participant {
+            id,
+            ..
+        }) if id == bob_0.id()
+    ));
+
+    let mut bob_1 = room.waiting_room_bob(1).await;
+    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        ModerationEvent::JoinedWaitingRoom(Participant {
+            id,
+            ..
+        }) if id == bob_1.id()
+    ));
+
+    assert!(bob_0.received_nothing());
+    assert!(bob_1.received_nothing());
+    alice
+        .send_moderation_command(
+            ModerationCommand::Accept(Accept { target: bob_0.id() }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    bob_0.wait_accept().await.unwrap();
+    bob_1.wait_accept().await.unwrap();
+    bob_0.enter_room().await.unwrap();
+    let bob_0 = bob_0.join_success().await.unwrap();
+    let bob_1 = bob_1.join_success().await.unwrap();
+
+    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        ModerationEvent::LeftWaitingRoom(
+            LeftWaitingRoom { id, connection_id }
+        ) if bob_0.id() == id && bob_0.connection_id() == connection_id
+    ));
+    // charlie should only receive the JoinedEvent, which will be checked next.
+
+    async fn receive_joined_events(
+        participant: &mut MockParticipantJoined,
+        expected: BTreeSet<(ParticipantId, ConnectionId)>,
+    ) {
+        let mut joined_connections = BTreeSet::new();
+        for _ in 0..2 {
+            let event = participant.receive::<CoreEvent>().await.unwrap();
+            match event.content {
+                CoreEvent::ParticipantConnected {
+                    participant_id,
+                    connection_id,
+                    ..
+                } => {
+                    joined_connections.insert((participant_id, connection_id));
+                }
+                other => {
+                    panic!("Unexpected CoreEvent: {other:?}");
+                }
+            }
+        }
+        assert_eq!(
+            joined_connections,
+            expected,
+            "Participant {} didn't receive all joined events",
+            participant.display_name()
+        );
+    }
+    for p in [&mut alice, &mut charlie] {
+        receive_joined_events(
+            p,
+            BTreeSet::from([
+                (bob_0.id(), bob_0.connection_id()),
+                (bob_1.id(), bob_1.connection_id()),
+            ]),
+        )
+        .await;
+    }
+
+    // No additional messages, bob_0 or bob_1 might receive a ParticipantJoined event depending on the order of joining
+    assert!(alice.received_nothing());
+    assert!(charlie.received_nothing());
+}
+
+/// 1. Spawn room with activated waiting room
+/// 2. Alice joins as a moderator
+/// 3. Alice accepts bob
+#[test_log::test(tokio::test)]
+async fn accept_unknown_participant() {
+    let mut room = TestRoom::builder()
+        .waiting_room(true)
+        .register_module::<MockModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_moderation_command(
+            ModerationCommand::Accept(Accept {
+                target: ParticipantId::from_u128(12),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    assert!(
+        matches!(
+            event.content,
+            ModerationEvent::Error(ModerationError::NotWaiting)
+        ),
+        "Expected moderation error, got: {:?}",
+        event.content
+    );
+}
+
+/// 1. Spawn room with activated waiting room
+/// 2. Alice joins as a moderator
+#[test_log::test(tokio::test)]
+async fn moderators_skip_waiting_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<MockModule>()
+        .waiting_room(true)
+        .spawn();
+    room.join_alice_moderator(0).await;
+}
+
+/// 1. Spawn room with activated waiting room
+/// 2. Alice joins as a moderator
+/// 3. Bob joins and is accepted
+/// 4. Bob leaves
+/// 5. When Bob joins again, he skips the waiting room
+#[test_log::test(tokio::test)]
+async fn registered_users_once_accepted_always_skip() {
+    let mut room = TestRoom::builder()
+        .register_module::<MockModule>()
+        .waiting_room(true)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let bob = room.waiting_room_bob(0).await;
+    let bob = accept_participant(&mut alice, bob).await;
+
+    bob.disconnect();
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        CoreEvent::ParticipantDisconnected { .. }
+    ));
+    room.join_bob(0).await;
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        CoreEvent::ParticipantConnected { .. }
+    ));
+}
+
+/// 1. Spawn room with activated waiting room
+/// 2. Alice joins as a moderator
+/// 3. Gustav joins and is accepted
+/// 4. Gustav leaves
+/// 5. When Gustav joins again, he skips the waiting room
+#[test_log::test(tokio::test)]
+async fn guest_users_once_accepted_always_skip() {
+    let mut room = TestRoom::builder()
+        .register_module::<MockModule>()
+        .waiting_room(true)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let gustav = room.waiting_room_gustav_guest().await;
+    let gustav = accept_participant(&mut alice, gustav).await;
+
+    gustav.disconnect();
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        CoreEvent::ParticipantDisconnected { .. }
+    ));
+    room.join_gustav_guest().await;
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        CoreEvent::ParticipantConnected { .. }
+    ));
+}
+
+/// 1. Spawn room with activated waiting room
+/// 2. Alice joins the room as a moderator
+/// 3. Bob enters the waiting room (Alice receives notification)
+/// 4. Bob leaves the waiting room (Alice receives notification)
+#[test_log::test(tokio::test)]
+async fn event_when_leaving_waiting_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<MockModule>()
+        .waiting_room(true)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let bob = room.waiting_room_bob(0).await;
+    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        ModerationEvent::JoinedWaitingRoom(..)
+    ));
+
+    bob.disconnect();
+    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    assert!(matches!(
+        event.content,
+        ModerationEvent::LeftWaitingRoom(..)
+    ));
+}

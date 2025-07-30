@@ -112,7 +112,7 @@ impl ParticipantKind {
 }
 
 impl From<&ClientKind> for ParticipantKind {
-    fn from(value: &ClientKind) -> ParticipantKind {
+    fn from(value: &ClientKind) -> Self {
         match value {
             ClientKind::Registered { .. } => ParticipantKind::User,
             ClientKind::Guest { .. } => ParticipantKind::Guest,
@@ -150,7 +150,7 @@ impl ParticipantState {
     }
 
     /// Get all connections of the participant
-    pub fn connections(&self) -> impl Iterator<Item = ConnectionId> + use<'_> {
+    pub fn connections(&self) -> impl Iterator<Item = ConnectionId> {
         self.connections.iter().map(|(conn, ..)| *conn)
     }
 
