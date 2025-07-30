@@ -150,7 +150,7 @@ impl<'a> ParticipantsFiltered<'a> {
         }
     }
 
-    pub fn ids(&self) -> impl Iterator<Item = ParticipantId> + use<'_> {
+    pub fn ids(self) -> impl Iterator<Item = ParticipantId> {
         let filter = self.filter;
 
         self.inner
