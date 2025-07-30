@@ -2,7 +2,8 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use std::{
-    any::Any, cell::RefCell, future::Future, marker::PhantomData, sync::Arc, time::Duration,
+    any::Any, cell::RefCell, collections::HashMap, future::Future, marker::PhantomData, sync::Arc,
+    time::Duration,
 };
 
 use anyhow::Context as _;
@@ -34,6 +35,7 @@ use crate::{
     signaling_event::SignalingEvent,
     signaling_module::{InternalCommand, SignalingModule},
     storage::{AssetMetaData, StorageProvider, UploadResult},
+    waiting_participant::WaitingParticipant,
 };
 
 pub enum ModuleMessage {
@@ -58,6 +60,7 @@ where
     messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
+    pub waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
     pub timestamp: Timestamp,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
     storage: Arc<dyn StorageProvider>,
@@ -77,6 +80,7 @@ where
         room_task_info: &'ctx mut RoomTaskInfo,
         messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
         participants: &'ctx mut Participants,
+        waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
         timestamp: Timestamp,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
         storage: Arc<dyn StorageProvider>,
@@ -88,6 +92,7 @@ where
             room_task_info,
             messages,
             participants,
+            waiting_participants,
             timestamp,
             loopback_futures,
             storage,
@@ -103,6 +108,7 @@ where
             room_task_info: self.room_task_info,
             messages: self.messages,
             participants: self.participants,
+            waiting_participants: self.waiting_participants,
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
             storage: Arc::clone(&self.storage),

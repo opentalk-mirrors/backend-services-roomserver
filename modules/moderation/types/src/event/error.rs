@@ -13,6 +13,10 @@ pub enum ModerationError {
     InsufficientPermissions,
     /// The requested participant is not connected
     UnknownParticipant,
+    /// The participant is not in the waiting room
+    NotWaiting,
+    /// The participant cannot enter the room because they were not accepted by a moderator yet.
+    NotAccepted,
 }
 
 impl ModuleError for ModerationError {}

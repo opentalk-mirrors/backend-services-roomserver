@@ -22,6 +22,9 @@ pub enum ModerationEvent {
     /// Sent out when the waiting room is disabled
     WaitingRoomDisabled,
 
+    /// Sent to a participant when they are accepted by the moderator from the waiting room
+    Accepted,
+
     /// An error happened when executing a `moderation` command
     Error(ModerationError),
 }
@@ -95,5 +98,27 @@ mod serde_tests {
           "issued_by": "00000000-0000-0000-0000-000000000000"
         }
         "#);
+    }
+
+    #[test]
+    fn serialize_accepted() {
+        let produced = serde_json::to_string_pretty(&ModerationEvent::Accepted).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "accepted"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_accepted() {
+        let produced: ModerationEvent = serde_json::from_value(json!({
+            "message": "accepted"
+        }))
+        .unwrap();
+        let expected = ModerationEvent::Accepted;
+
+        assert_eq!(produced, expected);
     }
 }

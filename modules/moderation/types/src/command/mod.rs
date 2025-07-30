@@ -8,4 +8,4 @@ mod kick;
 mod moderation_command;
 
 pub use kick::Kick;
-pub use moderation_command::ModerationCommand;
+pub use moderation_command::{Accept, ModerationCommand};

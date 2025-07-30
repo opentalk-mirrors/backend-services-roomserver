@@ -80,7 +80,6 @@ use opentalk_roomserver_types::{
     core::{CoreCommand, CoreEvent},
     device_id::DeviceId,
     error::SignalingError,
-    moderation::MODERATION_MODULE_ID,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
     signaling::{SignalingCommand, module_error::SignalingModuleError},
@@ -113,8 +112,7 @@ pub mod core;
 pub mod fs_storage;
 pub mod handle;
 pub mod idle_timeout;
-pub mod moderation;
-mod waiting_room;
+pub mod waiting_room;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
@@ -355,6 +353,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             msg.origin,
             &mut self.info,
             &mut self.participants,
+            &mut self.waiting_participants,
             msg.timestamp,
             Arc::clone(&self.storage),
             &mut messages,
@@ -433,6 +432,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             origin,
             &mut self.info,
             &mut self.participants,
+            &mut self.waiting_participants,
             timestamp,
             Arc::clone(&self.storage),
             &mut messages,
@@ -455,10 +455,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn handle_instruction(&mut self, origin: EventOrigin, instruction: Instruction) {
         match instruction {
             Instruction::Kick { participants } => {
-                self.kick_participants(origin, participants).await
+                // This needs boxing because disconnecting a participant invokes a
+                // broadcast event. This can lead to recursion because modules can
+                // invoke core commands from broadcast events.
+                Box::pin(self.kick_participants(origin, participants)).await;
             }
         };
     }
@@ -473,15 +477,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             };
             let connections: Vec<ConnectionId> = state.connections().collect();
             for connection_id in connections {
-                // This needs boxing because disconnecting a participant invokes a
-                // broadcast event. This can lead to recursion because modules can
-                // invoke core commands from broadcast events.
-                Box::pin(self.disconnect_participant(
+                self.disconnect_participant(
                     origin,
                     participant_id,
                     connection_id,
                     CloseReason::Kicked,
-                ))
+                )
                 .await;
             }
         }
@@ -560,10 +561,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
             m if *m == breakout::BREAKOUT_MODULE_ID => {
                 self.handle_breakout_command(participant_origin, signaling_command)
-                    .await;
-            }
-            m if *m == MODERATION_MODULE_ID => {
-                self.handle_moderation_command(participant_origin, signaling_command)
                     .await;
             }
             _ => {
@@ -703,6 +700,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             origin,
             &mut self.info,
             &mut self.participants,
+            &mut self.waiting_participants,
             timestamp,
             Arc::clone(&self.storage),
             &mut messages,

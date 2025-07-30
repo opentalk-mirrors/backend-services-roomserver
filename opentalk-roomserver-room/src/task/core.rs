@@ -177,6 +177,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         origin,
                         &mut self.info,
                         &mut self.participants,
+                        &mut self.waiting_participants,
                         timestamp,
                         Arc::clone(&self.storage),
                         &mut messages,

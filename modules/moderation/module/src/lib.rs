@@ -14,7 +14,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
-    command::{Kick, ModerationCommand},
+    command::{Accept, Kick, ModerationCommand},
     event::{DebriefingStarted, ModerationError, ModerationEvent},
 };
 use opentalk_types_common::modules::ModuleId;
@@ -74,6 +74,9 @@ impl SignalingModule for ModerationModule {
         match content {
             ModerationCommand::Kick(Kick { target }) => self.kick_participant(ctx, sender, target),
             ModerationCommand::Debrief(kick_scope) => self.debrief(ctx, sender, kick_scope),
+            ModerationCommand::Accept(Accept { target }) => {
+                Self::accept_waiting_room_participant(ctx, sender, target)
+            }
         }
     }
 }
@@ -141,6 +144,35 @@ impl ModerationModule {
         }
 
         (kicked, not_kicked)
+    }
+
+    fn accept_waiting_room_participant(
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            tracing::debug!("Insufficient permissions");
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        let Some(participant) = ctx.waiting_participants.get_mut(&target) else {
+            tracing::debug!(
+                "Failed to send `accept` to waiting participant: participant not known ({target})"
+            );
+            return Err(ModerationError::NotWaiting.into());
+        };
+
+        participant.accepted = true;
+
+        tracing::trace!("accept participant: {target}");
+        let connections: Vec<ConnectionId> = participant.connections.keys().copied().collect();
+        // Participants in the waiting room do not have a participant state,
+        // from which the connection ids could be determined, so we have to use
+        // send_ws_message_to_connections().
+        ctx.send_ws_message_to_connections(connections, ModerationEvent::Accepted)?;
+
+        Ok(())
     }
 
     fn set_waiting_room_enabled(

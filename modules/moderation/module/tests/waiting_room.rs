@@ -3,18 +3,18 @@
 
 use std::collections::BTreeSet;
 
+use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::{
-    mock_module::MockModule,
     participant::{MockParticipantJoined, MockParticipantWaiting},
     room::TestRoom,
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
-    core::{CoreEvent, LeftWaitingRoom},
-    moderation::{
-        command::{Accept, ModerationCommand},
-        event::{ModerationError, ModerationEvent},
-    },
+    core::{CoreCommand, CoreEvent, LeftWaitingRoom},
+};
+use opentalk_roomserver_types_moderation::{
+    command::{Accept, ModerationCommand},
+    event::{ModerationError, ModerationEvent},
 };
 use opentalk_types_signaling::ParticipantId;
 
@@ -30,7 +30,7 @@ async fn accept_participant(
     assert!(joinee.received_nothing());
 
     moderator
-        .send_moderation_command(
+        .send_command::<ModerationModule>(
             ModerationCommand::Accept(Accept {
                 target: joinee.id(),
             }),
@@ -39,8 +39,17 @@ async fn accept_participant(
         .await
         .unwrap();
 
-    joinee.wait_accept().await.unwrap();
-    joinee.enter_room().await.unwrap();
+    let event = joinee
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::Accepted);
+
+    joinee
+        .send_core_command(CoreCommand::EnterRoom, None)
+        .await
+        .unwrap();
     let mut joinee = joinee.join_success().await.unwrap();
 
     let event = moderator.receive::<CoreEvent>().await.unwrap();
@@ -74,7 +83,7 @@ async fn accept_participant(
 #[test_log::test(tokio::test)]
 async fn join_via_waiting_room() {
     let mut room = TestRoom::builder()
-        .register_module::<MockModule>()
+        .register_module::<ModerationModule>()
         .waiting_room(true)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
@@ -98,16 +107,31 @@ async fn join_via_waiting_room() {
     assert!(bob_0.received_nothing());
     assert!(bob_1.received_nothing());
     alice
-        .send_moderation_command(
+        .send_command::<ModerationModule>(
             ModerationCommand::Accept(Accept { target: bob_0.id() }),
             None,
         )
         .await
         .unwrap();
 
-    bob_0.wait_accept().await.unwrap();
-    bob_1.wait_accept().await.unwrap();
-    bob_0.enter_room().await.unwrap();
+    let event = bob_0
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::Accepted);
+
+    let event = bob_1
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::Accepted);
+
+    bob_0
+        .send_core_command(CoreCommand::EnterRoom, None)
+        .await
+        .unwrap();
     let bob_0 = bob_0.join_success().await.unwrap();
     let bob_1 = bob_1.join_success().await.unwrap();
 
@@ -170,12 +194,12 @@ async fn join_via_waiting_room() {
 async fn accept_unknown_participant() {
     let mut room = TestRoom::builder()
         .waiting_room(true)
-        .register_module::<MockModule>()
+        .register_module::<ModerationModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
     alice
-        .send_moderation_command(
+        .send_command::<ModerationModule>(
             ModerationCommand::Accept(Accept {
                 target: ParticipantId::from_u128(12),
             }),
@@ -200,7 +224,7 @@ async fn accept_unknown_participant() {
 #[test_log::test(tokio::test)]
 async fn moderators_skip_waiting_room() {
     let mut room = TestRoom::builder()
-        .register_module::<MockModule>()
+        .register_module::<ModerationModule>()
         .waiting_room(true)
         .spawn();
     room.join_alice_moderator(0).await;
@@ -214,7 +238,7 @@ async fn moderators_skip_waiting_room() {
 #[test_log::test(tokio::test)]
 async fn registered_users_once_accepted_always_skip() {
     let mut room = TestRoom::builder()
-        .register_module::<MockModule>()
+        .register_module::<ModerationModule>()
         .waiting_room(true)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
@@ -244,7 +268,7 @@ async fn registered_users_once_accepted_always_skip() {
 #[test_log::test(tokio::test)]
 async fn guest_users_once_accepted_always_skip() {
     let mut room = TestRoom::builder()
-        .register_module::<MockModule>()
+        .register_module::<ModerationModule>()
         .waiting_room(true)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
@@ -273,7 +297,7 @@ async fn guest_users_once_accepted_always_skip() {
 #[test_log::test(tokio::test)]
 async fn event_when_leaving_waiting_room() {
     let mut room = TestRoom::builder()
-        .register_module::<MockModule>()
+        .register_module::<ModerationModule>()
         .waiting_room(true)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;

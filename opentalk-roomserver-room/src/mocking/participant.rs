@@ -14,7 +14,6 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     core::{CoreCommand, CoreEvent},
     join::join_success::JoinSuccess,
-    moderation::{MODERATION_MODULE_ID, command::ModerationCommand},
     room_kind::RoomKind,
     signaling::SignalingCommand,
 };
@@ -485,20 +484,6 @@ impl<S> MockParticipant<S> {
             namespace: BREAKOUT_MODULE_ID,
             transaction_id,
             content: to_raw_value(&command).expect("BreakoutCommand must be serializable"),
-        };
-        let value = serde_json::to_value(&command).expect("Command is serializable");
-        self.send_command_raw(value).await
-    }
-
-    pub async fn send_moderation_command(
-        &self,
-        command: ModerationCommand,
-        transaction_id: Option<u64>,
-    ) -> Result<(), SendError> {
-        let command = SignalingCommand {
-            namespace: MODERATION_MODULE_ID,
-            transaction_id,
-            content: to_raw_value(&command).expect("ModerationCommand must be serializable"),
         };
         let value = serde_json::to_value(&command).expect("Command is serializable");
         self.send_command_raw(value).await

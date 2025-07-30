@@ -17,3 +17,9 @@ opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-moderation.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+test-log.workspace = true
+tokio.workspace = true

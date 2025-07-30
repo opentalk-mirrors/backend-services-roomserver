@@ -13,7 +13,6 @@ pub mod device_id;
 pub mod disconnect_reason;
 pub mod error;
 pub mod join;
-pub mod moderation;
 pub mod room_info;
 pub mod room_kind;
 pub mod room_parameters;

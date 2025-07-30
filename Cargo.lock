@@ -5712,11 +5712,15 @@ dependencies = [
 name = "opentalk-roomserver-module-moderation"
 version = "0.0.4-dev"
 dependencies = [
+ "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-moderation",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "test-log",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

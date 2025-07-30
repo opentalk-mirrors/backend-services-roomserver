@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{cell::RefCell, sync::Arc};
+use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
@@ -12,9 +12,11 @@ use opentalk_roomserver_signaling::{
     room_info::RoomTaskInfo,
     signaling_module::SignalingModule,
     storage::StorageProvider,
+    waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::room_kind::RoomKind;
 use opentalk_types_common::{rooms::RoomId, time::Timestamp};
+use opentalk_types_signaling::ParticipantId;
 
 /// Contains the state of the [`RoomTask`](super::super::task::RoomTask) that is accessible to all [`SignalingModule`]s
 pub struct DynModuleContext<'ctx> {
@@ -23,6 +25,7 @@ pub struct DynModuleContext<'ctx> {
     pub event_origin: EventOrigin,
     pub room_task_info: &'ctx mut RoomTaskInfo,
     pub participants: &'ctx mut Participants,
+    pub waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
     pub timestamp: Timestamp,
     pub storage: Arc<dyn StorageProvider>,
     pub messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
@@ -37,6 +40,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         event_origin: EventOrigin,
         room_task_info: &'ctx mut RoomTaskInfo,
         participants: &'ctx mut Participants,
+        waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
         timestamp: Timestamp,
         storage: Arc<dyn StorageProvider>,
         messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
@@ -48,6 +52,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             event_origin,
             room_task_info,
             participants,
+            waiting_participants,
             timestamp,
             storage,
             messages,
@@ -63,6 +68,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             event_origin: self.event_origin,
             room_task_info: self.room_task_info,
             participants: self.participants,
+            waiting_participants: self.waiting_participants,
             timestamp: self.timestamp,
             storage: Arc::clone(&self.storage),
             messages: self.messages,
@@ -78,6 +84,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             self.room_task_info,
             self.messages,
             self.participants,
+            self.waiting_participants,
             self.timestamp,
             self.loopback_futures,
             self.storage,
