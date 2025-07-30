@@ -25,8 +25,8 @@ use tokio::{
 use tracing::{Instrument as _, debug_span};
 
 use crate::{
-    core_command::CoreCommand,
     event_origin::EventOrigin,
+    instruction::Instruction,
     internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantState, Participants},
@@ -42,7 +42,7 @@ pub enum ModuleMessage {
         message: SharedRawJson,
     },
     InternalCommand(InterModuleMessage),
-    CoreCommand(CoreCommand),
+    Instruction(Instruction),
 }
 
 /// Contains the room state and provides an interface to send websocket messages.

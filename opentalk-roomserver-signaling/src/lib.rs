@@ -7,8 +7,8 @@
 //! implement the [`SignalingModule`](signaling_module::SignalingModule) trait.
 
 pub mod breakout;
-pub mod core_command;
 pub mod event_origin;
+pub mod instruction;
 /// The [`internal_module_message`] module is intended for internal use only
 #[doc(hidden)]
 pub mod internal_module_message;

@@ -2,4 +2,4 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 #[derive(Debug)]
-pub enum CoreCommand {}
+pub enum Instruction {}

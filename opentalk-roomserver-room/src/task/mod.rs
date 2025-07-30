@@ -63,8 +63,8 @@ use chrono::Utc;
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
-    core_command::CoreCommand,
     event_origin::{EventOrigin, ParticipantOrigin},
+    instruction::Instruction,
     internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
     module_context::ModuleMessage,
@@ -396,9 +396,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     self.handle_internal_command(inter_module_message, room, origin, timestamp)
                         .await;
                 }
-                ModuleMessage::CoreCommand(core_command) => {
-                    self.handle_core_command(core_command);
-                }
+                ModuleMessage::Instruction(instruction) => self.handle_instruction(instruction),
             }
         }
     }
@@ -453,8 +451,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    fn handle_core_command(&mut self, command: CoreCommand) {
-        match command {}
+    fn handle_instruction(&mut self, instruction: Instruction) {
+        match instruction {}
     }
 
     #[tracing::instrument(level = "info", skip_all)]
