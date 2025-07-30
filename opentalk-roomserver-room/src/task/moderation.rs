@@ -20,7 +20,7 @@ use opentalk_roomserver_types::{
     },
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_signaling::{ModulePeerData, Participant, ParticipantId};
+use opentalk_types_signaling::ParticipantId;
 
 use crate::task::RoomTask;
 
@@ -113,10 +113,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 moderator_ids,
                 MODERATION_MODULE_ID,
                 None,
-                ModerationEvent::JoinedWaitingRoom(Participant {
-                    id: participant_id,
-                    module_data: ModulePeerData::default(),
-                }),
+                ModerationEvent::JoinedWaitingRoom { id: participant_id },
             )
             .await?;
 

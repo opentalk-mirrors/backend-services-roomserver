@@ -16,7 +16,7 @@ use opentalk_roomserver_types::{
         event::{LeftWaitingRoom, ModerationError, ModerationEvent},
     },
 };
-use opentalk_types_signaling::{Participant, ParticipantId};
+use opentalk_types_signaling::ParticipantId;
 
 async fn accept_participant(
     moderator: &mut MockParticipantJoined,
@@ -25,10 +25,7 @@ async fn accept_participant(
     let event = moderator.receive::<ModerationEvent>().await.unwrap();
     assert!(matches!(
         event.content,
-        ModerationEvent::JoinedWaitingRoom(Participant {
-            id,
-            ..
-        }) if id == joinee.id()
+        ModerationEvent::JoinedWaitingRoom { id } if id == joinee.id()
     ));
     assert!(joinee.received_nothing());
 
@@ -88,20 +85,14 @@ async fn join_via_waiting_room() {
     let event = alice.receive::<ModerationEvent>().await.unwrap();
     assert!(matches!(
         event.content,
-        ModerationEvent::JoinedWaitingRoom(Participant {
-            id,
-            ..
-        }) if id == bob_0.id()
+        ModerationEvent::JoinedWaitingRoom { id } if id == bob_0.id()
     ));
 
     let mut bob_1 = room.waiting_room_bob(1).await;
     let event = alice.receive::<ModerationEvent>().await.unwrap();
     assert!(matches!(
         event.content,
-        ModerationEvent::JoinedWaitingRoom(Participant {
-            id,
-            ..
-        }) if id == bob_1.id()
+        ModerationEvent::JoinedWaitingRoom{ id } if id == bob_1.id()
     ));
 
     assert!(bob_0.received_nothing());
@@ -291,7 +282,7 @@ async fn event_when_leaving_waiting_room() {
     let event = alice.receive::<ModerationEvent>().await.unwrap();
     assert!(matches!(
         event.content,
-        ModerationEvent::JoinedWaitingRoom(..)
+        ModerationEvent::JoinedWaitingRoom { .. }
     ));
 
     bob.disconnect();

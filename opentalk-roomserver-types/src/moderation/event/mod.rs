@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_signaling::{Participant, ParticipantId};
+use opentalk_types_signaling::ParticipantId;
 
 use crate::connection_id::ConnectionId;
 pub use crate::moderation::event::error::ModerationError;
@@ -20,7 +20,7 @@ pub enum ModerationEvent {
     },
 
     /// Sent to the moderator when a participant joined the waiting room
-    JoinedWaitingRoom(Participant),
+    JoinedWaitingRoom { id: ParticipantId },
 
     /// Sent to the moderator when a participant left the waiting room
     LeftWaitingRoom(LeftWaitingRoom),
@@ -56,17 +56,15 @@ mod serde_tests {
 
     #[test]
     fn joined_waiting_room() {
-        let participant = Participant {
-            id: opentalk_types_signaling::ParticipantId::from_u128(123),
-            module_data: opentalk_types_signaling::ModulePeerData::new(),
-        };
         let expected = json!({
             "message": "joined_waiting_room",
             "id": "00000000-0000-0000-0000-00000000007b"
         });
 
-        let produced =
-            serde_json::to_value(ModerationEvent::JoinedWaitingRoom(participant.clone())).unwrap();
+        let produced = serde_json::to_value(ModerationEvent::JoinedWaitingRoom {
+            id: ParticipantId::from_u128(123),
+        })
+        .unwrap();
 
         assert_eq!(expected, produced);
     }
