@@ -48,8 +48,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             waiting.remove();
         }
 
-        let moderators = self.participants.connected().moderators();
-        let moderator_ids = moderators.connection_ids();
+        let moderator_ids = self.participants.connected().moderators().connection_ids();
 
         let res = self
             .message_router
@@ -107,8 +106,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )
             .await?;
 
-        let moderators = self.participants.connected().moderators();
-        let moderator_ids = moderators.connection_ids();
+        let moderator_ids = self.participants.connected().moderators().connection_ids();
 
         self.message_router
             .serialize_and_send(
@@ -273,8 +271,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
         let participant = participant.remove();
 
-        let moderators = self.participants.connected().moderators();
-        let moderator_ids = moderators.connection_ids();
+        let moderator_ids = self.participants.connected().moderators().connection_ids();
 
         self.message_router
             .serialize_and_send(
