@@ -18,7 +18,7 @@ use opentalk_roomserver_types::{
     signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
-    self, SignalingSocketItem, SignalingSocketMessage,
+    self, CloseFrame, SignalingSocketItem, SignalingSocketMessage,
 };
 use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
@@ -546,6 +546,17 @@ impl<S> MockParticipant<S> {
 
     pub fn received_nothing(&mut self) -> bool {
         self.receiver.is_empty()
+    }
+
+    pub async fn receive_close_frame(&mut self) -> Result<Option<CloseFrame>, ReceiveError> {
+        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
+            return Err(ReceiveError::Closed);
+        };
+        let SignalingSocketMessage::Close(frame) = received else {
+            return Err(ReceiveError::UnexpectedMessage(received));
+        };
+
+        Ok(frame)
     }
 
     pub fn disconnect(self) {

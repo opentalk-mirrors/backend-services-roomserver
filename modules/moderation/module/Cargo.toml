@@ -21,5 +21,7 @@ tracing.workspace = true
 
 [dev-dependencies]
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+opentalk-roomserver-web-api.workspace = true
+serde_json.workspace = true
 test-log.workspace = true
 tokio.workspace = true
