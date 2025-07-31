@@ -376,6 +376,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
     /// Send a close frame, wait for the close response and drop this task.
     ///
     /// The room task gets notified that the participant has closed the websocket
+    #[tracing::instrument(skip(self), level = "debug")]
     async fn perform_close_handshake(self, exit_reason: ExitReason) {
         let Self {
             participant_id,
@@ -397,11 +398,19 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         }));
 
         if let Some(close_frame) = exit_reason.close_frame() {
+            tracing::debug!("Send close frame {close_frame:?}");
             let _ = sink
                 .send(SignalingSocketMessage::Close(Some(close_frame)))
                 .await;
             // Wait for a close frame for the duration of `CLOSE_TIMEOUT` until we forcefully terminate the connection
-            let _ = tokio::time::timeout(CLOSE_TIMEOUT, wait_close(stream)).await;
+            if tokio::time::timeout(CLOSE_TIMEOUT, wait_close(stream))
+                .await
+                .is_err()
+            {
+                tracing::info!(
+                    "Waiting for close frame timed out, client failed to respond in time.",
+                );
+            };
         }
     }
 }
@@ -413,10 +422,18 @@ async fn wait_close<Stream: SignalingStream>(mut stream: Stream) {
             Ok(SignalingSocketItem {
                 message: SignalingSocketMessage::Close(_),
                 ..
-            })
-            | Err(_) => return,
+            }) => {
+                tracing::debug!("Client closed");
+                return;
+            }
+            Err(e) => {
+                tracing::info!("Client dropped connection without close frame: {e:?}");
+                return;
+            }
             // Discard all messages, but error and close
-            _ => {}
+            Ok(msg) => {
+                tracing::info!("Received message after sending close frame: {msg:?}");
+            }
         }
     }
 }
