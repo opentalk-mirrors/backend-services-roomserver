@@ -47,7 +47,7 @@ async fn generate_meeting_report() {
     Attendance Report
      Meeting :
 
-    Report timezone : UTC
+    Report timezone : Europe/Berlin
 
     Participants
      Nr Name Role

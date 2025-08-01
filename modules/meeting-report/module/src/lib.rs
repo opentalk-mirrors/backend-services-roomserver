@@ -131,11 +131,7 @@ impl MeetingReportModule {
         }
 
         let storage = ctx.storage();
-        let event = ctx.room_task_info.room.event.as_ref();
-
-        let report_timezone = event
-            .and_then(|event| event.timezone)
-            .unwrap_or(TimeZone::from(Tz::UTC));
+        let report_timezone = ctx.room_task_info.room.created_by.timezone;
         let tz = Tz::from(report_timezone);
 
         let participants = ctx

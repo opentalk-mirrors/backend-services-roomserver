@@ -3,13 +3,14 @@
 
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
+    public_user_profile::PublicUserProfile,
     room_parameters::RoomParameters,
 };
-use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     modules::ModuleId,
     roomserver::DeviceSecret,
     tariffs::{TariffId, TariffModuleResource, TariffResource},
+    time::TimeZone,
     users::{UserId, UserInfo},
     utils::ExampleData,
 };
@@ -26,6 +27,7 @@ pub fn alice_profile() -> PublicUserProfile {
             display_name: "Alice Adams".parse().expect("valid display name"),
             avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060".to_string(),
         },
+        timezone: TimeZone::example_data(),
     }
 }
 

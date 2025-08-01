@@ -26,7 +26,6 @@ opentalk-roomserver-client.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
-opentalk-types-api-v1 = { workspace = true }
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 opentalk-version.workspace = true

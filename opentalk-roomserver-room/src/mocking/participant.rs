@@ -14,17 +14,19 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     core::{CoreCommand, CoreEvent},
     join::join_success::JoinSuccess,
+    public_user_profile::PublicUserProfile,
     room_kind::RoomKind,
     signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
     self, CloseFrame, SignalingSocketItem, SignalingSocketMessage,
 };
-use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     modules::module_id,
     roomserver::DeviceSecret,
+    time::TimeZone,
     users::{DisplayName, UserId, UserInfo},
+    utils::ExampleData as _,
 };
 use opentalk_types_signaling::ParticipantId;
 use serde::{Serialize, de::DeserializeOwned};
@@ -354,6 +356,7 @@ impl<S> MockParticipant<S> {
                 display_name: "Bob the bold".parse().expect("Valid DisplayName"),
                 avatar_url: "https://example.com/avatar-of-bob".to_string(),
             },
+            timezone: TimeZone::example_data(),
         };
 
         MockParticipantBuilder {
@@ -375,6 +378,7 @@ impl<S> MockParticipant<S> {
                 display_name: "Charlie the charming".parse().expect("Valid DisplayName"),
                 avatar_url: "https://example.com/avatar-of-alice".to_string(),
             },
+            timezone: TimeZone::example_data(),
         };
 
         MockParticipantBuilder {
@@ -396,6 +400,7 @@ impl<S> MockParticipant<S> {
                 display_name: "Dave the daring".parse().expect("Valid DisplayName"),
                 avatar_url: "https://example.com/avatar-of-dave".to_string(),
             },
+            timezone: TimeZone::example_data(),
         };
 
         MockParticipantBuilder {
@@ -576,6 +581,7 @@ pub fn alice_public_profile() -> PublicUserProfile {
             display_name: "Alice the angry".parse().expect("Valid DisplayName"),
             avatar_url: "https://example.com/avatar-of-alice".to_string(),
         },
+        timezone: TimeZone::example_data(),
     }
 }
 

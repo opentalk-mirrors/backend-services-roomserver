@@ -203,6 +203,7 @@ components:
           firstname: Alice
           id: 00000000-0000-0000-0000-0000000a11c3
           lastname: Adams
+          timezone: Europe/Berlin
           title: ""
         role: moderator
     DeviceSecret:
@@ -244,10 +245,6 @@ components:
             - string
             - "null"
           format: date-time
-        timezone:
-          oneOf:
-            - type: "null"
-            - $ref: "#/components/schemas/TimeZone"
         title:
           $ref: "#/components/schemas/EventTitle"
       example:
@@ -260,7 +257,6 @@ components:
             password: v3rys3cr3t
             url: "https://cloud.example.com/shares/abc123"
         starts_at: "1970-01-01T00:00:00Z"
-        timezone: Europe/Berlin
         title: Team Event
     EventDescription:
       type: string
@@ -331,6 +327,7 @@ components:
           required:
             - id
             - email
+            - timezone
           properties:
             email:
               type: string
@@ -338,6 +335,9 @@ components:
             id:
               $ref: "#/components/schemas/UserId"
               description: The user id
+            timezone:
+              $ref: "#/components/schemas/TimeZone"
+              description: The local timezone of the user
       description: |-
         Public user details.
 
@@ -349,6 +349,7 @@ components:
         firstname: Alice
         id: 00000000-0000-0000-0000-0000000a11c3
         lastname: Adams
+        timezone: Europe/Berlin
         title: ""
     Role:
       type: string
@@ -406,6 +407,7 @@ components:
           firstname: Alice
           id: 00000000-0000-0000-0000-0000000a11c3
           lastname: Adams
+          timezone: Europe/Berlin
           title: ""
         e2e_encryption: false
         event:
@@ -418,7 +420,6 @@ components:
               password: v3rys3cr3t
               url: "https://cloud.example.com/shares/abc123"
           starts_at: "1970-01-01T00:00:00Z"
-          timezone: Europe/Berlin
           title: Team Event
         invite_code: 00000000-0000-0000-0000-0000deadbeef
         module_data:
@@ -621,6 +622,7 @@ components:
             firstname: Alice
             id: 00000000-0000-0000-0000-0000000a11c3
             lastname: Adams
+            timezone: Europe/Berlin
             title: ""
           role: moderator
         room_parameters:
@@ -635,6 +637,7 @@ components:
             firstname: Alice
             id: 00000000-0000-0000-0000-0000000a11c3
             lastname: Adams
+            timezone: Europe/Berlin
             title: ""
           e2e_encryption: false
           event:
@@ -647,7 +650,6 @@ components:
                 password: v3rys3cr3t
                 url: "https://cloud.example.com/shares/abc123"
             starts_at: "1970-01-01T00:00:00Z"
-            timezone: Europe/Berlin
             title: Team Event
           invite_code: 00000000-0000-0000-0000-0000deadbeef
           module_data:

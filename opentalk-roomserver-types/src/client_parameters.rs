@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{roomserver::DeviceSecret, users::DisplayName, utils::ExampleData};
 use opentalk_types_signaling::ParticipationVisibility;
 use serde::{Deserialize, Serialize};
+
+use crate::public_user_profile::PublicUserProfile;
 
 /// Client context required for a signaling connection
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -91,13 +92,15 @@ impl Role {
 
 #[cfg(test)]
 mod tests {
-    use opentalk_types_api_v1::users::PublicUserProfile;
     use opentalk_types_common::{roomserver::DeviceSecret, users::DisplayName, utils::ExampleData};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::ClientKind;
-    use crate::client_parameters::{ClientParameters, Role};
+    use crate::{
+        client_parameters::{ClientParameters, Role},
+        public_user_profile::PublicUserProfile,
+    };
 
     #[test]
     fn guest() {
@@ -149,6 +152,7 @@ mod tests {
                         "lastname": "Adams",
                         "id": "00000000-0000-0000-0000-0000000a11c3",
                         "title": "",
+                        "timezone": "Europe/Berlin",
                     }
 
                 }

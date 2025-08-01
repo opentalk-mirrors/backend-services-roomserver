@@ -323,11 +323,14 @@ impl RoomBackend for Context {
 mod test {
     use std::sync::Arc;
 
-    use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
-    use opentalk_types_api_v1::users::PublicUserProfile;
+    use opentalk_roomserver_types::{
+        client_parameters::{ClientKind, Role},
+        public_user_profile::PublicUserProfile,
+    };
     use opentalk_types_common::{
         roomserver::DeviceSecret,
         tariffs::TariffResource,
+        time::TimeZone,
         users::{DisplayName, UserId, UserInfo, UserTitle},
         utils::ExampleData,
     };
@@ -373,6 +376,7 @@ mod test {
                         display_name: DisplayName::from_str_lossy("tester"),
                         avatar_url: "example.com".into(),
                     },
+                    timezone: TimeZone::example_data(),
                 },
             },
             role: Role::Moderator,

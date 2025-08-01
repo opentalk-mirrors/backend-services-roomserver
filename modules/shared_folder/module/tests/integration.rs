@@ -31,7 +31,6 @@ async fn join_info() {
             is_adhoc: false,
             starts_at: None,
             ends_at: None,
-            timezone: None,
             shared_folder: Some(admin_state.clone().into()),
         })
         .spawn();

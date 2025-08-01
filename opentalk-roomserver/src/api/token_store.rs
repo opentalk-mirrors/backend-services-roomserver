@@ -105,12 +105,16 @@ mod tests {
         time::{Duration, Instant},
     };
 
-    use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters, Role};
-    use opentalk_types_api_v1::users::PublicUserProfile;
+    use opentalk_roomserver_types::{
+        client_parameters::{ClientKind, ClientParameters, Role},
+        public_user_profile::PublicUserProfile,
+    };
     use opentalk_types_common::{
         rooms::RoomId,
         roomserver::{DeviceSecret, Token},
+        time::TimeZone,
         users::{UserId, UserInfo},
+        utils::ExampleData,
     };
     use pretty_assertions::assert_eq;
 
@@ -136,6 +140,7 @@ mod tests {
                                 "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
                                     .to_string(),
                         },
+                        timezone: TimeZone::example_data(),
                     },
                 },
                 role: Role::User,
