@@ -839,7 +839,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
-        state.connections.remove(&connection_id);
+        // When the connection has been removed, the disconnect has already been
+        // handled. This is the case when a participant connection has been closed
+        // from the server, e.g. when a participant has been kicked. When the
+        // connection handle is closed, this function is then called for a second
+        // time.
+        if state.connections.remove(&connection_id).is_none() {
+            return;
+        }
         // Set the left_at timestamp if this was the last connection
         if !state.is_connected() {
             state.left_at = Some(Utc::now());
