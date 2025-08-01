@@ -107,7 +107,7 @@ impl MessageRouter {
         Ok(connection_id)
     }
 
-    pub async fn remove_connection(&mut self, connection_id: ConnectionId) {
+    pub fn remove_connection(&mut self, connection_id: ConnectionId) {
         self.connections.get_mut().remove(&connection_id);
     }
 
