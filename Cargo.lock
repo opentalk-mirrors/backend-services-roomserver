@@ -5572,6 +5572,7 @@ dependencies = [
  "opentalk-roomserver-types-e2ee",
  "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-meeting-report",
+ "opentalk-roomserver-types-moderation",
  "opentalk-roomserver-types-ping",
  "opentalk-roomserver-types-polls",
  "opentalk-roomserver-types-shared-folder",
@@ -5702,6 +5703,23 @@ dependencies = [
  "pdf-extract",
  "pretty_assertions",
  "serde",
+ "serde_json",
+ "test-log",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "opentalk-roomserver-module-moderation"
+version = "0.0.4-dev"
+dependencies = [
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-moderation",
+ "opentalk-roomserver-web-api",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
  "serde_json",
  "test-log",
  "tokio",
@@ -5844,6 +5862,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "derive_more",
+ "insta",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -5901,6 +5920,20 @@ dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-moderation"
+version = "0.0.4-dev"
+dependencies = [
+ "insta",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
  "pretty_assertions",
  "serde",
  "serde_json",

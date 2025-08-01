@@ -8,7 +8,7 @@ use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types::{
     breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
-    core_event::CoreEvent,
+    core::CoreEvent,
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_livekit::{

@@ -2,7 +2,8 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use std::{
-    any::Any, cell::RefCell, future::Future, marker::PhantomData, sync::Arc, time::Duration,
+    any::Any, cell::RefCell, collections::HashMap, future::Future, marker::PhantomData, sync::Arc,
+    time::Duration,
 };
 
 use anyhow::Context as _;
@@ -25,8 +26,8 @@ use tokio::{
 use tracing::{Instrument as _, debug_span};
 
 use crate::{
-    core_command::CoreCommand,
     event_origin::EventOrigin,
+    instruction::Instruction,
     internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantState, Participants},
@@ -34,6 +35,7 @@ use crate::{
     signaling_event::SignalingEvent,
     signaling_module::{InternalCommand, SignalingModule},
     storage::{AssetMetaData, StorageProvider, UploadResult},
+    waiting_participant::WaitingParticipant,
 };
 
 pub enum ModuleMessage {
@@ -42,7 +44,7 @@ pub enum ModuleMessage {
         message: SharedRawJson,
     },
     InternalCommand(InterModuleMessage),
-    CoreCommand(CoreCommand),
+    Instruction(Instruction),
 }
 
 /// Contains the room state and provides an interface to send websocket messages.
@@ -53,11 +55,12 @@ where
     pub room_id: RoomId,
     pub room: RoomKind,
     pub event_origin: EventOrigin,
-    room_task_info: &'ctx mut RoomTaskInfo,
+    pub room_task_info: &'ctx mut RoomTaskInfo,
     /// The websocket messages that are sent out after the module finished its event handling
     messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
+    pub waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
     pub timestamp: Timestamp,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
     storage: Arc<dyn StorageProvider>,
@@ -77,6 +80,7 @@ where
         room_task_info: &'ctx mut RoomTaskInfo,
         messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
         participants: &'ctx mut Participants,
+        waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
         timestamp: Timestamp,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
         storage: Arc<dyn StorageProvider>,
@@ -88,6 +92,7 @@ where
             room_task_info,
             messages,
             participants,
+            waiting_participants,
             timestamp,
             loopback_futures,
             storage,
@@ -103,15 +108,12 @@ where
             room_task_info: self.room_task_info,
             messages: self.messages,
             participants: self.participants,
+            waiting_participants: self.waiting_participants,
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
             storage: Arc::clone(&self.storage),
             m: PhantomData,
         }
-    }
-
-    pub fn room_task_info(&self) -> &RoomTaskInfo {
-        self.room_task_info
     }
 
     /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given `participant_ids`
@@ -268,6 +270,12 @@ where
         self.messages
             .get_mut()
             .push(ModuleMessage::InternalCommand(command));
+    }
+
+    /// Kick the specified participants
+    pub fn kick_participants(&mut self, participants: Vec<ParticipantId>) {
+        let command = ModuleMessage::Instruction(Instruction::Kick { participants });
+        self.messages.get_mut().push(command);
     }
 
     /// Invoke an error message of type [`SignalingError`]

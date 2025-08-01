@@ -14,7 +14,7 @@ use opentalk_roomserver_types::{
         command::BreakoutCommand,
         event::BreakoutEvent,
     },
-    core_event::CoreEvent,
+    core::CoreEvent,
     join::join_success::JoinSuccess,
     room_kind::RoomKind,
 };

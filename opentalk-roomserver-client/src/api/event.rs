@@ -2,11 +2,12 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
-use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core_event::CoreEvent};
+use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core::CoreEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID, event::MeetingReportEvent,
 };
+use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, event::ModerationEvent};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, event::PingEvent};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
@@ -64,21 +65,23 @@ pub enum SignalingModuleEvent {
     Polls(PollsEvent),
     SharedFolder(SharedFolderEvent),
     MeetingReport(MeetingReportEvent),
+    Moderation(ModerationEvent),
 }
 
 impl SignalingModuleEvent {
     pub fn namespace(&self) -> ModuleId {
         match self {
-            Self::Core(_) => CORE_MODULE_ID,
-            Self::Breakout(_) => BREAKOUT_MODULE_ID,
-            Self::Ping(_) => PING_MODULE_ID,
-            Self::Chat(_) => CHAT_MODULE_ID,
-            Self::LiveKit(_) => LIVEKIT_MODULE_ID,
-            Self::E2ee(_) => E2EE_MODULE_ID,
-            Self::Timer(_) => TIMER_MODULE_ID,
-            Self::Polls(_) => POLLS_MODULE_ID,
-            Self::SharedFolder(_) => SHARED_FOLDER_MODULE_ID,
-            Self::MeetingReport(_) => MEETING_REPORT_MODULE_ID,
+            Self::Core(..) => CORE_MODULE_ID,
+            Self::Breakout(..) => BREAKOUT_MODULE_ID,
+            Self::Ping(..) => PING_MODULE_ID,
+            Self::Chat(..) => CHAT_MODULE_ID,
+            Self::LiveKit(..) => LIVEKIT_MODULE_ID,
+            Self::E2ee(..) => E2EE_MODULE_ID,
+            Self::Timer(..) => TIMER_MODULE_ID,
+            Self::Polls(..) => POLLS_MODULE_ID,
+            Self::SharedFolder(..) => SHARED_FOLDER_MODULE_ID,
+            Self::MeetingReport(..) => MEETING_REPORT_MODULE_ID,
+            Self::Moderation(..) => MODERATION_MODULE_ID,
         }
     }
 }
@@ -87,11 +90,12 @@ impl SignalingModuleEvent {
 mod tests {
     use insta::assert_snapshot;
     use opentalk_roomserver_types::{
-        breakout::event::BreakoutEvent, connection_id::ConnectionId, core_event::CoreEvent,
+        breakout::event::BreakoutEvent, connection_id::ConnectionId, core::CoreEvent,
     };
     use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
     use opentalk_roomserver_types_livekit::LiveKitEvent;
     use opentalk_roomserver_types_meeting_report::event::{MeetingReportEvent, PdfAsset};
+    use opentalk_roomserver_types_moderation::event::ModerationEvent;
     use opentalk_roomserver_types_ping::event::PingEvent;
     use opentalk_roomserver_types_polls::{
         ChoiceId, PollId,
@@ -309,6 +313,24 @@ mod tests {
             "message": "pdf_asset",
             "filename": "name",
             "asset_id": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_event_moderation() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            content: SignalingModuleEvent::Moderation(ModerationEvent::Accepted),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "moderation",
+          "content": {
+            "message": "accepted"
           }
         }
         "#);

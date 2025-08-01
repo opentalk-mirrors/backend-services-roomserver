@@ -63,8 +63,8 @@ use chrono::Utc;
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
-    core_command::CoreCommand,
     event_origin::{EventOrigin, ParticipantOrigin},
+    instruction::Instruction,
     internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
     module_context::ModuleMessage,
@@ -72,16 +72,17 @@ use opentalk_roomserver_signaling::{
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
     storage::StorageProvider,
+    waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
+    core::{CoreCommand, CoreEvent},
     device_id::DeviceId,
     error::SignalingError,
-    moderation::MODERATION_MODULE_ID,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
-    signaling::SignalingCommand,
+    signaling::{SignalingCommand, module_error::SignalingModuleError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{rooms::RoomId, roomserver::DeviceSecret, time::Timestamp};
@@ -103,7 +104,6 @@ use crate::{
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
         idle_timeout::IdleTimeout,
-        moderation::WaitingParticipant,
     },
 };
 
@@ -112,7 +112,7 @@ pub mod core;
 pub mod fs_storage;
 pub mod handle;
 pub mod idle_timeout;
-pub mod moderation;
+pub mod waiting_room;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
@@ -353,6 +353,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             msg.origin,
             &mut self.info,
             &mut self.participants,
+            &mut self.waiting_participants,
             msg.timestamp,
             Arc::clone(&self.storage),
             &mut messages,
@@ -396,8 +397,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     self.handle_internal_command(inter_module_message, room, origin, timestamp)
                         .await;
                 }
-                ModuleMessage::CoreCommand(core_command) => {
-                    self.handle_core_command(core_command);
+                ModuleMessage::Instruction(instruction) => {
+                    self.handle_instruction(origin, instruction).await;
                 }
             }
         }
@@ -431,6 +432,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             origin,
             &mut self.info,
             &mut self.participants,
+            &mut self.waiting_participants,
             timestamp,
             Arc::clone(&self.storage),
             &mut messages,
@@ -453,8 +455,37 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    fn handle_core_command(&mut self, command: CoreCommand) {
-        match command {}
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn handle_instruction(&mut self, origin: EventOrigin, instruction: Instruction) {
+        match instruction {
+            Instruction::Kick { participants } => {
+                // This needs boxing because disconnecting a participant invokes a
+                // broadcast event. This can lead to recursion because modules can
+                // invoke core commands from broadcast events.
+                Box::pin(self.kick_participants(origin, participants)).await;
+            }
+        };
+    }
+
+    async fn kick_participants(&mut self, origin: EventOrigin, participants: Vec<ParticipantId>) {
+        for participant_id in participants {
+            let Some(state) = self.participants.all_unfiltered.get(&participant_id) else {
+                tracing::error!(
+                    "Failed to get connections for unknown participant {participant_id}"
+                );
+                continue;
+            };
+            let connections: Vec<ConnectionId> = state.connections().collect();
+            for connection_id in connections {
+                self.disconnect_participant(
+                    origin,
+                    participant_id,
+                    connection_id,
+                    CloseReason::Kicked,
+                )
+                .await;
+            }
+        }
     }
 
     #[tracing::instrument(level = "info", skip_all)]
@@ -525,14 +556,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         match &signaling_command.namespace {
             m if *m == core::NAMESPACE => {
-                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                self.handle_core_command(participant_origin, signaling_command)
+                    .await;
             }
             m if *m == breakout::BREAKOUT_MODULE_ID => {
                 self.handle_breakout_command(participant_origin, signaling_command)
-                    .await;
-            }
-            m if *m == MODERATION_MODULE_ID => {
-                self.handle_moderation_command(participant_origin, signaling_command)
                     .await;
             }
             _ => {
@@ -544,6 +572,83 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 )
                 .await;
             }
+        }
+    }
+
+    async fn handle_core_command(
+        &mut self,
+        participant_origin: ParticipantOrigin,
+        command: SignalingCommand,
+    ) {
+        let core_command: CoreCommand = match serde_json::from_str(command.content.get()) {
+            Ok(command) => command,
+            Err(err) => {
+                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                self.message_router
+                    .send_error(
+                        participant_origin.connection_id,
+                        participant_origin.transaction_id,
+                        SignalingError::InvalidJson {
+                            message: format!("{err:?}"),
+                        },
+                    )
+                    .await;
+                return;
+            }
+        };
+
+        let result = match core_command {
+            CoreCommand::EnterRoom => self.enter_room(participant_origin).await,
+        };
+
+        if let Err(e) = result {
+            match e {
+                SignalingModuleError::Internal(err) => {
+                    tracing::error!("internal error in core module: {err:?}");
+
+                    self.message_router
+                        .send_error(
+                            participant_origin.connection_id,
+                            command.transaction_id,
+                            SignalingError::Internal,
+                        )
+                        .await;
+                }
+                SignalingModuleError::Fatal(err) => {
+                    tracing::error!("fatal error in core module: {err:?}");
+
+                    self.message_router
+                        .send_error(
+                            participant_origin.connection_id,
+                            command.transaction_id,
+                            SignalingError::Internal,
+                        )
+                        .await;
+                }
+                SignalingModuleError::Module(module_error) => {
+                    let result = self
+                        .message_router
+                        .serialize_and_send(
+                            [participant_origin.connection_id],
+                            core::NAMESPACE,
+                            command.transaction_id,
+                            CoreEvent::Error(module_error),
+                        )
+                        .await;
+
+                    if let Err(fatal_error) = result {
+                        tracing::error!("failed to send error in core module: {fatal_error:?}");
+
+                        self.message_router
+                            .send_error(
+                                participant_origin.connection_id,
+                                command.transaction_id,
+                                SignalingError::Internal,
+                            )
+                            .await;
+                    }
+                }
+            };
         }
     }
 
@@ -595,6 +700,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             origin,
             &mut self.info,
             &mut self.participants,
+            &mut self.waiting_participants,
             timestamp,
             Arc::clone(&self.storage),
             &mut messages,
@@ -761,13 +867,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
-        state.connections.remove(&connection_id);
+        // When the connection has been removed, the disconnect has already been
+        // handled. This is the case when a participant connection has been closed
+        // from the server, e.g. when a participant has been kicked. When the
+        // connection handle is closed, this function is then called for a second
+        // time.
+        if state.connections.remove(&connection_id).is_none() {
+            return;
+        }
         // Set the left_at timestamp if this was the last connection
         if !state.is_connected() {
             state.left_at = Some(Utc::now());
         }
 
-        self.message_router.remove_connection(connection_id).await;
+        self.message_router.remove_connection(connection_id);
 
         let room = state.room;
         self.participant_disconnected(origin, participant_id, connection_id, room, reason.into())

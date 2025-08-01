@@ -11,7 +11,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
-    core_event::CoreEvent,
+    core::CoreEvent,
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     error::SignalingError,
@@ -177,6 +177,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         origin,
                         &mut self.info,
                         &mut self.participants,
+                        &mut self.waiting_participants,
                         timestamp,
                         Arc::clone(&self.storage),
                         &mut messages,

@@ -131,7 +131,7 @@ impl MeetingReportModule {
         }
 
         let storage = ctx.storage();
-        let event = ctx.room_task_info().room.event.as_ref();
+        let event = ctx.room_task_info.room.event.as_ref();
 
         let report_timezone = event
             .and_then(|event| event.timezone)
@@ -156,7 +156,7 @@ impl MeetingReportModule {
             })
             .collect();
 
-        let event = ctx.room_task_info().room.event.clone();
+        let event = ctx.room_task_info.room.event.clone();
 
         ctx.spawn(async move {
             Self::generate_report(storage, report_timezone, tz, participants, event).await

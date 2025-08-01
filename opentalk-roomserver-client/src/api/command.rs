@@ -7,6 +7,7 @@ use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID, command::MeetingReportCommand,
 };
+use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, command::ModerationCommand};
 use opentalk_roomserver_types_ping::{PING_MODULE_ID, command::PingCommand};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, command::PollsCommand};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand};
@@ -64,6 +65,7 @@ pub enum SignalingModuleCommand {
     Polls(PollsCommand),
     SharedFolder(SharedFolderCommand),
     MeetingReport(MeetingReportCommand),
+    Moderation(ModerationCommand),
 }
 
 impl SignalingModuleCommand {
@@ -78,6 +80,7 @@ impl SignalingModuleCommand {
             Self::Polls(..) => POLLS_MODULE_ID,
             Self::SharedFolder(..) => SHARED_FOLDER_MODULE_ID,
             Self::MeetingReport(..) => MEETING_REPORT_MODULE_ID,
+            Self::Moderation(..) => MODERATION_MODULE_ID,
         }
     }
 }
@@ -89,6 +92,7 @@ mod tests {
     use opentalk_roomserver_types_chat::command::ChatCommand;
     use opentalk_roomserver_types_livekit::LiveKitCommand;
     use opentalk_roomserver_types_meeting_report::command::MeetingReportCommand;
+    use opentalk_roomserver_types_moderation::command::{Accept, ModerationCommand};
     use opentalk_roomserver_types_ping::command::PingCommand;
     use opentalk_roomserver_types_polls::{
         ChoiceId, PollId,
@@ -96,6 +100,7 @@ mod tests {
     };
     use opentalk_roomserver_types_timer::{Start, TimerCommand, command::Kind};
     use opentalk_types_common::modules::ModuleId;
+    use opentalk_types_signaling::ParticipantId;
     use serde::Deserialize;
 
     use super::SignalingModuleCommand;
@@ -272,6 +277,27 @@ mod tests {
           "content": {
             "action": "generate_attendance_report",
             "include_email_addresses": false
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_command_moderation() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            content: SignalingModuleCommand::Moderation(ModerationCommand::Accept(Accept {
+                target: ParticipantId::nil(),
+            })),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "moderation",
+          "content": {
+            "action": "accept",
+            "target": "00000000-0000-0000-0000-000000000000"
           }
         }
         "#);

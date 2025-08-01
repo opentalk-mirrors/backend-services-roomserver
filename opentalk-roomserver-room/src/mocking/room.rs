@@ -16,7 +16,7 @@ use opentalk_roomserver_common::{
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
-    core_event::CoreEvent,
+    core::CoreEvent,
     room_parameters::{EventContext, RoomParameters},
 };
 use opentalk_types_common::{
