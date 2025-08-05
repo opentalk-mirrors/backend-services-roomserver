@@ -4,7 +4,6 @@
 use std::{fmt::Debug, str::FromStr};
 
 use chrono::{DateTime, Duration, TimeDelta, Utc};
-use opentalk_types_api_v1::users::PublicUserProfile;
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventDescription, EventId, EventTitle},
@@ -12,11 +11,13 @@ use opentalk_types_common::{
     shared_folders::SharedFolder,
     streaming::StreamingLink,
     tariffs::{QuotaType, TariffResource},
-    time::{TimeZone, Timestamp},
+    time::Timestamp,
     utils::ExampleData,
 };
 use opentalk_types_signaling::ModuleData;
 use serde::{Deserialize, Serialize};
+
+use crate::public_user_profile::PublicUserProfile;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(RoomParameters::example_data())))]
@@ -123,8 +124,6 @@ pub struct EventContext {
 
     pub ends_at: Option<DateTime<Utc>>,
 
-    pub timezone: Option<TimeZone>,
-
     // Field is non-required already, utoipa adds a `nullable: true` entry
     // by default which creates a false positive in the spectral linter when
     // combined with example data.
@@ -141,7 +140,6 @@ impl ExampleData for EventContext {
             is_adhoc: false,
             starts_at: Some(DateTime::UNIX_EPOCH),
             ends_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
-            timezone: Some(TimeZone::example_data()),
             shared_folder: Some(SharedFolder::example_data()),
         }
     }
@@ -167,6 +165,7 @@ mod tests {
                     "id": "00000000-0000-0000-0000-0000000a11c3",
                     "lastname": "Adams",
                     "title": "",
+                    "timezone": "Europe/Berlin",
                 },
                 "password": "",
                 "call_in": {
@@ -181,7 +180,6 @@ mod tests {
                     "is_adhoc": false,
                     "starts_at": "1970-01-01T00:00:00Z",
                     "ends_at": "1970-01-01T01:00:00Z",
-                    "timezone": "Europe/Berlin",
                     "shared_folder": {
                         "read": {
                             "password": "v3rys3cr3t",
@@ -245,7 +243,6 @@ mod tests {
             "is_adhoc": false,
             "starts_at": "1970-01-01T00:00:00Z",
             "ends_at": "1970-01-01T01:00:00Z",
-            "timezone": "Europe/Berlin",
             "shared_folder": {
                 "read": {
                     "password": "v3rys3cr3t",
