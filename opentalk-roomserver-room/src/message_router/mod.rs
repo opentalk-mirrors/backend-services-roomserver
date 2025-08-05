@@ -42,20 +42,13 @@ pub struct AlreadyConnectedError;
 ///
 /// Provides the interface for communication between client and [`RoomTask`](super::task::RoomTask)
 pub struct MessageRouter {
-    /// An internal sender that is given to each [`ParticipantConnectionTask`] to communicate with the [`RoomTask`](super::task::RoomTask)
-    ///
-    /// [`ParticipantConnectionTask`]: participant_connection::ParticipantConnectionTask
-    room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
+    pub waiting_room: ScopedRouter,
 
-    /// A collection of active websocket connections
-    connections: Mutex<HashMap<ConnectionId, ConnectionHandle>>,
+    pub conference: ScopedRouter,
 
     /// The internal receiver for [`room_task_command_sender`](MessageRouter::room_task_command_sender) that contains
     /// messages for the room task. Can be read through the [`recv`](MessageRouter::recv) method.
     room_task_command_receiver: mpsc::Receiver<MessageEnvelope<SignalingMessage>>,
-
-    /// The global application state
-    app_state: watch::Receiver<ApplicationState>,
 }
 
 impl MessageRouter {
@@ -66,9 +59,71 @@ impl MessageRouter {
         let (command_channel, command_egress) = mpsc::channel(Self::COMMAND_CHANNEL_BUFFER_SIZE);
 
         Self {
-            room_task_command_sender: command_channel,
-            connections: Mutex::new(HashMap::new()),
+            waiting_room: ScopedRouter::new(command_channel.clone(), app_state.clone()),
+            conference: ScopedRouter::new(command_channel, app_state),
             room_task_command_receiver: command_egress,
+        }
+    }
+
+    /// Upgrade the specified connections from the waiting room to the conference
+    pub fn upgrade_connections<'a>(&mut self, connections: impl Iterator<Item = &'a ConnectionId>) {
+        Self::move_connections(&mut self.waiting_room, &mut self.conference, connections);
+    }
+
+    fn move_connections<'a>(
+        from: &mut ScopedRouter,
+        to: &mut ScopedRouter,
+        connections: impl Iterator<Item = &'a ConnectionId>,
+    ) {
+        for connection_id in connections {
+            if let Some(handle) = from.connections.get_mut().remove(connection_id) {
+                to.connections.get_mut().insert(*connection_id, handle);
+            } else {
+                tracing::error!("Trying to move unknown connection {connection_id}");
+            }
+        }
+    }
+
+    /// Receive the next message from any connected participant
+    pub async fn recv(&mut self) -> MessageEnvelope<SignalingMessage> {
+        // This should never return `None`, the message router holds the sender for this receiver
+        let msg = self
+            .room_task_command_receiver
+            .recv()
+            .await
+            .expect("internal room_task_channel was closed");
+
+        if matches!(msg.message, SignalingMessage::Closed(_)) {
+            self.conference.remove_connection(msg.connection_id);
+            self.waiting_room.remove_connection(msg.connection_id);
+        }
+
+        msg
+    }
+}
+
+pub struct ScopedRouter {
+    /// A collection of active websocket connections
+    connections: Mutex<HashMap<ConnectionId, ConnectionHandle>>,
+
+    /// An internal sender that is given to each [`ParticipantConnectionTask`] to communicate with the [`RoomTask`](super::task::RoomTask)
+    ///
+    /// [`ParticipantConnectionTask`]: participant_connection::ParticipantConnectionTask
+    room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
+
+    /// The global application state
+    app_state: watch::Receiver<ApplicationState>,
+}
+
+impl ScopedRouter {
+    /// Create a new [`ScopedRouter`]
+    pub fn new(
+        room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
+        app_state: watch::Receiver<ApplicationState>,
+    ) -> Self {
+        Self {
+            connections: Mutex::new(HashMap::new()),
+            room_task_command_sender,
             app_state,
         }
     }
@@ -288,22 +343,6 @@ impl MessageRouter {
 
         self.broadcast_event(shared_json, &[]).await;
     }
-
-    /// Receive the next message from any connected participant
-    pub async fn recv(&mut self) -> MessageEnvelope<SignalingMessage> {
-        // This should never return `None`, the message router holds the sender for this receiver
-        let msg = self
-            .room_task_command_receiver
-            .recv()
-            .await
-            .expect("internal room_task_channel was closed");
-
-        if matches!(msg.message, SignalingMessage::Closed(_)) {
-            self.connections.get_mut().remove(&msg.connection_id);
-        }
-
-        msg
-    }
 }
 
 #[cfg(test)]
@@ -332,7 +371,11 @@ mod tests {
         let (p1_socket, p1) = create_participant_connection();
         let p1_id = ParticipantId::from_u128(1);
 
-        let connection = router.add_connection(p1_id, p1_socket).await.unwrap();
+        let connection = router
+            .conference
+            .add_connection(p1_id, p1_socket)
+            .await
+            .unwrap();
 
         p1.sender
             .send(Ok(SignalingSocketItem {
@@ -369,6 +412,9 @@ mod tests {
         };
         let shared_json = serde_json::value::to_raw_value(&event).unwrap().into();
 
-        router.send_event([connection], shared_json).await;
+        router
+            .conference
+            .send_event([connection], shared_json)
+            .await;
     }
 }

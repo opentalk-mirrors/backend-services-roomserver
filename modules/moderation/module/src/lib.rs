@@ -169,11 +169,7 @@ impl ModerationModule {
         participant.accepted = true;
 
         tracing::trace!("accept participant: {target}");
-        let connections: Vec<ConnectionId> = participant.connections.keys().copied().collect();
-        // Participants in the waiting room do not have a participant state,
-        // from which the connection ids could be determined, so we have to use
-        // send_ws_message_to_connections().
-        ctx.send_ws_message_to_connections(connections, ModerationEvent::Accepted)?;
+        ctx.send_ws_message_to_waiting_room([target], ModerationEvent::Accepted)?;
 
         Ok(())
     }

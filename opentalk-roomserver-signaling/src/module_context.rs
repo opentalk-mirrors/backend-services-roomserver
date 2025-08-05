@@ -43,6 +43,10 @@ pub enum ModuleMessage {
         connection_id: ConnectionId,
         message: SharedRawJson,
     },
+    WaitingRoomWebsocket {
+        connection_id: ConnectionId,
+        message: SharedRawJson,
+    },
     InternalCommand(InterModuleMessage),
     Instruction(Instruction),
 }
@@ -187,6 +191,42 @@ where
                 connection_id,
                 message: shared_json.clone(),
             });
+        }
+
+        Ok(())
+    }
+
+    pub fn send_ws_message_to_waiting_room(
+        &self,
+        participant_ids: impl IntoIterator<Item = ParticipantId>,
+        msg: M::Outgoing,
+    ) -> Result<(), FatalError> {
+        let event = SignalingEvent {
+            namespace: M::NAMESPACE,
+            transaction_id: self.event_origin.transaction_id(),
+            content: msg,
+        };
+        let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
+            .context("Failed to serialize internal websocket payload type")
+            .map_err(FatalError)?
+            .into();
+
+        for participant_id in participant_ids {
+            let Some(waiting_participant) = self.waiting_participants.get(&participant_id) else {
+                tracing::error!(
+                    "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
+                    M::NAMESPACE
+                );
+                return Ok(());
+            };
+            let mut messages = self.messages.borrow_mut();
+
+            for (connection_id, ..) in &waiting_participant.connections {
+                messages.push(ModuleMessage::WaitingRoomWebsocket {
+                    connection_id: *connection_id,
+                    message: shared_json.clone(),
+                });
+            }
         }
 
         Ok(())

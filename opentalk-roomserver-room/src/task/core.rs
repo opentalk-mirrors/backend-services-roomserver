@@ -84,6 +84,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         );
 
         self.message_router
+            .conference
             .serialize_and_send(
                 [connection_id],
                 CORE_MODULE_ID,
@@ -102,6 +103,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .filter(|&c| c != connection_id);
 
             self.message_router
+                .conference
                 .serialize_and_send(
                     connections,
                     CORE_MODULE_ID,
@@ -145,6 +147,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         self.message_router
+            .conference
             .serialize_and_broadcast(CORE_MODULE_ID, None, content)
             .await
             .expect("CoreEvent::ParticipantDisconnected must be serializable");
@@ -217,6 +220,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.info.room.tariff.modules.remove(&namespace);
 
         self.message_router
+            .conference
             .broadcast_error(
                 transaction_id,
                 SignalingError::FatalModuleError { namespace },

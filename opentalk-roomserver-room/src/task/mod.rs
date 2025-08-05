@@ -37,7 +37,7 @@
 //! # ConnectionId and ParticipantId
 //!
 //! Every connection to a Room is identified by the [`ConnectionId`]. The connection ID is generated
-//! by [`MessageRouter::add_connection`].
+//! by [`ScopedRouter::add_connection`](crate::message_router::ScopedRouter::add_connection).
 //!
 //! For registered users, the [`ParticipantId`] is derived from the [`UserId`] that is part of the [`PublicUserProfile`].
 //! Guests and services don't have a such a profile. These clients provide a `device_secret` that is used
@@ -391,8 +391,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     message,
                 } => {
                     self.message_router
+                        .conference
                         .send_event([connection_id], message)
                         .await;
+                }
+                ModuleMessage::WaitingRoomWebsocket {
+                    connection_id,
+                    message,
+                } => {
+                    self.message_router
+                        .waiting_room
+                        .send_event([connection_id], message)
+                        .await
                 }
                 ModuleMessage::InternalCommand(inter_module_message) => {
                     self.handle_internal_command(inter_module_message, room, origin, timestamp)
@@ -586,6 +596,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             Err(err) => {
                 tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
                 self.message_router
+                    .conference
                     .send_error(
                         participant_origin.connection_id,
                         participant_origin.transaction_id,
@@ -608,6 +619,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     tracing::error!("internal error in core module: {err:?}");
 
                     self.message_router
+                        .conference
                         .send_error(
                             participant_origin.connection_id,
                             command.transaction_id,
@@ -619,6 +631,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     tracing::error!("fatal error in core module: {err:?}");
 
                     self.message_router
+                        .conference
                         .send_error(
                             participant_origin.connection_id,
                             command.transaction_id,
@@ -629,6 +642,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 SignalingModuleError::Module(module_error) => {
                     let result = self
                         .message_router
+                        .conference
                         .serialize_and_send(
                             [participant_origin.connection_id],
                             CORE_MODULE_ID,
@@ -641,6 +655,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         tracing::error!("failed to send error in core module: {fatal_error:?}");
 
                         self.message_router
+                            .conference
                             .send_error(
                                 participant_origin.connection_id,
                                 command.transaction_id,
@@ -670,6 +685,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             // This scenario should never occur because we never delete known participants. We still attempt to
             // send an error to the non-existent connection in a best-effort approach.
             self.message_router
+                .conference
                 .send_error(
                     participant_origin.connection_id,
                     signaling_command.transaction_id,
@@ -749,11 +765,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
-        let connection_id = match self
-            .message_router
-            .add_connection(participant_id, socket)
-            .await
-        {
+        let join_waiting_room = self.info.room.waiting_room
+            && !role.is_moderator()
+            && !self
+                .participants
+                .all_unfiltered
+                .contains_key(&participant_id);
+
+        let scoped_router = if join_waiting_room {
+            &mut self.message_router.waiting_room
+        } else {
+            &mut self.message_router.conference
+        };
+        let connection_id = match scoped_router.add_connection(participant_id, socket).await {
             Ok(conn_id) => conn_id,
             Err(AlreadyConnectedError) => {
                 tracing::debug!("rejecting participant connection: already connected");
@@ -761,13 +785,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
-        if self.info.room.waiting_room
-            && !role.is_moderator()
-            && !self
-                .participants
-                .all_unfiltered
-                .contains_key(&participant_id)
-        {
+        if join_waiting_room {
             if let Err(err) = self
                 .join_waiting_room(connection_id, participant_id, device_id, client_parameters)
                 .await
@@ -879,7 +897,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             state.left_at = Some(Utc::now());
         }
 
-        self.message_router.remove_connection(connection_id);
+        self.message_router
+            .conference
+            .remove_connection(connection_id);
 
         let room = state.room;
         self.participant_disconnected(origin, participant_id, connection_id, room, reason.into())
@@ -912,6 +932,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         self.message_router
+            .conference
             .send_error(origin, transaction_id, signaling_error)
             .await;
     }

@@ -30,6 +30,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
+        self.message_router
+            .waiting_room
+            .remove_connection(connection_id);
+
         waiting.get_mut().connections.remove(&connection_id);
         if waiting.get().connections.is_empty() {
             waiting.remove();
@@ -39,6 +43,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let res = self
             .message_router
+            .conference
             .serialize_and_send(
                 moderator_ids,
                 CORE_MODULE_ID,
@@ -82,6 +87,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         self.message_router
+            .waiting_room
             .serialize_and_send(
                 [connection_id],
                 CORE_MODULE_ID,
@@ -96,6 +102,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let moderator_ids = self.participants.connected().moderators().connection_ids();
 
         self.message_router
+            .conference
             .serialize_and_send(
                 moderator_ids,
                 CORE_MODULE_ID,
@@ -127,6 +134,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let moderator_ids = self.participants.connected().moderators().connection_ids();
 
         self.message_router
+            .conference
             .serialize_and_send(
                 moderator_ids,
                 CORE_MODULE_ID,
@@ -137,6 +145,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 }),
             )
             .await?;
+
+        self.message_router
+            .upgrade_connections(participant.connections.keys());
 
         for (&connection_id, &device_id) in &participant.connections {
             self.join_room(

@@ -53,6 +53,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             // This scenario should never occur because we never delete known participants. We still attempt to
             // send an error to the non-existent connection in a best-effort approach.
             self.message_router
+                .conference
                 .send_error(
                     participant_origin.connection_id,
                     command.transaction_id,
@@ -69,6 +70,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             Ok(breakout_command) => breakout_command,
             Err(err) => {
                 self.message_router
+                    .conference
                     .send_error(
                         participant_origin.connection_id,
                         participant_origin.transaction_id,
@@ -100,6 +102,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     tracing::error!("internal error in breakout module: {err:?}");
 
                     self.message_router
+                        .conference
                         .send_error(
                             participant_origin.connection_id,
                             command.transaction_id,
@@ -111,6 +114,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     tracing::error!("fatal error in breakout module: {err:?}");
 
                     self.message_router
+                        .conference
                         .send_error(
                             participant_origin.connection_id,
                             command.transaction_id,
@@ -121,6 +125,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 SignalingModuleError::Module(module_error) => {
                     let result = self
                         .message_router
+                        .conference
                         .serialize_and_send(
                             [participant_origin.connection_id],
                             BREAKOUT_MODULE_ID,
@@ -133,6 +138,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         tracing::error!("failed to send error in breakout module: {fatal_error:?}");
 
                         self.message_router
+                            .conference
                             .send_error(
                                 participant_origin.connection_id,
                                 command.transaction_id,
@@ -221,6 +227,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             };
 
             self.message_router
+                .conference
                 .serialize_and_send(
                     state.connections(),
                     BREAKOUT_MODULE_ID,
@@ -269,6 +276,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let stops_at = Timestamp::now() + TimeDelta::seconds(delay.as_secs() as i64);
 
         self.message_router
+            .conference
             .serialize_and_broadcast(
                 BREAKOUT_MODULE_ID,
                 origin.transaction_id,
@@ -361,6 +369,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         for (conn_id, module_data) in module_data_map {
             self.message_router
+                .conference
                 .serialize_and_send(
                     [conn_id],
                     BREAKOUT_MODULE_ID,
@@ -381,6 +390,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         self.message_router
+            .conference
             .serialize_and_broadcast_exclude_connections(
                 BREAKOUT_MODULE_ID,
                 None,
@@ -404,6 +414,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         origin: EventOrigin,
     ) -> Result<(), SignalingModuleError<BreakoutError>> {
         self.message_router
+            .conference
             .serialize_and_broadcast(
                 BREAKOUT_MODULE_ID,
                 origin.transaction_id(),
@@ -445,6 +456,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .await;
 
         self.message_router
+            .conference
             .serialize_and_broadcast(
                 BREAKOUT_MODULE_ID,
                 origin.transaction_id(),
