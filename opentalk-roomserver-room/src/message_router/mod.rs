@@ -179,21 +179,7 @@ impl MessageRouter {
         transaction_id: Option<u64>,
         content: impl Serialize,
     ) -> Result<(), FatalError> {
-        let event = SignalingEvent {
-            namespace,
-            transaction_id,
-            content,
-        };
-        let shared_json = serde_json::value::to_raw_value(&event)
-            .with_context(|| {
-                format!(
-                    "Failed to serialize message for namespace '{}'",
-                    event.namespace
-                )
-            })
-            .map_err(FatalError)?
-            .into();
-
+        let shared_json = Self::serialize_event(namespace, transaction_id, content)?;
         self.send_event(connections, shared_json).await;
 
         Ok(())
@@ -208,21 +194,7 @@ impl MessageRouter {
         transaction_id: Option<u64>,
         content: impl Serialize,
     ) -> Result<(), FatalError> {
-        let event = SignalingEvent {
-            namespace,
-            transaction_id,
-            content,
-        };
-        let shared_json = serde_json::value::to_raw_value(&event)
-            .with_context(|| {
-                format!(
-                    "Failed to serialize message for namespace '{}'",
-                    event.namespace
-                )
-            })
-            .map_err(FatalError)?
-            .into();
-
+        let shared_json = Self::serialize_event(namespace, transaction_id, content)?;
         self.broadcast_event(shared_json, &[]).await;
 
         Ok(())
@@ -238,6 +210,18 @@ impl MessageRouter {
         content: impl Serialize,
         excluded_connections: &[ConnectionId],
     ) -> Result<(), FatalError> {
+        let shared_json = Self::serialize_event(namespace, transaction_id, content)?;
+        self.broadcast_event(shared_json, excluded_connections)
+            .await;
+
+        Ok(())
+    }
+
+    fn serialize_event(
+        namespace: ModuleId,
+        transaction_id: Option<u64>,
+        content: impl Serialize,
+    ) -> Result<SharedRawJson, FatalError> {
         let event = SignalingEvent {
             namespace,
             transaction_id,
@@ -253,10 +237,7 @@ impl MessageRouter {
             .map_err(FatalError)?
             .into();
 
-        self.broadcast_event(shared_json, excluded_connections)
-            .await;
-
-        Ok(())
+        Ok(shared_json)
     }
 
     /// Send a websocket error message of type [`SignalingError`] to the associated connection
