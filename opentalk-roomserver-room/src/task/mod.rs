@@ -76,7 +76,7 @@ use opentalk_roomserver_signaling::{
 };
 use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
-    client_parameters::{ClientKind, ClientParameters},
+    client_parameters::{ClientKind, ClientParameters, Role},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreCommand, CoreEvent},
     device_id::DeviceId,
@@ -796,8 +796,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .await;
             }
         } else {
-            self.join_room(participant_id, connection_id, device_id, client_parameters)
-                .await;
+            self.join_room(
+                participant_id,
+                connection_id,
+                device_id,
+                client_parameters.kind,
+                client_parameters.role,
+            )
+            .await;
         }
     }
 
@@ -806,14 +812,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         device_id: DeviceId,
-        client_parameters: ClientParameters,
+        client_kind: ClientKind,
+        role: Role,
     ) {
-        let email = match &client_parameters.kind {
-            ClientKind::Registered { profile } => Some(profile.email.clone()),
-            ClientKind::Guest { .. } | ClientKind::Recorder => None,
-        };
-        let role = client_parameters.role;
-
         match self.participants.all_unfiltered.entry(participant_id) {
             Occupied(mut occupied) => {
                 let state = occupied.get_mut();
@@ -827,9 +828,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             Vacant(vacant) => {
                 vacant
                     .insert(ParticipantState::new(
-                        client_parameters.kind.display_name(),
-                        email,
-                        From::from(&client_parameters.kind),
+                        client_kind.display_name(),
+                        client_kind.email().map(String::from),
+                        (&client_kind).into(),
                         role,
                         Utc::now(),
                     ))
@@ -839,7 +840,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         if let Err(err) = self
-            .participant_joined(participant_id, connection_id, device_id, client_parameters)
+            .participant_joined(participant_id, connection_id, device_id, client_kind)
             .await
         {
             tracing::error!("failed to add participant to conference {err:#?}");

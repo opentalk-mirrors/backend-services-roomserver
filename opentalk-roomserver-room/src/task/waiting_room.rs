@@ -79,8 +79,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
             Entry::Vacant(vacant_entry) => {
                 vacant_entry.insert(WaitingParticipant {
-                    connections: HashMap::from([(connection_id, device_id)]),
-                    client_parameters,
+                    kind: client_parameters.kind,
+                    role: client_parameters.role,
+                    connections: HashMap::from_iter([(connection_id, device_id)]),
                     accepted: false,
                 });
             }
@@ -154,7 +155,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 participant_origin.id,
                 connection_id,
                 device_id,
-                participant.client_parameters.clone(),
+                participant.kind.clone(),
+                participant.role,
             )
             .await;
         }

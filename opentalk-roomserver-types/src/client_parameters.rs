@@ -47,6 +47,13 @@ impl ClientKind {
             ClientKind::Recorder => DisplayName::from_str_lossy("recorder"),
         }
     }
+
+    pub fn email(&self) -> Option<&str> {
+        match self {
+            ClientKind::Registered { profile } => Some(&profile.email),
+            ClientKind::Guest { .. } | ClientKind::Recorder => None,
+        }
+    }
 }
 
 impl ClientKind {

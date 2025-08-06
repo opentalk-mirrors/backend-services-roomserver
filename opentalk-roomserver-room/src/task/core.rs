@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use opentalk_roomserver_signaling::event_origin::{EventOrigin, ParticipantOrigin};
 use opentalk_roomserver_types::{
     breakout::module_data::BreakoutPeerModuleData,
-    client_parameters::{ClientKind, ClientParameters},
+    client_parameters::ClientKind,
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreEvent},
     device_id::DeviceId,
@@ -38,7 +38,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         device_id: DeviceId,
-        client_parameters: ClientParameters,
+        client_kind: ClientKind,
     ) -> Result<(), FatalError> {
         let mut module_data = ModuleData::new();
 
@@ -79,7 +79,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             participant_id,
             connection_id,
             device_id,
-            client_parameters,
+            client_kind,
             module_data,
         );
 
@@ -233,7 +233,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         device_id: DeviceId,
-        client_parameters: ClientParameters,
+        client_kind: ClientKind,
         module_data: ModuleData,
     ) -> JoinSuccess {
         let participants = self
@@ -266,8 +266,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             })
             .collect();
 
-        let display_name = client_parameters.kind.display_name();
-        let (role, avatar_url, is_room_owner) = match client_parameters.kind {
+        let display_name = client_kind.display_name();
+        let (role, avatar_url, is_room_owner) = match client_kind {
             ClientKind::Registered { profile } => (
                 Role::User,
                 Some(profile.user_info.avatar_url),
