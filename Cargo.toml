@@ -43,36 +43,36 @@ authors = [
 homepage = "https://opentalk.eu/"
 license = "EUPL-1.2"
 repository = "https://gitlab.opencode.de/opentalk/roomserver"
-version = "0.0.5"
+version = "0.0.6-dev"
 
 [workspace.dependencies]
-opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.5" }
-opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.5" }
-opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.5" }
-opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.5" }
-opentalk-roomserver-module-livekit = { path = "modules/livekit/module", version = "0.0.5" }
-opentalk-roomserver-module-meeting-report = { path = "modules/meeting-report/module", version = "0.0.5" }
-opentalk-roomserver-module-moderation = { path = "modules/moderation/module", version = "0.0.5" }
-opentalk-roomserver-module-ping = { path = "modules/ping/module", version = "0.0.5" }
-opentalk-roomserver-module-polls = { path = "modules/polls/module", version = "0.0.5" }
-opentalk-roomserver-module-shared-folder = { path = "modules/shared_folder/module", version = "0.0.5" }
-opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.5" }
-opentalk-roomserver-report-generation = { path = "opentalk-roomserver-report-generation", version = "0.0.5" }
-opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.5" }
-opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.5" }
-opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.5", features = [
+opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.6-dev" }
+opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.6-dev" }
+opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-livekit = { path = "modules/livekit/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-meeting-report = { path = "modules/meeting-report/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-moderation = { path = "modules/moderation/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-ping = { path = "modules/ping/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-polls = { path = "modules/polls/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-shared-folder = { path = "modules/shared_folder/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.6-dev" }
+opentalk-roomserver-report-generation = { path = "opentalk-roomserver-report-generation", version = "0.0.6-dev" }
+opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.6-dev" }
+opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.6-dev" }
+opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.6-dev", features = [
   "utoipa",
 ] }
-opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.5" }
-opentalk-roomserver-types-e2ee = { path = "modules/e2ee/types", version = "0.0.5" }
-opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = "0.0.5" }
-opentalk-roomserver-types-meeting-report = { path = "modules/meeting-report/types", version = "0.0.5" }
-opentalk-roomserver-types-moderation = { path = "modules/moderation/types", version = "0.0.5" }
-opentalk-roomserver-types-ping = { path = "modules/ping/types", version = "0.0.5" }
-opentalk-roomserver-types-polls = { path = "modules/polls/types", version = "0.0.5" }
-opentalk-roomserver-types-shared-folder = { path = "modules/shared_folder/types", version = "0.0.5" }
-opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.5" }
-opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.5" }
+opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-e2ee = { path = "modules/e2ee/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-meeting-report = { path = "modules/meeting-report/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-moderation = { path = "modules/moderation/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-ping = { path = "modules/ping/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-polls = { path = "modules/polls/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-shared-folder = { path = "modules/shared_folder/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.6-dev" }
+opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.6-dev" }
 opentalk-types-api-v1 = { version = "0.40.0", features = ["axum"] }
 opentalk-types-common = { version = "0.36.0", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.38.0", features = [
