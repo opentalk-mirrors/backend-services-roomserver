@@ -11,7 +11,7 @@ use crate::{MessageId, Scope};
 /// Message type stores in redis
 ///
 /// This needs to have a inner timestamp.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct StoredMessage {
     /// ID of message
     pub id: MessageId,

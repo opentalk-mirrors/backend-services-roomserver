@@ -549,6 +549,7 @@ impl<S> MockParticipant<S> {
         }
     }
 
+    #[must_use]
     pub fn received_nothing(&mut self) -> bool {
         self.receiver.is_empty()
     }

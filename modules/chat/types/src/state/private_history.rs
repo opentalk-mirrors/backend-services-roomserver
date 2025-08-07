@@ -5,14 +5,14 @@
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::state::StoredMessage;
+use crate::state::ChatChunk;
 
 /// Private chat history
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PrivateHistory {
     /// Private chat correspondent
     pub correspondent: ParticipantId,
 
     /// Private chat history
-    pub history: Vec<StoredMessage>,
+    pub history: ChatChunk,
 }

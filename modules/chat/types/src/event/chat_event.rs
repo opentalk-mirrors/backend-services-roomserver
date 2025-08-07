@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     command::SetLastSeenTimestamp,
     event::{ChatDisabled, ChatEnabled, Error, HistoryCleared, MessageSent},
+    state::{BreakoutHistory, ChatChunk, GroupHistory, PrivateHistory},
 };
 
 /// A chat event which occurred
@@ -20,6 +21,21 @@ pub enum ChatEvent {
 
     /// Chat event where chat was disabled see [ChatDisabled]
     ChatDisabled(ChatDisabled),
+
+    /// A chunk of the rooms chat history
+    RoomChatHistoryChunk {
+        /// Room chat history chunk
+        history: ChatChunk,
+    },
+
+    /// A chunk of a groups chat history
+    GroupChatHistoryChunk(GroupHistory),
+
+    /// A chunk of a breakout rooms chat history
+    BreakoutChatHistoryChunk(BreakoutHistory),
+
+    /// A chunk of a private chat history between two participants
+    PrivateChatHistoryChunk(PrivateHistory),
 
     /// Chat event where a message was sent see [MessageSent]
     MessageSent(MessageSent),
@@ -72,6 +88,9 @@ impl From<SetLastSeenTimestamp> for ChatEvent {
 
 #[cfg(test)]
 mod serde_tests {
+    use std::str::FromStr;
+
+    use insta::assert_snapshot;
     use opentalk_types_common::{time::Timestamp, users::GroupName};
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
@@ -385,5 +404,123 @@ mod serde_tests {
         } else {
             panic!("Expected ChatEvent::Error(ChatError::InsufficientPermissions)");
         }
+    }
+
+    #[test]
+    fn serialize_room_chat_history_chunk() {
+        let produced = serde_json::to_string_pretty(&ChatEvent::RoomChatHistoryChunk {
+            history: ChatChunk::default(),
+        })
+        .expect("Serialization failed");
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "room_chat_history_chunk",
+          "history": {
+            "messages": [],
+            "next_index": null
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_room_chat_history_chunk() {
+        let json = json!({
+          "message": "room_chat_history_chunk",
+          "history": {
+            "messages": [],
+            "next_index": null
+          }
+        });
+        let produced = serde_json::from_value(json).expect("Deserialization failed");
+
+        let expected = ChatEvent::RoomChatHistoryChunk {
+            history: ChatChunk::default(),
+        };
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_group_chat_history_chunk() {
+        let produced =
+            serde_json::to_string_pretty(&ChatEvent::GroupChatHistoryChunk(GroupHistory {
+                name: GroupName::from_str("group1").unwrap(),
+                history: ChatChunk::default(),
+            }))
+            .expect("Serialization failed");
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "group_chat_history_chunk",
+          "name": "group1",
+          "history": {
+            "messages": [],
+            "next_index": null
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_group_chat_history_chunk() {
+        let json = json!(        {
+          "message": "group_chat_history_chunk",
+          "name": "group1",
+          "history": {
+            "messages": [],
+            "next_index": null
+          }
+        });
+        let produced = serde_json::from_value(json).expect("Deserialization failed");
+
+        let expected = ChatEvent::GroupChatHistoryChunk(GroupHistory {
+            name: GroupName::from_str("group1").unwrap(),
+            history: ChatChunk::default(),
+        });
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_private_chat_history_chunk() {
+        let produced =
+            serde_json::to_string_pretty(&ChatEvent::PrivateChatHistoryChunk(PrivateHistory {
+                correspondent: ParticipantId::nil(),
+                history: ChatChunk::default(),
+            }))
+            .expect("Serialization failed");
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "private_chat_history_chunk",
+          "correspondent": "00000000-0000-0000-0000-000000000000",
+          "history": {
+            "messages": [],
+            "next_index": null
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_private_chat_history_chunk() {
+        let json = json!(        {
+          "message": "private_chat_history_chunk",
+          "correspondent": "00000000-0000-0000-0000-000000000000",
+          "history": {
+            "messages": [],
+            "next_index": null
+          }
+        });
+        let produced = serde_json::from_value(json).expect("Deserialization failed");
+
+        let expected = ChatEvent::PrivateChatHistoryChunk(PrivateHistory {
+            correspondent: ParticipantId::nil(),
+            history: ChatChunk::default(),
+        });
+
+        assert_eq!(expected, produced);
     }
 }
