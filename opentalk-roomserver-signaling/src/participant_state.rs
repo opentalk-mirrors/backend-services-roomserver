@@ -27,23 +27,23 @@ impl Participants {
         Self::default()
     }
 
-    pub fn connected(&self) -> ParticipantsFiltered {
+    pub fn connected(&self) -> ParticipantsFiltered<'_> {
         ParticipantsFiltered::new(self).connected()
     }
 
-    pub fn disconnected(&self) -> ParticipantsFiltered {
+    pub fn disconnected(&self) -> ParticipantsFiltered<'_> {
         ParticipantsFiltered::new(self).disconnected()
     }
 
-    pub fn in_room(&self, room: RoomKind) -> ParticipantsFiltered {
+    pub fn in_room(&self, room: RoomKind) -> ParticipantsFiltered<'_> {
         ParticipantsFiltered::new(self).room(room)
     }
 
-    pub fn moderators(&self) -> ParticipantsFiltered {
+    pub fn moderators(&self) -> ParticipantsFiltered<'_> {
         ParticipantsFiltered::new(self).moderators()
     }
 
-    pub fn non_moderators(&self) -> ParticipantsFiltered {
+    pub fn non_moderators(&self) -> ParticipantsFiltered<'_> {
         ParticipantsFiltered::new(self).non_moderators()
     }
 
@@ -54,15 +54,15 @@ impl Participants {
             .collect()
     }
 
-    pub fn visible(&self) -> ParticipantsFiltered {
+    pub fn visible(&self) -> ParticipantsFiltered<'_> {
         ParticipantsFiltered::new(self).visibility(ParticipationVisibility::Visible)
     }
 
-    pub fn filter(&self) -> ParticipantsFiltered {
+    pub fn filter(&self) -> ParticipantsFiltered<'_> {
         ParticipantsFiltered::new(self)
     }
 
-    pub fn filter_mut(&mut self) -> ParticipantsFilteredMut {
+    pub fn filter_mut(&mut self) -> ParticipantsFilteredMut<'_> {
         ParticipantsFilteredMut::new(self)
     }
 }

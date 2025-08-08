@@ -115,10 +115,10 @@ impl LiveKitSubroom {
         if let MicrophoneRestrictionState::Enabled {
             unrestricted_participants,
         } = &self.microphone_restrictions
+            && !ctx.is_moderator(participant)
+            && !unrestricted_participants.contains(&participant)
         {
-            if !ctx.is_moderator(participant) && !unrestricted_participants.contains(&participant) {
-                available_sources.retain(|s| s != &TrackSource::Microphone);
-            }
+            available_sources.retain(|s| s != &TrackSource::Microphone);
         }
 
         if !self.default_screenshare_permission {
