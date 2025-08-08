@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     command::SetLastSeenTimestamp,
-    event::{ChatDisabled, ChatEnabled, Error, HistoryCleared, MessageSent},
+    event::{ChatDisabled, ChatEnabled, Error, HistoryCleared, MessageSent, SearchResults},
     state::{BreakoutHistory, ChatChunk, GroupHistory, PrivateHistory},
 };
 
@@ -45,6 +45,9 @@ pub enum ChatEvent {
 
     /// Chat event when last seen timestamp was set.
     SetLastSeenTimestamp(SetLastSeenTimestamp),
+
+    /// The results of a search
+    SearchResults(SearchResults),
 
     /// Chat event which errored see [Error]
     Error(Error),
@@ -83,6 +86,12 @@ impl From<Error> for ChatEvent {
 impl From<SetLastSeenTimestamp> for ChatEvent {
     fn from(value: SetLastSeenTimestamp) -> Self {
         Self::SetLastSeenTimestamp(value)
+    }
+}
+
+impl From<SearchResults> for ChatEvent {
+    fn from(value: SearchResults) -> Self {
+        Self::SearchResults(value)
     }
 }
 
@@ -519,6 +528,46 @@ mod serde_tests {
         let expected = ChatEvent::PrivateChatHistoryChunk(PrivateHistory {
             correspondent: ParticipantId::nil(),
             history: ChatChunk::default(),
+        });
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_search_results() {
+        let produced = serde_json::to_string_pretty(&ChatEvent::SearchResults(SearchResults {
+            matches: ChatChunk::default(),
+            scope: Scope::Global,
+        }))
+        .expect("Serialization failed");
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "search_results",
+          "matches": {
+            "messages": [],
+            "next_index": null
+          },
+          "scope": "global"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_search_results() {
+        let json = json!({
+          "message": "search_results",
+          "matches": {
+            "messages": [],
+            "next_index": null
+          },
+          "scope": "global"
+        });
+        let produced = serde_json::from_value(json).expect("Deserialization failed");
+
+        let expected = ChatEvent::SearchResults(SearchResults {
+            matches: ChatChunk::default(),
+            scope: Scope::Global,
         });
 
         assert_eq!(expected, produced);

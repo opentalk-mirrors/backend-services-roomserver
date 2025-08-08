@@ -19,9 +19,10 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_chat::{
     MessageId, Scope,
-    command::{ChatCommand, GetHistoryChunk, SendMessage, SetLastSeenTimestamp},
+    command::{ChatCommand, GetHistoryChunk, SearchHistory, SendMessage, SetLastSeenTimestamp},
     event::{
         ChatDisabled, ChatEnabled, ChatEvent, Error as ChatError, HistoryCleared, MessageSent,
+        SearchResults,
     },
     state::{
         BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, GroupHistory, PrivateHistory,
@@ -948,7 +949,7 @@ async fn room_chat_history_chunks() {
     assert!(chat_state.global_history.messages.is_empty());
 
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
-    fill_messages(&mut alice, Scope::Global, message_count).await;
+    fill_messages(&mut alice, Scope::Global, "", message_count).await;
 
     alice.disconnect();
     let mut alice = room.join_alice_moderator(1).await;
@@ -1013,7 +1014,7 @@ async fn breakout_chat_history_chunks() {
     let breakout_id = BreakoutId::from(0);
     let scope = Scope::Breakout(breakout_id);
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
-    fill_messages(&mut alice, scope.clone(), message_count).await;
+    fill_messages(&mut alice, scope.clone(), "", message_count).await;
 
     alice.switch_breakout_room(&mut [], RoomKind::Main).await;
     let event = alice
@@ -1063,7 +1064,7 @@ async fn private_chat_history_chunks() {
     let scope = Scope::Private(recipient_id);
 
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
-    fill_messages(&mut alice, scope.clone(), message_count).await;
+    fill_messages(&mut alice, scope.clone(), "", message_count).await;
 
     alice.disconnect();
     let mut alice = room.join_alice_moderator(1).await;
@@ -1194,20 +1195,22 @@ async fn get_chunk(
 async fn fill_messages(
     sender: &mut MockParticipant<JoinSuccess>,
     scope: Scope,
+    content: &str,
     message_count: u64,
 ) {
     for i in 0..message_count {
         sender
             .send_command::<ChatModule>(
                 ChatCommand::SendMessage(SendMessage {
-                    content: i.to_string(),
+                    content: format!("{i}_{content}"),
                     scope: scope.clone(),
                 }),
                 None,
             )
             .await
             .unwrap();
-        sender.receive::<ChatEvent>().await.unwrap();
+        let event = sender.receive_event::<ChatModule>().await.unwrap().content;
+        assert!(matches!(event, ChatEvent::MessageSent(..)));
     }
 }
 
@@ -1281,4 +1284,295 @@ async fn private_chat_history_on_join() {
         .expect("Did not receive chat state")
         .expect("Chat state must not be empty");
     assert_eq!(chat_state.private_history, Vec::new());
+}
+
+#[test_log::test(tokio::test)]
+async fn invalid_search_term_length() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+
+    alice
+        .send_command::<ChatModule>(
+            ChatCommand::SearchHistory(SearchHistory {
+                term: "".into(),
+                scope: Scope::Global,
+                message_index: None,
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice.receive_event::<ChatModule>().await.unwrap().content;
+    assert!(matches!(
+        event,
+        ChatEvent::Error(ChatError::InvalidSearchTermLength { .. })
+    ));
+}
+
+#[test_log::test(tokio::test)]
+async fn search_room_chat_history() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+
+    let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
+    let search_term = "hello";
+    let scope = Scope::Global;
+    fill_messages(&mut alice, scope.clone(), search_term, message_count).await;
+    fill_messages(&mut alice, scope.clone(), "goodbye", message_count).await;
+
+    // No matches
+    let chunk = search(&mut alice, scope.clone(), None, "banana").await;
+    assert_eq!(chunk, ChatChunk::default());
+
+    let chunk = search(&mut alice, scope.clone(), None, search_term).await;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
+    // Check for the correct order
+    assert_eq!(
+        chunk
+            .messages
+            .iter()
+            .position(|m| m.content.contains(&(message_count - 1).to_string())),
+        Some(CHAT_CHUNK_SIZE as usize - 1)
+    );
+
+    let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(0));
+    // Check for the correct order
+    assert_eq!(
+        chunk.messages.iter().position(|m| m
+            .content
+            .contains(&(message_count - 1 - CHAT_CHUNK_SIZE).to_string())),
+        Some(CHAT_CHUNK_SIZE as usize - 1)
+    );
+
+    let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
+    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.next_index, None);
+
+    // Out of bounds
+    let chunk = search(&mut alice, scope, Some(CHAT_CHUNK_SIZE * 1000), search_term).await;
+    assert_eq!(chunk, ChatChunk::default());
+}
+
+#[test_log::test(tokio::test)]
+async fn search_breakout_chat_history() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+
+    alice
+        .start_breakout_rooms(
+            &mut [],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "breakout_room".into(),
+                    assignments: vec![],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    let breakout_id = BreakoutId::from(0);
+    alice
+        .switch_breakout_room(&mut [], RoomKind::Breakout(breakout_id))
+        .await;
+
+    let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
+    let search_term = "hello";
+    let scope = Scope::Breakout(breakout_id);
+    fill_messages(&mut alice, scope.clone(), search_term, message_count).await;
+    fill_messages(&mut alice, scope.clone(), "goodbye", message_count).await;
+
+    // No matches
+    let chunk = search(&mut alice, scope.clone(), None, "banana").await;
+    assert_eq!(chunk, ChatChunk::default());
+
+    let chunk = search(&mut alice, scope.clone(), None, search_term).await;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
+    // Check for the correct order
+    assert_eq!(
+        chunk
+            .messages
+            .iter()
+            .position(|m| m.content.contains(&(message_count - 1).to_string())),
+        Some(CHAT_CHUNK_SIZE as usize - 1)
+    );
+
+    let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(0));
+    // Check for the correct order
+    assert_eq!(
+        chunk.messages.iter().position(|m| m
+            .content
+            .contains(&(message_count - 1 - CHAT_CHUNK_SIZE).to_string())),
+        Some(CHAT_CHUNK_SIZE as usize - 1)
+    );
+
+    let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
+    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.next_index, None);
+
+    // Out of bounds
+    let chunk = search(
+        &mut alice,
+        scope.clone(),
+        Some(CHAT_CHUNK_SIZE * 1000),
+        search_term,
+    )
+    .await;
+    assert_eq!(chunk, ChatChunk::default());
+}
+
+#[test_log::test(tokio::test)]
+async fn search_private_chat_history() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+
+    let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
+    let search_term = "hello";
+    let scope = Scope::Private(ParticipantId::generate());
+    fill_messages(&mut alice, scope.clone(), search_term, message_count).await;
+    fill_messages(&mut alice, scope.clone(), "goodbye", message_count).await;
+
+    // No matches
+    let chunk = search(&mut alice, scope.clone(), None, "banana").await;
+    assert_eq!(chunk, ChatChunk::default());
+
+    let chunk = search(&mut alice, scope.clone(), None, search_term).await;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
+    // Check for the correct order
+    assert_eq!(
+        chunk
+            .messages
+            .iter()
+            .position(|m| m.content.contains(&(message_count - 1).to_string())),
+        Some(CHAT_CHUNK_SIZE as usize - 1)
+    );
+
+    let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
+    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.next_index, Some(0));
+    // Check for the correct order
+    assert_eq!(
+        chunk.messages.iter().position(|m| m
+            .content
+            .contains(&(message_count - 1 - CHAT_CHUNK_SIZE).to_string())),
+        Some(CHAT_CHUNK_SIZE as usize - 1)
+    );
+
+    let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
+    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.next_index, None);
+
+    // Out of bounds
+    let chunk = search(
+        &mut alice,
+        scope.clone(),
+        Some(CHAT_CHUNK_SIZE * 1000),
+        search_term,
+    )
+    .await;
+    assert_eq!(chunk, ChatChunk::default());
+}
+
+async fn search(
+    participant: &mut MockParticipant<JoinSuccess>,
+    search_scope: Scope,
+    message_index: Option<u64>,
+    term: &str,
+) -> ChatChunk {
+    participant
+        .send_command::<ChatModule>(
+            ChatCommand::SearchHistory(SearchHistory {
+                term: term.into(),
+                scope: search_scope.clone(),
+                message_index,
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = participant
+        .receive_event::<ChatModule>()
+        .await
+        .unwrap()
+        .content;
+
+    match event {
+        ChatEvent::SearchResults(SearchResults { matches, scope }) => {
+            assert_eq!(scope, search_scope);
+            for message in &matches.messages {
+                message.content.contains(term);
+            }
+            matches
+        }
+        _ => panic!("Received wrong event"),
+    }
+}
+
+#[test_log::test(tokio::test)]
+async fn search_other_breakout_room() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "room 0".into(),
+                    assignments: vec![],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    // Bob is not allowed to see the messages of the breakout room when he isn't
+    // inside it
+    let scope = Scope::Breakout(BreakoutId::from(0));
+    bob.send_command::<ChatModule>(
+        ChatCommand::SearchHistory(SearchHistory {
+            scope: scope.clone(),
+            term: "hello".into(),
+            message_index: None,
+        }),
+        None,
+    )
+    .await
+    .unwrap();
+
+    let event = bob.receive_event::<ChatModule>().await.unwrap().content;
+    assert_eq!(event, ChatEvent::Error(ChatError::InsufficientPermissions));
+
+    // Alice is allowed to search the messages of the breakout room
+    alice
+        .send_command::<ChatModule>(
+            ChatCommand::SearchHistory(SearchHistory {
+                scope: scope.clone(),
+                term: "hello".into(),
+                message_index: None,
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice.receive_event::<ChatModule>().await.unwrap().content;
+    assert_eq!(
+        event,
+        ChatEvent::SearchResults(SearchResults {
+            matches: ChatChunk::default(),
+            scope
+        })
+    );
 }
