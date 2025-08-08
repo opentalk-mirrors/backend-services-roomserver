@@ -949,7 +949,7 @@ async fn room_chat_history_chunks() {
     assert!(chat_state.global_history.messages.is_empty());
 
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
-    fill_messages(&mut alice, Scope::Global, "", message_count).await;
+    fill_messages(&mut alice, &mut [], Scope::Global, "", message_count).await;
 
     alice.disconnect();
     let mut alice = room.join_alice_moderator(1).await;
@@ -1014,7 +1014,7 @@ async fn breakout_chat_history_chunks() {
     let breakout_id = BreakoutId::from(0);
     let scope = Scope::Breakout(breakout_id);
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
-    fill_messages(&mut alice, scope.clone(), "", message_count).await;
+    fill_messages(&mut alice, &mut [], scope.clone(), "", message_count).await;
 
     alice.switch_breakout_room(&mut [], RoomKind::Main).await;
     let event = alice
@@ -1050,6 +1050,8 @@ async fn breakout_chat_history_chunks() {
 async fn private_chat_history_chunks() {
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
     let mut alice = room.join_alice_moderator(1).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     // Private chat history is empty
     let private_history = alice
@@ -1060,11 +1062,17 @@ async fn private_chat_history_chunks() {
         .private_history;
     assert!(private_history.is_empty());
 
-    let recipient_id = ParticipantId::generate();
-    let scope = Scope::Private(recipient_id);
+    let scope = Scope::Private(bob.id());
 
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
-    fill_messages(&mut alice, scope.clone(), "", message_count).await;
+    fill_messages(
+        &mut alice,
+        &mut [&mut bob],
+        scope.clone(),
+        "",
+        message_count,
+    )
+    .await;
 
     alice.disconnect();
     let mut alice = room.join_alice_moderator(1).await;
@@ -1081,7 +1089,7 @@ async fn private_chat_history_chunks() {
     assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
 
-    let scope = Scope::Private(recipient_id);
+    let scope = Scope::Private(bob.id());
     let chunk = get_chunk(&mut alice, scope.clone(), chunk.next_index.unwrap()).await;
     assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(0));
@@ -1194,6 +1202,7 @@ async fn get_chunk(
 
 async fn fill_messages(
     sender: &mut MockParticipant<JoinSuccess>,
+    receivers: &mut [&mut MockParticipant<JoinSuccess>],
     scope: Scope,
     content: &str,
     message_count: u64,
@@ -1211,6 +1220,12 @@ async fn fill_messages(
             .unwrap();
         let event = sender.receive_event::<ChatModule>().await.unwrap().content;
         assert!(matches!(event, ChatEvent::MessageSent(..)));
+
+        // Messages must be received because otherwise the channel fills up and
+        // builds back pressure on the sender of the sending participant.
+        for receiver in receivers.iter_mut() {
+            receiver.receive_event::<ChatModule>().await.unwrap();
+        }
     }
 }
 
@@ -1318,8 +1333,15 @@ async fn search_room_chat_history() {
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
     let search_term = "hello";
     let scope = Scope::Global;
-    fill_messages(&mut alice, scope.clone(), search_term, message_count).await;
-    fill_messages(&mut alice, scope.clone(), "goodbye", message_count).await;
+    fill_messages(
+        &mut alice,
+        &mut [],
+        scope.clone(),
+        search_term,
+        message_count,
+    )
+    .await;
+    fill_messages(&mut alice, &mut [], scope.clone(), "goodbye", message_count).await;
 
     // No matches
     let chunk = search(&mut alice, scope.clone(), None, "banana").await;
@@ -1383,8 +1405,15 @@ async fn search_breakout_chat_history() {
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
     let search_term = "hello";
     let scope = Scope::Breakout(breakout_id);
-    fill_messages(&mut alice, scope.clone(), search_term, message_count).await;
-    fill_messages(&mut alice, scope.clone(), "goodbye", message_count).await;
+    fill_messages(
+        &mut alice,
+        &mut [],
+        scope.clone(),
+        search_term,
+        message_count,
+    )
+    .await;
+    fill_messages(&mut alice, &mut [], scope.clone(), "goodbye", message_count).await;
 
     // No matches
     let chunk = search(&mut alice, scope.clone(), None, "banana").await;
@@ -1432,12 +1461,28 @@ async fn search_breakout_chat_history() {
 async fn search_private_chat_history() {
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
     let mut alice = room.join_alice_moderator(1).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
     let search_term = "hello";
-    let scope = Scope::Private(ParticipantId::generate());
-    fill_messages(&mut alice, scope.clone(), search_term, message_count).await;
-    fill_messages(&mut alice, scope.clone(), "goodbye", message_count).await;
+    let scope = Scope::Private(bob.id());
+    fill_messages(
+        &mut alice,
+        &mut [&mut bob],
+        scope.clone(),
+        search_term,
+        message_count,
+    )
+    .await;
+    fill_messages(
+        &mut alice,
+        &mut [&mut bob],
+        scope.clone(),
+        "goodbye",
+        message_count,
+    )
+    .await;
 
     // No matches
     let chunk = search(&mut alice, scope.clone(), None, "banana").await;
