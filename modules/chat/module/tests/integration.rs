@@ -864,6 +864,26 @@ async fn send_private_message_main_to_breakout() {
     assert!(breakout_bob.received_nothing());
 }
 
+#[test_log::test(tokio::test)]
+async fn send_private_message_unknown_participant() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage(SendMessage {
+                content: "hello".into(),
+                scope: Scope::Private(ParticipantId::nil()),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice.receive_event::<ChatModule>().await.unwrap().content;
+    assert_eq!(event, ChatEvent::Error(ChatError::UnknownParticipant));
+}
+
 /// Return type for [start_breakout_scenario]
 struct BreakoutScenario<S> {
     _room: TestRoom,
