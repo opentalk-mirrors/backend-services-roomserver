@@ -1094,6 +1094,64 @@ async fn private_chat_history_chunks() {
     assert_eq!(chunk, ChatChunk::default());
 }
 
+#[test_log::test(tokio::test)]
+async fn other_breakout_room_history_chunk() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(1).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "room 0".into(),
+                    assignments: vec![],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    // Bob is not allowed to see the messages of the breakout room when he isn't
+    // inside it
+    let scope = Scope::Breakout(BreakoutId::from(0));
+    bob.send_command::<ChatModule>(
+        ChatCommand::GetHistoryChunk(GetHistoryChunk {
+            message_index: 0,
+            scope: scope.clone(),
+        }),
+        None,
+    )
+    .await
+    .unwrap();
+
+    let event = bob.receive_event::<ChatModule>().await.unwrap().content;
+    assert_eq!(event, ChatEvent::Error(ChatError::InsufficientPermissions));
+
+    // Alice is allowed to search the messages of the breakout room
+    alice
+        .send_command::<ChatModule>(
+            ChatCommand::GetHistoryChunk(GetHistoryChunk {
+                message_index: 0,
+                scope: scope.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice.receive_event::<ChatModule>().await.unwrap().content;
+    assert_eq!(
+        event,
+        ChatEvent::BreakoutChatHistoryChunk(BreakoutHistory {
+            history: ChatChunk::default(),
+            breakout_id: BreakoutId::from(0),
+        })
+    );
+}
+
 async fn get_chunk(
     participant: &mut MockParticipant<JoinSuccess>,
     scope: Scope,
