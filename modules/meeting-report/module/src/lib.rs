@@ -142,7 +142,6 @@ impl MeetingReportModule {
                 id: *id,
                 name: state.display_name.to_string(),
                 role: (state.role, state.kind).into(),
-                kind: state.kind,
                 email: include_email_addresses
                     .then(|| state.email.clone())
                     .flatten()
