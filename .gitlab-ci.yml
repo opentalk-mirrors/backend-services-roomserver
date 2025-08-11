@@ -19,7 +19,7 @@ variables:
   DEFAULT_FLAVOR: alpine
 
 .template_vars:
-  FLAVORS: [alpine, bookworm, noble]
+  FLAVORS: [alpine, trixie, noble]
 
 .default_job_condition: &default_job_condition
   needs: []
