@@ -5,18 +5,21 @@ use std::collections::BTreeSet;
 
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::{
-    participant::{MockParticipantJoined, MockParticipantWaiting},
-    room::TestRoom,
+    participant::{MockParticipantJoined, MockParticipantWaiting, bob_public_user_profile},
+    room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     core::{CoreCommand, CoreEvent, LeftWaitingRoom},
+    disconnect_reason::DisconnectReason,
+    room_parameters::RoomParameters,
 };
 use opentalk_roomserver_types_moderation::{
-    command::{Accept, ModerationCommand},
+    command::{Accept, ModerationCommand, SendToWaitingRoom},
     event::{ModerationError, ModerationEvent},
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_common::{tariffs::TariffResource, utils::ExampleData};
+use opentalk_types_signaling::{ModuleData, ParticipantId};
 
 async fn accept_participant(
     moderator: &mut MockParticipantJoined,
@@ -357,4 +360,140 @@ async fn disable_waiting_room() {
         .unwrap()
         .content;
     assert_eq!(event, ModerationEvent::WaitingRoomDisabled);
+}
+
+#[test_log::test(tokio::test)]
+async fn send_to_waiting_room_insufficient_permissions() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
+    bob.send_command::<ModerationModule>(
+        ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target: alice.id() }),
+        None,
+    )
+    .await
+    .unwrap();
+
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::InsufficientPermissions)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn cannot_send_owner_to_waiting_room() {
+    let mut room = TestRoom::builder()
+        .room_parameters(RoomParameters {
+            created_by: bob_public_user_profile(),
+            password: None,
+            waiting_room: false,
+            call_in: None,
+            event: None,
+            invite_code: None,
+            tariff: TariffResource::example_data(),
+            streaming_links: Vec::new(),
+            e2e_encryption: false,
+            module_data: ModuleData::new(),
+        })
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target: bob.id() }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::CannotSendRoomOwnerToWaitingRoom)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn send_to_waiting_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(false) // waiting room is enabled automatically by move
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target: bob.id() }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
+    let event = alice.receive::<CoreEvent>().await.unwrap().content;
+    assert!(matches!(
+        event,
+        CoreEvent::ParticipantDisconnected {
+            participant_id,
+            connection_id,
+            reason,
+        } if participant_id == bob.id() && connection_id == bob.connection_id() && reason == DisconnectReason::SentToWaitingRoom
+    ));
+
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::SentToWaitingRoom);
 }
