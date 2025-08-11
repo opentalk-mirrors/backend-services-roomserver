@@ -24,6 +24,12 @@ pub enum ModerationCommand {
     /// Start the debriefing
     Debrief(KickScope),
 
+    /// Enable waiting room for the meeting
+    EnableWaitingRoom,
+
+    /// Disable waiting room for the meeting
+    DisableWaitingRoom,
+
     /// Change the display name of the targeted guest
     ChangeDisplayName(ChangeDisplayName),
 

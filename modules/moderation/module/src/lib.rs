@@ -5,10 +5,11 @@ use std::{collections::HashMap, mem};
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    participant_state::{ParticipantKind, ParticipantState},
+    participant_state::ParticipantState,
     signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
+    client_parameters::ClientKind,
     connection_id::ConnectionId,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
@@ -74,9 +75,11 @@ impl SignalingModule for ModerationModule {
         match content {
             ModerationCommand::Kick(Kick { target }) => self.kick_participant(ctx, sender, target),
             ModerationCommand::Debrief(kick_scope) => self.debrief(ctx, sender, kick_scope),
+            ModerationCommand::EnableWaitingRoom => Ok(self.set_waiting_room_enabled(ctx, true)?),
             ModerationCommand::Accept(Accept { target }) => {
                 Self::accept_waiting_room_participant(ctx, sender, target)
             }
+            ModerationCommand::DisableWaitingRoom => Ok(self.set_waiting_room_enabled(ctx, false)?),
             ModerationCommand::ChangeDisplayName(ChangeDisplayName { new_name, target }) => {
                 self.change_display_name(ctx, sender, new_name, target)
             }
@@ -123,7 +126,9 @@ impl ModerationModule {
             ModerationEvent::DebriefingStarted(DebriefingStarted { issued_by: sender }),
         )?;
 
-        self.set_waiting_room_enabled(ctx, true)?;
+        if !ctx.room_task_info.room.waiting_room {
+            self.set_waiting_room_enabled(ctx, true)?;
+        }
 
         ctx.send_ws_message(kicked.clone(), ModerationEvent::Kicked)?;
         ctx.kick_participants(kicked);
@@ -179,10 +184,6 @@ impl ModerationModule {
         ctx: &mut ModuleContext<'_, Self>,
         enabled: bool,
     ) -> Result<(), FatalError> {
-        if ctx.room_task_info.room.waiting_room == enabled {
-            return Ok(());
-        }
-
         ctx.room_task_info.room.waiting_room = enabled;
         let event = if enabled {
             ModerationEvent::WaitingRoomEnabled
@@ -213,11 +214,11 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
-        if participant.kind != ParticipantKind::Guest {
+        let ClientKind::Guest { display_name } = &mut participant.kind else {
             return Err(ModerationError::CannotChangeNameOfRegisteredUsers.into());
-        }
+        };
 
-        let old_name = mem::replace(&mut participant.display_name, new_name.clone());
+        let old_name = mem::replace(display_name, new_name.clone());
 
         ctx.send_ws_message(
             ctx.participants.connected().ids(),
