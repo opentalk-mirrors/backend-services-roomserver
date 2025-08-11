@@ -84,10 +84,18 @@ pub struct ParticipantState {
 
     /// The time the participant left the meeting with their last connection
     pub left_at: Option<DateTime<Utc>>,
+
+    /// Whether the participant was moved to the waiting room
+    pub in_waiting_room: bool,
 }
 
 impl ParticipantState {
-    pub fn new(kind: ClientKind, role: Role, joined_at: DateTime<Utc>) -> Self {
+    pub fn new(
+        kind: ClientKind,
+        role: Role,
+        joined_at: DateTime<Utc>,
+        in_waiting_room: bool,
+    ) -> Self {
         Self {
             room: RoomKind::Main,
             kind,
@@ -95,6 +103,7 @@ impl ParticipantState {
             connections: HashMap::new(),
             joined_at,
             left_at: None,
+            in_waiting_room,
         }
     }
 
@@ -153,6 +162,7 @@ mod tests {
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: None,
+                in_waiting_room: false,
             },
         );
 
@@ -168,6 +178,7 @@ mod tests {
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: None,
+                in_waiting_room: false,
             },
         );
 
@@ -183,6 +194,7 @@ mod tests {
                 connections: HashMap::from([]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+                in_waiting_room: false,
             },
         );
 
@@ -219,6 +231,7 @@ mod tests {
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: None,
+                in_waiting_room: false,
             },
         );
 
@@ -234,6 +247,7 @@ mod tests {
                 connections: HashMap::from([]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+                in_waiting_room: false,
             },
         );
 
@@ -249,6 +263,7 @@ mod tests {
                 connections: HashMap::from([]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+                in_waiting_room: false,
             },
         );
 
@@ -333,6 +348,7 @@ mod tests {
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: None,
+                in_waiting_room: false,
             },
         );
 
@@ -348,6 +364,7 @@ mod tests {
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+                in_waiting_room: false,
             },
         );
 
@@ -361,6 +378,7 @@ mod tests {
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+                in_waiting_room: false,
             },
         );
 
@@ -399,6 +417,7 @@ mod tests {
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: None,
+                in_waiting_room: false,
             },
         );
 
@@ -414,6 +433,7 @@ mod tests {
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+                in_waiting_room: false,
             },
         );
 
@@ -427,6 +447,7 @@ mod tests {
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+                in_waiting_room: false,
             },
         );
 
@@ -456,6 +477,7 @@ mod tests {
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: None,
+                in_waiting_room: false,
             },
         );
 
@@ -471,6 +493,7 @@ mod tests {
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: None,
+                in_waiting_room: false,
             },
         );
 
@@ -484,6 +507,7 @@ mod tests {
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+                in_waiting_room: false,
             },
         );
 

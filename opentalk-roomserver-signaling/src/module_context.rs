@@ -318,6 +318,12 @@ where
         self.messages.get_mut().push(command);
     }
 
+    /// Move the specified participant to the waiting room
+    pub fn move_to_waiting_room(&mut self, participant: ParticipantId) {
+        let command = ModuleMessage::Instruction(Instruction::MoveToWaitingRoom { participant });
+        self.messages.get_mut().push(command);
+    }
+
     /// Invoke an error message of type [`SignalingError`]
     ///
     /// If the event origin is a signaling connection, the error will be sent to the participant.
@@ -448,6 +454,18 @@ where
         self.participant_role(participant_id)
             .map(|r| r == Role::Moderator)
             .unwrap_or(false)
+    }
+
+    pub fn is_room_owner(&self, participant_id: ParticipantId) -> bool {
+        let user_id = self
+            .participants
+            .all_unfiltered
+            .get(&participant_id)
+            .and_then(|state| state.kind.user_id());
+        let Some(user_id) = user_id else {
+            return false;
+        };
+        user_id == self.room_task_info.room.created_by.id
     }
 
     pub fn storage(&self) -> Arc<dyn StorageProvider> {

@@ -476,6 +476,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 // invoke core commands from broadcast events.
                 Box::pin(self.kick_participants(origin, participants)).await;
             }
+            Instruction::MoveToWaitingRoom { participant } => {
+                Box::pin(self.move_to_waiting_room(participant)).await;
+            }
         };
     }
 
@@ -769,10 +772,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let join_waiting_room = self.info.room.waiting_room
             && !role.is_moderator()
-            && !self
+            && self
                 .participants
                 .all_unfiltered
-                .contains_key(&participant_id);
+                .get(&participant_id)
+                .map(|participant| participant.in_waiting_room)
+                .unwrap_or(true);
 
         let scoped_router = if join_waiting_room {
             &mut self.message_router.waiting_room
@@ -829,7 +834,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
             Vacant(vacant) => {
                 vacant
-                    .insert(ParticipantState::new(client_kind.clone(), role, Utc::now()))
+                    .insert(ParticipantState::new(
+                        client_kind.clone(),
+                        role,
+                        Utc::now(),
+                        false,
+                    ))
                     .connections
                     .insert(connection_id, device_id);
             }

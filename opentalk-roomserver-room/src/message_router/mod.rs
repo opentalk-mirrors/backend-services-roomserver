@@ -70,6 +70,13 @@ impl MessageRouter {
         Self::move_connections(&mut self.waiting_room, &mut self.conference, connections);
     }
 
+    pub fn move_to_waiting_room<'a>(
+        &mut self,
+        connections: impl Iterator<Item = &'a ConnectionId>,
+    ) {
+        Self::move_connections(&mut self.conference, &mut self.waiting_room, connections);
+    }
+
     fn move_connections<'a>(
         from: &mut ScopedRouter,
         to: &mut ScopedRouter,

@@ -22,6 +22,9 @@ pub enum ModerationEvent {
     /// Sent out when the waiting room is disabled
     WaitingRoomDisabled,
 
+    /// Sent to a participant that is moved to the waiting room
+    SentToWaitingRoom,
+
     /// Sent to a participant when they are accepted by the moderator from the waiting room
     Accepted,
 

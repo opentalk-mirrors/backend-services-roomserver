@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::{HashMap, hash_map::Entry};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    mem,
+};
 
 use opentalk_roomserver_signaling::{
-    event_origin::ParticipantOrigin, waiting_participant::WaitingParticipant,
+    event_origin::{EventOrigin, ParticipantOrigin},
+    waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreError, CoreEvent, LeftWaitingRoom},
     device_id::DeviceId,
+    disconnect_reason::DisconnectReason,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
@@ -162,5 +167,41 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub async fn move_to_waiting_room(&mut self, participant_id: ParticipantId) {
+        let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
+            tracing::error!("Failed to move unknown participant {participant_id} to waiting room");
+            return;
+        };
+
+        let connections = mem::take(&mut state.connections);
+        let ids = connections.keys();
+        self.message_router.move_to_waiting_room(ids.clone());
+
+        self.waiting_participants.insert(
+            participant_id,
+            WaitingParticipant {
+                connections: connections.clone(),
+                accepted: false,
+                role: state.role,
+                kind: state.kind.clone(),
+            },
+        );
+
+        state.in_waiting_room = true;
+
+        let room = state.room;
+        for connection_id in ids {
+            self.participant_disconnected(
+                EventOrigin::Internal,
+                participant_id,
+                *connection_id,
+                room,
+                DisconnectReason::SentToWaitingRoom,
+            )
+            .await;
+        }
     }
 }

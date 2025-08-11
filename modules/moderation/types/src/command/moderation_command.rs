@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     KickScope,
-    command::{ChangeDisplayName, Kick},
+    command::{ChangeDisplayName, Kick, SendToWaitingRoom},
     event::ModerationEvent,
 };
 
@@ -29,6 +29,9 @@ pub enum ModerationCommand {
 
     /// Disable waiting room for the meeting
     DisableWaitingRoom,
+
+    /// Send a participant to the waiting room
+    SendToWaitingRoom(SendToWaitingRoom),
 
     /// Change the display name of the targeted guest
     ChangeDisplayName(ChangeDisplayName),

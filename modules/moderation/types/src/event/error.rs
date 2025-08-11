@@ -21,6 +21,8 @@ pub enum ModerationError {
     NotWaiting,
     /// The participant cannot enter the room because they were not accepted by a moderator yet.
     NotAccepted,
+    /// Cannot send the room owner to the waiting room
+    CannotSendRoomOwnerToWaitingRoom,
 }
 
 impl ModuleError for ModerationError {}

@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_types_common::{roomserver::DeviceSecret, users::DisplayName, utils::ExampleData};
+use opentalk_types_common::{
+    roomserver::DeviceSecret,
+    users::{DisplayName, UserId},
+    utils::ExampleData,
+};
 use opentalk_types_signaling::ParticipationVisibility;
 use serde::{Deserialize, Serialize};
 
@@ -40,6 +44,13 @@ pub enum ClientKind {
 }
 
 impl ClientKind {
+    pub fn user_id(&self) -> Option<UserId> {
+        match self {
+            ClientKind::Registered { profile } => Some(profile.id),
+            ClientKind::Guest { .. } | ClientKind::Recorder => None,
+        }
+    }
+
     pub fn display_name(&self) -> DisplayName {
         match self {
             ClientKind::Registered { profile } => profile.user_info.display_name.clone(),

@@ -15,7 +15,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
-    command::{Accept, ChangeDisplayName, Kick, ModerationCommand},
+    command::{Accept, ChangeDisplayName, Kick, ModerationCommand, SendToWaitingRoom},
     event::{DebriefingStarted, DisplayNameChanged, ModerationError, ModerationEvent},
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
@@ -80,6 +80,9 @@ impl SignalingModule for ModerationModule {
                 Self::accept_waiting_room_participant(ctx, sender, target)
             }
             ModerationCommand::DisableWaitingRoom => Ok(self.set_waiting_room_enabled(ctx, false)?),
+            ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target }) => {
+                self.send_to_waiting_room(ctx, sender, target)
+            }
             ModerationCommand::ChangeDisplayName(ChangeDisplayName { new_name, target }) => {
                 self.change_display_name(ctx, sender, new_name, target)
             }
@@ -191,6 +194,30 @@ impl ModerationModule {
             ModerationEvent::WaitingRoomDisabled
         };
         ctx.send_ws_message(ctx.participants.connected().ids(), event)
+    }
+
+    fn send_to_waiting_room(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        if ctx.is_room_owner(target) {
+            return Err(ModerationError::CannotSendRoomOwnerToWaitingRoom.into());
+        }
+
+        if !ctx.room_task_info.room.waiting_room {
+            self.set_waiting_room_enabled(ctx, true)?;
+        }
+
+        ctx.send_ws_message([target], ModerationEvent::SentToWaitingRoom)?;
+        ctx.move_to_waiting_room(target);
+
+        Ok(())
     }
 
     fn change_display_name(
