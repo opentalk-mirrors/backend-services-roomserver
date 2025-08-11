@@ -8,8 +8,7 @@
 // * docs/admin/core/meeting_reports.md
 
 use opentalk_roomserver_report_generation::ReportDateTime;
-use opentalk_roomserver_signaling::participant_state::ParticipantKind;
-use opentalk_roomserver_types::client_parameters::Role;
+use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
 use opentalk_types_common::{
     events::{EventDescription, EventTitle},
     time::TimeZone,
@@ -46,10 +45,10 @@ pub enum ReportRole {
     Guest,
 }
 
-impl From<(Role, ParticipantKind)> for ReportRole {
-    fn from(value: (Role, ParticipantKind)) -> Self {
+impl From<(Role, &ClientKind)> for ReportRole {
+    fn from(value: (Role, &ClientKind)) -> Self {
         match value {
-            (.., ParticipantKind::Guest) => ReportRole::Guest,
+            (.., ClientKind::Guest { .. }) => ReportRole::Guest,
             (Role::User, ..) => ReportRole::User,
             (Role::Moderator, ..) => ReportRole::Moderator,
         }

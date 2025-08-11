@@ -140,11 +140,12 @@ impl MeetingReportModule {
             .iter()
             .map(|(id, state)| ReportParticipant {
                 id: *id,
-                name: state.display_name.to_string(),
-                role: (state.role, state.kind).into(),
+                name: state.kind.display_name().to_string(),
+                role: (state.role, &state.kind).into(),
                 email: include_email_addresses
-                    .then(|| state.email.clone())
+                    .then(|| state.kind.email())
                     .flatten()
+                    .map(String::from)
                     .unwrap_or_default(),
                 joined_at: state.joined_at.to_report_date_time(&tz),
                 left_at: state.left_at.to_report_date_time(&tz),

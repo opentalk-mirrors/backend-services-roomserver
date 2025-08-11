@@ -139,7 +139,7 @@ impl ModerationModule {
         let mut not_kicked = Vec::new();
 
         for (id, state) in participants {
-            if scope.kicks(state.role, state.kind) {
+            if scope.kicks(state.role, &state.kind) {
                 kicked.push(*id);
             } else {
                 not_kicked.push(*id);

@@ -54,6 +54,7 @@ use std::{
         hash_map::Entry::{Occupied, Vacant},
     },
     future::pending,
+    mem,
     sync::Arc,
     time::Duration,
 };
@@ -759,7 +760,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         // If we ever run into the issue of an uuid collision, a guest could hijack a user session and vice versa. We'd
         // rather decline the new connection when the participant id is known, but the participant kinds differ.
         if let Some(existing_participant) = self.participants.all_unfiltered.get(&participant_id)
-            && existing_participant.kind != From::from(&client_parameters.kind)
+            && mem::discriminant(&existing_participant.kind)
+                != mem::discriminant(&client_parameters.kind)
         {
             tracing::error!("ParticipantId collision, dropping new participant ({participant_id})");
             return;
@@ -827,13 +829,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
             Vacant(vacant) => {
                 vacant
-                    .insert(ParticipantState::new(
-                        client_kind.display_name(),
-                        client_kind.email().map(String::from),
-                        (&client_kind).into(),
-                        role,
-                        Utc::now(),
-                    ))
+                    .insert(ParticipantState::new(client_kind.clone(), role, Utc::now()))
                     .connections
                     .insert(connection_id, device_id);
             }
