@@ -9,6 +9,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "error", rename_all = "snake_case")]
 pub enum ModerationError {
+    /// Cannot change the display name of registered users
+    CannotChangeNameOfRegisteredUsers,
+    /// Invalid display name
+    InvalidDisplayName,
     /// Insufficient permissions to perform a command
     InsufficientPermissions,
     /// The requested participant is not connected

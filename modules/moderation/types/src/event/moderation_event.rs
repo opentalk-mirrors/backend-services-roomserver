@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::event::{DebriefingStarted, ModerationError};
+use crate::event::{DebriefingStarted, DisplayNameChanged, ModerationError};
 
 /// Events sent out by the `moderation` module
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -25,6 +25,9 @@ pub enum ModerationEvent {
     /// Sent to a participant when they are accepted by the moderator from the waiting room
     Accepted,
 
+    /// Sent to all participants when a participants display name gets changed
+    DisplayNameChanged(DisplayNameChanged),
+
     /// An error happened when executing a `moderation` command
     Error(ModerationError),
 }
@@ -32,6 +35,12 @@ pub enum ModerationEvent {
 impl From<DebriefingStarted> for ModerationEvent {
     fn from(value: DebriefingStarted) -> Self {
         Self::DebriefingStarted(value)
+    }
+}
+
+impl From<DisplayNameChanged> for ModerationEvent {
+    fn from(value: DisplayNameChanged) -> Self {
+        Self::DisplayNameChanged(value)
     }
 }
 
@@ -118,6 +127,49 @@ mod serde_tests {
         }))
         .unwrap();
         let expected = ModerationEvent::Accepted;
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_display_name_changed() {
+        let produced = serde_json::to_string_pretty(&ModerationEvent::DisplayNameChanged(
+            DisplayNameChanged {
+                target: ParticipantId::nil(),
+                issued_by: ParticipantId::nil(),
+                old_name: "Alice".parse().expect("valid display name"),
+                new_name: "Bob".parse().expect("valid display name"),
+            },
+        ))
+        .unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "display_name_changed",
+          "target": "00000000-0000-0000-0000-000000000000",
+          "issued_by": "00000000-0000-0000-0000-000000000000",
+          "old_name": "Alice",
+          "new_name": "Bob"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_display_name_changed() {
+        let produced: ModerationEvent = serde_json::from_value(json!({
+            "message": "display_name_changed",
+            "target": "00000000-0000-0000-0000-000000000000",
+            "issued_by": "00000000-0000-0000-0000-000000000000",
+            "old_name": "Alice",
+            "new_name": "Bob"
+        }))
+        .unwrap();
+        let expected = ModerationEvent::DisplayNameChanged(DisplayNameChanged {
+            target: ParticipantId::nil(),
+            issued_by: ParticipantId::nil(),
+            old_name: "Alice".parse().expect("valid display name"),
+            new_name: "Bob".parse().expect("valid display name"),
+        });
 
         assert_eq!(produced, expected);
     }
