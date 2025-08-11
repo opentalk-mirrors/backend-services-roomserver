@@ -310,3 +310,51 @@ async fn event_when_leaving_waiting_room() {
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(event.content, CoreEvent::LeftWaitingRoom(..)));
 }
+
+#[test_log::test(tokio::test)]
+async fn enable_waiting_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
+    // Sending the command again produces the same event
+    alice
+        .send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
+        .await
+        .unwrap();
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+}
+
+#[test_log::test(tokio::test)]
+async fn disable_waiting_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(true)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_command::<ModerationModule>(ModerationCommand::DisableWaitingRoom, None)
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .content;
+    assert_eq!(event, ModerationEvent::WaitingRoomDisabled);
+}
