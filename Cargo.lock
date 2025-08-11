@@ -5549,6 +5549,8 @@ dependencies = [
  "opentalk-roomserver-module-chat",
  "opentalk-roomserver-module-e2ee",
  "opentalk-roomserver-module-livekit",
+ "opentalk-roomserver-module-meeting-report",
+ "opentalk-roomserver-module-moderation",
  "opentalk-roomserver-module-ping",
  "opentalk-roomserver-module-polls",
  "opentalk-roomserver-module-shared-folder",
