@@ -360,10 +360,10 @@ impl SignalingView {
 
                         if let Some(index) = delete_entry {
                             history.remove(index);
-                            if let Some(state) = self.historic_message_state.as_mut() {
-                                if state.history_index > index {
-                                    state.history_index -= 1;
-                                }
+                            if let Some(state) = self.historic_message_state.as_mut()
+                                && state.history_index > index
+                            {
+                                state.history_index -= 1;
                             }
                         }
                         Ok(())

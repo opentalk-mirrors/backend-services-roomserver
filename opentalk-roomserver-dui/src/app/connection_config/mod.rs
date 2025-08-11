@@ -162,15 +162,14 @@ impl ConnectionConfigView {
                                 if ui
                                     .add_enabled(parsed_room_id.is_ok(), egui::Button::new("save"))
                                     .clicked()
+                                    && let Ok(room_id) = parsed_room_id
                                 {
-                                    if let Ok(room_id) = parsed_room_id {
-                                        settings
-                                            .room_ids
-                                            .push((self.new_room_id_name.clone(), room_id));
-                                        self.new_room_id_name.clear();
-                                        self.new_room_id = RoomId::generate().to_string();
-                                        settings.selected_room_id = settings.room_ids.len() - 1;
-                                    }
+                                    settings
+                                        .room_ids
+                                        .push((self.new_room_id_name.clone(), room_id));
+                                    self.new_room_id_name.clear();
+                                    self.new_room_id = RoomId::generate().to_string();
+                                    settings.selected_room_id = settings.room_ids.len() - 1;
                                 }
                             });
                         });

@@ -741,13 +741,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         // If we ever run into the issue of an uuid collision, a guest could hijack a user session and vice versa. We'd
         // rather decline the new connection when the participant id is known, but the participant kinds differ.
-        if let Some(existing_participant) = self.participants.all_unfiltered.get(&participant_id) {
-            if existing_participant.kind != From::from(&client_parameters.kind) {
-                tracing::error!(
-                    "ParticipantId collision, dropping new participant ({participant_id})"
-                );
-                return;
-            }
+        if let Some(existing_participant) = self.participants.all_unfiltered.get(&participant_id)
+            && existing_participant.kind != From::from(&client_parameters.kind)
+        {
+            tracing::error!("ParticipantId collision, dropping new participant ({participant_id})");
+            return;
         };
 
         let connection_id = match self

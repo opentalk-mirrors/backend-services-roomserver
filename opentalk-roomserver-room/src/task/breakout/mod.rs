@@ -301,15 +301,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return Err(BreakoutError::BreakoutInactive.into());
         };
 
-        if let RoomKind::Breakout(id) = new_room {
-            if breakout_config
+        if let RoomKind::Breakout(id) = new_room
+            && breakout_config
                 .config
                 .rooms
                 .get(u64::from(id) as usize)
                 .is_none()
-            {
-                return Err(BreakoutError::UnknownBreakoutId.into());
-            }
+        {
+            return Err(BreakoutError::UnknownBreakoutId.into());
         }
 
         self.move_participant(origin, participant_id, new_room)

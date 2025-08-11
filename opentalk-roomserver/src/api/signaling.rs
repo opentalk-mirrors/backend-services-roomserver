@@ -50,11 +50,11 @@ impl SignalingBackend for Context {
             .await;
 
         // handle that the socket might not reach the room task. In that case we need to close it ourself.
-        if let Err(e) = &mut res {
-            if let Some(Request::WsJoin { socket, .. }) = e.take_request() {
-                error_close_websocket(socket.into()).await;
-                return Err(ApiError::not_found());
-            }
+        if let Err(e) = &mut res
+            && let Some(Request::WsJoin { socket, .. }) = e.take_request()
+        {
+            error_close_websocket(socket.into()).await;
+            return Err(ApiError::not_found());
         }
 
         res?;
