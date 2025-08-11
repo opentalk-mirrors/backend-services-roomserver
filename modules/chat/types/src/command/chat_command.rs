@@ -6,7 +6,7 @@ use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    command::{GetHistoryChunk, SendMessage, SetLastSeenTimestamp},
+    command::{GetHistoryChunk, SearchHistory, SendMessage, SetLastSeenTimestamp},
     event::ChatEvent,
 };
 
@@ -31,6 +31,9 @@ pub enum ChatCommand {
 
     /// Set last seen timestamp
     SetLastSeenTimestamp(SetLastSeenTimestamp),
+
+    /// Search in the history
+    SearchHistory(SearchHistory),
 }
 
 impl CreateReplica<ChatEvent> for ChatCommand {
@@ -266,5 +269,45 @@ mod serde_tests {
                 scope: Scope::Global
             })
         )
+    }
+
+    #[test]
+    fn serialize_search_history() {
+        let command = ChatCommand::SearchHistory(SearchHistory {
+            scope: Scope::Global,
+            term: "hello".into(),
+            message_index: None,
+        });
+
+        let produced = serde_json::to_value(&command).unwrap();
+        let expected = json!({
+            "action": "search_history",
+            "scope": "global",
+            "term": "hello",
+            "message_index": null
+        });
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn deserialize_search_history() {
+        let json = json!({
+            "action": "search_history",
+            "scope": "global",
+            "term": "hello",
+            "message_index": null,
+        });
+
+        let msg: ChatCommand = serde_json::from_value(json).unwrap();
+
+        assert_eq!(
+            msg,
+            ChatCommand::SearchHistory(SearchHistory {
+                scope: Scope::Global,
+                term: "hello".into(),
+                message_index: None,
+            })
+        );
     }
 }

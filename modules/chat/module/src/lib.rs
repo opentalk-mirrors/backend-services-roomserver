@@ -17,9 +17,10 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_chat::{
     CHAT_MODULE_ID, MessageId, Scope,
-    command::{ChatCommand, GetHistoryChunk, SendMessage, SetLastSeenTimestamp},
+    command::{ChatCommand, GetHistoryChunk, SearchHistory, SendMessage, SetLastSeenTimestamp},
     event::{
         ChatDisabled, ChatEnabled, ChatEvent, Error as ChatError, HistoryCleared, MessageSent,
+        SearchResults,
     },
     peer_state::ChatPeerState,
     state::{
@@ -31,6 +32,8 @@ use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 
 pub mod chat_id;
+
+const MIN_SEARCH_TERM_LENGTH: usize = 2;
 
 #[derive(Debug)]
 pub struct ChatModule {
@@ -137,6 +140,13 @@ impl SignalingModule for ChatModule {
                     set_last_seen_timestamp.scope,
                     set_last_seen_timestamp.timestamp,
                 )?;
+            }
+            ChatCommand::SearchHistory(SearchHistory {
+                scope,
+                term,
+                message_index,
+            }) => {
+                self.search_history(ctx, participant_id, scope, &term, message_index)?;
             }
         }
 
@@ -329,6 +339,41 @@ impl ChatModule {
         }
     }
 
+    /// Retrieves the chunk that starts at the message with index `message_index`
+    /// from the messages that match the search term `term` in the provided
+    /// `history` or a default [`ChatChunk`] when `history` is [`None`].
+    fn search_history_chunked(
+        term: &str,
+        history: Option<&Vec<StoredMessage>>,
+        message_index: Option<u64>,
+    ) -> ChatChunk {
+        let Some(history) = history else {
+            return ChatChunk::default();
+        };
+
+        let filtered: Vec<&StoredMessage> = history
+            .iter()
+            .filter(|msg| msg.content.contains(term))
+            .collect();
+        // Not using `get_chunk()` here because that would require us to copy all
+        // messages matching the search term instead of only those in the chunk.
+        let message_index = message_index.unwrap_or(filtered.len().saturating_sub(1) as u64);
+        let start = message_index.saturating_sub(CHAT_CHUNK_SIZE - 1);
+
+        let Some(messages) = filtered.get(start as usize..=message_index as usize) else {
+            return ChatChunk::default();
+        };
+
+        if messages.is_empty() {
+            return ChatChunk::default();
+        }
+
+        ChatChunk {
+            messages: messages.iter().map(|msg| (*msg).clone()).collect(),
+            next_index: start.checked_sub(1),
+        }
+    }
+
     /// Retrieves the chunk that starts at the message with index `message_index`.
     fn get_chunk(history: &[StoredMessage], message_index: u64) -> ChatChunk {
         let start = message_index.saturating_sub(CHAT_CHUNK_SIZE - 1);
@@ -468,17 +513,8 @@ impl ChatModule {
         message_index: u64,
         scope: Scope,
     ) -> Result<(), SignalingModuleError<ChatError>> {
-        // Only moderators are allowed to access messages of other breakout rooms
-        if let Scope::Breakout(breakout_id) = scope
-            && !ctx.is_moderator(sender)
-        {
-            let room = ctx
-                .participant_state(sender)
-                .with_context(|| format!("Participant {sender} has not state"))?
-                .room;
-            if room != RoomKind::Breakout(breakout_id) {
-                return Err(ChatError::InsufficientPermissions.into());
-            }
+        if !Self::can_access_scope(ctx, sender, &scope)? {
+            return Err(ChatError::InsufficientPermissions.into());
         }
 
         let chat_id = ChatId::from_scope_and_source(scope.clone(), sender);
@@ -507,6 +543,58 @@ impl ChatModule {
         };
 
         ctx.send_ws_message([sender], event)?;
+
+        Ok(())
+    }
+
+    fn can_access_scope(
+        ctx: &ModuleContext<'_, ChatModule>,
+        participant: ParticipantId,
+        scope: &Scope,
+    ) -> anyhow::Result<bool> {
+        // Only moderators are allowed to access messages of other breakout rooms
+        if let Scope::Breakout(breakout_id) = scope
+            && !ctx.is_moderator(participant)
+        {
+            let room = ctx
+                .participant_state(participant)
+                .with_context(|| format!("Participant {participant} has no state"))?
+                .room;
+            return Ok(room == RoomKind::Breakout(*breakout_id));
+        }
+        Ok(true)
+    }
+
+    fn search_history(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        scope: Scope,
+        term: &str,
+        message_index: Option<u64>,
+    ) -> Result<(), SignalingModuleError<ChatError>> {
+        if term.len() < MIN_SEARCH_TERM_LENGTH {
+            return Err(ChatError::InvalidSearchTermLength {
+                min: MIN_SEARCH_TERM_LENGTH,
+            }
+            .into());
+        }
+
+        if !Self::can_access_scope(ctx, sender, &scope)? {
+            return Err(ChatError::InsufficientPermissions.into());
+        }
+
+        let chat_id = ChatId::from_scope_and_source(scope.clone(), sender);
+        let history = self.history.get(&chat_id);
+        let history = Self::search_history_chunked(term, history, message_index);
+
+        ctx.send_ws_message(
+            [sender],
+            ChatEvent::SearchResults(SearchResults {
+                matches: history,
+                scope,
+            }),
+        )?;
 
         Ok(())
     }

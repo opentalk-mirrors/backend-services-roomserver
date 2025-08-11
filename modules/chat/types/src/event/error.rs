@@ -17,6 +17,12 @@ pub enum Error {
 
     /// The chat messages breakout scope does not match the participants breakout room
     InvalidBreakoutScope,
+
+    /// The provided search term has an invalid length
+    InvalidSearchTermLength {
+        /// The minimum length a search term must have
+        min: usize,
+    },
 }
 
 impl ModuleError for Error {}
