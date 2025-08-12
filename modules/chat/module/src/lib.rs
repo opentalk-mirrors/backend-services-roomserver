@@ -434,6 +434,16 @@ impl ChatModule {
             }
         }
 
+        // Ensure target participant exists
+        if let Scope::Private(participant_id) = scope
+            && !ctx
+                .participants
+                .all_unfiltered
+                .contains_key(&participant_id)
+        {
+            return Err(ChatError::UnknownParticipant.into());
+        };
+
         let out_message = MessageSent {
             id: MessageId::generate(),
             source: participant,

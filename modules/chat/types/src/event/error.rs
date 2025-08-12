@@ -15,6 +15,9 @@ pub enum Error {
     /// Request user has insufficient permissions
     InsufficientPermissions,
 
+    /// The provided participant ID is unknown
+    UnknownParticipant,
+
     /// The chat messages breakout scope does not match the participants breakout room
     InvalidBreakoutScope,
 
