@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-FROM rust:slim-bookworm AS builder
+FROM rust:slim-trixie AS builder
 
 RUN mkdir /opentalk-roomserver
 WORKDIR /opentalk-roomserver
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get full-upgrade -y && \
 
 RUN cargo build --release --locked -p opentalk-roomserver
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 RUN apt-get update && apt-get full-upgrade -y && \
     apt-get install --no-install-recommends -y ca-certificates && \
