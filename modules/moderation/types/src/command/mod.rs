@@ -4,8 +4,10 @@
 
 //! Signaling commands for the `moderation` namespace
 
+mod change_display_name;
 mod kick;
 mod moderation_command;
 
+pub use change_display_name::ChangeDisplayName;
 pub use kick::Kick;
 pub use moderation_command::{Accept, ModerationCommand};

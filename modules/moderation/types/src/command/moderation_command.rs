@@ -8,7 +8,11 @@ use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::{KickScope, command::Kick, event::ModerationEvent};
+use crate::{
+    KickScope,
+    command::{ChangeDisplayName, Kick},
+    event::ModerationEvent,
+};
 
 /// Commands for the `moderation` namespace
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -19,6 +23,9 @@ pub enum ModerationCommand {
 
     /// Start the debriefing
     Debrief(KickScope),
+
+    /// Change the display name of the targeted guest
+    ChangeDisplayName(ChangeDisplayName),
 
     /// Accept a participant from the waiting room into the meeting
     Accept(Accept),
@@ -37,6 +44,12 @@ impl From<Kick> for ModerationCommand {
     }
 }
 
+impl From<ChangeDisplayName> for ModerationCommand {
+    fn from(value: ChangeDisplayName) -> Self {
+        Self::ChangeDisplayName(value)
+    }
+}
+
 impl CreateReplica<ModerationEvent> for ModerationCommand {
     fn replicate(&self) -> Option<ModerationEvent> {
         None
@@ -46,6 +59,7 @@ impl CreateReplica<ModerationEvent> for ModerationCommand {
 #[cfg(test)]
 mod serde_tests {
     use insta::assert_snapshot;
+    use opentalk_types_common::users::DisplayName;
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -128,6 +142,38 @@ mod serde_tests {
         });
         let produced: ModerationCommand = serde_json::from_value(json).unwrap();
         let expected = ModerationCommand::Accept(Accept {
+            target: ParticipantId::nil(),
+        });
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_change_display_name() {
+        let cmd = ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+            new_name: DisplayName::from_str_lossy("Alice"),
+            target: ParticipantId::nil(),
+        });
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "change_display_name",
+          "new_name": "Alice",
+          "target": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_change_display_name() {
+        let json = json!({
+            "action": "change_display_name",
+            "new_name": "Alice",
+            "target": "00000000-0000-0000-0000-000000000000"
+        });
+        let produced: ModerationCommand = serde_json::from_value(json).unwrap();
+        let expected = ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+            new_name: DisplayName::from_str_lossy("Alice"),
             target: ParticipantId::nil(),
         });
 

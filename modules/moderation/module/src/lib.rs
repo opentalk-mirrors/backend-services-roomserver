@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::HashMap;
+use std::{collections::HashMap, mem};
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    participant_state::ParticipantState,
+    participant_state::{ParticipantKind, ParticipantState},
     signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
@@ -14,10 +14,10 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
-    command::{Accept, Kick, ModerationCommand},
-    event::{DebriefingStarted, ModerationError, ModerationEvent},
+    command::{Accept, ChangeDisplayName, Kick, ModerationCommand},
+    event::{DebriefingStarted, DisplayNameChanged, ModerationError, ModerationEvent},
 };
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
 
 pub struct ModerationModule;
@@ -76,6 +76,9 @@ impl SignalingModule for ModerationModule {
             ModerationCommand::Debrief(kick_scope) => self.debrief(ctx, sender, kick_scope),
             ModerationCommand::Accept(Accept { target }) => {
                 Self::accept_waiting_room_participant(ctx, sender, target)
+            }
+            ModerationCommand::ChangeDisplayName(ChangeDisplayName { new_name, target }) => {
+                self.change_display_name(ctx, sender, new_name, target)
             }
         }
     }
@@ -191,5 +194,45 @@ impl ModerationModule {
             ModerationEvent::WaitingRoomDisabled
         };
         ctx.send_ws_message(ctx.participants.connected().ids(), event)
+    }
+
+    fn change_display_name(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        mut new_name: DisplayName,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        if new_name.as_str().trim().is_empty() || new_name.len() > 100 {
+            return Err(ModerationError::InvalidDisplayName.into());
+        }
+        // Sanitize the display name
+        new_name = DisplayName::from_str_lossy(new_name.as_str());
+
+        let Some(participant) = ctx.participants.all_unfiltered.get_mut(&target) else {
+            return Err(ModerationError::UnknownParticipant.into());
+        };
+
+        if participant.kind != ParticipantKind::Guest {
+            return Err(ModerationError::CannotChangeNameOfRegisteredUsers.into());
+        }
+
+        let old_name = mem::replace(&mut participant.display_name, new_name.clone());
+
+        ctx.send_ws_message(
+            ctx.participants.connected().ids(),
+            ModerationEvent::DisplayNameChanged(DisplayNameChanged {
+                target,
+                issued_by: sender,
+                old_name,
+                new_name,
+            }),
+        )?;
+
+        Ok(())
     }
 }
