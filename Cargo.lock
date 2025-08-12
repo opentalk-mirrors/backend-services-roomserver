@@ -5961,6 +5961,7 @@ dependencies = [
 name = "opentalk-roomserver-types-moderation"
 version = "0.0.6-dev"
 dependencies = [
+ "chrono",
  "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",

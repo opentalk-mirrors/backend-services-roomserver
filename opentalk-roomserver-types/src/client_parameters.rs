@@ -65,6 +65,13 @@ impl ClientKind {
             ClientKind::Guest { .. } | ClientKind::Recorder => None,
         }
     }
+
+    pub fn avatar_url(&self) -> Option<&str> {
+        match self {
+            ClientKind::Registered { profile } => Some(&profile.user_info.avatar_url),
+            ClientKind::Guest { .. } | ClientKind::Recorder => None,
+        }
+    }
 }
 
 impl ClientKind {

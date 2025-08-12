@@ -17,6 +17,7 @@ use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
     command::{Accept, ChangeDisplayName, Kick, ModerationCommand, SendToWaitingRoom},
     event::{DebriefingStarted, DisplayNameChanged, ModerationError, ModerationEvent},
+    state::{ModerationState, ModeratorJoinInfo, WaitingParticipantPeerData},
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
@@ -34,7 +35,7 @@ impl SignalingModule for ModerationModule {
 
     type Loopback = ();
 
-    type JoinInfo = ();
+    type JoinInfo = ModerationState;
 
     type PeerJoinInfo = ();
 
@@ -52,7 +53,25 @@ impl SignalingModule for ModerationModule {
         connection_id: ConnectionId,
         is_first_connection: bool,
     ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
-        Ok(JoinInfo::default())
+        let moderator_data = if ctx.is_moderator(participant_id) {
+            let info = ModeratorJoinInfo {
+                waiting_room_enabled: ctx.room_task_info.room.waiting_room,
+                waiting_room_participants: ctx
+                    .waiting_participants
+                    .iter()
+                    .map(WaitingParticipantPeerData::from)
+                    .collect(),
+            };
+            Some(info)
+        } else {
+            None
+        };
+
+        let join_info = JoinInfo {
+            join_success: Some(ModerationState { moderator_data }),
+            ..Default::default()
+        };
+        Ok(join_info)
     }
 
     #[allow(unused_variables)]

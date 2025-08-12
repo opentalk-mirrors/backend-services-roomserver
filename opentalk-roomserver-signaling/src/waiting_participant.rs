@@ -3,6 +3,7 @@
 
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, Role},
     connection_id::ConnectionId,
@@ -21,5 +22,9 @@ pub struct WaitingParticipant {
     /// All connections and their associated devices
     pub connections: HashMap<ConnectionId, DeviceId>,
 
+    /// Whether the participant was accepted to enter the meeting
     pub accepted: bool,
+
+    /// The time when the participant joined the waiting room
+    pub joined_at: DateTime<Utc>,
 }

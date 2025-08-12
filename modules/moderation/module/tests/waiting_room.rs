@@ -17,9 +17,37 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_moderation::{
     command::{Accept, ModerationCommand, SendToWaitingRoom},
     event::{ModerationError, ModerationEvent},
+    state::{ModerationState, WaitingParticipantPeerData},
 };
 use opentalk_types_common::{tariffs::TariffResource, utils::ExampleData};
 use opentalk_types_signaling::{ModuleData, ParticipantId};
+
+#[test_log::test(tokio::test)]
+async fn join_info() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(true)
+        .spawn();
+    let bob = room.waiting_room_bob(0).await;
+    let alice = room.join_alice_moderator(0).await;
+
+    let moderator_data = alice
+        .join_success()
+        .module_data
+        .get::<ModerationState>()
+        .expect("Module data must be present")
+        .expect("Module data must not be none")
+        .moderator_data
+        .expect("Moderator data must be present");
+    assert!(moderator_data.waiting_room_enabled);
+
+    let waiting_bob = &moderator_data.waiting_room_participants[0];
+    assert!(matches!(
+        waiting_bob,
+        WaitingParticipantPeerData { participant_id, accepted, .. }
+            if *participant_id == bob.id() && !accepted
+    ));
+}
 
 async fn accept_participant(
     moderator: &mut MockParticipantJoined,

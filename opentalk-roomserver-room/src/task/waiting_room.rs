@@ -6,6 +6,7 @@ use std::{
     mem,
 };
 
+use chrono::Utc;
 use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
     waiting_participant::WaitingParticipant,
@@ -88,6 +89,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     role: client_parameters.role,
                     connections: HashMap::from_iter([(connection_id, device_id)]),
                     accepted: false,
+                    joined_at: Utc::now(),
                 });
             }
         }
@@ -187,6 +189,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 accepted: false,
                 role: state.role,
                 kind: state.kind.clone(),
+                joined_at: Utc::now(),
             },
         );
 
