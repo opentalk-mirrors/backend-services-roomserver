@@ -10,7 +10,9 @@ use opentalk_roomserver_types::{
     breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
     room_kind::RoomKind,
 };
-use opentalk_roomserver_types_livekit::{LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState};
+use opentalk_roomserver_types_livekit::{
+    LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState, ModeratorOrModule,
+};
 use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
 
@@ -95,9 +97,9 @@ async fn mute_bob() {
     let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
         force_mute_event.payload,
-        LiveKitEvent::ForceMuted {
+        LiveKitEvent::ForceMuted(ModeratorOrModule::Moderator {
             moderator: alice.id()
-        }
+        })
     );
 }
 
@@ -170,8 +172,8 @@ async fn alice_in_breakout_bob_in_main() {
     let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
         force_mute_event.payload,
-        LiveKitEvent::ForceMuted {
+        LiveKitEvent::ForceMuted(ModeratorOrModule::Moderator {
             moderator: alice.id()
-        }
+        })
     );
 }

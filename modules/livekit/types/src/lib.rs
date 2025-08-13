@@ -19,7 +19,9 @@ mod command;
 mod credentials;
 mod error;
 mod event;
+mod internal;
 mod microphone_restriction_state;
+mod moderator_or_module;
 mod settings;
 mod state;
 
@@ -30,7 +32,9 @@ pub use crate::{
     credentials::Credentials,
     error::LiveKitError,
     event::LiveKitEvent,
+    internal::LiveKitInternal,
     microphone_restriction_state::MicrophoneRestrictionState,
+    moderator_or_module::ModeratorOrModule,
     settings::LiveKitSettings,
     state::LiveKitState,
 };

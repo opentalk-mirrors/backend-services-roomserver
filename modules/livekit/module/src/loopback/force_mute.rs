@@ -11,7 +11,7 @@ use futures::{StreamExt as _, stream};
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_roomserver_types_livekit::LiveKitError;
+use opentalk_roomserver_types_livekit::{LiveKitError, ModeratorOrModule};
 use opentalk_types_signaling::ParticipantId;
 use tracing::{Instrument as _, debug_span};
 
@@ -20,7 +20,7 @@ use crate::{PARALLEL_UPDATES, build_livekit_participant_id};
 
 pub async fn force_mute_participants(
     livekit_client: Arc<RoomClient>,
-    sender: ParticipantId,
+    sender: ModeratorOrModule,
     participants: BTreeMap<ParticipantId, BTreeSet<ConnectionId>>,
     room: String,
 ) -> Result<LiveKitLoopback, LiveKitError> {

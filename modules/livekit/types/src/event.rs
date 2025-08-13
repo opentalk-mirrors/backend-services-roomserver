@@ -6,7 +6,10 @@ use std::collections::BTreeSet;
 
 use opentalk_types_signaling::ParticipantId;
 
-use crate::{Credentials, command::UnrestrictedParticipants, error::LiveKitError};
+use crate::{
+    Credentials, command::UnrestrictedParticipants, error::LiveKitError,
+    moderator_or_module::ModeratorOrModule,
+};
 
 /// The events emitted for livekit
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -24,10 +27,7 @@ pub enum LiveKitEvent {
     MicrophoneRestrictionsDisabled,
 
     /// The moderator has force muted the participant.
-    ForceMuted {
-        /// The moderator who issued the force mute command.
-        moderator: ParticipantId,
-    },
+    ForceMuted(ModeratorOrModule),
 
     /// A livekit access token that cannot publish and is hidden to other participants
     PopoutStreamAccessToken {
@@ -58,5 +58,28 @@ pub enum LiveKitEvent {
 impl From<LiveKitError> for LiveKitEvent {
     fn from(error: LiveKitError) -> Self {
         Self::Error(error)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_types_signaling::ParticipantId;
+
+    use crate::{LiveKitEvent, moderator_or_module::ModeratorOrModule};
+
+    #[test]
+    fn serialize_force_muted() {
+        let event = LiveKitEvent::ForceMuted(ModeratorOrModule::Moderator {
+            moderator: ParticipantId::nil(),
+        });
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "message": "force_muted",
+          "moderator": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
     }
 }

@@ -6087,11 +6087,13 @@ dependencies = [
 name = "opentalk-roomserver-types-livekit"
 version = "0.0.6-dev"
 dependencies = [
+ "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
