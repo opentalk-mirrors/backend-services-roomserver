@@ -18,6 +18,8 @@ members = [
   "modules/moderation/types",
   "modules/polls/module",
   "modules/polls/types",
+  "modules/raise-hands/module",
+  "modules/raise-hands/types",
   "modules/shared_folder/module",
   "modules/shared_folder/types",
   "modules/timer/module",
@@ -55,6 +57,7 @@ opentalk-roomserver-module-livekit = { path = "modules/livekit/module", version 
 opentalk-roomserver-module-meeting-report = { path = "modules/meeting-report/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-moderation = { path = "modules/moderation/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-polls = { path = "modules/polls/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-raise-hands = { path = "modules/raise-hands/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-shared-folder = { path = "modules/shared_folder/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.6-dev" }
 opentalk-roomserver-report-generation = { path = "opentalk-roomserver-report-generation", version = "0.0.6-dev" }
@@ -70,6 +73,7 @@ opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = 
 opentalk-roomserver-types-meeting-report = { path = "modules/meeting-report/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-moderation = { path = "modules/moderation/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-polls = { path = "modules/polls/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-raise-hands = { path = "modules/raise-hands/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-shared-folder = { path = "modules/shared_folder/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.6-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.6-dev" }

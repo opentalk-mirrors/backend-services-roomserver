@@ -12,6 +12,7 @@ use opentalk_roomserver_types_meeting_report::{
 };
 use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, command::ModerationCommand};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, command::PollsCommand};
+use opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, command::RaiseHandsCommand};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
@@ -67,6 +68,7 @@ pub enum SignalingModuleCommand {
     SharedFolder(SharedFolderCommand),
     MeetingReport(MeetingReportCommand),
     Moderation(ModerationCommand),
+    RaiseHands(RaiseHandsCommand),
 }
 
 impl SignalingModuleCommand {
@@ -83,6 +85,7 @@ impl SignalingModuleCommand {
             Self::SharedFolder(..) => SHARED_FOLDER_MODULE_ID,
             Self::MeetingReport(..) => MEETING_REPORT_MODULE_ID,
             Self::Moderation(..) => MODERATION_MODULE_ID,
+            Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
         }
     }
 }
@@ -100,6 +103,7 @@ mod tests {
         ChoiceId, PollId,
         command::{Choices, PollsCommand, Vote},
     };
+    use opentalk_roomserver_types_raise_hands::command::RaiseHandsCommand;
     use opentalk_roomserver_types_timer::{Start, TimerCommand, command::Kind};
     use opentalk_types_common::modules::ModuleId;
     use opentalk_types_signaling::ParticipantId;
@@ -317,6 +321,24 @@ mod tests {
           "content": {
             "action": "accept",
             "target": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_command_raise_hands() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            payload: SignalingModuleCommand::RaiseHands(RaiseHandsCommand::RaiseHand),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "raise_hands",
+          "content": {
+            "action": "raise_hand"
           }
         }
         "#);
