@@ -53,22 +53,6 @@ mod serde_tests {
     use super::*;
 
     #[test]
-    fn deserialize_reset_raised_hand_for_single_participant() {
-        let json = json!({
-            "action": "reset_raised_hands",
-            "target": "00000000-0000-0000-0000-000000000000"
-        });
-
-        let msg: RaiseHandsCommand = serde_json::from_value(json).unwrap();
-
-        if let RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target }) = msg {
-            assert_eq!(target, Some(BTreeSet::from_iter([ParticipantId::nil()])));
-        } else {
-            panic!()
-        }
-    }
-
-    #[test]
     fn serialize_enable_raise_hands() {
         let cmd: RaiseHandsCommand = RaiseHandsCommand::EnableRaiseHands;
 
@@ -157,19 +141,71 @@ mod serde_tests {
     }
 
     #[test]
-    fn reset_raised_hand_for_multiple_participants() {
+    fn serialize_reset_raise_hands_for_single_participant() {
+        let cmd = RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands {
+            target: Some(BTreeSet::from_iter([ParticipantId::nil()])),
+        });
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "reset_raised_hands",
+          "target": [
+            "00000000-0000-0000-0000-000000000000"
+          ]
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_reset_raised_hand_for_single_participant() {
         let json = json!({
             "action": "reset_raised_hands",
-            "target": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-00000000cafe"]
+            "target": "00000000-0000-0000-0000-000000000000"
         });
 
         let msg: RaiseHandsCommand = serde_json::from_value(json).unwrap();
 
         if let RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target }) = msg {
+            assert_eq!(target, Some(BTreeSet::from_iter([ParticipantId::nil()])));
+        } else {
+            panic!()
+        }
+    }
+
+    #[test]
+    fn serialize_reset_raise_hands_for_multiple_participants() {
+        let cmd = RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands {
+            target: Some(BTreeSet::from_iter([
+                ParticipantId::nil(),
+                ParticipantId::from_u128(0xcafe),
+            ])),
+        });
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "reset_raised_hands",
+          "target": [
+            "00000000-0000-0000-0000-000000000000",
+            "00000000-0000-0000-0000-00000000cafe"
+          ]
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_reset_raised_hand_for_multiple_participants() {
+        let json = json!({
+            "action": "reset_raised_hands",
+            "target": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-00000000cafe"]
+        });
+
+        let cmd: RaiseHandsCommand = serde_json::from_value(json).unwrap();
+
+        if let RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target }) = cmd {
             assert_eq!(
                 target,
                 Some(BTreeSet::from_iter([
-                    ParticipantId::from_u128(0),
+                    ParticipantId::nil(),
                     ParticipantId::from_u128(0xcafe)
                 ]))
             );
@@ -179,7 +215,19 @@ mod serde_tests {
     }
 
     #[test]
-    fn reset_raised_hands_for_all_participants() {
+    fn serialize_reset_raise_hands_for_all_participants() {
+        let cmd = RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target: None });
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "reset_raised_hands",
+          "target": null
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_reset_raised_hands_for_all_participants() {
         let json = json!({
             "action": "reset_raised_hands"
         });
