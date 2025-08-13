@@ -56,6 +56,10 @@ impl Participants {
         ParticipantsFiltered::new(self).visibility(ParticipationVisibility::Visible)
     }
 
+    pub fn contains(&self, participant_id: &ParticipantId) -> bool {
+        ParticipantsFiltered::new(self).contains(participant_id)
+    }
+
     pub fn filter(&self) -> ParticipantsFiltered<'_> {
         ParticipantsFiltered::new(self)
     }

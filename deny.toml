@@ -148,6 +148,9 @@ exceptions = [
   ], name = "opentalk-roomserver-types" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-automod" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-chat" },
   { allow = [
     "EUPL-1.2",

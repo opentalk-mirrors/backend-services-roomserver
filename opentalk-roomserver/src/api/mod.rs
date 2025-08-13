@@ -10,6 +10,7 @@ use axum::{
     http::{Request, Response},
 };
 use opentalk_roomserver_common::settings::Settings;
+use opentalk_roomserver_module_automod::AutomodModule;
 use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_module_e2ee::E2eeModule;
 use opentalk_roomserver_module_echo::EchoModule;
@@ -202,6 +203,7 @@ where
 /// Initialize the registry with all modules that are available for meetings
 fn setup_registry() -> ModuleRegistry {
     let mut module_registry = ModuleRegistry::new();
+    module_registry.add_module::<AutomodModule>();
     module_registry.add_module::<ChatModule>();
     module_registry.add_module::<E2eeModule>();
     module_registry.add_module::<LiveKitModule>();

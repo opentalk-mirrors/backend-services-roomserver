@@ -21,6 +21,7 @@ http-request-derive-client.workspace = true
 http-request-derive-client-reqwest.workspace = true
 log.workspace = true
 opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-automod.workspace = true
 opentalk-roomserver-types-chat.workspace = true
 opentalk-roomserver-types-e2ee.workspace = true
 opentalk-roomserver-types-echo.workspace = true
