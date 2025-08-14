@@ -77,7 +77,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
-    core::{CoreCommand, CoreEvent},
+    core::{CORE_MODULE_ID, CoreCommand, CoreEvent},
     device_id::DeviceId,
     error::SignalingError,
     room_kind::RoomKind,
@@ -555,7 +555,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         match &signaling_command.namespace {
-            m if *m == core::NAMESPACE => {
+            m if *m == CORE_MODULE_ID => {
                 self.handle_core_command(participant_origin, signaling_command)
                     .await;
             }
@@ -630,7 +630,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         .message_router
                         .serialize_and_send(
                             [participant_origin.connection_id],
-                            core::NAMESPACE,
+                            CORE_MODULE_ID,
                             command.transaction_id,
                             CoreEvent::Error(module_error),
                         )

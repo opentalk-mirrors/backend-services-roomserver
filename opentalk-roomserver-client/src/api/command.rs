@@ -2,7 +2,10 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
-use opentalk_roomserver_types::breakout::command::BreakoutCommand;
+use opentalk_roomserver_types::{
+    breakout::command::BreakoutCommand,
+    core::{CORE_MODULE_ID, CoreCommand},
+};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID, command::MeetingReportCommand,
@@ -50,8 +53,7 @@ impl From<SignalingModuleCommand> for SignalingCommand {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "namespace", content = "content", rename_all = "snake_case")]
 pub enum SignalingModuleCommand {
-    // there are no core commands at the moment
-    // Core(),
+    Core(CoreCommand),
     Breakout(BreakoutCommand),
     Ping(PingCommand),
     Chat(ChatCommand),
@@ -71,6 +73,7 @@ pub enum SignalingModuleCommand {
 impl SignalingModuleCommand {
     pub fn namespace(&self) -> ModuleId {
         match self {
+            Self::Core(..) => CORE_MODULE_ID,
             Self::Breakout(..) => BREAKOUT_MODULE_ID,
             Self::Ping(..) => PING_MODULE_ID,
             Self::Chat(..) => CHAT_MODULE_ID,
@@ -88,7 +91,7 @@ impl SignalingModuleCommand {
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
-    use opentalk_roomserver_types::breakout::command::BreakoutCommand;
+    use opentalk_roomserver_types::{breakout::command::BreakoutCommand, core::CoreCommand};
     use opentalk_roomserver_types_chat::command::ChatCommand;
     use opentalk_roomserver_types_livekit::LiveKitCommand;
     use opentalk_roomserver_types_meeting_report::command::MeetingReportCommand;
@@ -109,6 +112,23 @@ mod tests {
     #[derive(Debug, Clone, Deserialize)]
     pub struct NamespaceOnly {
         pub namespace: ModuleId,
+    }
+
+    #[test]
+    fn serialize_command_core() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            content: SignalingModuleCommand::Core(CoreCommand::EnterRoom),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "core",
+          "content": {
+            "action": "enter_room"
+          }
+        }
+        "#);
     }
 
     #[test]

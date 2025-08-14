@@ -6,3 +6,6 @@ mod event;
 
 pub use command::CoreCommand;
 pub use event::{CoreError, CoreEvent, LeftWaitingRoom};
+use opentalk_types_common::modules::{ModuleId, module_id};
+
+pub const CORE_MODULE_ID: ModuleId = module_id!("core");

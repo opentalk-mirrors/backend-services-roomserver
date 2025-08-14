@@ -12,7 +12,7 @@ use opentalk_roomserver_types::{
     breakout::{breakout_config::BreakoutConfig, command::BreakoutCommand, event::BreakoutEvent},
     client_parameters::{ClientKind, ClientParameters, Role},
     connection_id::ConnectionId,
-    core::{CoreCommand, CoreEvent},
+    core::{CORE_MODULE_ID, CoreCommand, CoreEvent},
     join::join_success::JoinSuccess,
     public_user_profile::PublicUserProfile,
     room_kind::RoomKind,
@@ -40,7 +40,6 @@ use super::{
     room::{self, TestRoom},
     socket::MockSocket,
 };
-use crate::task::core;
 
 const RECV_TIMEOUT: Duration = Duration::from_millis(500);
 
@@ -500,7 +499,7 @@ impl<S> MockParticipant<S> {
         transaction_id: Option<u64>,
     ) -> Result<(), SendError> {
         let command = SignalingCommand {
-            namespace: core::NAMESPACE,
+            namespace: CORE_MODULE_ID,
             transaction_id,
             content: to_raw_value(&command).expect("CoreCommand must be serializable"),
         };

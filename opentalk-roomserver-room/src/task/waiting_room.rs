@@ -9,14 +9,14 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
     connection_id::ConnectionId,
-    core::{CoreError, CoreEvent, LeftWaitingRoom},
+    core::{CORE_MODULE_ID, CoreError, CoreEvent, LeftWaitingRoom},
     device_id::DeviceId,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_signaling::ParticipantId;
 
-use crate::task::{RoomTask, core};
+use crate::task::RoomTask;
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     #[tracing::instrument(level = "debug", skip(self))]
@@ -41,7 +41,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .message_router
             .serialize_and_send(
                 moderator_ids,
-                core::NAMESPACE,
+                CORE_MODULE_ID,
                 None,
                 CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
                     id: participant_id,
@@ -84,7 +84,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .serialize_and_send(
                 [connection_id],
-                core::NAMESPACE,
+                CORE_MODULE_ID,
                 None,
                 CoreEvent::InWaitingRoom {
                     connection_id,
@@ -98,7 +98,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .serialize_and_send(
                 moderator_ids,
-                core::NAMESPACE,
+                CORE_MODULE_ID,
                 None,
                 CoreEvent::JoinedWaitingRoom { id: participant_id },
             )
@@ -129,7 +129,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .serialize_and_send(
                 moderator_ids,
-                core::NAMESPACE,
+                CORE_MODULE_ID,
                 None,
                 CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
                     id: participant_origin.id,

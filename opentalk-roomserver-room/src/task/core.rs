@@ -11,7 +11,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
-    core::CoreEvent,
+    core::{CORE_MODULE_ID, CoreEvent},
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     error::SignalingError,
@@ -24,17 +24,11 @@ use opentalk_roomserver_types::{
     signaling::module_error::FatalError,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::{
-    events::MeetingDetails,
-    modules::{ModuleId, module_id},
-    time::Timestamp,
-};
+use opentalk_types_common::{events::MeetingDetails, modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::{ModuleData, ModulePeerData, ParticipantId, Role};
 
 use super::RoomTask;
 use crate::signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext};
-
-pub const NAMESPACE: ModuleId = module_id!("core");
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// A participant connected to the conference
@@ -94,7 +88,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .serialize_and_send(
                 [connection_id],
-                NAMESPACE,
+                CORE_MODULE_ID,
                 None,
                 CoreEvent::JoinSuccess(Box::new(join_success_msg)),
             )
@@ -112,7 +106,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             self.message_router
                 .serialize_and_send(
                     connections,
-                    NAMESPACE,
+                    CORE_MODULE_ID,
                     None,
                     CoreEvent::ParticipantConnected {
                         participant_id,
@@ -153,7 +147,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         self.message_router
-            .serialize_and_broadcast(NAMESPACE, None, content)
+            .serialize_and_broadcast(CORE_MODULE_ID, None, content)
             .await
             .expect("CoreEvent::ParticipantDisconnected must be serializable");
     }
@@ -348,6 +342,7 @@ mod tests {
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_types::{
         connection_id::ConnectionId,
+        core::CORE_MODULE_ID,
         device_id::DeviceId,
         join::{connection_info::ConnectionInfo, join_success::JoinSuccess},
         room_info::RoomInfo,
@@ -367,7 +362,6 @@ mod tests {
     use serde_json::{json, value::to_raw_value};
 
     use super::{CoreEvent, DisconnectReason};
-    use crate::task::core::NAMESPACE;
 
     fn test_module_data() -> ModuleData {
         #[derive(Debug, Serialize, Deserialize)]
@@ -423,7 +417,7 @@ mod tests {
             is_room_owner: false,
         };
         let event = SignalingEvent {
-            namespace: NAMESPACE,
+            namespace: CORE_MODULE_ID,
             content: CoreEvent::JoinSuccess(join_success.into()),
             transaction_id: Some(0),
         };
