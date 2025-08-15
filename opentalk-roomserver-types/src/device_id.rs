@@ -32,4 +32,8 @@ impl DeviceId {
     pub fn inner(&self) -> Uuid {
         self.0
     }
+
+    pub fn from_u128(value: u128) -> Self {
+        Self(Uuid::from_u128(value))
+    }
 }
