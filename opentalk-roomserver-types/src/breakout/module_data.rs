@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_types::{breakout::BreakoutRoom, room_kind::RoomKind};
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::{SignalingModuleFrontendData, SignalingModulePeerFrontendData};
 use serde::{Deserialize, Serialize};
+
+use crate::{breakout::BreakoutRoom, room_kind::RoomKind};
 
 /// The module data that is attached to the `JoinSuccess` message
 #[derive(Debug, Serialize, Deserialize)]

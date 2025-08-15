@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_signaling::breakout::BREAKOUT_MODULE_ID;
-use opentalk_roomserver_types::{breakout::event::BreakoutEvent, core::CoreEvent};
+use opentalk_roomserver_types::{
+    breakout::{BREAKOUT_MODULE_ID, event::BreakoutEvent},
+    core::CoreEvent,
+};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID, event::MeetingReportEvent,

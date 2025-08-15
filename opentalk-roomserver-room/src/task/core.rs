@@ -4,11 +4,9 @@
 use std::{cell::RefCell, collections::BTreeMap, sync::Arc};
 
 use anyhow::anyhow;
-use opentalk_roomserver_signaling::{
-    breakout::module_data::BreakoutPeerModuleData,
-    event_origin::{EventOrigin, ParticipantOrigin},
-};
+use opentalk_roomserver_signaling::event_origin::{EventOrigin, ParticipantOrigin};
 use opentalk_roomserver_types::{
+    breakout::module_data::BreakoutPeerModuleData,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreEvent},

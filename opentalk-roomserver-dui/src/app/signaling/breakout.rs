@@ -6,13 +6,13 @@ use opentalk_roomserver_client::api::{
     command::{SignalingCommand, SignalingModuleCommand},
     event::SignalingModuleEvent,
 };
-use opentalk_roomserver_signaling::breakout::module_data::BreakoutModuleData;
 use opentalk_roomserver_types::{
     breakout::{
         BreakoutRoom,
         breakout_config::{BreakoutConfig, BreakoutRoomConfig},
         command::BreakoutCommand,
         event::BreakoutEvent,
+        module_data::BreakoutModuleData,
     },
     core::CoreEvent,
     join::join_success::JoinSuccess,
