@@ -43,6 +43,10 @@ pub enum ModuleMessage {
         connection_id: ConnectionId,
         message: SharedRawJson,
     },
+    WaitingRoomWebsocket {
+        connection_id: ConnectionId,
+        message: SharedRawJson,
+    },
     InternalCommand(InterModuleMessage),
     Instruction(Instruction),
 }
@@ -192,6 +196,42 @@ where
         Ok(())
     }
 
+    pub fn send_ws_message_to_waiting_room(
+        &self,
+        participant_ids: impl IntoIterator<Item = ParticipantId>,
+        msg: M::Outgoing,
+    ) -> Result<(), FatalError> {
+        let event = SignalingEvent {
+            namespace: M::NAMESPACE,
+            transaction_id: self.event_origin.transaction_id(),
+            content: msg,
+        };
+        let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
+            .context("Failed to serialize internal websocket payload type")
+            .map_err(FatalError)?
+            .into();
+
+        for participant_id in participant_ids {
+            let Some(waiting_participant) = self.waiting_participants.get(&participant_id) else {
+                tracing::error!(
+                    "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
+                    M::NAMESPACE
+                );
+                return Ok(());
+            };
+            let mut messages = self.messages.borrow_mut();
+
+            for (connection_id, ..) in &waiting_participant.connections {
+                messages.push(ModuleMessage::WaitingRoomWebsocket {
+                    connection_id: *connection_id,
+                    message: shared_json.clone(),
+                });
+            }
+        }
+
+        Ok(())
+    }
+
     /// Send a websocket command received from one `source_connection` to all
     /// other connections of the same participant.
     ///
@@ -275,6 +315,12 @@ where
     /// Kick the specified participants
     pub fn kick_participants(&mut self, participants: Vec<ParticipantId>) {
         let command = ModuleMessage::Instruction(Instruction::Kick { participants });
+        self.messages.get_mut().push(command);
+    }
+
+    /// Move the specified participant to the waiting room
+    pub fn move_to_waiting_room(&mut self, participant: ParticipantId) {
+        let command = ModuleMessage::Instruction(Instruction::MoveToWaitingRoom { participant });
         self.messages.get_mut().push(command);
     }
 
@@ -408,6 +454,18 @@ where
         self.participant_role(participant_id)
             .map(|r| r == Role::Moderator)
             .unwrap_or(false)
+    }
+
+    pub fn is_room_owner(&self, participant_id: ParticipantId) -> bool {
+        let user_id = self
+            .participants
+            .all_unfiltered
+            .get(&participant_id)
+            .and_then(|state| state.kind.user_id());
+        let Some(user_id) = user_id else {
+            return false;
+        };
+        user_id == self.room_task_info.room.created_by.id
     }
 
     pub fn storage(&self) -> Arc<dyn StorageProvider> {

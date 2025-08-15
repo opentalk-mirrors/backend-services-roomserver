@@ -347,18 +347,7 @@ impl<S> MockParticipant<S> {
     }
 
     pub fn bob(device_number: usize) -> MockParticipantBuilder<PublicUserProfile> {
-        let profile = PublicUserProfile {
-            id: UserId::from_u128(0xb0b),
-            email: "bob@example.com".to_string(),
-            user_info: UserInfo {
-                title: "".parse().expect("Valid title"),
-                firstname: "Bob".to_string(),
-                lastname: "Barsch".to_string(),
-                display_name: "Bob the bold".parse().expect("Valid DisplayName"),
-                avatar_url: "https://example.com/avatar-of-bob".to_string(),
-            },
-            timezone: TimeZone::example_data(),
-        };
+        let profile = bob_public_user_profile();
 
         MockParticipantBuilder {
             profile,
@@ -582,6 +571,21 @@ pub fn alice_public_profile() -> PublicUserProfile {
             lastname: "Aal".to_string(),
             display_name: "Alice the angry".parse().expect("Valid DisplayName"),
             avatar_url: "https://example.com/avatar-of-alice".to_string(),
+        },
+        timezone: TimeZone::example_data(),
+    }
+}
+
+pub fn bob_public_user_profile() -> PublicUserProfile {
+    PublicUserProfile {
+        id: UserId::from_u128(0xb0b),
+        email: "bob@example.com".to_string(),
+        user_info: UserInfo {
+            title: "".parse().expect("Valid title"),
+            firstname: "Bob".to_string(),
+            lastname: "Barsch".to_string(),
+            display_name: "Bob the bold".parse().expect("Valid DisplayName"),
+            avatar_url: "https://example.com/avatar-of-bob".to_string(),
         },
         timezone: TimeZone::example_data(),
     }

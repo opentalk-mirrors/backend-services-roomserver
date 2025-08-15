@@ -5,17 +5,19 @@ use std::{collections::HashMap, mem};
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    participant_state::{ParticipantKind, ParticipantState},
+    participant_state::ParticipantState,
     signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
+    client_parameters::ClientKind,
     connection_id::ConnectionId,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
-    command::{Accept, ChangeDisplayName, Kick, ModerationCommand},
+    command::{Accept, ChangeDisplayName, Kick, ModerationCommand, SendToWaitingRoom},
     event::{DebriefingStarted, DisplayNameChanged, ModerationError, ModerationEvent},
+    state::{ModerationState, ModeratorJoinInfo, WaitingParticipantPeerData},
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
@@ -33,7 +35,7 @@ impl SignalingModule for ModerationModule {
 
     type Loopback = ();
 
-    type JoinInfo = ();
+    type JoinInfo = ModerationState;
 
     type PeerJoinInfo = ();
 
@@ -51,7 +53,25 @@ impl SignalingModule for ModerationModule {
         connection_id: ConnectionId,
         is_first_connection: bool,
     ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
-        Ok(JoinInfo::default())
+        let moderator_data = if ctx.is_moderator(participant_id) {
+            let info = ModeratorJoinInfo {
+                waiting_room_enabled: ctx.room_task_info.room.waiting_room,
+                waiting_room_participants: ctx
+                    .waiting_participants
+                    .iter()
+                    .map(WaitingParticipantPeerData::from)
+                    .collect(),
+            };
+            Some(info)
+        } else {
+            None
+        };
+
+        let join_info = JoinInfo {
+            join_success: Some(ModerationState { moderator_data }),
+            ..Default::default()
+        };
+        Ok(join_info)
     }
 
     #[allow(unused_variables)]
@@ -74,8 +94,13 @@ impl SignalingModule for ModerationModule {
         match content {
             ModerationCommand::Kick(Kick { target }) => self.kick_participant(ctx, sender, target),
             ModerationCommand::Debrief(kick_scope) => self.debrief(ctx, sender, kick_scope),
+            ModerationCommand::EnableWaitingRoom => Ok(self.set_waiting_room_enabled(ctx, true)?),
             ModerationCommand::Accept(Accept { target }) => {
                 Self::accept_waiting_room_participant(ctx, sender, target)
+            }
+            ModerationCommand::DisableWaitingRoom => Ok(self.set_waiting_room_enabled(ctx, false)?),
+            ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target }) => {
+                self.send_to_waiting_room(ctx, sender, target)
             }
             ModerationCommand::ChangeDisplayName(ChangeDisplayName { new_name, target }) => {
                 self.change_display_name(ctx, sender, new_name, target)
@@ -123,7 +148,9 @@ impl ModerationModule {
             ModerationEvent::DebriefingStarted(DebriefingStarted { issued_by: sender }),
         )?;
 
-        self.set_waiting_room_enabled(ctx, true)?;
+        if !ctx.room_task_info.room.waiting_room {
+            self.set_waiting_room_enabled(ctx, true)?;
+        }
 
         ctx.send_ws_message(kicked.clone(), ModerationEvent::Kicked)?;
         ctx.kick_participants(kicked);
@@ -139,7 +166,7 @@ impl ModerationModule {
         let mut not_kicked = Vec::new();
 
         for (id, state) in participants {
-            if scope.kicks(state.role, state.kind) {
+            if scope.kicks(state.role, &state.kind) {
                 kicked.push(*id);
             } else {
                 not_kicked.push(*id);
@@ -169,11 +196,7 @@ impl ModerationModule {
         participant.accepted = true;
 
         tracing::trace!("accept participant: {target}");
-        let connections: Vec<ConnectionId> = participant.connections.keys().copied().collect();
-        // Participants in the waiting room do not have a participant state,
-        // from which the connection ids could be determined, so we have to use
-        // send_ws_message_to_connections().
-        ctx.send_ws_message_to_connections(connections, ModerationEvent::Accepted)?;
+        ctx.send_ws_message_to_waiting_room([target], ModerationEvent::Accepted)?;
 
         Ok(())
     }
@@ -183,10 +206,6 @@ impl ModerationModule {
         ctx: &mut ModuleContext<'_, Self>,
         enabled: bool,
     ) -> Result<(), FatalError> {
-        if ctx.room_task_info.room.waiting_room == enabled {
-            return Ok(());
-        }
-
         ctx.room_task_info.room.waiting_room = enabled;
         let event = if enabled {
             ModerationEvent::WaitingRoomEnabled
@@ -194,6 +213,30 @@ impl ModerationModule {
             ModerationEvent::WaitingRoomDisabled
         };
         ctx.send_ws_message(ctx.participants.connected().ids(), event)
+    }
+
+    fn send_to_waiting_room(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        if ctx.is_room_owner(target) {
+            return Err(ModerationError::CannotSendRoomOwnerToWaitingRoom.into());
+        }
+
+        if !ctx.room_task_info.room.waiting_room {
+            self.set_waiting_room_enabled(ctx, true)?;
+        }
+
+        ctx.send_ws_message([target], ModerationEvent::SentToWaitingRoom)?;
+        ctx.move_to_waiting_room(target);
+
+        Ok(())
     }
 
     fn change_display_name(
@@ -217,11 +260,11 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
-        if participant.kind != ParticipantKind::Guest {
+        let ClientKind::Guest { display_name } = &mut participant.kind else {
             return Err(ModerationError::CannotChangeNameOfRegisteredUsers.into());
-        }
+        };
 
-        let old_name = mem::replace(&mut participant.display_name, new_name.clone());
+        let old_name = mem::replace(display_name, new_name.clone());
 
         ctx.send_ws_message(
             ctx.participants.connected().ids(),

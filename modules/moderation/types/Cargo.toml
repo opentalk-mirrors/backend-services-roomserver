@@ -12,6 +12,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+chrono.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true

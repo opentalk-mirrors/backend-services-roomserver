@@ -6,4 +6,5 @@ use opentalk_types_signaling::ParticipantId;
 #[derive(Debug)]
 pub enum Instruction {
     Kick { participants: Vec<ParticipantId> },
+    MoveToWaitingRoom { participant: ParticipantId },
 }
