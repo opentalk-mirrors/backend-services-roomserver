@@ -5,11 +5,13 @@ use std::{str::FromStr, time::Duration};
 
 use futures::channel::oneshot;
 use opentalk_roomserver_signaling::{
-    breakout::BREAKOUT_MODULE_ID, signaling_event::SignalingEvent,
-    signaling_module::SignalingModule,
+    signaling_event::SignalingEvent, signaling_module::SignalingModule,
 };
 use opentalk_roomserver_types::{
-    breakout::{breakout_config::BreakoutConfig, command::BreakoutCommand, event::BreakoutEvent},
+    breakout::{
+        BREAKOUT_MODULE_ID, breakout_config::BreakoutConfig, command::BreakoutCommand,
+        event::BreakoutEvent,
+    },
     client_parameters::{ClientKind, ClientParameters, Role},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreCommand, CoreEvent},

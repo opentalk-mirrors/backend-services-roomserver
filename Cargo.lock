@@ -4379,6 +4379,7 @@ checksum = "154934ea70c58054b556dd430b99a98c2a7ff5309ac9891597e339b5c28f4371"
 dependencies = [
  "console",
  "once_cell",
+ "serde",
  "similar",
 ]
 
@@ -5594,7 +5595,6 @@ dependencies = [
  "http-request-derive-client-reqwest",
  "insta",
  "log",
- "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-chat",
  "opentalk-roomserver-types-e2ee",
@@ -5647,7 +5647,6 @@ dependencies = [
  "log",
  "opentalk-roomserver-client",
  "opentalk-roomserver-common",
- "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",

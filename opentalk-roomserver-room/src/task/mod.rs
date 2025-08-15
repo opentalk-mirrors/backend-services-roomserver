@@ -75,6 +75,7 @@ use opentalk_roomserver_signaling::{
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
+    breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreCommand, CoreEvent},
@@ -559,7 +560,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 self.handle_core_command(participant_origin, signaling_command)
                     .await;
             }
-            m if *m == breakout::BREAKOUT_MODULE_ID => {
+            m if *m == BREAKOUT_MODULE_ID => {
                 self.handle_breakout_command(participant_origin, signaling_command)
                     .await;
             }
