@@ -37,3 +37,51 @@ impl Participant {
         self.module_data.update::<T, F>(update)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use opentalk_types_signaling::{ModulePeerData, ParticipantId};
+
+    use crate::{
+        breakout::module_data::BreakoutPeerModuleData,
+        connection_id::ConnectionId,
+        device_id::DeviceId,
+        join::{connection_info::ConnectionInfo, participant::Participant},
+    };
+
+    #[test]
+    fn serialize() {
+        let mut participant = Participant {
+            id: ParticipantId::from_u128(0x0001),
+            connections: vec![ConnectionInfo {
+                connection_id: ConnectionId::from_u128(0x0101),
+                device_id: DeviceId::from_u128(0x0201),
+            }],
+            module_data: ModulePeerData::new(),
+        };
+
+        participant
+            .module_data
+            .insert(&BreakoutPeerModuleData {
+                room: crate::room_kind::RoomKind::Main,
+            })
+            .unwrap();
+
+        insta::assert_json_snapshot!(participant, @r#"
+        {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "connections": [
+            {
+              "connection_id": "00000000-0000-0000-0000-000000000101",
+              "device_id": "00000000-0000-0000-0000-000000000201"
+            }
+          ],
+          "breakout": {
+            "room": {
+              "kind": "main"
+            }
+          }
+        }
+        "#);
+    }
+}
