@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_module_timer::TimerModule;
-use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
+use opentalk_roomserver_room::mocking::{
+    participant::MockParticipantJoined,
+    room::{TestRoom, flush_connected_events},
+};
 use opentalk_roomserver_types::{
     breakout::{
         breakout_config::{BreakoutConfig, BreakoutRoomConfig},
@@ -20,28 +23,32 @@ use opentalk_roomserver_types_timer::{
     state::TimerState,
 };
 
+async fn start_timer(user: &mut MockParticipantJoined, start: Start) {
+    user.send_command::<TimerModule>(TimerCommand::Start(start), None)
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        user.receive_event::<TimerModule>().await.unwrap().payload,
+        TimerEvent::Started { .. }
+    ));
+}
+
 #[test_log::test(tokio::test)]
 async fn can_not_start_second_timer() {
     let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    alice
-        .send_command::<TimerModule>(
-            TimerCommand::Start(Start {
-                kind: Kind::Stopwatch,
-                style: None,
-                title: None,
-                enable_ready_check: false,
-            }),
-            None,
-        )
-        .await
-        .unwrap();
-
-    assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().payload,
-        TimerEvent::Started { .. }
-    ));
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Stopwatch,
+            style: None,
+            title: None,
+            enable_ready_check: false,
+        },
+    )
+    .await;
 
     alice
         .send_command::<TimerModule>(
@@ -92,23 +99,16 @@ async fn all_participants_receive_timer_events() {
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
-    alice
-        .send_command::<TimerModule>(
-            TimerCommand::Start(Start {
-                kind: Kind::Stopwatch,
-                style: None,
-                title: None,
-                enable_ready_check: false,
-            }),
-            None,
-        )
-        .await
-        .unwrap();
-
-    assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().payload,
-        TimerEvent::Started { .. }
-    ));
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Stopwatch,
+            style: None,
+            title: None,
+            enable_ready_check: false,
+        },
+    )
+    .await;
 
     assert!(matches!(
         bob.receive_event::<TimerModule>().await.unwrap().payload,
@@ -136,23 +136,16 @@ async fn exceed_timer() {
     let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    alice
-        .send_command::<TimerModule>(
-            TimerCommand::Start(Start {
-                kind: Kind::Countdown { duration: 0 },
-                style: None,
-                title: None,
-                enable_ready_check: false,
-            }),
-            None,
-        )
-        .await
-        .unwrap();
-
-    assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().payload,
-        TimerEvent::Started { .. }
-    ));
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Countdown { duration: 0 },
+            style: None,
+            title: None,
+            enable_ready_check: false,
+        },
+    )
+    .await;
 
     assert!(matches!(
         alice.receive_event::<TimerModule>().await.unwrap().payload,
@@ -168,23 +161,16 @@ async fn stop_timer() {
     let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    alice
-        .send_command::<TimerModule>(
-            TimerCommand::Start(Start {
-                kind: Kind::Stopwatch,
-                style: None,
-                title: None,
-                enable_ready_check: false,
-            }),
-            None,
-        )
-        .await
-        .unwrap();
-
-    assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().payload,
-        TimerEvent::Started { .. }
-    ));
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Stopwatch,
+            style: None,
+            title: None,
+            enable_ready_check: false,
+        },
+    )
+    .await;
 
     alice
         .send_command::<TimerModule>(
@@ -226,23 +212,16 @@ async fn can_not_update_ready_status_when_disabled() {
     let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    alice
-        .send_command::<TimerModule>(
-            TimerCommand::Start(Start {
-                kind: Kind::Stopwatch,
-                style: None,
-                title: None,
-                enable_ready_check: false,
-            }),
-            None,
-        )
-        .await
-        .unwrap();
-
-    assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().payload,
-        TimerEvent::Started { .. }
-    ));
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Stopwatch,
+            style: None,
+            title: None,
+            enable_ready_check: false,
+        },
+    )
+    .await;
 
     alice
         .send_command::<TimerModule>(TimerCommand::UpdateReadyStatus { status: true }, None)
@@ -262,23 +241,16 @@ async fn update_ready_status() {
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
-    alice
-        .send_command::<TimerModule>(
-            TimerCommand::Start(Start {
-                kind: Kind::Stopwatch,
-                style: None,
-                title: None,
-                enable_ready_check: true,
-            }),
-            None,
-        )
-        .await
-        .unwrap();
-
-    assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().payload,
-        TimerEvent::Started { .. }
-    ));
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Stopwatch,
+            style: None,
+            title: None,
+            enable_ready_check: true,
+        },
+    )
+    .await;
 
     assert!(matches!(
         bob.receive_event::<TimerModule>().await.unwrap().payload,
@@ -311,23 +283,16 @@ async fn ready_state_persists() {
     let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    alice
-        .send_command::<TimerModule>(
-            TimerCommand::Start(Start {
-                kind: Kind::Stopwatch,
-                style: None,
-                title: None,
-                enable_ready_check: true,
-            }),
-            None,
-        )
-        .await
-        .unwrap();
-
-    assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().payload,
-        TimerEvent::Started { .. }
-    ));
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Stopwatch,
+            style: None,
+            title: None,
+            enable_ready_check: true,
+        },
+    )
+    .await;
 
     alice
         .send_command::<TimerModule>(TimerCommand::UpdateReadyStatus { status: true }, None)
@@ -393,24 +358,17 @@ async fn breakout_room_scope() {
         .await;
 
     // Alice starts a timer in her room
-    alice
-        .send_command::<TimerModule>(
-            TimerCommand::Start(Start {
-                kind: Kind::Countdown { duration: 0 },
-                style: None,
-                title: None,
-                enable_ready_check: false,
-            }),
-            None,
-        )
-        .await
-        .unwrap();
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Countdown { duration: 0 },
+            style: None,
+            title: None,
+            enable_ready_check: false,
+        },
+    )
+    .await;
 
-    // Alice receives events for the timer
-    assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().payload,
-        TimerEvent::Started { .. }
-    ));
     assert!(matches!(
         alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(Stopped {
@@ -455,24 +413,16 @@ async fn breakout_room_ready_state() {
         .await;
 
     // Alice starts a timer in room 0
-    alice
-        .send_command::<TimerModule>(
-            TimerCommand::Start(Start {
-                kind: Kind::Stopwatch,
-                style: None,
-                title: None,
-                enable_ready_check: true,
-            }),
-            None,
-        )
-        .await
-        .unwrap();
-
-    // Alice receives events for the timer
-    assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().payload,
-        TimerEvent::Started { .. }
-    ));
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Stopwatch,
+            style: None,
+            title: None,
+            enable_ready_check: true,
+        },
+    )
+    .await;
 
     // Alice updates her ready state in room 0
     alice
