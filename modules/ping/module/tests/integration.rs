@@ -28,11 +28,11 @@ async fn ping_sends_response_to_all_connections() {
         .unwrap();
 
     assert_eq!(
-        alice_1.receive_event::<PingModule>().await.unwrap().content,
+        alice_1.receive_event::<PingModule>().await.unwrap().payload,
         PingEvent::Pong
     );
     assert_eq!(
-        alice_2.receive_event::<PingModule>().await.unwrap().content,
+        alice_2.receive_event::<PingModule>().await.unwrap().payload,
         PingEvent::Pong
     );
     assert!(bob.received_nothing());
@@ -60,11 +60,11 @@ async fn async_delayed_pong_is_received() {
         .unwrap();
 
     assert_eq!(
-        alice_1.receive_event::<PingModule>().await.unwrap().content,
+        alice_1.receive_event::<PingModule>().await.unwrap().payload,
         PingEvent::DelayedPong
     );
     assert_eq!(
-        alice_2.receive_event::<PingModule>().await.unwrap().content,
+        alice_2.receive_event::<PingModule>().await.unwrap().payload,
         PingEvent::DelayedPong
     );
     assert!(bob.received_nothing());
@@ -86,16 +86,16 @@ async fn replicated_ping_is_replicated_to_all_connections() {
         .await
         .unwrap();
     assert_eq!(
-        alice_2.receive_event::<PingModule>().await.unwrap().content,
+        alice_2.receive_event::<PingModule>().await.unwrap().payload,
         PingEvent::Replication(Replication::ReplicatedPing)
     );
 
     assert_eq!(
-        alice_1.receive_event::<PingModule>().await.unwrap().content,
+        alice_1.receive_event::<PingModule>().await.unwrap().payload,
         PingEvent::Pong
     );
     assert_eq!(
-        alice_2.receive_event::<PingModule>().await.unwrap().content,
+        alice_2.receive_event::<PingModule>().await.unwrap().payload,
         PingEvent::Pong
     );
     assert!(bob.received_nothing());

@@ -199,9 +199,9 @@ impl SignalingModule for TimerModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         _connection_id: ConnectionId,
-        content: Self::Incoming,
+        payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match content {
+        match payload {
             TimerCommand::Start(start) => self.start_timer(ctx, sender, start)?,
             TimerCommand::Stop { reason } => self.stop_timer(ctx, sender, reason)?,
             TimerCommand::UpdateReadyStatus { status } => {

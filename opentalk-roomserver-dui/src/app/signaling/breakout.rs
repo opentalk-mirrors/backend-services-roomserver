@@ -48,7 +48,7 @@ impl SignalingPlugin for BreakoutPlugin {
             let Received::SignalingEvent(event) = msg else {
                 continue;
             };
-            match &event.content {
+            match &event.payload {
                 SignalingModuleEvent::Core(CoreEvent::JoinSuccess(join_success)) => {
                     self.handle_join(join_success);
                 }

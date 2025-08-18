@@ -147,9 +147,9 @@ impl SignalingModule for LiveKitModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         connection_id: ConnectionId,
-        content: Self::Incoming,
+        payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match content {
+        match payload {
             LiveKitCommand::CreateNewAccessToken => {
                 self.issue_access_token(ctx, sender, connection_id)
             }

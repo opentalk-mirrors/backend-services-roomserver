@@ -82,21 +82,21 @@ async fn invite() {
         .unwrap();
 
     // Alice2 should receive the replicated invite event
-    let replica_event = alice2.receive_event::<E2eeModule>().await.unwrap().content;
+    let replica_event = alice2.receive_event::<E2eeModule>().await.unwrap().payload;
     assert_eq!(
         replica_event,
         E2eeEvent::MlsMessages(invite.mls_messages.clone())
     );
 
     // Bob should receive the welcome message
-    let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().content;
+    let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().payload;
     assert_eq!(
         bob_event,
         E2eeEvent::Welcome(invite.welcome_message.clone())
     );
 
     // Charlie should receive the MLS message
-    let charlie_event = charlie.receive_event::<E2eeModule>().await.unwrap().content;
+    let charlie_event = charlie.receive_event::<E2eeModule>().await.unwrap().payload;
     assert_eq!(
         charlie_event,
         E2eeEvent::MlsMessages(invite.mls_messages.clone())
@@ -138,14 +138,14 @@ async fn invite_self() {
         .unwrap();
 
     // Alice2 should receive the invite event
-    let invite_event = alice2.receive_event::<E2eeModule>().await.unwrap().content;
+    let invite_event = alice2.receive_event::<E2eeModule>().await.unwrap().payload;
     assert_eq!(
         invite_event,
         E2eeEvent::Welcome(invite.welcome_message.clone())
     );
 
     // Bob should receive a MLS message
-    let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().content;
+    let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().payload;
     assert_eq!(
         bob_event,
         E2eeEvent::MlsMessages(invite.mls_messages.clone())
@@ -178,7 +178,7 @@ async fn invitee_unknown() {
         .unwrap();
 
     // Alice should receive an error event
-    let event = alice.receive_event::<E2eeModule>().await.unwrap().content;
+    let event = alice.receive_event::<E2eeModule>().await.unwrap().payload;
     assert_eq!(event, E2eeEvent::Error(E2eeError::InvalidParticipantTarget));
 
     // Bob should receive nothing
@@ -200,7 +200,7 @@ async fn disconnect_event_is_sent() {
     bob.disconnect();
 
     // Alice should receive a disconnect event for Bob
-    let event = alice.receive_event::<E2eeModule>().await.unwrap().content;
+    let event = alice.receive_event::<E2eeModule>().await.unwrap().payload;
     assert_eq!(
         event,
         E2eeEvent::Disconnect {
@@ -256,11 +256,11 @@ async fn forward_message() {
         .unwrap();
 
     // Alice2 should receive the message
-    let replica_event = alice2.receive_event::<E2eeModule>().await.unwrap().content;
+    let replica_event = alice2.receive_event::<E2eeModule>().await.unwrap().payload;
     assert_eq!(replica_event, E2eeEvent::MlsMessages(message.clone()));
 
     // Bob should receive the welcome message
-    let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().content;
+    let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().payload;
     assert_eq!(bob_event, E2eeEvent::MlsMessages(message.clone()));
 
     // No additional messages should be sent

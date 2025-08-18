@@ -55,7 +55,7 @@ async fn accept_participant(
 ) -> MockParticipantJoined {
     let event = moderator.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::JoinedWaitingRoom { id } if id == joinee.id()
     ));
     assert!(joinee.received_nothing());
@@ -74,7 +74,7 @@ async fn accept_participant(
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::Accepted);
 
     joinee
@@ -85,14 +85,14 @@ async fn accept_participant(
 
     let event = moderator.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::LeftWaitingRoom(
             LeftWaitingRoom { id, connection_id }
         ) if joinee.id() == id && joinee.connection_id() == connection_id
     ));
     let event = moderator.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::ParticipantConnected {
             participant_id,
             connection_id,
@@ -124,14 +124,14 @@ async fn join_via_waiting_room() {
     let mut bob_0 = room.waiting_room_bob(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::JoinedWaitingRoom { id } if id == bob_0.id()
     ));
 
     let mut bob_1 = room.waiting_room_bob(1).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::JoinedWaitingRoom{ id } if id == bob_1.id()
     ));
 
@@ -149,14 +149,14 @@ async fn join_via_waiting_room() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::Accepted);
 
     let event = bob_1
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::Accepted);
 
     bob_0
@@ -168,7 +168,7 @@ async fn join_via_waiting_room() {
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::LeftWaitingRoom(
             LeftWaitingRoom { id, connection_id }
         ) if bob_0.id() == id && bob_0.connection_id() == connection_id
@@ -182,7 +182,7 @@ async fn join_via_waiting_room() {
         let mut joined_connections = BTreeSet::new();
         for _ in 0..2 {
             let event = participant.receive::<CoreEvent>().await.unwrap();
-            match event.content {
+            match event.payload {
                 CoreEvent::ParticipantConnected {
                     participant_id,
                     connection_id,
@@ -242,11 +242,11 @@ async fn accept_unknown_participant() {
     let event = alice.receive::<ModerationEvent>().await.unwrap();
     assert!(
         matches!(
-            event.content,
+            event.payload,
             ModerationEvent::Error(ModerationError::NotWaiting)
         ),
         "Expected moderation error, got: {:?}",
-        event.content
+        event.payload
     );
 }
 
@@ -280,13 +280,13 @@ async fn registered_users_once_accepted_always_skip() {
     bob.disconnect();
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::ParticipantDisconnected { .. }
     ));
     room.join_bob(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::ParticipantConnected { .. }
     ));
 }
@@ -310,13 +310,13 @@ async fn guest_users_once_accepted_always_skip() {
     gustav.disconnect();
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::ParticipantDisconnected { .. }
     ));
     room.join_gustav_guest().await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::ParticipantConnected { .. }
     ));
 }
@@ -335,11 +335,11 @@ async fn event_when_leaving_waiting_room() {
 
     let bob = room.waiting_room_bob(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.content, CoreEvent::JoinedWaitingRoom { .. }));
+    assert!(matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. }));
 
     bob.disconnect();
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.content, CoreEvent::LeftWaitingRoom(..)));
+    assert!(matches!(event.payload, CoreEvent::LeftWaitingRoom(..)));
 }
 
 #[test_log::test(tokio::test)]
@@ -358,7 +358,7 @@ async fn enable_waiting_room() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
 
     // Sending the command again produces the same event
@@ -386,7 +386,7 @@ async fn disable_waiting_room() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::WaitingRoomDisabled);
 }
 
@@ -408,14 +408,14 @@ async fn send_to_waiting_room_insufficient_permissions() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
 
     let event = bob
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
 
     bob.send_command::<ModerationModule>(
@@ -429,7 +429,7 @@ async fn send_to_waiting_room_insufficient_permissions() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(
         event,
         ModerationEvent::Error(ModerationError::InsufficientPermissions)
@@ -469,7 +469,7 @@ async fn cannot_send_owner_to_waiting_room() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(
         event,
         ModerationEvent::Error(ModerationError::CannotSendRoomOwnerToWaitingRoom)
@@ -498,17 +498,17 @@ async fn send_to_waiting_room() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
 
     let event = bob
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
 
-    let event = alice.receive::<CoreEvent>().await.unwrap().content;
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
     assert!(matches!(
         event,
         CoreEvent::ParticipantDisconnected {
@@ -522,6 +522,6 @@ async fn send_to_waiting_room() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::SentToWaitingRoom);
 }

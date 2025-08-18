@@ -369,7 +369,6 @@ components:
         - tariff
         - streaming_links
         - e2e_encryption
-        - module_data
       properties:
         call_in:
           $ref: "#/components/schemas/CallInInfo"

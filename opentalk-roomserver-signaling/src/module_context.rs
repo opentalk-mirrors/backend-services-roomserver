@@ -135,7 +135,7 @@ where
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
-            content: msg,
+            payload: msg,
         };
         let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
             .context("Failed to serialize internal websocket payload type")
@@ -178,7 +178,7 @@ where
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
-            content: msg,
+            payload: msg,
         };
         let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
             .context("Failed to serialize internal websocket payload type")
@@ -204,7 +204,7 @@ where
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
-            content: msg,
+            payload: msg,
         };
         let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
             .context("Failed to serialize internal websocket payload type")
@@ -249,7 +249,7 @@ where
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
-            content: replication_event,
+            payload: replication_event,
         };
 
         let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
@@ -344,7 +344,7 @@ where
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
-            content: error,
+            payload: error,
         };
 
         let shared_json: SharedRawJson = match serde_json::value::to_raw_value(&event) {

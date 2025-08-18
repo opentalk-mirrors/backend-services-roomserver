@@ -36,7 +36,7 @@ async fn generate_meeting_report() {
             .receive_event::<MeetingReportModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
         MeetingReportEvent::PdfAsset(PdfAsset { .. })
     ));
 
@@ -84,7 +84,7 @@ async fn quota_exceeded() {
             .receive_event::<MeetingReportModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
         MeetingReportEvent::Error(MeetingReportError::StorageExceeded)
     );
 }
@@ -109,7 +109,7 @@ async fn insufficient_permissions() {
         bob.receive_event::<MeetingReportModule>()
             .await
             .unwrap()
-            .content,
+            .payload,
         MeetingReportEvent::Error(MeetingReportError::InsufficientPermissions)
     );
 }

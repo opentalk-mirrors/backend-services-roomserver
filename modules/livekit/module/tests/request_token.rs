@@ -30,11 +30,11 @@ async fn request_access_token() {
     assert!(bob.received_nothing());
 
     assert!(matches!(
-        token_event.content,
+        token_event.payload,
         LiveKitEvent::Credentials(Credentials { .. })
     ));
 
-    let LiveKitEvent::Credentials(credential) = token_event.content else {
+    let LiveKitEvent::Credentials(credential) = token_event.payload else {
         unreachable!()
     };
 
@@ -79,10 +79,10 @@ async fn alice_in_breakout() {
     assert!(bob.received_nothing());
 
     assert!(matches!(
-        token_event.content,
+        token_event.payload,
         LiveKitEvent::Credentials(Credentials { .. })
     ));
-    let LiveKitEvent::Credentials(credential) = token_event.content else {
+    let LiveKitEvent::Credentials(credential) = token_event.payload else {
         unreachable!()
     };
 

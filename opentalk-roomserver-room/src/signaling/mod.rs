@@ -255,8 +255,8 @@ where
         connection_id: ConnectionId,
         command: Box<RawValue>,
     ) -> Result<(), SignalingModuleError<M::Error>> {
-        let content: <M as SignalingModule>::Incoming = match serde_json::from_str(command.get()) {
-            Ok(content) => content,
+        let payload: <M as SignalingModule>::Incoming = match serde_json::from_str(command.get()) {
+            Ok(payload) => payload,
             Err(err) => {
                 tracing::debug!(
                     "failed to deserialize websocket message for namespace {}: {}",
@@ -272,12 +272,12 @@ where
             }
         };
 
-        if let Some(replication_event) = content.replicate() {
+        if let Some(replication_event) = payload.replicate() {
             ctx.send_replica(sender, connection_id, replication_event)?;
         }
 
         self.module
-            .on_websocket_message(ctx, sender, connection_id, content)?;
+            .on_websocket_message(ctx, sender, connection_id, payload)?;
 
         Ok(())
     }

@@ -121,7 +121,7 @@ impl MockParticipant<()> {
                         message: SignalingSocketMessage::Text(text.clone()),
                     })?;
 
-                if let CoreEvent::JoinSuccess(msg) = event.content {
+                if let CoreEvent::JoinSuccess(msg) = event.payload {
                     Ok(MockParticipant {
                         sender: self.sender,
                         receiver: self.receiver,
@@ -154,7 +154,7 @@ impl MockParticipant<()> {
                 if let CoreEvent::InWaitingRoom {
                     connection_id,
                     participant_id,
-                } = event.content
+                } = event.payload
                 {
                     Ok(MockParticipant {
                         sender: self.sender,
@@ -203,12 +203,12 @@ impl MockParticipantJoined {
 
         for p in others {
             assert!(matches!(
-                p.receive::<BreakoutEvent>().await.unwrap().content,
+                p.receive::<BreakoutEvent>().await.unwrap().payload,
                 BreakoutEvent::Started { .. },
             ));
         }
 
-        self.receive::<BreakoutEvent>().await.unwrap().content
+        self.receive::<BreakoutEvent>().await.unwrap().payload
     }
 
     pub async fn switch_breakout_room(
@@ -221,7 +221,7 @@ impl MockParticipantJoined {
             .unwrap();
 
         for p in others {
-            let event = p.receive::<BreakoutEvent>().await.unwrap().content;
+            let event = p.receive::<BreakoutEvent>().await.unwrap().payload;
             assert!(
                 matches!(event, BreakoutEvent::ParticipantSwitchedRoom { .. },),
                 "Error for {}, Expected BreakoutEvent::ParticipantSwitchedRoom, got: {:?}",
@@ -230,7 +230,7 @@ impl MockParticipantJoined {
             );
         }
 
-        self.receive::<BreakoutEvent>().await.unwrap().content
+        self.receive::<BreakoutEvent>().await.unwrap().payload
     }
 
     pub async fn stop_breakout_rooms(
@@ -242,7 +242,7 @@ impl MockParticipantJoined {
             .unwrap();
 
         for p in others.iter_mut() {
-            let event = p.receive::<BreakoutEvent>().await.unwrap().content;
+            let event = p.receive::<BreakoutEvent>().await.unwrap().payload;
             assert!(
                 matches!(event, BreakoutEvent::Closing { .. }),
                 "Expected Closing notice, got: {event:?}"
@@ -250,14 +250,14 @@ impl MockParticipantJoined {
         }
 
         for p in others.iter_mut() {
-            let event = p.receive::<BreakoutEvent>().await.unwrap().content;
+            let event = p.receive::<BreakoutEvent>().await.unwrap().payload;
             assert!(
                 matches!(event, BreakoutEvent::Closed),
                 "Expected Closed notice, got: {event:?}"
             );
         }
 
-        self.receive::<BreakoutEvent>().await.unwrap().content
+        self.receive::<BreakoutEvent>().await.unwrap().payload
     }
 }
 
@@ -311,7 +311,7 @@ impl MockParticipantWaiting {
                         message: SignalingSocketMessage::Text(text.clone()),
                     })?;
 
-                if let CoreEvent::JoinSuccess(msg) = event.content {
+                if let CoreEvent::JoinSuccess(msg) = event.payload {
                     Ok(MockParticipant {
                         sender: self.sender,
                         receiver: self.receiver,
@@ -448,7 +448,7 @@ impl<S> MockParticipant<S> {
         let command = SignalingCommand {
             namespace: M::NAMESPACE,
             transaction_id,
-            content: to_raw_value(&command).expect("Command must be Serializable"),
+            payload: to_raw_value(&command).expect("Command must be Serializable"),
         };
         let value = serde_json::to_value(&command).expect("SignalingCommand is serializable");
         self.send_command_raw(value).await
@@ -478,7 +478,7 @@ impl<S> MockParticipant<S> {
         let command = SignalingCommand {
             namespace: BREAKOUT_MODULE_ID,
             transaction_id,
-            content: to_raw_value(&command).expect("BreakoutCommand must be serializable"),
+            payload: to_raw_value(&command).expect("BreakoutCommand must be serializable"),
         };
         let value = serde_json::to_value(&command).expect("Command is serializable");
         self.send_command_raw(value).await
@@ -492,7 +492,7 @@ impl<S> MockParticipant<S> {
         let command = SignalingCommand {
             namespace: CORE_MODULE_ID,
             transaction_id,
-            content: to_raw_value(&command).expect("CoreCommand must be serializable"),
+            payload: to_raw_value(&command).expect("CoreCommand must be serializable"),
         };
         let value = serde_json::to_value(&command).expect("Command is serializable");
         self.send_command_raw(value).await

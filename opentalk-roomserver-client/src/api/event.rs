@@ -32,20 +32,20 @@ pub struct SignalingEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<u64>,
     #[serde(flatten)]
-    pub content: SignalingModuleEvent,
+    pub payload: SignalingModuleEvent,
 }
 
 impl SignalingEvent {
     pub fn namespace(&self) -> ModuleId {
-        self.content.namespace()
+        self.payload.namespace()
     }
 }
 
 impl From<SignalingModuleEvent> for SignalingEvent {
-    fn from(content: SignalingModuleEvent) -> Self {
+    fn from(payload: SignalingModuleEvent) -> Self {
         Self {
             transaction_id: None,
-            content,
+            payload,
         }
     }
 }
@@ -123,7 +123,7 @@ mod tests {
     fn serialize_event_core() {
         let event = SignalingEvent {
             transaction_id: None,
-            content: SignalingModuleEvent::Core(CoreEvent::ParticipantConnected {
+            payload: SignalingModuleEvent::Core(CoreEvent::ParticipantConnected {
                 participant_id: ParticipantId::from_u128(0x01),
                 connection_id: ConnectionId::from_u128(0x02),
                 peer_join_info: Default::default(),
@@ -152,7 +152,7 @@ mod tests {
     fn serialize_event_breakout() {
         let event = SignalingEvent {
             transaction_id: None,
-            content: SignalingModuleEvent::Breakout(BreakoutEvent::Closed),
+            payload: SignalingModuleEvent::Breakout(BreakoutEvent::Closed),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
@@ -174,7 +174,7 @@ mod tests {
     fn serialize_event_chat() {
         let event = SignalingEvent {
             transaction_id: None,
-            content: SignalingModuleEvent::Chat(ChatEvent::ChatDisabled(ChatDisabled {
+            payload: SignalingModuleEvent::Chat(ChatEvent::ChatDisabled(ChatDisabled {
                 issued_by: ParticipantId::from_u128(0x01),
             })),
         };
@@ -199,7 +199,7 @@ mod tests {
     fn serialize_event_ping() {
         let event = SignalingEvent {
             transaction_id: None,
-            content: SignalingModuleEvent::Ping(PingEvent::Pong),
+            payload: SignalingModuleEvent::Ping(PingEvent::Pong),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
@@ -221,7 +221,7 @@ mod tests {
     fn serialize_event_livekit() {
         let event = SignalingEvent {
             transaction_id: None,
-            content: SignalingModuleEvent::LiveKit(LiveKitEvent::MicrophoneRestrictionsDisabled),
+            payload: SignalingModuleEvent::LiveKit(LiveKitEvent::MicrophoneRestrictionsDisabled),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
@@ -243,7 +243,7 @@ mod tests {
     fn serialize_event_timer() {
         let event = SignalingEvent {
             transaction_id: None,
-            content: SignalingModuleEvent::Timer(TimerEvent::UpdatedReadyStatus(
+            payload: SignalingModuleEvent::Timer(TimerEvent::UpdatedReadyStatus(
                 UpdatedReadyStatus {
                     participant_id: ParticipantId::nil(),
                     status: true,
@@ -272,7 +272,7 @@ mod tests {
     fn serialize_event_polls() {
         let event = SignalingEvent {
             transaction_id: None,
-            content: SignalingModuleEvent::Polls(PollsEvent::Voted(Vote {
+            payload: SignalingModuleEvent::Polls(PollsEvent::Voted(Vote {
                 poll_id: PollId::nil(),
                 choices: Choices::Single {
                     choice_id: ChoiceId::from_u32(0),
@@ -301,7 +301,7 @@ mod tests {
     fn serialize_event_meeting_report() {
         let event = SignalingEvent {
             transaction_id: None,
-            content: SignalingModuleEvent::MeetingReport(MeetingReportEvent::PdfAsset(PdfAsset {
+            payload: SignalingModuleEvent::MeetingReport(MeetingReportEvent::PdfAsset(PdfAsset {
                 filename: "name".into(),
                 asset_id: AssetId::nil(),
             })),
@@ -324,7 +324,7 @@ mod tests {
     fn serialize_event_moderation() {
         let event = SignalingEvent {
             transaction_id: None,
-            content: SignalingModuleEvent::Moderation(ModerationEvent::Accepted),
+            payload: SignalingModuleEvent::Moderation(ModerationEvent::Accepted),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 

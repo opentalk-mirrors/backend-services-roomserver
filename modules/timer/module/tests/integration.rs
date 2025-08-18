@@ -39,7 +39,7 @@ async fn can_not_start_second_timer() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
@@ -57,7 +57,7 @@ async fn can_not_start_second_timer() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Error(TimerError::TimerAlreadyRunning)
     );
 }
@@ -80,7 +80,7 @@ async fn non_moderator_cant_start_timer() {
     .unwrap();
 
     assert_eq!(
-        bob.receive_event::<TimerModule>().await.unwrap().content,
+        bob.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Error(TimerError::InsufficientPermissions)
     );
 }
@@ -106,12 +106,12 @@ async fn all_participants_receive_timer_events() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
     assert!(matches!(
-        bob.receive_event::<TimerModule>().await.unwrap().content,
+        bob.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
@@ -121,12 +121,12 @@ async fn all_participants_receive_timer_events() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(..)
     ));
 
     assert!(matches!(
-        bob.receive_event::<TimerModule>().await.unwrap().content,
+        bob.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(..)
     ));
 }
@@ -150,12 +150,12 @@ async fn exceed_timer() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(Stopped {
             kind: StopKind::Expired,
             ..
@@ -182,7 +182,7 @@ async fn stop_timer() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
@@ -197,7 +197,7 @@ async fn stop_timer() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(Stopped {
             kind: StopKind::ByModerator(alice.id()),
             reason: Some("test".into())
@@ -216,7 +216,7 @@ async fn can_not_update_ready_status_when_timer_not_running() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Error(TimerError::TimerNotRunning),
     );
 }
@@ -240,7 +240,7 @@ async fn can_not_update_ready_status_when_disabled() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
@@ -250,7 +250,7 @@ async fn can_not_update_ready_status_when_disabled() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Error(TimerError::ReadyCheckNotEnabled),
     );
 }
@@ -276,12 +276,12 @@ async fn update_ready_status() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
     assert!(matches!(
-        bob.receive_event::<TimerModule>().await.unwrap().content,
+        bob.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
@@ -290,7 +290,7 @@ async fn update_ready_status() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
             participant_id: bob.id(),
             status: true,
@@ -298,7 +298,7 @@ async fn update_ready_status() {
     );
 
     assert_eq!(
-        bob.receive_event::<TimerModule>().await.unwrap().content,
+        bob.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
             participant_id: bob.id(),
             status: true,
@@ -325,7 +325,7 @@ async fn ready_state_persists() {
         .unwrap();
 
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
@@ -335,7 +335,7 @@ async fn ready_state_persists() {
         .unwrap();
 
     assert_eq!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
             participant_id: alice.id(),
             status: true,
@@ -408,11 +408,11 @@ async fn breakout_room_scope() {
 
     // Alice receives events for the timer
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(Stopped {
             kind: StopKind::Expired,
             ..
@@ -470,7 +470,7 @@ async fn breakout_room_ready_state() {
 
     // Alice receives events for the timer
     assert!(matches!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
 
@@ -480,7 +480,7 @@ async fn breakout_room_ready_state() {
         .await
         .unwrap();
     assert_eq!(
-        alice.receive_event::<TimerModule>().await.unwrap().content,
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
             participant_id: alice.id(),
             status: true,

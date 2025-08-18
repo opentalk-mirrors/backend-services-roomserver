@@ -57,6 +57,7 @@ pub struct RoomParameters {
     /// Indicates whether the meeting room should have e2e encryption enabled.
     pub e2e_encryption: bool,
 
+    #[serde(default)]
     /// Additional configuration options that are used by modules during initialization.
     pub module_data: ModuleData,
 }
@@ -157,74 +158,73 @@ mod tests {
     fn room_parameters() {
         let params = RoomParameters::example_data();
         let json = json!({
-                "created_by": {
-                    "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060",
-                    "display_name": "Alice Adams",
-                    "email": "alice@example.com",
-                    "firstname": "Alice",
-                    "id": "00000000-0000-0000-0000-0000000a11c3",
-                    "lastname": "Adams",
-                    "title": "",
-                    "timezone": "Europe/Berlin",
-                },
-                "password": "",
-                "call_in": {
-                    "tel": "+555-123-456-789",
-                    "id": "1234567890",
-                    "password": "0987654321"
-                },
-                "waiting_room": false,
-                "event": {
-                    "description": "The Weekly Team Event",
-                    "id": "00000000-0000-0000-0000-004433221100",
-                    "is_adhoc": false,
-                    "starts_at": "1970-01-01T00:00:00Z",
-                    "ends_at": "1970-01-01T01:00:00Z",
-                    "shared_folder": {
-                        "read": {
-                            "password": "v3rys3cr3t",
-                            "url": "https://cloud.example.com/shares/abc123",
-                        },
-                    },
-                    "title": "Team Event",
-                },
-                "invite_code": "00000000-0000-0000-0000-0000deadbeef",
-                "password": "1234",
-                "tariff": {
-                    "id": "00000000-0000-0000-0000-000000000000",
-                    "name": "Starter tariff",
-                    "quotas": {
-                        "max_storage": 50000
-                    },
-                    "modules": {
-                        "chat": {
-                            "features": []
-                        },
-                        "core": {
-                            "features": []
-                        },
-                        "livekit": {
-                            "features": []
-                        },
-                        "moderation": {
-                            "features": []
-                        },
-                        "recording": {
-                            "features": [ "record" ]
-                        }
+            "created_by": {
+                "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060",
+                "display_name": "Alice Adams",
+                "email": "alice@example.com",
+                "firstname": "Alice",
+                "id": "00000000-0000-0000-0000-0000000a11c3",
+                "lastname": "Adams",
+                "title": "",
+                "timezone": "Europe/Berlin"
+            },
+            "password": "1234",
+            "call_in": {
+                "tel": "+555-123-456-789",
+                "id": "1234567890",
+                "password": "0987654321"
+            },
+            "waiting_room": false,
+            "event": {
+                "description": "The Weekly Team Event",
+                "id": "00000000-0000-0000-0000-004433221100",
+                "is_adhoc": false,
+                "starts_at": "1970-01-01T00:00:00Z",
+                "ends_at": "1970-01-01T01:00:00Z",
+                "shared_folder": {
+                    "read": {
+                        "password": "v3rys3cr3t",
+                        "url": "https://cloud.example.com/shares/abc123"
                     }
                 },
-                "streaming_links": [{"name": "My OwnCast Stream", "url": "https://owncast.example.com/mystream"}],
-                "e2e_encryption": false,
-                "module_data": {
-            "livekit":  {
-                "api_key": "devkey",
-                "api_secret": "secret",
-                "public_url": "http://localhost:7880",
-                "service_url": "http://localhost:7880",
+                "title": "Team Event"
             },
-        },
-            });
+            "invite_code": "00000000-0000-0000-0000-0000deadbeef",
+            "tariff": {
+                "id": "00000000-0000-0000-0000-000000000000",
+                "name": "Starter tariff",
+                "quotas": {
+                    "max_storage": 50000
+                },
+                "modules": {
+                    "chat": {
+                        "features": []
+                    },
+                    "core": {
+                        "features": []
+                    },
+                    "livekit": {
+                        "features": []
+                    },
+                    "moderation": {
+                        "features": []
+                    },
+                    "recording": {
+                        "features": [ "record" ]
+                    }
+                }
+            },
+            "streaming_links": [{"name": "My OwnCast Stream", "url": "https://owncast.example.com/mystream"}],
+            "e2e_encryption": false,
+            "module_data": {
+                "livekit":  {
+                    "api_key": "devkey",
+                    "api_secret": "secret",
+                    "public_url": "http://localhost:7880",
+                    "service_url": "http://localhost:7880"
+                }
+            }
+        });
 
         // serialization
         assert_eq!(json.clone(), serde_json::to_value(params.clone()).unwrap());

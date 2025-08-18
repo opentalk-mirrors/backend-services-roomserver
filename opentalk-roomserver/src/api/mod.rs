@@ -158,6 +158,17 @@ where
                         "http.status_code",
                         tracing::field::display(response.status()),
                     );
+                    if response.status().is_client_error() {
+                        tracing::debug!(
+                            "Request failed with status code: {} - (client error)",
+                            response.status()
+                        );
+                    } else if response.status().is_server_error() {
+                        tracing::error!(
+                            "Request failed with status code: {} - (server error)",
+                            response.status()
+                        );
+                    }
                 })
                 .on_failure(|fail, _duration, _span: &Span| {
                     tracing::warn!("request failed: {fail:?}");

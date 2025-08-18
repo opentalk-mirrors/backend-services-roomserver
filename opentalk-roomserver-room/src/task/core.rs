@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use opentalk_roomserver_signaling::event_origin::{EventOrigin, ParticipantOrigin};
 use opentalk_roomserver_types::{
     breakout::module_data::BreakoutPeerModuleData,
-    client_parameters::ClientKind,
+    client_parameters::{ClientKind, Role as RoomserverClientRole},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreEvent},
     device_id::DeviceId,
@@ -39,6 +39,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         connection_id: ConnectionId,
         device_id: DeviceId,
         client_kind: ClientKind,
+        role: RoomserverClientRole,
     ) -> Result<(), FatalError> {
         let mut module_data = ModuleData::new();
 
@@ -80,6 +81,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             connection_id,
             device_id,
             client_kind,
+            role,
             module_data,
         );
 
@@ -234,6 +236,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         connection_id: ConnectionId,
         device_id: DeviceId,
         client_kind: ClientKind,
+        role: RoomserverClientRole,
         module_data: ModuleData,
     ) -> JoinSuccess {
         let participants = self
@@ -269,7 +272,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let display_name = client_kind.display_name();
         let (role, avatar_url, is_room_owner) = match client_kind {
             ClientKind::Registered { profile } => (
-                Role::User,
+                role.to_opentalk_types_signaling_role(),
                 Some(profile.user_info.avatar_url),
                 self.info.room.created_by.id == profile.id,
             ),
@@ -420,7 +423,7 @@ mod tests {
         };
         let event = SignalingEvent {
             namespace: CORE_MODULE_ID,
-            content: CoreEvent::JoinSuccess(join_success.into()),
+            payload: CoreEvent::JoinSuccess(join_success.into()),
             transaction_id: Some(0),
         };
         let json = serde_json::to_value(&event).unwrap();
@@ -430,7 +433,7 @@ mod tests {
             json!({
                 "namespace": "core",
                 "transaction_id": 0,
-                "content": {
+                "payload": {
                     "join_success": {
                         "id": "00000000-0000-0000-0000-000000000000",
                         "connection_id": "00000000-0000-0000-0000-000000000000",
@@ -499,7 +502,7 @@ mod tests {
 
         let raw = r#"{
     "namespace": "core",
-    "content": {
+    "payload": {
         "join_success": {
             "id": "00000000-0000-0000-0000-000000000001",
             "connection_id": "00000000-0000-0000-0000-000000000001",
@@ -686,15 +689,15 @@ mod tests {
         assert_eq!(
             json,
             json!({
-              "participant_connected": {
-                "participant_id": "00000000-0000-0000-0000-000000000000",
-                "connection_id": "00000000-0000-0000-0000-000000000000",
-                "peer_join_info": {
-                  "test": {
-                    "key": "value"
+                "participant_connected": {
+                    "participant_id": "00000000-0000-0000-0000-000000000000",
+                    "connection_id": "00000000-0000-0000-0000-000000000000",
+                    "peer_join_info": {
+                    "test": {
+                        "key": "value"
+                    }
                   }
                 }
-              }
             })
         );
     }
@@ -712,11 +715,11 @@ mod tests {
         assert_eq!(
             json,
             json!({
-              "participant_disconnected": {
-                "participant_id": "00000000-0000-0000-0000-000000000000",
-                "connection_id": "00000000-0000-0000-0000-000000000000",
-                "reason": "connection_lost"
-              }
+                "participant_disconnected": {
+                    "participant_id": "00000000-0000-0000-0000-000000000000",
+                    "connection_id": "00000000-0000-0000-0000-000000000000",
+                    "reason": "connection_lost"
+                }
             })
         );
     }

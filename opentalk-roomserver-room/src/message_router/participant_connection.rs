@@ -331,7 +331,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         let event: SignalingEvent<SignalingError> = SignalingEvent {
             namespace: opentalk_roomserver_types::error::NAMESPACE,
             transaction_id,
-            content: error.into(),
+            payload: error.into(),
         };
         let error_message = serde_json::to_string(&event)
             .unwrap_or_else(|_| r#"{"error": "internal"}"#.into())

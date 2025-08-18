@@ -595,7 +595,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_origin: ParticipantOrigin,
         command: SignalingCommand,
     ) {
-        let core_command: CoreCommand = match serde_json::from_str(command.content.get()) {
+        let core_command: CoreCommand = match serde_json::from_str(command.payload.get()) {
             Ok(command) => command,
             Err(err) => {
                 tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
@@ -738,7 +738,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 DynEvent::WebsocketMessage {
                     participant_id,
                     connection_id,
-                    command: signaling_command.content,
+                    command: signaling_command.payload,
                 },
             )
             .await
@@ -846,7 +846,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         if let Err(err) = self
-            .participant_joined(participant_id, connection_id, device_id, client_kind)
+            .participant_joined(participant_id, connection_id, device_id, client_kind, role)
             .await
         {
             tracing::error!("failed to add participant to conference {err:#?}");

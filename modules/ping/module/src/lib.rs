@@ -74,9 +74,9 @@ impl SignalingModule for PingModule {
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
         _connection_id: ConnectionId,
-        content: Self::Incoming,
+        payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match content {
+        match payload {
             PingCommand::Ping | PingCommand::ReplicatedPing => {
                 ctx.send_ws_message([participant_id], PingEvent::Pong)?
             }

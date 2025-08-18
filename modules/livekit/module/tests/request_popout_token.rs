@@ -30,7 +30,7 @@ async fn request_access_token() {
     assert!(bob.received_nothing());
 
     assert!(matches!(
-        token_event.content,
+        token_event.payload,
         LiveKitEvent::PopoutStreamAccessToken { .. }
     ));
 }
@@ -70,7 +70,7 @@ async fn alice_in_breakout_bob_in_main() {
     let token_event = alice.receive_event::<LiveKitModule>().await.unwrap();
     assert!(bob.received_nothing());
 
-    if let LiveKitEvent::PopoutStreamAccessToken { token } = token_event.content {
+    if let LiveKitEvent::PopoutStreamAccessToken { token } = token_event.payload {
         // join livekit to ensure we got the token for the correct room
         let (alice_room, _room_events) =
             livekit::Room::connect(&public_url, &token, RoomOptions::default())

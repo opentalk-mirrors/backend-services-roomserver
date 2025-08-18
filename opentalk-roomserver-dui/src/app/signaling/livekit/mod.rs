@@ -200,7 +200,7 @@ impl LiveKitPlugin {
             let Received::SignalingEvent(event) = msg else {
                 continue;
             };
-            match &event.content {
+            match &event.payload {
                 SignalingModuleEvent::Core(CoreEvent::JoinSuccess(join)) => {
                     self.handle_join_success(join)
                 }

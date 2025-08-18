@@ -33,7 +33,7 @@ async fn waiting_participants_dont_receive_messages() {
     let mut bob = room.waiting_room_bob(0).await;
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.content, CoreEvent::JoinedWaitingRoom { .. }));
+    assert!(matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. }));
 
     // Chat message is used as an arbitrary command that should not be sent to
     // waiting participants
@@ -48,7 +48,7 @@ async fn waiting_participants_dont_receive_messages() {
         .await
         .unwrap();
     let event = alice.receive_event::<ChatModule>().await.unwrap();
-    assert!(matches!(event.content, ChatEvent::MessageSent(..)));
+    assert!(matches!(event.payload, ChatEvent::MessageSent(..)));
 
     // Bob should not receive the event
     assert!(bob.received_nothing());
@@ -66,11 +66,11 @@ async fn waiting_participants_dont_receive_broadcasts() {
 
     let mut bob = room.waiting_room_bob(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.content, CoreEvent::JoinedWaitingRoom { .. }));
+    assert!(matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. }));
 
     let mut charlie = room.waiting_room_charlie(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.content, CoreEvent::JoinedWaitingRoom { .. }));
+    assert!(matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. }));
 
     alice
         .send_command::<ModerationModule>(
@@ -86,7 +86,7 @@ async fn waiting_participants_dont_receive_broadcasts() {
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
-        .content;
+        .payload;
     assert_eq!(event, ModerationEvent::Accepted);
 
     charlie
@@ -96,11 +96,11 @@ async fn waiting_participants_dont_receive_broadcasts() {
     let mut charlie = charlie.join_success().await.unwrap();
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.content, CoreEvent::LeftWaitingRoom { .. }));
+    assert!(matches!(event.payload, CoreEvent::LeftWaitingRoom { .. }));
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::ParticipantConnected { .. }
     ));
 
@@ -122,10 +122,10 @@ async fn waiting_participants_dont_receive_broadcasts() {
         .unwrap();
 
     let event = alice.receive::<BreakoutEvent>().await.unwrap();
-    assert!(matches!(event.content, BreakoutEvent::Started { .. }));
+    assert!(matches!(event.payload, BreakoutEvent::Started { .. }));
 
     let event = charlie.receive::<BreakoutEvent>().await.unwrap();
-    assert!(matches!(event.content, BreakoutEvent::Started { .. }));
+    assert!(matches!(event.payload, BreakoutEvent::Started { .. }));
 
     assert!(bob.received_nothing());
 
@@ -133,7 +133,7 @@ async fn waiting_participants_dont_receive_broadcasts() {
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
-        event.content,
+        event.payload,
         CoreEvent::ParticipantDisconnected { .. }
     ));
 

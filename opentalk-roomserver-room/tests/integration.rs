@@ -57,7 +57,7 @@ async fn invalid_command_response_contains_transaction_id() {
 
     let command = json!({
         "transaction_id": 0,
-        "content": {
+        "payload": {
             "invalid": "command"
         }
     });

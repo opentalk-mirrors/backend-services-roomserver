@@ -86,9 +86,9 @@ impl SignalingModule for MockModule {
         ctx: &mut opentalk_roomserver_signaling::module_context::ModuleContext<'_, Self>,
         sender: opentalk_types_signaling::ParticipantId,
         connection_id: opentalk_roomserver_types::connection_id::ConnectionId,
-        content: Self::Incoming,
+        payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match content {
+        match payload {
             MockCommand::Valid => {
                 ctx.send_ws_message([sender], MockEvent::Success).unwrap();
                 Ok(())
