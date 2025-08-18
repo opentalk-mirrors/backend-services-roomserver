@@ -176,8 +176,11 @@ impl InternalCommand for NoOp {
 }
 
 pub struct JoinInfo<M: SignalingModule> {
-    /// Module specific data that will be attached to the participants `JoinedSuccess` message
+    /// Module specific data that will be attached to the participants `JoinSuccess` message
     pub join_success: Option<M::JoinInfo>,
+
+    /// Module specific data that will be attached to the information about other participants inside the `JoinSuccess`
+    pub participant_states: PeerJoinInfoMap<M>,
 
     /// Module specific data that will be attached to other participants `Joined` message
     pub peer: PeerJoinInfoMap<M>,
@@ -193,6 +196,7 @@ impl<M: SignalingModule> Default for JoinInfo<M> {
         Self {
             join_success: Default::default(),
             peer: Default::default(),
+            participant_states: Default::default(),
         }
     }
 }

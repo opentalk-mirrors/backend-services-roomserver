@@ -78,6 +78,7 @@ impl SignalingModule for TimerModule {
             return Ok(JoinInfo {
                 join_success: None,
                 peer: PeerJoinInfoMap::default(),
+                participant_states: PeerJoinInfoMap::default(),
             });
         };
 
@@ -102,6 +103,7 @@ impl SignalingModule for TimerModule {
                     config: timer.config.clone(),
                     ready_status: Some(ready_status),
                 }),
+                participant_states: PeerJoinInfoMap::default(),
                 peer,
             })
         } else {
@@ -110,6 +112,7 @@ impl SignalingModule for TimerModule {
                     config: timer.config.clone(),
                     ready_status: None,
                 }),
+                participant_states: PeerJoinInfoMap::default(),
                 peer: PeerJoinInfoMap::default(),
             })
         }

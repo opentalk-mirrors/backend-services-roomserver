@@ -97,6 +97,7 @@ impl LiveKitSubroom {
                 microphone_restriction_state: self.microphone_restrictions.clone(),
             }),
             peer: PeerJoinInfoMap::default(),
+            participant_states: PeerJoinInfoMap::default(),
         })
     }
 

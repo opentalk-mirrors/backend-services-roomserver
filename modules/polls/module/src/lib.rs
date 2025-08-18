@@ -82,6 +82,7 @@ impl SignalingModule for PollsModule {
             Ok(JoinInfo {
                 join_success: Some(poll.state.clone()),
                 peer: PeerJoinInfoMap::default(),
+                participant_states: PeerJoinInfoMap::default(),
             })
         } else {
             Ok(JoinInfo::default())
