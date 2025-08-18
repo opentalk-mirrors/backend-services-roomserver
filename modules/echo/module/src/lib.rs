@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::time::Duration;
-
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
-    connection_id::ConnectionId,
-    signaling::module_error::{FatalError, SignalingModuleError},
+    connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_echo::{
     ECHO_MODULE_ID, command::EchoCommand, error::EchoError, event::EchoEvent,
@@ -80,14 +77,6 @@ impl SignalingModule for EchoModule {
             EchoCommand::Ping | EchoCommand::ReplicatedPing => {
                 ctx.send_ws_message([participant_id], EchoEvent::Pong)?
             }
-            EchoCommand::AsyncDelayedPing { delay } => {
-                ctx.spawn(Self::handle_async_echo_delayed(participant_id, delay));
-            }
-            EchoCommand::Die => {
-                return Err(
-                    FatalError(anyhow::anyhow!("Dying as requested, cya later alligator")).into(),
-                );
-            }
         }
         Ok(())
     }
@@ -100,16 +89,6 @@ impl SignalingModule for EchoModule {
         ctx.send_ws_message([event.0], EchoEvent::DelayedPong)
             .unwrap();
         Ok(())
-    }
-}
-
-impl EchoModule {
-    async fn handle_async_echo_delayed(
-        participant_id: ParticipantId,
-        delay: Duration,
-    ) -> DelayedEchoCompleted {
-        tokio::time::sleep(delay).await;
-        DelayedEchoCompleted(participant_id)
     }
 }
 

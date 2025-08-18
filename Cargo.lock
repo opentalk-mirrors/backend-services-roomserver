@@ -5815,7 +5815,6 @@ dependencies = [
 name = "opentalk-roomserver-module-echo"
 version = "0.0.6-dev"
 dependencies = [
- "anyhow",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
