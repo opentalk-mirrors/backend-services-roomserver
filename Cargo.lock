@@ -5669,10 +5669,10 @@ dependencies = [
  "opentalk-roomserver-common",
  "opentalk-roomserver-module-chat",
  "opentalk-roomserver-module-e2ee",
+ "opentalk-roomserver-module-echo",
  "opentalk-roomserver-module-livekit",
  "opentalk-roomserver-module-meeting-report",
  "opentalk-roomserver-module-moderation",
- "opentalk-roomserver-module-ping",
  "opentalk-roomserver-module-polls",
  "opentalk-roomserver-module-shared-folder",
  "opentalk-roomserver-module-timer",
@@ -5718,10 +5718,10 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-chat",
  "opentalk-roomserver-types-e2ee",
+ "opentalk-roomserver-types-echo",
  "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-meeting-report",
  "opentalk-roomserver-types-moderation",
- "opentalk-roomserver-types-ping",
  "opentalk-roomserver-types-polls",
  "opentalk-roomserver-types-shared-folder",
  "opentalk-roomserver-types-timer",
@@ -5812,6 +5812,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-module-echo"
+version = "0.0.6-dev"
+dependencies = [
+ "anyhow",
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-echo",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "test-log",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "opentalk-roomserver-module-livekit"
 version = "0.0.6-dev"
 dependencies = [
@@ -5867,23 +5884,6 @@ dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde_json",
- "test-log",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "opentalk-roomserver-module-ping"
-version = "0.0.6-dev"
-dependencies = [
- "anyhow",
- "opentalk-roomserver-room",
- "opentalk-roomserver-signaling",
- "opentalk-roomserver-types",
- "opentalk-roomserver-types-ping",
- "opentalk-types-common",
- "opentalk-types-signaling",
- "pretty_assertions",
  "test-log",
  "tokio",
  "tracing",
@@ -6056,6 +6056,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-types-echo"
+version = "0.0.6-dev"
+dependencies = [
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "serde",
+]
+
+[[package]]
 name = "opentalk-roomserver-types-livekit"
 version = "0.0.6-dev"
 dependencies = [
@@ -6091,16 +6101,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "opentalk-roomserver-types-ping"
-version = "0.0.6-dev"
-dependencies = [
- "opentalk-roomserver-signaling",
- "opentalk-roomserver-types",
- "opentalk-types-common",
- "serde",
 ]
 
 [[package]]

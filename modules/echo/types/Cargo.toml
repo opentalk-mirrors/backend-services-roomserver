@@ -3,11 +3,11 @@
 
 [package]
 authors.workspace = true
-description = "OpenTalk RoomServer Types Ping"
+description = "OpenTalk RoomServer Types Echo"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
-name = "opentalk-roomserver-types-ping"
+name = "opentalk-roomserver-types-echo"
 repository.workspace = true
 version.workspace = true
 

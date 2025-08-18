@@ -11,30 +11,30 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
-use opentalk_roomserver_types_ping::{
-    PING_MODULE_ID, command::PingCommand, error::PingError, event::PingEvent,
+use opentalk_roomserver_types_echo::{
+    ECHO_MODULE_ID, command::EchoCommand, error::EchoError, event::EchoEvent,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 
-pub struct PingModule;
+pub struct EchoModule;
 
-impl SignalingModule for PingModule {
-    const NAMESPACE: ModuleId = PING_MODULE_ID;
+impl SignalingModule for EchoModule {
+    const NAMESPACE: ModuleId = ECHO_MODULE_ID;
 
-    type Incoming = PingCommand;
+    type Incoming = EchoCommand;
 
-    type Outgoing = PingEvent;
+    type Outgoing = EchoEvent;
 
     type Internal = NoOp;
 
-    type Loopback = DelayedPingCompleted;
+    type Loopback = DelayedEchoCompleted;
 
     type JoinInfo = ();
 
     type PeerJoinInfo = String;
 
-    type Error = PingError;
+    type Error = EchoError;
 
     fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self)
@@ -77,13 +77,13 @@ impl SignalingModule for PingModule {
         payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match payload {
-            PingCommand::Ping | PingCommand::ReplicatedPing => {
-                ctx.send_ws_message([participant_id], PingEvent::Pong)?
+            EchoCommand::Ping | EchoCommand::ReplicatedPing => {
+                ctx.send_ws_message([participant_id], EchoEvent::Pong)?
             }
-            PingCommand::AsyncDelayedPing { delay } => {
-                ctx.spawn(Self::handle_async_ping_delayed(participant_id, delay));
+            EchoCommand::AsyncDelayedPing { delay } => {
+                ctx.spawn(Self::handle_async_echo_delayed(participant_id, delay));
             }
-            PingCommand::Die => {
+            EchoCommand::Die => {
                 return Err(
                     FatalError(anyhow::anyhow!("Dying as requested, cya later alligator")).into(),
                 );
@@ -97,20 +97,20 @@ impl SignalingModule for PingModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        ctx.send_ws_message([event.0], PingEvent::DelayedPong)
+        ctx.send_ws_message([event.0], EchoEvent::DelayedPong)
             .unwrap();
         Ok(())
     }
 }
 
-impl PingModule {
-    async fn handle_async_ping_delayed(
+impl EchoModule {
+    async fn handle_async_echo_delayed(
         participant_id: ParticipantId,
         delay: Duration,
-    ) -> DelayedPingCompleted {
+    ) -> DelayedEchoCompleted {
         tokio::time::sleep(delay).await;
-        DelayedPingCompleted(participant_id)
+        DelayedEchoCompleted(participant_id)
     }
 }
 
-pub struct DelayedPingCompleted(ParticipantId);
+pub struct DelayedEchoCompleted(ParticipantId);

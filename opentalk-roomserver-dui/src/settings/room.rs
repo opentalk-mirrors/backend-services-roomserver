@@ -43,7 +43,7 @@ pub fn default_room_parameters() -> RoomParameters {
             id: TariffId::from_u128(0x2da2b825_6db9_4dc4_b9e6_b4fd64e66a16),
             name: "Starter tariff".to_string(),
             quotas: Default::default(),
-            modules: [("ping", TariffModuleResource::default())]
+            modules: [("echo", TariffModuleResource::default())]
                 .into_iter()
                 .map(|(module, resource)| {
                     (

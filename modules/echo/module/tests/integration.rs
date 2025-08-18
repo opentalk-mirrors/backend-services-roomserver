@@ -3,17 +3,17 @@
 
 use std::time::Duration;
 
-use opentalk_roomserver_module_ping::PingModule;
+use opentalk_roomserver_module_echo::EchoModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
-use opentalk_roomserver_types_ping::{
-    command::PingCommand,
-    event::{PingEvent, Replication},
+use opentalk_roomserver_types_echo::{
+    command::EchoCommand,
+    event::{EchoEvent, Replication},
 };
 use pretty_assertions::assert_eq;
 
 #[test_log::test(tokio::test)]
 async fn ping_sends_response_to_all_connections() {
-    let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
+    let mut room = TestRoom::builder().register_module::<EchoModule>().spawn();
 
     let mut alice_1 = room.join_alice_moderator(1).await;
     let mut alice_2 = room.join_alice_moderator(2).await;
@@ -23,24 +23,24 @@ async fn ping_sends_response_to_all_connections() {
     flush_connected_events(&mut [&mut alice_1, &mut alice_2]).await;
 
     alice_1
-        .send_command::<PingModule>(PingCommand::Ping, None)
+        .send_command::<EchoModule>(EchoCommand::Ping, None)
         .await
         .unwrap();
 
     assert_eq!(
-        alice_1.receive_event::<PingModule>().await.unwrap().payload,
-        PingEvent::Pong
+        alice_1.receive_event::<EchoModule>().await.unwrap().payload,
+        EchoEvent::Pong
     );
     assert_eq!(
-        alice_2.receive_event::<PingModule>().await.unwrap().payload,
-        PingEvent::Pong
+        alice_2.receive_event::<EchoModule>().await.unwrap().payload,
+        EchoEvent::Pong
     );
     assert!(bob.received_nothing());
 }
 
 #[test_log::test(tokio::test)]
 async fn async_delayed_pong_is_received() {
-    let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
+    let mut room = TestRoom::builder().register_module::<EchoModule>().spawn();
 
     let mut alice_1 = room.join_alice_moderator(1).await;
     let mut alice_2 = room.join_alice_moderator(2).await;
@@ -50,8 +50,8 @@ async fn async_delayed_pong_is_received() {
     flush_connected_events(&mut [&mut alice_1, &mut alice_2]).await;
 
     alice_1
-        .send_command::<PingModule>(
-            PingCommand::AsyncDelayedPing {
+        .send_command::<EchoModule>(
+            EchoCommand::AsyncDelayedPing {
                 delay: Duration::from_millis(200),
             },
             None,
@@ -60,19 +60,19 @@ async fn async_delayed_pong_is_received() {
         .unwrap();
 
     assert_eq!(
-        alice_1.receive_event::<PingModule>().await.unwrap().payload,
-        PingEvent::DelayedPong
+        alice_1.receive_event::<EchoModule>().await.unwrap().payload,
+        EchoEvent::DelayedPong
     );
     assert_eq!(
-        alice_2.receive_event::<PingModule>().await.unwrap().payload,
-        PingEvent::DelayedPong
+        alice_2.receive_event::<EchoModule>().await.unwrap().payload,
+        EchoEvent::DelayedPong
     );
     assert!(bob.received_nothing());
 }
 
 #[test_log::test(tokio::test)]
 async fn replicated_ping_is_replicated_to_all_connections() {
-    let mut room = TestRoom::builder().register_module::<PingModule>().spawn();
+    let mut room = TestRoom::builder().register_module::<EchoModule>().spawn();
 
     let mut alice_1 = room.join_alice_moderator(1).await;
     let mut alice_2 = room.join_alice_moderator(2).await;
@@ -82,21 +82,21 @@ async fn replicated_ping_is_replicated_to_all_connections() {
     flush_connected_events(&mut [&mut alice_1, &mut alice_2]).await;
 
     alice_1
-        .send_command::<PingModule>(PingCommand::ReplicatedPing, None)
+        .send_command::<EchoModule>(EchoCommand::ReplicatedPing, None)
         .await
         .unwrap();
     assert_eq!(
-        alice_2.receive_event::<PingModule>().await.unwrap().payload,
-        PingEvent::Replication(Replication::ReplicatedPing)
+        alice_2.receive_event::<EchoModule>().await.unwrap().payload,
+        EchoEvent::Replication(Replication::ReplicatedPing)
     );
 
     assert_eq!(
-        alice_1.receive_event::<PingModule>().await.unwrap().payload,
-        PingEvent::Pong
+        alice_1.receive_event::<EchoModule>().await.unwrap().payload,
+        EchoEvent::Pong
     );
     assert_eq!(
-        alice_2.receive_event::<PingModule>().await.unwrap().payload,
-        PingEvent::Pong
+        alice_2.receive_event::<EchoModule>().await.unwrap().payload,
+        EchoEvent::Pong
     );
     assert!(bob.received_nothing());
 }

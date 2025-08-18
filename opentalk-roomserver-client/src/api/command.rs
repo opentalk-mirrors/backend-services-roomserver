@@ -6,11 +6,11 @@ use opentalk_roomserver_types::{
     core::{CORE_MODULE_ID, CoreCommand},
 };
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
+use opentalk_roomserver_types_echo::{ECHO_MODULE_ID, command::EchoCommand};
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID, command::MeetingReportCommand,
 };
 use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, command::ModerationCommand};
-use opentalk_roomserver_types_ping::{PING_MODULE_ID, command::PingCommand};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, command::PollsCommand};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand};
 use opentalk_types_common::modules::ModuleId;
@@ -54,7 +54,7 @@ impl From<SignalingModuleCommand> for SignalingCommand {
 pub enum SignalingModuleCommand {
     Core(CoreCommand),
     Breakout(BreakoutCommand),
-    Ping(PingCommand),
+    Echo(EchoCommand),
     Chat(ChatCommand),
 
     #[serde(rename = "livekit")]
@@ -74,7 +74,7 @@ impl SignalingModuleCommand {
         match self {
             Self::Core(..) => CORE_MODULE_ID,
             Self::Breakout(..) => BREAKOUT_MODULE_ID,
-            Self::Ping(..) => PING_MODULE_ID,
+            Self::Echo(..) => ECHO_MODULE_ID,
             Self::Chat(..) => CHAT_MODULE_ID,
             Self::LiveKit(..) => LIVEKIT_MODULE_ID,
             Self::E2ee(..) => E2EE_MODULE_ID,
@@ -92,10 +92,10 @@ mod tests {
     use insta::assert_snapshot;
     use opentalk_roomserver_types::{breakout::command::BreakoutCommand, core::CoreCommand};
     use opentalk_roomserver_types_chat::command::ChatCommand;
+    use opentalk_roomserver_types_echo::command::EchoCommand;
     use opentalk_roomserver_types_livekit::LiveKitCommand;
     use opentalk_roomserver_types_meeting_report::command::MeetingReportCommand;
     use opentalk_roomserver_types_moderation::command::{Accept, ModerationCommand};
-    use opentalk_roomserver_types_ping::command::PingCommand;
     use opentalk_roomserver_types_polls::{
         ChoiceId, PollId,
         command::{Choices, PollsCommand, Vote},
@@ -175,16 +175,16 @@ mod tests {
     }
 
     #[test]
-    fn serialize_command_ping() {
+    fn serialize_command_echo() {
         let command = SignalingCommand {
             transaction_id: None,
-            payload: SignalingModuleCommand::Ping(PingCommand::Ping),
+            payload: SignalingModuleCommand::Echo(EchoCommand::Ping),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
 
         assert_snapshot!(raw, @r#"
         {
-          "namespace": "ping",
+          "namespace": "echo",
           "content": {
             "action": "ping"
           }

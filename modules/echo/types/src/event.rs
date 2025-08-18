@@ -3,14 +3,14 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::PingError;
+use crate::error::EchoError;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "message", rename_all = "snake_case")]
-pub enum PingEvent {
+pub enum EchoEvent {
     Pong,
     DelayedPong,
-    Error(PingError),
+    Error(EchoError),
     Replication(Replication),
 }
 
@@ -20,8 +20,8 @@ pub enum Replication {
     ReplicatedPing,
 }
 
-impl From<PingError> for PingEvent {
-    fn from(err: PingError) -> Self {
+impl From<EchoError> for EchoEvent {
+    fn from(err: EchoError) -> Self {
         Self::Error(err)
     }
 }
