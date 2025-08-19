@@ -409,7 +409,7 @@ mod tests {
         ));
 
         let event = SignalingEvent {
-            namespace: module_id!("ping"),
+            namespace: module_id!("echo"),
             transaction_id: None,
             payload: to_raw_value(&json!({
                 "cool": 12,

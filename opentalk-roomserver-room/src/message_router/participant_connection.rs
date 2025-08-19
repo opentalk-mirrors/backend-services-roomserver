@@ -477,7 +477,7 @@ mod tests {
                     participant_id: ParticipantId::from_u128(1),
                     message: crate::message_router::SignalingMessage::Command(
                         SignalingCommand::new(
-                            "ping".parse().unwrap(),
+                            "echo".parse().unwrap(),
                             None,
                             serde_json::value::RawValue::NULL.to_owned(),
                         ),

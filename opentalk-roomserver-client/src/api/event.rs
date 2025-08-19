@@ -6,11 +6,11 @@ use opentalk_roomserver_types::{
     core::CoreEvent,
 };
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
+use opentalk_roomserver_types_echo::{ECHO_MODULE_ID, event::EchoEvent};
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID, event::MeetingReportEvent,
 };
 use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, event::ModerationEvent};
-use opentalk_roomserver_types_ping::{PING_MODULE_ID, event::PingEvent};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
 use opentalk_types_common::modules::{CORE_MODULE_ID, ModuleId};
@@ -55,7 +55,7 @@ impl From<SignalingModuleEvent> for SignalingEvent {
 pub enum SignalingModuleEvent {
     Core(CoreEvent),
     Breakout(BreakoutEvent),
-    Ping(PingEvent),
+    Echo(EchoEvent),
     Chat(ChatEvent),
 
     #[serde(rename = "livekit")]
@@ -75,7 +75,7 @@ impl SignalingModuleEvent {
         match self {
             Self::Core(..) => CORE_MODULE_ID,
             Self::Breakout(..) => BREAKOUT_MODULE_ID,
-            Self::Ping(..) => PING_MODULE_ID,
+            Self::Echo(..) => ECHO_MODULE_ID,
             Self::Chat(..) => CHAT_MODULE_ID,
             Self::LiveKit(..) => LIVEKIT_MODULE_ID,
             Self::E2ee(..) => E2EE_MODULE_ID,
@@ -95,10 +95,10 @@ mod tests {
         breakout::event::BreakoutEvent, connection_id::ConnectionId, core::CoreEvent,
     };
     use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
+    use opentalk_roomserver_types_echo::event::EchoEvent;
     use opentalk_roomserver_types_livekit::LiveKitEvent;
     use opentalk_roomserver_types_meeting_report::event::{MeetingReportEvent, PdfAsset};
     use opentalk_roomserver_types_moderation::event::ModerationEvent;
-    use opentalk_roomserver_types_ping::event::PingEvent;
     use opentalk_roomserver_types_polls::{
         ChoiceId, PollId,
         command::{Choices, Vote},
@@ -196,16 +196,16 @@ mod tests {
     }
 
     #[test]
-    fn serialize_event_ping() {
+    fn serialize_event_echo() {
         let event = SignalingEvent {
             transaction_id: None,
-            payload: SignalingModuleEvent::Ping(PingEvent::Pong),
+            payload: SignalingModuleEvent::Echo(EchoEvent::Pong),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
         {
-          "namespace": "ping",
+          "namespace": "echo",
           "content": {
             "message": "pong"
           }

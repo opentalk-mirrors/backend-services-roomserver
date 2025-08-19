@@ -107,6 +107,9 @@ exceptions = [
   ], name = "opentalk-roomserver-module-e2ee" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-echo" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-livekit" },
   { allow = [
     "EUPL-1.2",
@@ -114,9 +117,6 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-module-moderation" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-roomserver-module-ping" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-module-polls" },
@@ -146,6 +146,9 @@ exceptions = [
   ], name = "opentalk-roomserver-types-e2ee" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-echo" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-livekit" },
   { allow = [
     "EUPL-1.2",
@@ -153,9 +156,6 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-moderation" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-roomserver-types-ping" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-polls" },

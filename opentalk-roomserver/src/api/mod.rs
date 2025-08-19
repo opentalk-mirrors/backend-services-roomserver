@@ -12,10 +12,10 @@ use axum::{
 use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_module_e2ee::E2eeModule;
+use opentalk_roomserver_module_echo::EchoModule;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_meeting_report::MeetingReportModule;
 use opentalk_roomserver_module_moderation::ModerationModule;
-use opentalk_roomserver_module_ping::PingModule;
 use opentalk_roomserver_module_polls::PollsModule;
 use opentalk_roomserver_module_shared_folder::SharedFolderModule;
 use opentalk_roomserver_module_timer::TimerModule;
@@ -207,7 +207,7 @@ fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<LiveKitModule>();
     module_registry.add_module::<MeetingReportModule>();
     module_registry.add_module::<ModerationModule>();
-    module_registry.add_module::<PingModule>();
+    module_registry.add_module::<EchoModule>();
     module_registry.add_module::<PollsModule>();
     module_registry.add_module::<SharedFolderModule>();
     module_registry.add_module::<TimerModule>();

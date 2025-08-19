@@ -416,7 +416,7 @@ impl<S> MockParticipant<S> {
             .send(Ok(SignalingSocketItem {
                 message: SignalingSocketMessage::Text(
                     json!( {
-                        "namespace": "ping",
+                        "namespace": "echo",
                         "content": serde_json::Value::Null,
                     })
                     .to_string(),

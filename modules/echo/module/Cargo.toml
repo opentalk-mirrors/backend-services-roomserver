@@ -3,19 +3,18 @@
 
 [package]
 authors.workspace = true
-description = "OpenTalk RoomServer Module Ping"
+description = "OpenTalk RoomServer Module Echo"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
-name = "opentalk-roomserver-module-ping"
+name = "opentalk-roomserver-module-echo"
 repository.workspace = true
 version.workspace = true
 
 [dependencies]
-anyhow.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
-opentalk-roomserver-types-ping.workspace = true
+opentalk-roomserver-types-echo.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 tokio.workspace = true
