@@ -5723,6 +5723,7 @@ dependencies = [
  "opentalk-roomserver-types-meeting-report",
  "opentalk-roomserver-types-moderation",
  "opentalk-roomserver-types-polls",
+ "opentalk-roomserver-types-raise-hands",
  "opentalk-roomserver-types-shared-folder",
  "opentalk-roomserver-types-timer",
  "opentalk-types-common",
@@ -5902,6 +5903,22 @@ dependencies = [
  "test-log",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "opentalk-roomserver-module-raise-hands"
+version = "0.0.6-dev"
+dependencies = [
+ "anyhow",
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-raise-hands",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "test-log",
+ "tokio",
 ]
 
 [[package]]
@@ -6117,6 +6134,20 @@ dependencies = [
  "serde_json",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-raise-hands"
+version = "0.0.6-dev"
+dependencies = [
+ "insta",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

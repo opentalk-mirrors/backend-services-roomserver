@@ -28,6 +28,7 @@ opentalk-roomserver-types-livekit.workspace = true
 opentalk-roomserver-types-meeting-report.workspace = true
 opentalk-roomserver-types-moderation.workspace = true
 opentalk-roomserver-types-polls.workspace = true
+opentalk-roomserver-types-raise-hands.workspace = true
 opentalk-roomserver-types-shared-folder.workspace = true
 opentalk-roomserver-types-timer.workspace = true
 opentalk-types-common.workspace = true
