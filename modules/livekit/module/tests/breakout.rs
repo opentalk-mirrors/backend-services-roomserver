@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 
 use livekit::{RoomEvent, RoomOptions};
 use livekit_api::services::room::RoomClient;
+use opentalk_roomserver_mocking_livekit::{self as mocking, LIVEKIT_KEY, LIVEKIT_SECRET};
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types::{
     breakout::{
@@ -15,15 +16,12 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_livekit::LiveKitState;
 
-use crate::common::{LIVEKIT_KEY, LIVEKIT_SECRET};
-
-mod common;
-
 /// Test that the JoinSuccess contains the access token for the LiveKit room.
 #[test_log::test(tokio::test)]
 #[ignore]
 async fn livekit_rooms_lifecycle() {
-    let (_container, mut room, public_url) = common::build_livekit_room().await;
+    let (_container, room, public_url) = mocking::build_livekit_room().await;
+    let mut room = room.spawn();
     let livekit_client = RoomClient::with_api_key(&public_url, LIVEKIT_KEY, LIVEKIT_SECRET);
 
     let mut alice = room.join_alice_moderator(0).await;

@@ -66,6 +66,7 @@ allow = [
   "BSD-3-Clause",
   "BSL-1.0",
   "CC0-1.0",
+  "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
   "MPL-2.0",
@@ -73,7 +74,8 @@ allow = [
   "Ubuntu-font-1.0",
   "Unicode-3.0",
   "Zlib",
-] # The confidence threshold for detecting a license from license text.
+]
+# The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
 # canonical license text of a valid SPDX license file.
 # [possible values: any between 0.0 and 1.0].
@@ -99,6 +101,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-dui" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-automod" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-module-chat" },
@@ -266,6 +271,7 @@ skip = [
   { name = "http", version = "0.2.12" },
   { name = "http-body", version = "0.4.6" },
   { name = "hyper", version = "0.14.32" },
+  { name = "hyper-rustls", version = "0.24" },
   { name = "icu_collections", version = "1" },
   { name = "icu_properties", version = "1" },
   { name = "icu_properties_data", version = "1" },
@@ -278,6 +284,7 @@ skip = [
   { name = "phf_shared", version = "0.11" },
   { name = "prost", version = "0.12.6" },
   { name = "prost-derive", version = "0.12.6" },
+  { name = "prost-types", version = "0.12" },
   { name = "quick-xml", version = "0.36" },
   { name = "quick-xml", version = "0.37" },
   { name = "rand", version = "0.8" },
@@ -287,6 +294,10 @@ skip = [
   { name = "regex-syntax", version = "0.6" },
   { name = "reqwest", version = "0.11.27" },
   { name = "rustix", version = "0.38" },
+  { name = "rustls", version = "0.21" },
+  { name = "rustls-native-certs", version = "0.6" },
+  { name = "rustls-pemfile", version = "1" },
+  { name = "rustls-webpki", version = "0.101" },
   { name = "serde_spanned", version = "0.6" },
   { name = "socket2", version = "0.5" },
   { name = "strum", version = "0.26" },
@@ -295,6 +306,7 @@ skip = [
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
   { name = "tinystr", version = "0.7" },
+  { name = "tokio-rustls", version = "0.24" },
   { name = "tokio-tungstenite", version = "0.20.1" },
   { name = "tokio-tungstenite", version = "0.26" },
   { name = "toml", version = "0.8" },
@@ -302,6 +314,7 @@ skip = [
   { name = "ttf-parser", version = "0.24" },
   { name = "tungstenite", version = "0.20" },
   { name = "tungstenite", version = "0.26" },
+  { name = "webpki-roots", version = "0.25" },
   { name = "writeable", version = "0.5" },
   { name = "yoke", version = "0.7" },
   { name = "yoke-derive", version = "0.7" },

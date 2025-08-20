@@ -10,7 +10,7 @@ use livekit::{
     },
 };
 use opentalk_roomserver_module_livekit::LiveKitModule;
-use opentalk_roomserver_room::mocking::room::TestRoom;
+use opentalk_roomserver_room::mocking::room::{TestRoom, TestRoomBuilder};
 use opentalk_roomserver_types_livekit::LiveKitSettings;
 use testcontainers::{
     ContainerAsync, GenericImage, ImageExt as _,
@@ -43,7 +43,7 @@ logging:
     config_str.into_bytes()
 }
 
-pub async fn build_livekit_room() -> (ContainerAsync<GenericImage>, TestRoom, String) {
+pub async fn build_livekit_room() -> (ContainerAsync<GenericImage>, TestRoomBuilder, String) {
     let livekit_container = GenericImage::new("livekit/livekit-server", "latest")
         .with_exposed_port(LIVEKIT_PORT.tcp())
         .with_wait_for(WaitFor::message_on_stderr("starting LiveKit server"))
@@ -79,8 +79,7 @@ pub async fn build_livekit_room() -> (ContainerAsync<GenericImage>, TestRoom, St
             public_url: url.clone(),
             service_url: url.clone(),
         })
-        .unwrap()
-        .spawn();
+        .unwrap();
     (livekit_container, room, url)
 }
 

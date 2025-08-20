@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use livekit::RoomOptions;
+use opentalk_roomserver_mocking_livekit as mocking;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types::{
@@ -11,12 +12,11 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_livekit::{Credentials, LiveKitCommand, LiveKitEvent};
 use pretty_assertions::assert_eq;
 
-mod common;
-
 #[test_log::test(tokio::test)]
 #[ignore]
 async fn request_access_token() {
-    let (_container, mut room, public_url) = common::build_livekit_room().await;
+    let (_container, room, public_url) = mocking::build_livekit_room().await;
+    let mut room = room.spawn();
 
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
@@ -47,7 +47,8 @@ async fn request_access_token() {
 #[test_log::test(tokio::test)]
 #[ignore]
 async fn alice_in_breakout() {
-    let (_container, mut room, public_url) = common::build_livekit_room().await;
+    let (_container, room, public_url) = mocking::build_livekit_room().await;
+    let mut room = room.spawn();
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;
