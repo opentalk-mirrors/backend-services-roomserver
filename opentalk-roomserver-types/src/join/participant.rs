@@ -17,7 +17,6 @@ pub struct Participant {
     pub connections: Vec<ConnectionInfo>,
 
     /// Module data for the participant
-    #[serde(flatten)]
     pub module_data: ModulePeerData,
 }
 
