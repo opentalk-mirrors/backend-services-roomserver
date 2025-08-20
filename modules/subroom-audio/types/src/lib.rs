@@ -1,20 +1,16 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
-//
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Signaling data types for the OpenTalk chat module.
+//! Signaling data types for the OpenTalk subroom audio module.
 
 pub mod command;
 pub mod event;
-pub mod peer_state;
 pub mod state;
 
-mod message_id;
-mod scope;
+mod whisper_id;
 
-pub use message_id::MessageId;
 use opentalk_types_common::modules::{ModuleId, module_id};
-pub use scope::Scope;
+pub use whisper_id::WhisperId;
 
 /// The module id for the signaling module
-pub const CHAT_MODULE_ID: ModuleId = module_id!("chat");
+pub const SUBROOM_AUDIO_MODULE_ID: ModuleId = module_id!("subroom_audio");

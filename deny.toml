@@ -133,6 +133,9 @@ exceptions = [
   ], name = "opentalk-roomserver-module-shared-folder" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-subroom-audio" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-timer" },
   { allow = [
     "EUPL-1.2",
@@ -176,6 +179,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-shared-folder" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-subroom-audio" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-timer" },

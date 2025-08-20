@@ -4,17 +4,6 @@
 
 //! Signaling data types for the OpenTalk livekit module.
 
-#![deny(
-    bad_style,
-    missing_debug_implementations,
-    missing_docs,
-    overflowing_literals,
-    patterns_in_fns_without_body,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code
-)]
-
 mod command;
 mod credentials;
 mod error;
