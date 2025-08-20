@@ -17,9 +17,10 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_timer::{
-    Start, StopKind, TimerCommand, TimerError, TimerEvent,
+    Start, StopKind, TimerCommand, TimerConfig, TimerError, TimerEvent,
     command::Kind,
     event::{Stopped, updated_ready_status::UpdatedReadyStatus},
+    peer_state::TimerPeerState,
     state::TimerState,
 };
 
@@ -32,6 +33,79 @@ async fn start_timer(user: &mut MockParticipantJoined, start: Start) {
         user.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
     ));
+}
+
+/// if ready state is enabled, it should be part of the join success information
+#[test_log::test(tokio::test)]
+async fn ready_state_is_part_of_join_success() {
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    start_timer(
+        &mut alice,
+        Start {
+            kind: Kind::Stopwatch,
+            style: None,
+            title: None,
+            enable_ready_check: true,
+        },
+    )
+    .await;
+
+    let charlie = room.join_charlie(0).await;
+    let join_success = charlie.join_success();
+    let state = join_success
+        .module_data
+        .get::<TimerState>()
+        .expect("deserialization must work")
+        .expect("state must be set");
+    assert!(matches!(
+        state,
+        TimerState {
+            config: TimerConfig {
+                kind: opentalk_roomserver_types_timer::Kind::Stopwatch,
+                ready_check_enabled: true,
+                ..
+            },
+            ready_status: Some(false),
+            ..
+        }
+    ));
+
+    let bob = room.join_bob(0).await;
+    let join_success = bob.join_success();
+    let state = join_success
+        .module_data
+        .get::<TimerState>()
+        .expect("deserialization must work")
+        .expect("state must be set");
+    assert!(matches!(
+        state,
+        TimerState {
+            config: TimerConfig {
+                kind: opentalk_roomserver_types_timer::Kind::Stopwatch,
+                ready_check_enabled: true,
+                ..
+            },
+            ready_status: Some(false),
+            ..
+        }
+    ));
+
+    let charlie_state_for_bob = join_success
+        .participants
+        .iter()
+        .find(|p| p.id == charlie.id())
+        .unwrap()
+        .get_module::<TimerPeerState>()
+        .expect("deserialization must work")
+        .expect("state must be set");
+    assert_eq!(
+        charlie_state_for_bob,
+        TimerPeerState {
+            ready_status: false,
+        }
+    );
 }
 
 #[test_log::test(tokio::test)]

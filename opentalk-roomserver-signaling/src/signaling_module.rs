@@ -180,10 +180,10 @@ pub struct JoinInfo<M: SignalingModule> {
     pub join_success: Option<M::JoinInfo>,
 
     /// Module specific data that will be attached to the information about other participants inside the `JoinSuccess`
-    pub participant_states: PeerJoinInfoMap<M>,
+    pub peer_event_data: PeerJoinInfoMap<M>,
 
     /// Module specific data that will be attached to other participants `Joined` message
-    pub peer: PeerJoinInfoMap<M>,
+    pub participant_data: PeerJoinInfoMap<M>,
 }
 
 /// Similar to [`JoinInfo`], but without the [`PeerJoinInfoMap`] and with one
@@ -195,8 +195,8 @@ impl<M: SignalingModule> Default for JoinInfo<M> {
     fn default() -> Self {
         Self {
             join_success: Default::default(),
-            peer: Default::default(),
-            participant_states: Default::default(),
+            peer_event_data: Default::default(),
+            participant_data: Default::default(),
         }
     }
 }

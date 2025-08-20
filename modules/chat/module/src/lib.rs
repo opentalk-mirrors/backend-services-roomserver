@@ -86,7 +86,7 @@ impl SignalingModule for ChatModule {
         };
 
         join_info
-            .peer
+            .peer_event_data
             .insert_for_all(ctx, ChatPeerState { groups: Vec::new() })?;
 
         Ok(join_info)

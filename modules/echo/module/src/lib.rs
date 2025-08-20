@@ -49,7 +49,7 @@ impl SignalingModule for EchoModule {
 
         for (participant_id, ..) in ctx.participants.connected().iter() {
             join_info
-                .peer
+                .peer_event_data
                 .insert(*participant_id, format!("Hello {participant_id}"))?;
         }
 

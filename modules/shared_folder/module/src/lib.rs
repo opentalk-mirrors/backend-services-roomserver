@@ -77,14 +77,14 @@ impl SignalingModule for SharedFolderModule {
         if ctx.participant_role(participant_id) == Some(Role::Moderator) {
             Ok(JoinInfo {
                 join_success: Some(self.state.clone()),
-                peer: PeerJoinInfoMap::default(),
-                participant_states: PeerJoinInfoMap::default(),
+                peer_event_data: PeerJoinInfoMap::default(),
+                participant_data: PeerJoinInfoMap::default(),
             })
         } else {
             Ok(JoinInfo {
                 join_success: Some(self.state.clone().without_write_access()),
-                peer: PeerJoinInfoMap::default(),
-                participant_states: PeerJoinInfoMap::default(),
+                peer_event_data: PeerJoinInfoMap::default(),
+                participant_data: PeerJoinInfoMap::default(),
             })
         }
     }
