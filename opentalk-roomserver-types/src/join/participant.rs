@@ -2,10 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_signaling::{ModulePeerData, ParticipantId, SignalingModulePeerFrontendData};
+use std::collections::BTreeMap;
+
+use opentalk_types_common::modules::ModuleId;
+use opentalk_types_signaling::{ParticipantId, SignalingModulePeerFrontendData};
 use serde::{Deserialize, Serialize};
 
-use crate::join::connection_info::ConnectionInfo;
+use crate::{join::connection_info::ConnectionInfo, shared_raw_json::SharedRawJson};
 
 /// Status information about a participant
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -17,7 +20,7 @@ pub struct Participant {
     pub connections: Vec<ConnectionInfo>,
 
     /// Module data for the participant
-    pub module_data: ModulePeerData,
+    pub module_data: BTreeMap<ModuleId, SharedRawJson>,
 }
 
 impl Participant {
@@ -25,28 +28,34 @@ impl Participant {
     pub fn get_module<T: SignalingModulePeerFrontendData>(
         &self,
     ) -> Result<Option<T>, serde_json::Error> {
-        self.module_data.get::<T>()
-    }
+        let Some(namespace) = T::NAMESPACE else {
+            return Ok(None);
+        };
 
-    /// Updates the inner module data of a Participant and returns the new data
-    pub fn update_module<T: SignalingModulePeerFrontendData, F: FnOnce(&mut T)>(
-        &mut self,
-        update: F,
-    ) -> Result<Option<T>, serde_json::Error> {
-        self.module_data.update::<T, F>(update)
+        self.module_data
+            .get(&namespace)
+            .map(|m| serde_json::from_str(m.get()))
+            .transpose()
     }
 }
 
 #[cfg(test)]
 mod test {
-    use opentalk_types_signaling::{ModulePeerData, ParticipantId};
+    use opentalk_types_signaling::ParticipantId;
+    use serde::Serialize;
 
     use crate::{
-        breakout::module_data::BreakoutPeerModuleData,
+        breakout::{BREAKOUT_MODULE_ID, module_data::BreakoutPeerModuleData},
         connection_id::ConnectionId,
         device_id::DeviceId,
         join::{connection_info::ConnectionInfo, participant::Participant},
+        shared_raw_json::SharedRawJson,
     };
+
+    fn to_shared_raw_json(value: &impl Serialize) -> SharedRawJson {
+        let raw = serde_json::value::to_raw_value(value).unwrap();
+        SharedRawJson::from(raw)
+    }
 
     #[test]
     fn serialize() {
@@ -56,17 +65,19 @@ mod test {
                 connection_id: ConnectionId::from_u128(0x0101),
                 device_id: DeviceId::from_u128(0x0201),
             }],
-            module_data: ModulePeerData::new(),
+            module_data: Default::default(),
         };
 
-        participant
-            .module_data
-            .insert(&BreakoutPeerModuleData {
+        participant.module_data.insert(
+            BREAKOUT_MODULE_ID,
+            to_shared_raw_json(&BreakoutPeerModuleData {
                 room: crate::room_kind::RoomKind::Main,
-            })
-            .unwrap();
+            }),
+        );
 
-        insta::assert_json_snapshot!(participant, @r#"
+        // insta doesn't serialize correctly
+        let raw = serde_json::to_string_pretty(&participant).unwrap();
+        insta::assert_snapshot!(raw, @r#"
         {
           "id": "00000000-0000-0000-0000-000000000001",
           "connections": [
@@ -75,10 +86,8 @@ mod test {
               "device_id": "00000000-0000-0000-0000-000000000201"
             }
           ],
-          "breakout": {
-            "room": {
-              "kind": "main"
-            }
+          "module_data": {
+            "breakout": {"room":{"kind":"main"}}
           }
         }
         "#);

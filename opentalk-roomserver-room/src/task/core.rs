@@ -6,7 +6,7 @@ use std::{cell::RefCell, collections::BTreeMap, sync::Arc};
 use anyhow::anyhow;
 use opentalk_roomserver_signaling::event_origin::{EventOrigin, ParticipantOrigin};
 use opentalk_roomserver_types::{
-    breakout::module_data::BreakoutPeerModuleData,
+    breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, Role as RoomserverClientRole},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreEvent},
@@ -19,11 +19,12 @@ use opentalk_roomserver_types::{
     },
     room_info::RoomInfo,
     room_kind::RoomKind,
+    shared_raw_json::SharedRawJson,
     signaling::module_error::FatalError,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{events::MeetingDetails, modules::ModuleId, time::Timestamp};
-use opentalk_types_signaling::{ModuleData, ModulePeerData, ParticipantId, Role};
+use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
 
 use super::RoomTask;
 use crate::signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext};
@@ -42,8 +43,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         role: RoomserverClientRole,
     ) -> Result<(), FatalError> {
         let mut module_data = ModuleData::new();
-
         let mut peer_module_data = BTreeMap::new();
+        let mut participant_state = BTreeMap::new();
 
         let Some(current_breakout_room) = self
             .participants
@@ -70,6 +71,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 connection_id,
                 module_data: &mut module_data,
                 peer_module_data: &mut peer_module_data,
+                participant_state: &mut participant_state,
             },
         )
         .await;
@@ -83,6 +85,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             client_kind,
             role,
             module_data,
+            participant_state.clone(),
         );
 
         self.message_router
@@ -230,6 +233,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .await;
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_join_success(
         &self,
         participant_id: ParticipantId,
@@ -238,6 +242,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         client_kind: ClientKind,
         role: RoomserverClientRole,
         module_data: ModuleData,
+        mut participants_module_data: BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedRawJson>>,
     ) -> JoinSuccess {
         let participants = self
             .participants
@@ -254,17 +259,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     })
                     .collect();
 
-                let mut module_peer_data = ModulePeerData::new();
+                let mut module_peer_data = participants_module_data.remove(id).unwrap_or_default();
 
-                // TODO: temporary solution to let participants know which participant is in which breakout room
-                module_peer_data
-                    .insert(&BreakoutPeerModuleData { room: state.room })
-                    .expect("BreakoutPeerModuleData must be serializable");
+                module_peer_data.insert(
+                    BREAKOUT_MODULE_ID,
+                    to_shared_raw_json(&self.breakout_peer_data(state))
+                        .expect("BreakoutPeerModuleData must be serializable"),
+                );
 
                 Participant {
                     id: *id,
                     connections,
-                    module_data: module_peer_data, // TODO: needs implementation in the signaling module
+                    module_data: module_peer_data,
                 }
             })
             .collect();
@@ -338,6 +344,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             module_data,
         }
     }
+}
+
+fn to_shared_raw_json(value: &impl serde::Serialize) -> Result<SharedRawJson, serde_json::Error> {
+    let raw = serde_json::value::to_raw_value(value)?;
+    Ok(SharedRawJson::from(raw))
 }
 
 #[cfg(test)]

@@ -5,7 +5,10 @@ use std::{collections::BTreeMap, time::Duration};
 
 use anyhow::{Context, anyhow};
 use chrono::TimeDelta;
-use opentalk_roomserver_signaling::event_origin::{EventOrigin, ParticipantOrigin};
+use opentalk_roomserver_signaling::{
+    event_origin::{EventOrigin, ParticipantOrigin},
+    participant_state::ParticipantState,
+};
 use opentalk_roomserver_types::{
     breakout::{
         BREAKOUT_MODULE_ID, BreakoutRoom,
@@ -13,7 +16,7 @@ use opentalk_roomserver_types::{
         breakout_id::BreakoutId,
         command::BreakoutCommand,
         event::{BreakoutError, BreakoutEvent},
-        module_data::BreakoutModuleData,
+        module_data::{BreakoutModuleData, BreakoutPeerModuleData},
     },
     error::SignalingError,
     room_kind::RoomKind,
@@ -406,6 +409,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         if let Err(err) = self.close_breakout_rooms(EventOrigin::Internal).await {
             tracing::error!("Fatal error on breakout expiry: {err:?}");
         }
+    }
+
+    /// Add information about peers
+    pub(crate) fn breakout_peer_data(&self, state: &ParticipantState) -> BreakoutPeerModuleData {
+        BreakoutPeerModuleData { room: state.room }
     }
 
     /// Close all breakout rooms and move the participants back to the main room
