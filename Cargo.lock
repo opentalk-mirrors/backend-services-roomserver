@@ -5800,7 +5800,9 @@ name = "opentalk-roomserver-module-automod"
 version = "0.0.6-dev"
 dependencies = [
  "anyhow",
+ "opentalk-roomserver-mocking-livekit",
  "opentalk-roomserver-module-livekit",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-automod",

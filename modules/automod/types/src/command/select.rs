@@ -6,7 +6,7 @@ use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 /// Moderator command, select the speaker
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case", tag = "how")]
 pub enum Select {
     /// Revoke speaker status if exists, do no select a new one
