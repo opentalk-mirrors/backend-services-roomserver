@@ -176,7 +176,7 @@ impl LiveKitSubroom {
     }
 
     #[tracing::instrument(level = "debug", skip(self, ctx), fields(room = self.subroom_id))]
-    pub fn force_mute(
+    pub fn mute(
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         sender: ModeratorOrModule,
@@ -187,7 +187,7 @@ impl LiveKitSubroom {
             && !ctx.is_moderator(moderator)
         {
             tracing::debug!(
-                "Participant has insufficient permission to force mute participants: {moderator}"
+                "Participant has insufficient permission to mute participants: {moderator}"
             );
             return Err(LiveKitError::InsufficientPermissions.into());
         }
@@ -211,8 +211,8 @@ impl LiveKitSubroom {
         let room = ctx.room_id.to_string();
         let livekit_client: Arc<RoomClient> = Arc::clone(&self.livekit_client);
 
-        tracing::debug!("spawn background task to force mute participants");
-        ctx.spawn(loopback::force_mute_participants(
+        tracing::debug!("spawn background task to mute participants");
+        ctx.spawn(loopback::mute_participants(
             livekit_client,
             sender,
             connections,

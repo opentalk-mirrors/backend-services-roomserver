@@ -10,8 +10,8 @@ use opentalk_types_signaling::ParticipantId;
 /// Internal LiveKit commands that can be sent by other modules
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LiveKitInternal {
-    /// Force mutes participants
-    ForceMute {
+    /// Mutes participants
+    Mute {
         /// The module that is sending the command
         sending_module: ModuleId,
         /// The participants that should get muted

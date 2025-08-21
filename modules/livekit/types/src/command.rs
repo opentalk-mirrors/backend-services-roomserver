@@ -16,8 +16,8 @@ pub enum LiveKitCommand {
     /// Indicates that a new Access Token is requested
     CreateNewAccessToken,
 
-    /// Force mutes participants
-    ForceMute {
+    /// Mutes participants
+    Mute {
         /// The participants that should get muted
         participants: BTreeSet<ParticipantId>,
     },

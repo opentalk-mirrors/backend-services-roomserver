@@ -29,7 +29,7 @@ async fn unknown_participant() {
 
     alice
         .send_command::<LiveKitModule>(
-            LiveKitCommand::ForceMute {
+            LiveKitCommand::Mute {
                 participants: BTreeSet::from([disconnected_participant]),
             },
             None,
@@ -82,10 +82,10 @@ async fn mute_bob() {
         tracing::debug!("Bob Livekit Event stream closed");
     });
 
-    // Alice sends the force mute command
+    // Alice sends the mute command
     alice
         .send_command::<LiveKitModule>(
-            LiveKitCommand::ForceMute {
+            LiveKitCommand::Mute {
                 participants: BTreeSet::from([bob.id()]),
             },
             None,
@@ -95,10 +95,10 @@ async fn mute_bob() {
 
     assert!(alice.received_nothing());
 
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Moderator {
+        mute_event.payload,
+        LiveKitEvent::Muted(ModeratorOrModule::Moderator {
             moderator: alice.id()
         })
     );
@@ -116,7 +116,7 @@ async fn insufficient_permissions() {
 
     // Bob sends the command
     bob.send_command::<LiveKitModule>(
-        LiveKitCommand::ForceMute {
+        LiveKitCommand::Mute {
             participants: BTreeSet::from([disconnected_participant]),
         },
         None,
@@ -159,10 +159,10 @@ async fn alice_in_breakout_bob_in_main() {
         .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
         .await;
 
-    // Alice sends the force mute command
+    // Alice sends the mute command
     alice
         .send_command::<LiveKitModule>(
-            LiveKitCommand::ForceMute {
+            LiveKitCommand::Mute {
                 participants: BTreeSet::from([bob.id()]),
             },
             None,
@@ -172,10 +172,10 @@ async fn alice_in_breakout_bob_in_main() {
 
     assert!(alice.received_nothing());
 
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Moderator {
+        mute_event.payload,
+        LiveKitEvent::Muted(ModeratorOrModule::Moderator {
             moderator: alice.id()
         })
     );

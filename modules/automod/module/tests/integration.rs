@@ -1807,7 +1807,7 @@ async fn mute() {
         .payload;
     assert_eq!(
         event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
+        LiveKitEvent::Muted(ModeratorOrModule::Module {
             module: AUTOMOD_MODULE_ID
         })
     );
@@ -1815,7 +1815,7 @@ async fn mute() {
     let event = bob.receive_event::<LiveKitModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
+        LiveKitEvent::Muted(ModeratorOrModule::Module {
             module: AUTOMOD_MODULE_ID
         })
     );
@@ -1847,7 +1847,7 @@ async fn mute() {
         .payload;
     assert_eq!(
         event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
+        LiveKitEvent::Muted(ModeratorOrModule::Module {
             module: AUTOMOD_MODULE_ID
         })
     );
@@ -1866,7 +1866,7 @@ async fn mute() {
     let event = bob.receive_event::<LiveKitModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
+        LiveKitEvent::Muted(ModeratorOrModule::Module {
             module: AUTOMOD_MODULE_ID
         })
     );
@@ -1897,7 +1897,7 @@ async fn mute() {
         .payload;
     assert_eq!(
         event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
+        LiveKitEvent::Muted(ModeratorOrModule::Module {
             module: AUTOMOD_MODULE_ID
         })
     );
@@ -1916,7 +1916,7 @@ async fn mute() {
     let event = bob.receive_event::<LiveKitModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
+        LiveKitEvent::Muted(ModeratorOrModule::Module {
             module: AUTOMOD_MODULE_ID
         })
     );

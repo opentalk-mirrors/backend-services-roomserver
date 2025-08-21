@@ -26,8 +26,8 @@ pub enum LiveKitEvent {
     /// Participants are allowed to unmute themselves again.
     MicrophoneRestrictionsDisabled,
 
-    /// The moderator has force muted the participant.
-    ForceMuted(ModeratorOrModule),
+    /// The moderator has muted the participant.
+    Muted(ModeratorOrModule),
 
     /// A livekit access token that cannot publish and is hidden to other participants
     PopoutStreamAccessToken {
@@ -69,15 +69,15 @@ mod tests {
     use crate::{LiveKitEvent, moderator_or_module::ModeratorOrModule};
 
     #[test]
-    fn serialize_force_muted() {
-        let event = LiveKitEvent::ForceMuted(ModeratorOrModule::Moderator {
+    fn serialize_muted() {
+        let event = LiveKitEvent::Muted(ModeratorOrModule::Moderator {
             moderator: ParticipantId::nil(),
         });
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
         {
-          "message": "force_muted",
+          "message": "muted",
           "moderator": "00000000-0000-0000-0000-000000000000"
         }
         "#);

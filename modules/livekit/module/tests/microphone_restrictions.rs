@@ -72,9 +72,9 @@ async fn microphones_are_restricted() {
     );
 
     // Bob should receive restriction state update
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
+        mute_event.payload,
         LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
             unrestricted_participants: unrestricted
         })
@@ -140,9 +140,9 @@ async fn permissions_are_updated() {
     );
 
     // Bob should receive restriction state update
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
+        mute_event.payload,
         LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
             unrestricted_participants: unrestricted.clone()
         })
@@ -170,9 +170,9 @@ async fn permissions_are_updated() {
     );
 
     // Bob should receive restriction state update
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
+        mute_event.payload,
         LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
             unrestricted_participants: unrestricted
         })
@@ -514,9 +514,9 @@ async fn alice_and_bob_in_breakout() {
     );
 
     // Bob should receive restriction state update
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
+        mute_event.payload,
         LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
             unrestricted_participants: unrestricted
         })

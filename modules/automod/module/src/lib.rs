@@ -291,7 +291,7 @@ impl AutomodModule {
         )?;
 
         ctx.send_internal_command::<LiveKitModule>(
-            LiveKitInternal::ForceMute {
+            LiveKitInternal::Mute {
                 sending_module: Self::NAMESPACE,
                 participants: ctx.participants.in_room(ctx.room).ids().collect(),
             },
@@ -491,7 +491,7 @@ impl AutomodModule {
     ) -> Result<(), FatalError> {
         // Mute all participants when the speaker is changed
         ctx.send_internal_command::<LiveKitModule>(
-            LiveKitInternal::ForceMute {
+            LiveKitInternal::Mute {
                 sending_module: Self::NAMESPACE,
                 participants: ctx
                     .participants

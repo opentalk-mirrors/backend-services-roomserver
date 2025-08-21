@@ -18,7 +18,7 @@ use tracing::{Instrument as _, debug_span};
 use super::LiveKitLoopback;
 use crate::{PARALLEL_UPDATES, build_livekit_participant_id};
 
-pub async fn force_mute_participants(
+pub async fn mute_participants(
     livekit_client: Arc<RoomClient>,
     sender: ModeratorOrModule,
     participants: BTreeMap<ParticipantId, BTreeSet<ConnectionId>>,
@@ -35,8 +35,8 @@ pub async fn force_mute_participants(
     let room: &str = &room;
     let muted_participants = stream::iter(participant_connections).map(
         |(participant_id, connection_id, livekit_client)| async move {
-            let mute_span = debug_span!("force_mute", ?participant_id, ?connection_id);
-            if let Err(e) = force_mute(&livekit_client, room, participant_id, connection_id)
+            let mute_span = debug_span!("mute", ?participant_id, ?connection_id);
+            if let Err(e) = mute(&livekit_client, room, participant_id, connection_id)
                 .instrument(mute_span.clone())
                 .await
             {
@@ -53,7 +53,7 @@ pub async fn force_mute_participants(
     })
 }
 
-async fn force_mute(
+async fn mute(
     livekit_client: &Arc<RoomClient>,
     room: &str,
     participant_id: ParticipantId,
@@ -74,7 +74,7 @@ async fn force_mute(
         livekit_client
             .mute_published_track(room, &livekit_participant_id, &track.sid, true)
             .await?;
-        tracing::debug!("Force muted participant connection")
+        tracing::debug!("Muted participant connection")
     }
 
     Ok(())

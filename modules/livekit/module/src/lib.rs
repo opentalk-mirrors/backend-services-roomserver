@@ -155,9 +155,7 @@ impl SignalingModule for LiveKitModule {
             LiveKitCommand::CreateNewAccessToken => {
                 self.issue_access_token(ctx, sender, connection_id)
             }
-            LiveKitCommand::ForceMute { participants } => {
-                self.force_mute(ctx, sender.into(), participants)
-            }
+            LiveKitCommand::Mute { participants } => self.mute(ctx, sender.into(), participants),
             LiveKitCommand::GrantScreenSharePermission { participants } => {
                 self.set_screenshare_permissions(ctx, sender, participants, true)
             }
@@ -198,7 +196,7 @@ impl SignalingModule for LiveKitModule {
             LiveKitLoopback::ParticipantsMuted {
                 sender,
                 participants,
-            } => self.notify_force_muted_participants(ctx, sender, participants),
+            } => self.notify_muted_participants(ctx, sender, participants),
             LiveKitLoopback::NoteRevokedTokens {
                 token_identities,
                 participant_id,
@@ -221,10 +219,10 @@ impl SignalingModule for LiveKitModule {
             command: Self::Internal,
     ) -> Result<<Self::Internal as opentalk_roomserver_signaling::signaling_module::InternalCommand>::Result, SignalingModuleError<Self::Error>>{
         match command {
-            LiveKitInternal::ForceMute {
+            LiveKitInternal::Mute {
                 sending_module,
                 participants,
-            } => self.force_mute(ctx, sending_module.into(), participants),
+            } => self.mute(ctx, sending_module.into(), participants),
         }
     }
 
@@ -345,7 +343,7 @@ impl LiveKitModule {
         Ok(())
     }
 
-    fn force_mute(
+    fn mute(
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         sender: ModeratorOrModule,
@@ -354,19 +352,19 @@ impl LiveKitModule {
         let Some(room) = self.rooms.get(&ctx.room) else {
             return Err(anyhow::anyhow!("Unknown room").into());
         };
-        room.force_mute(ctx, sender, participants)?;
+        room.mute(ctx, sender, participants)?;
 
         Ok(())
     }
 
-    fn notify_force_muted_participants(
+    fn notify_muted_participants(
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         sender: ModeratorOrModule,
         participants: BTreeSet<ParticipantId>,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
-        tracing::debug!("Participants have been force muted");
-        ctx.send_ws_message(participants, LiveKitEvent::ForceMuted(sender))?;
+        tracing::debug!("Participants have been muted");
+        ctx.send_ws_message(participants, LiveKitEvent::Muted(sender))?;
         Ok(())
     }
 
