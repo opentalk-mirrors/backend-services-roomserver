@@ -23,6 +23,7 @@ use crate::{
             filtered_vec::FilteredVec,
             livekit::LiveKitPlugin,
             plugin::{Received, SignalingPlugin},
+            timer::TimerPlugin,
         },
         style::{delete_btn, delete_mode_btn},
     },
@@ -34,6 +35,7 @@ mod breakout;
 pub mod filtered_vec;
 mod livekit;
 mod plugin;
+mod timer;
 
 #[derive(Debug)]
 pub struct HistorySelectState {
@@ -81,6 +83,7 @@ impl SignalingView {
             plugins: vec![
                 (false, Box::new(LiveKitPlugin::new(runtime, ctx, settings))),
                 (false, Box::new(BreakoutPlugin::new())),
+                (false, Box::new(TimerPlugin::new())),
             ],
         }
     }

@@ -5769,6 +5769,7 @@ dependencies = [
  "opentalk-roomserver-client",
  "opentalk-roomserver-common",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-types-timer",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-version",
