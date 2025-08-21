@@ -52,7 +52,7 @@ impl From<SignalingModuleEvent> for SignalingEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "namespace", content = "content", rename_all = "snake_case")]
+#[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
 pub enum SignalingModuleEvent {
     Core(CoreEvent),
     Breakout(BreakoutEvent),
@@ -138,7 +138,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "core",
-          "content": {
+          "payload": {
             "participant_connected": {
               "participant_id": "00000000-0000-0000-0000-000000000001",
               "connection_id": "00000000-0000-0000-0000-000000000002"
@@ -163,7 +163,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "breakout",
-          "content": {
+          "payload": {
             "message": "closed"
           }
         }
@@ -187,7 +187,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "chat",
-          "content": {
+          "payload": {
             "message": "chat_disabled",
             "issued_by": "00000000-0000-0000-0000-000000000001"
           }
@@ -210,7 +210,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "echo",
-          "content": {
+          "payload": {
             "message": "pong"
           }
         }
@@ -232,7 +232,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "livekit",
-          "content": {
+          "payload": {
             "message": "microphone_restrictions_disabled"
           }
         }
@@ -259,7 +259,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "timer",
-          "content": {
+          "payload": {
             "message": "updated_ready_status",
             "participant_id": "00000000-0000-0000-0000-000000000000",
             "status": true
@@ -288,7 +288,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "polls",
-          "content": {
+          "payload": {
             "message": "voted",
             "poll_id": "00000000-0000-0000-0000-000000000000",
             "choice_id": 0
@@ -315,7 +315,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "meeting_report",
-          "content": {
+          "payload": {
             "message": "pdf_asset",
             "filename": "name",
             "asset_id": "00000000-0000-0000-0000-000000000000"
@@ -335,7 +335,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "moderation",
-          "content": {
+          "payload": {
             "message": "accepted"
           }
         }
@@ -355,7 +355,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "raise_hands",
-          "content": {
+          "payload": {
             "message": "hand_raised",
             "participant": "00000000-0000-0000-0000-000000000000"
           }
