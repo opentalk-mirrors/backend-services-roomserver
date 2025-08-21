@@ -107,13 +107,13 @@ pub struct SignalingSocketItem {
 }
 
 impl SignalingSocketItem {
-    pub async fn done(&mut self) {
+    pub fn done(&mut self) {
         if let Some(channel) = self.done.take() {
             let _ = channel.send(true);
         }
     }
 
-    pub async fn failed(&mut self) {
+    pub fn failed(&mut self) {
         if let Some(channel) = self.done.take() {
             let _ = channel.send(false);
         }

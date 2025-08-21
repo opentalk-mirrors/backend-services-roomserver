@@ -135,7 +135,7 @@ impl ScopedRouter {
         }
     }
 
-    pub async fn add_connection<S: SignalingSocket + 'static>(
+    pub fn add_connection<S: SignalingSocket + 'static>(
         &mut self,
         participant_id: ParticipantId,
         mut websocket: S,
@@ -378,11 +378,7 @@ mod tests {
         let (p1_socket, p1) = create_participant_connection();
         let p1_id = ParticipantId::from_u128(1);
 
-        let connection = router
-            .conference
-            .add_connection(p1_id, p1_socket)
-            .await
-            .unwrap();
+        let connection = router.conference.add_connection(p1_id, p1_socket).unwrap();
 
         p1.sender
             .send(Ok(SignalingSocketItem {

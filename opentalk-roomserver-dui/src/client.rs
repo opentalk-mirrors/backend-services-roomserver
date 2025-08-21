@@ -200,7 +200,7 @@ impl RoomServerRunner {
                 response_tx,
                 room_id,
             } => {
-                self.query_room(room_id, response_tx).await;
+                self.query_room(room_id, response_tx);
             }
             RunnerCommand::RequestToken {
                 response_tx,
@@ -261,7 +261,7 @@ impl RoomServerRunner {
         Ok(())
     }
 
-    async fn query_room(
+    fn query_room(
         &self,
         _room_id: RoomId,
         response_tx: tokio::sync::oneshot::Sender<Result<bool, String>>,

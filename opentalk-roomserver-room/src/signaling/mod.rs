@@ -14,7 +14,7 @@
 //! Due to the generic nature of the [`ModuleDispatcher`] they cannot be stored in a single collection either,
 //! at least not when their generic type differs. This is where the [`ModuleHandle`] is used as an abstraction
 //! to remove any generic bounds. We achieve this with dynamic dispatch by storing them as a `Box<dyn ModuleDispatcher>`.
-use std::{any::Any, collections::BTreeMap, time::Duration};
+use std::{any::Any, collections::BTreeMap, fmt::Display, time::Duration};
 
 use anyhow::Context;
 use dyn_module_context::DynModuleContext;
@@ -41,23 +41,22 @@ pub mod dyn_module_context;
 pub(crate) mod module_initializer;
 
 /// Abstracted handle to a [`SignalingModule`]
-#[async_trait::async_trait]
 pub trait ModuleHandle: Send + Sync {
     /// Invokes an event in the associated [`SignalingModule`]
-    async fn on_event(
+    fn on_event(
         &mut self,
         // TODO: make this owned
         ctx: &mut DynModuleContext<'_>,
         event: DynEvent,
     ) -> Result<(), FatalError>;
 
-    async fn on_broadcast_event(
+    fn on_broadcast_event(
         &mut self,
         ctx: &mut DynModuleContext<'_>,
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError>;
 
-    async fn destroy(self: Box<Self>, room_id: RoomId);
+    fn destroy(self: Box<Self>, room_id: RoomId);
 }
 
 pub enum DynEvent {
@@ -109,6 +108,19 @@ pub enum DynBroadcastEvent<'evt> {
     },
 }
 
+impl Display for DynBroadcastEvent<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DynBroadcastEvent::Connected { .. } => write!(f, "Connected"),
+            DynBroadcastEvent::Disconnected { .. } => write!(f, "Disconnected"),
+            DynBroadcastEvent::BreakoutStart { .. } => write!(f, "BreakoutStart"),
+            DynBroadcastEvent::BreakoutClosing => write!(f, "BreakoutClosing"),
+            DynBroadcastEvent::BreakoutClosed => write!(f, "BreakoutClosed"),
+            DynBroadcastEvent::SwitchRoom { .. } => write!(f, "SwitchRoom"),
+        }
+    }
+}
+
 /// Resolves generic JSON messages into concrete types for the associated [`SignalingModule`]
 ///
 /// Implements the [`ModuleHandle`] trait.
@@ -121,7 +133,7 @@ where
     M: SignalingModule,
 {
     /// Dispatches dynamic events to the correct modules and resolves their type
-    async fn handle_event(
+    fn handle_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         event: DynEvent,
@@ -131,24 +143,18 @@ where
                 participant_id: sender,
                 connection_id,
                 command,
-            } => {
-                self.handle_ws_event(ctx, sender, connection_id, command)
-                    .await
-            }
-            DynEvent::LoopbackEvent(result) => self.handle_loopback_event(ctx, result).await,
+            } => self.handle_ws_event(ctx, sender, connection_id, &command),
+            DynEvent::LoopbackEvent(result) => self.handle_loopback_event(ctx, result),
             DynEvent::InternalCommand {
                 sender,
                 command,
                 return_result,
-            } => {
-                self.handle_internal_command(ctx, sender, command, return_result)
-                    .await
-            }
+            } => self.handle_internal_command(ctx, sender, command, return_result),
         }
     }
 
     #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE, opentalk.event_type=Empty))]
-    async fn handle_broadcast_event(
+    fn handle_broadcast_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         event: &mut DynBroadcastEvent<'_>,
@@ -257,12 +263,12 @@ where
     /// Resolves a generic JSON message that was received by [`ModuleHandle::on_event`] to the concrete
     /// [`SignalingModule::Incoming`] type.
     #[tracing::instrument(skip_all, fields(opentalk.command.sender = %sender, opentalk.module = %M::NAMESPACE))]
-    async fn handle_ws_event(
+    fn handle_ws_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         sender: ParticipantId,
         connection_id: ConnectionId,
-        command: Box<RawValue>,
+        command: &RawValue,
     ) -> Result<(), SignalingModuleError<M::Error>> {
         let payload: <M as SignalingModule>::Incoming = match serde_json::from_str(command.get()) {
             Ok(payload) => payload,
@@ -294,7 +300,7 @@ where
     /// Resolves a dynamic loopback message that was received by [`ModuleHandle::on_event`] to the concrete
     /// [`SignalingModule::Loopback`] type.
     #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
-    async fn handle_loopback_event(
+    fn handle_loopback_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         value: Box<dyn Any + Send + 'static>,
@@ -313,7 +319,7 @@ where
     /// Resolves a dynamic internal command that was received by [`ModuleHandle::on_event`] to the concrete
     /// [`SignalingModule::IncomingInternal`] type.
     #[tracing::instrument(skip(self, ctx, command, result_handle), fields(opentalk.module = %M::NAMESPACE))]
-    async fn handle_internal_command(
+    fn handle_internal_command(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         sender: ModuleId,
@@ -335,7 +341,7 @@ where
     }
 
     #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
-    async fn handle_error(
+    fn handle_error(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         err: SignalingModuleError<M::Error>,
@@ -369,44 +375,40 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<M> ModuleHandle for ModuleDispatcher<M>
 where
     M: SignalingModule,
 {
     #[tracing::instrument(skip_all, level = "debug")]
-    async fn on_event(
+    fn on_event(
         &mut self,
         ctx: &mut DynModuleContext<'_>,
         event: DynEvent,
     ) -> Result<(), FatalError> {
         let mut module_context = ctx.reborrow().into_typed_context();
 
-        if let Err(err) = self.handle_event(&mut module_context, event).await {
-            self.handle_error(&mut module_context, err).await?;
+        if let Err(err) = self.handle_event(&mut module_context, event) {
+            self.handle_error(&mut module_context, err)?;
         }
 
         Ok(())
     }
 
-    async fn on_broadcast_event(
+    fn on_broadcast_event(
         &mut self,
         ctx: &mut DynModuleContext<'_>,
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError> {
         let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into_typed_context();
 
-        if let Err(err) = self
-            .handle_broadcast_event(&mut module_context, event)
-            .await
-        {
-            return self.handle_error(&mut module_context, err).await;
+        if let Err(err) = self.handle_broadcast_event(&mut module_context, event) {
+            return self.handle_error(&mut module_context, err);
         }
 
         Ok(())
     }
 
-    async fn destroy(self: Box<Self>, room_id: RoomId) {
+    fn destroy(self: Box<Self>, room_id: RoomId) {
         self.module.destroy(room_id)
     }
 }

@@ -66,19 +66,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             transaction_id: None,
         };
 
-        let actions = self
-            .broadcast_event_to_modules(
-                participant_origin.into(),
-                current_breakout_room,
-                DynBroadcastEvent::Connected {
-                    participant_id,
-                    connection_id,
-                    module_data: &mut module_data,
-                    peer_module_data: &mut peer_module_data,
-                    participant_state: &mut participant_state,
-                },
-            )
-            .await;
+        let actions = self.broadcast_event_to_modules(
+            participant_origin.into(),
+            current_breakout_room,
+            DynBroadcastEvent::Connected {
+                participant_id,
+                connection_id,
+                module_data: &mut module_data,
+                peer_module_data: &mut peer_module_data,
+                participant_state: &mut participant_state,
+            },
+        );
 
         self.add_breakout_module_data(&mut module_data, current_breakout_room);
 
@@ -149,7 +147,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 connection_id,
             },
         )
-        .await
         .handle_requested_messages(self)
         .await;
 
@@ -166,7 +163,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .expect("CoreEvent::ParticipantDisconnected must be serializable");
     }
 
-    pub(crate) async fn broadcast_event_to_modules(
+    #[tracing::instrument(skip(self, event), fields(%event))]
+    pub(crate) fn broadcast_event_to_modules(
         &mut self,
         origin: EventOrigin,
         room_kind: RoomKind,
@@ -176,24 +174,21 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let mut messages = RefCell::new(Vec::new());
         let timestamp = Timestamp::now();
         for (namespace, module) in self.modules.iter_mut() {
-            if let Err(err) = module
-                .on_broadcast_event(
-                    &mut DynModuleContext::new(
-                        self.info.room_id,
-                        room_kind,
-                        origin,
-                        &mut self.info,
-                        &mut self.participants,
-                        &mut self.waiting_participants,
-                        timestamp,
-                        Arc::clone(&self.storage),
-                        &mut messages,
-                        &mut self.loopback_futures,
-                    ),
-                    &mut event,
-                )
-                .await
-            {
+            if let Err(err) = module.on_broadcast_event(
+                &mut DynModuleContext::new(
+                    self.info.room_id,
+                    room_kind,
+                    origin,
+                    &mut self.info,
+                    &mut self.participants,
+                    &mut self.waiting_participants,
+                    timestamp,
+                    Arc::clone(&self.storage),
+                    &mut messages,
+                    &mut self.loopback_futures,
+                ),
+                &mut event,
+            ) {
                 errors.push((namespace.clone(), err));
             }
         }
@@ -226,7 +221,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
-        module.destroy(self.info.room_id).await;
+        module.destroy(self.info.room_id);
 
         // Remove the module from the room state
         self.info.room.tariff.modules.remove(&namespace);

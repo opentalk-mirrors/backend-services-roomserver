@@ -73,7 +73,7 @@ impl LiveKitRunner {
 
                 msg = self.livekit.recv_livekit_event() => {
                     if let Some(event) = msg {
-                        self.handle_event(event).await?;
+                        self.handle_event(event)?;
                         self.egui_ctx.request_repaint();
                     }
                 }
@@ -100,7 +100,7 @@ impl LiveKitRunner {
             .await
     }
 
-    async fn handle_event(&mut self, event: RoomEvent) -> anyhow::Result<()> {
+    fn handle_event(&mut self, event: RoomEvent) -> anyhow::Result<()> {
         if let RoomEvent::Disconnected { .. } = &event {
             self.livekit = State::Disconnected;
             self.status_tx
