@@ -77,6 +77,7 @@ pub enum DynBroadcastEvent<'evt> {
     Connected {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+        /// The module data for the participant in the new room.
         module_data: &'evt mut ModuleData,
         peer_module_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
         participant_state: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
@@ -105,6 +106,10 @@ pub enum DynBroadcastEvent<'evt> {
         new_room: RoomKind,
         /// The module data for the participant in the new room. Each connection needs to have their own module data
         module_data: &'evt mut BTreeMap<ConnectionId, ModuleData>,
+        /// The module data about the switching participant, sent to the participants already in the room.
+        peer_event_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
+        /// The module data about other participants in the room, for and send to the switching participant.
+        other_participant_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     },
 }
 
@@ -224,13 +229,24 @@ where
                 old_room,
                 new_room,
                 module_data,
+                peer_event_data,
+                other_participant_data,
             } => {
                 span.record("opentalk.event_type", "SwitchRoom");
-                let join_infos =
+                let switch_info =
                     self.module
                         .on_breakout_switch(ctx, *participant_id, *old_room, *new_room)?;
 
-                for (conn_id, join_info) in join_infos {
+                // record data sent to other peers
+                for (other, peer_join_info) in switch_info.peer.map {
+                    peer_event_data
+                        .entry(other)
+                        .or_default()
+                        .insert(M::NAMESPACE, peer_join_info);
+                }
+
+                // record data about the current participant and all their connections
+                for (conn_id, join_info) in switch_info.switch_success {
                     if let Some(join_info) = join_info {
                         module_data
                             .entry(conn_id)
@@ -244,6 +260,14 @@ where
                             })
                             .map_err(FatalError)?;
                     }
+                }
+
+                // record data about other participants for the current participant
+                for (other, data) in switch_info.participant_states.map {
+                    other_participant_data
+                        .entry(other)
+                        .or_default()
+                        .insert(M::NAMESPACE, data);
                 }
             }
 

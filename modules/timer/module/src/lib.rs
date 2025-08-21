@@ -193,9 +193,12 @@ impl SignalingModule for TimerModule {
             .participant_state(participant_id)
             .with_context(|| format!("Participant '{participant_id}' does not have state"))?
             .connections();
-        let switch_info = connections.map(|con| (con, timer_state.clone())).collect();
+        let switch_success = connections.map(|con| (con, timer_state.clone())).collect();
 
-        Ok(switch_info)
+        Ok(SwitchInfo {
+            switch_success,
+            ..Default::default()
+        })
     }
 
     fn on_breakout_closed(

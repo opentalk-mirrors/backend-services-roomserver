@@ -18,6 +18,7 @@ use opentalk_roomserver_types::{
         event::{BreakoutError, BreakoutEvent},
         module_data::{BreakoutModuleData, BreakoutPeerModuleData},
     },
+    connection_id::ConnectionId,
     error::SignalingError,
     room_kind::RoomKind,
     signaling::{SignalingCommand, module_error::SignalingModuleError},
@@ -349,15 +350,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         participant_state.room = room;
+        let connections: Vec<ConnectionId> = participant_state.connections().collect();
 
-        let mut module_data_map = BTreeMap::new();
-        let mut excluded_connections = Vec::new();
-
-        for conn_id in participant_state.connections() {
-            excluded_connections.push(conn_id);
-
-            module_data_map.insert(conn_id, ModuleData::new());
-        }
+        let mut module_data = BTreeMap::new();
+        let mut peer_event_data = BTreeMap::new();
+        let mut other_participant_data = BTreeMap::new();
 
         let actions = self.broadcast_event_to_modules(
             origin,
@@ -366,44 +363,56 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 participant_id,
                 old_room: previous_room,
                 new_room: room,
-                module_data: &mut module_data_map,
+                module_data: &mut module_data,
+                other_participant_data: &mut other_participant_data,
+                peer_event_data: &mut peer_event_data,
             },
         );
 
-        for (conn_id, module_data) in module_data_map {
+        // send switched room event to all our connections
+        for &connection_id in &connections {
+            let module_data = module_data.remove(&connection_id).unwrap_or_default();
             self.message_router
                 .conference
                 .serialize_and_send(
-                    [conn_id],
+                    [connection_id],
                     BREAKOUT_MODULE_ID,
                     origin.transaction_id(),
                     BreakoutEvent::SwitchedRoom {
                         module_data,
                         old_room: previous_room,
                         new_room: room,
+                        other_participant_data: other_participant_data.clone(),
                     },
                 )
                 .await?;
         }
 
-        let payload = BreakoutEvent::ParticipantSwitchedRoom {
-            participant_id,
-            old_room: previous_room,
-            new_room: room,
-        };
-
-        self.message_router
-            .conference
-            .serialize_and_broadcast_exclude_connections(
-                BREAKOUT_MODULE_ID,
-                None,
-                payload,
-                &excluded_connections,
-            )
-            .await?;
-
         actions.handle_requested_messages(self).await;
 
+        for (&other_id, state) in self
+            .participants
+            .connected()
+            .iter()
+            .filter(|(p, _)| *p != &participant_id)
+        {
+            let peer_event = peer_event_data.remove(&other_id);
+
+            self.message_router
+                .conference
+                .serialize_and_send(
+                    state.connections(),
+                    BREAKOUT_MODULE_ID,
+                    None,
+                    BreakoutEvent::ParticipantSwitchedRoom {
+                        participant_id,
+                        old_room: previous_room,
+                        new_room: room,
+                        module_data: peer_event.unwrap_or_default(),
+                    },
+                )
+                .await?;
+        }
         Ok(())
     }
 

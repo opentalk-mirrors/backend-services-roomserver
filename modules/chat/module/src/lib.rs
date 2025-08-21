@@ -184,7 +184,9 @@ impl SignalingModule for ChatModule {
             .connections();
 
         for conn_id in connections {
-            switch_info.insert(conn_id, Some(chat_state.clone()));
+            switch_info
+                .switch_success
+                .insert(conn_id, Some(chat_state.clone()));
         }
 
         Ok(switch_info)

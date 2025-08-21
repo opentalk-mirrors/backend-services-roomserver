@@ -35,8 +35,11 @@ use crate::signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext};
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// A participant connected to the conference
     ///
-    /// Sends the [`CoreEvent::JoinSuccess`] to the joining participant and notifies other participants with the
-    /// [`CoreEvent::ParticipantConnected`] message.
+    /// Sends the [`CoreEvent::JoinSuccess`] to the connection of the participant that joins.
+    /// Notifies other connections with the [`CoreEvent::ParticipantConnected`] message.
+    ///
+    /// NOTE: In case the joining participant is already connected with another device, they will
+    /// also receive the [`CoreEvent::ParticipantConnected`] messages on the device that is already connected.
     pub(super) async fn participant_joined(
         &mut self,
         participant_id: ParticipantId,

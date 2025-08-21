@@ -111,7 +111,7 @@ pub trait SignalingModule: Send + Sync + Sized {
         old_room: RoomKind,
         new_room: RoomKind,
     ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
-        Ok(BTreeMap::new())
+        Ok(SwitchInfo::default())
     }
 
     #[allow(unused_variables)]
@@ -186,11 +186,6 @@ pub struct JoinInfo<M: SignalingModule> {
     pub participant_data: PeerJoinInfoMap<M>,
 }
 
-/// Similar to [`JoinInfo`], but without the [`PeerJoinInfoMap`] and with one
-/// [`SignalingModule::JoinInfo`] for each [`ConnectionId`] of the switching
-/// participant.
-pub type SwitchInfo<M> = BTreeMap<ConnectionId, Option<<M as SignalingModule>::JoinInfo>>;
-
 impl<M: SignalingModule> Default for JoinInfo<M> {
     fn default() -> Self {
         Self {
@@ -198,6 +193,38 @@ impl<M: SignalingModule> Default for JoinInfo<M> {
             peer_event_data: Default::default(),
             participant_data: Default::default(),
         }
+    }
+}
+
+/// Similar to [`JoinInfo`], but with a `switch_success` for each connection of
+/// the switching participant.
+///
+/// Different to a join, during a switch all connections join the new room and
+/// therefore all need initial information.
+pub struct SwitchInfo<M: SignalingModule> {
+    /// Module specific data that will be attached to the participants `JoinSuccess` message
+    pub switch_success: BTreeMap<ConnectionId, Option<<M as SignalingModule>::JoinInfo>>,
+
+    /// Module specific data that will be attached to the information about other participants inside the `JoinSuccess`
+    pub participant_states: PeerJoinInfoMap<M>,
+
+    /// Module specific data that will be attached to other participants `Joined` message
+    pub peer: PeerJoinInfoMap<M>,
+}
+
+impl<M: SignalingModule> SwitchInfo<M> {
+    pub fn new() -> Self {
+        Self {
+            switch_success: Default::default(),
+            peer: Default::default(),
+            participant_states: Default::default(),
+        }
+    }
+}
+
+impl<M: SignalingModule> Default for SwitchInfo<M> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

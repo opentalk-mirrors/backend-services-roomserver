@@ -262,23 +262,6 @@ impl ScopedRouter {
         Ok(())
     }
 
-    /// Broadcast a websocket message to all participants
-    ///
-    /// Returns a [`FatalError`] when the content fails to serialize.
-    pub(crate) async fn serialize_and_broadcast_exclude_connections(
-        &self,
-        namespace: ModuleId,
-        transaction_id: Option<u64>,
-        payload: impl Serialize,
-        excluded_connections: &[ConnectionId],
-    ) -> Result<(), FatalError> {
-        let shared_json = Self::serialize_event(namespace, transaction_id, payload)?;
-        self.broadcast_event(shared_json, excluded_connections)
-            .await;
-
-        Ok(())
-    }
-
     fn serialize_event(
         namespace: ModuleId,
         transaction_id: Option<u64>,
