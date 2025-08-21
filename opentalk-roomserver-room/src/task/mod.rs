@@ -381,7 +381,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     async fn handle_module_messages(
         &mut self,
         messages: RefCell<Vec<ModuleMessage>>,
-        room: RoomKind,
+        room_kind: RoomKind,
         origin: EventOrigin,
         timestamp: Timestamp,
     ) {
@@ -406,8 +406,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         .await
                 }
                 ModuleMessage::InternalCommand(inter_module_message) => {
-                    self.handle_internal_command(inter_module_message, room, origin, timestamp)
-                        .await;
+                    self.handle_internal_command(
+                        inter_module_message,
+                        room_kind,
+                        origin,
+                        timestamp,
+                    )
+                    .await;
                 }
                 ModuleMessage::Instruction(instruction) => {
                     self.handle_instruction(origin, instruction).await;
