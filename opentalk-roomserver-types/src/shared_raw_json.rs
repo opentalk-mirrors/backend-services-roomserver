@@ -16,6 +16,12 @@ pub struct SharedRawJson {
     inner: Arc<RawValue>,
 }
 
+impl SharedRawJson {
+    pub fn get(&self) -> &str {
+        self.inner.get()
+    }
+}
+
 impl From<Box<RawValue>> for SharedRawJson {
     fn from(value: Box<RawValue>) -> Self {
         Self {
@@ -39,5 +45,24 @@ impl<'de> Deserialize<'de> for SharedRawJson {
         D: serde::Deserializer<'de>,
     {
         <Box<RawValue>>::deserialize(deserializer).map(Self::from)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use insta::assert_snapshot;
+
+    use crate::shared_raw_json::SharedRawJson;
+
+    #[test]
+    fn serialize() {
+        let raw =
+            serde_json::value::to_raw_value(&BTreeMap::from([("test", 1), ("b", 2)])).unwrap();
+
+        // Insta does not use serde_json for it's json tests
+        let raw = serde_json::to_string(&SharedRawJson::from(raw)).unwrap();
+        assert_snapshot!(raw, @r#"{"b":2,"test":1}"#);
     }
 }

@@ -77,7 +77,8 @@ impl SignalingModule for TimerModule {
         let Some(timer) = timer else {
             return Ok(JoinInfo {
                 join_success: None,
-                peer: PeerJoinInfoMap::default(),
+                peer_event_data: PeerJoinInfoMap::default(),
+                participant_data: PeerJoinInfoMap::default(),
             });
         };
 
@@ -97,12 +98,24 @@ impl SignalingModule for TimerModule {
             // Append ready state when the running timer has ready check enabled
             let mut peer = PeerJoinInfoMap::default();
             peer.insert_for_all(ctx, TimerPeerState { ready_status })?;
+
+            // Collect ready state of all other participants for the joined participant
+            let mut participant_states = PeerJoinInfoMap::default();
+            for p in ctx.participants.connected().ids() {
+                let ready_status = self
+                    .ready_participants
+                    .get(&ctx.room)
+                    .with_context(|| format!("Room '{:?}' does not exist in timers", ctx.room))?
+                    .contains(&p);
+                participant_states.insert(p, TimerPeerState { ready_status })?;
+            }
             Ok(JoinInfo {
                 join_success: Some(TimerState {
                     config: timer.config.clone(),
                     ready_status: Some(ready_status),
                 }),
-                peer,
+                participant_data: participant_states,
+                peer_event_data: peer,
             })
         } else {
             Ok(JoinInfo {
@@ -110,7 +123,8 @@ impl SignalingModule for TimerModule {
                     config: timer.config.clone(),
                     ready_status: None,
                 }),
-                peer: PeerJoinInfoMap::default(),
+                participant_data: PeerJoinInfoMap::default(),
+                peer_event_data: PeerJoinInfoMap::default(),
             })
         }
     }

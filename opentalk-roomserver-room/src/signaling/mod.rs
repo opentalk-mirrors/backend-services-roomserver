@@ -80,6 +80,7 @@ pub enum DynBroadcastEvent<'evt> {
         connection_id: ConnectionId,
         module_data: &'evt mut ModuleData,
         peer_module_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedRawJson>>,
+        participant_state: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedRawJson>>,
     },
 
     Disconnected {
@@ -159,6 +160,7 @@ where
                 connection_id,
                 module_data,
                 peer_module_data,
+                participant_state,
             } => {
                 span.record("opentalk.event_type", "Connected");
                 let is_first_connection = ctx
@@ -184,11 +186,18 @@ where
                         .map_err(FatalError)?;
                 }
 
-                for (participant_id, peer_join_info) in join_info.peer.map {
+                for (participant_id, peer_join_info) in join_info.peer_event_data.map {
                     peer_module_data
                         .entry(participant_id)
                         .or_default()
                         .insert(M::NAMESPACE, peer_join_info);
+                }
+
+                for (participant_id, data) in join_info.participant_data.map {
+                    participant_state
+                        .entry(participant_id)
+                        .or_default()
+                        .insert(M::NAMESPACE, data);
                 }
             }
             DynBroadcastEvent::Disconnected {
