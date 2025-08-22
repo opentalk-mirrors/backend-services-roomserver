@@ -11,19 +11,18 @@ use futures::{StreamExt as _, stream};
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_roomserver_types_livekit::{LiveKitError, ModeratorOrModule};
+use opentalk_roomserver_types_livekit::ParticipantsMuted;
 use opentalk_types_signaling::ParticipantId;
 use tracing::{Instrument as _, debug_span};
 
-use super::LiveKitLoopback;
 use crate::{PARALLEL_UPDATES, build_livekit_participant_id};
 
 pub async fn mute_participants(
     livekit_client: Arc<RoomClient>,
-    sender: ModeratorOrModule,
+    sender: Option<ParticipantId>,
     participants: BTreeMap<ParticipantId, BTreeSet<ConnectionId>>,
     room: String,
-) -> Result<LiveKitLoopback, LiveKitError> {
+) -> ParticipantsMuted {
     let participant_connections = participants
         .into_iter()
         .flat_map(|(p, connections)| {
@@ -47,10 +46,10 @@ pub async fn mute_participants(
         },
     ).buffer_unordered(PARALLEL_UPDATES).collect().await;
 
-    Ok(LiveKitLoopback::ParticipantsMuted {
+    ParticipantsMuted {
         sender,
         participants: muted_participants,
-    })
+    }
 }
 
 async fn mute(

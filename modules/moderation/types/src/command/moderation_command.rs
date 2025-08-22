@@ -41,6 +41,12 @@ pub enum ModerationCommand {
     /// Accept a participant from the waiting room into the meeting
     Accept(Accept),
 
+    /// Mutes participants
+    Mute {
+        /// The participants that should get muted
+        participants: BTreeSet<ParticipantId>,
+    },
+
     /// Enables the microphone restriction state where only the participants that are part of the
     /// `unrestricted_participants` are allowed to unmute themselves. This will mute all
     ///  participants who are not allowed to unmute themselves, but are currently not muted.

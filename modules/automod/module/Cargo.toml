@@ -21,6 +21,7 @@ opentalk-roomserver-types-livekit.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 rand.workspace = true
+tokio.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]

@@ -24,7 +24,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_livekit::{
     LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitInternal, LiveKitSettings, LiveKitState,
-    MicrophoneRestrictionError, MicrophoneRestrictionState, ModeratorOrModule,
+    MicrophoneRestrictionError, MicrophoneRestrictionState, ParticipantsMuted,
 };
 use opentalk_types_common::{
     modules::{ModuleId, module_id},
@@ -157,7 +157,6 @@ impl SignalingModule for LiveKitModule {
             LiveKitCommand::CreateNewAccessToken => {
                 self.issue_access_token(ctx, sender, connection_id)
             }
-            LiveKitCommand::Mute { participants } => self.mute(ctx, sender.into(), participants),
             LiveKitCommand::GrantScreenSharePermission { participants } => {
                 self.set_screenshare_permissions(ctx, sender, participants, true)
             }
@@ -179,10 +178,6 @@ impl SignalingModule for LiveKitModule {
             LiveKitLoopback::RoomCreated => Ok(()),
             LiveKitLoopback::RoomRemoved => Ok(()),
 
-            LiveKitLoopback::ParticipantsMuted {
-                sender,
-                participants,
-            } => self.notify_muted_participants(ctx, sender, participants),
             LiveKitLoopback::NoteRevokedTokens {
                 token_identities,
                 participant_id,
@@ -203,9 +198,10 @@ impl SignalingModule for LiveKitModule {
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match command {
             LiveKitInternal::Mute {
-                sending_module,
+                sender,
                 participants,
-            } => self.mute(ctx, sending_module.into(), participants),
+                return_channel,
+            } => self.mute(ctx, sender, participants, return_channel),
             LiveKitInternal::UpdateMicrophoneRestrictions {
                 sender,
                 new_state,
@@ -334,26 +330,19 @@ impl LiveKitModule {
     fn mute(
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
-        origin: ModeratorOrModule,
+        sender: Option<ParticipantId>,
         participants: BTreeSet<ParticipantId>,
+        return_channel: oneshot::Sender<ParticipantsMuted>,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
         let Some(room) = self.rooms.get(&ctx.room) else {
             return Err(anyhow::anyhow!("Unknown room").into());
         };
-        room.mute(ctx, origin, participants)?;
-
-        Ok(())
-    }
-
-    fn notify_muted_participants(
-        &self,
-        ctx: &mut ModuleContext<'_, LiveKitModule>,
-        sender: ModeratorOrModule,
-        participants: BTreeSet<ParticipantId>,
-    ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
-        tracing::debug!("Participants have been muted");
-        ctx.send_ws_message(participants, LiveKitEvent::Muted(sender))?;
-        Ok(())
+        room.mute(ctx, sender, participants, return_channel)
+            .map_err(|ChannelDroppedError| {
+                SignalingModuleError::Internal(anyhow!(
+                    "Channel dropped when restricting microphone permissions"
+                ))
+            })
     }
 
     fn note_revoked_tokens(

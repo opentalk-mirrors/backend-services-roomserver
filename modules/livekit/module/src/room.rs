@@ -23,7 +23,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_livekit::{
     Credentials, LiveKitError, LiveKitEvent, LiveKitSettings, LiveKitState,
     MicrophoneRestrictionError, MicrophoneRestrictionErrorKind, MicrophoneRestrictionState,
-    ModeratorOrModule,
+    ParticipantsMuted,
 };
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
@@ -180,45 +180,25 @@ impl LiveKitSubroom {
     pub fn mute(
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
-        origin: ModeratorOrModule,
+        sender: Option<ParticipantId>,
         participants: BTreeSet<ParticipantId>,
-    ) -> Result<(), SignalingModuleError<<LiveKitModule as SignalingModule>::Error>> {
-        // Modules are required to check permissions themselves.
-        if let ModeratorOrModule::Moderator { moderator } = origin
-            && !ctx.is_moderator(moderator)
-        {
-            tracing::debug!(
-                "Participant has insufficient permission to mute participants: {moderator}"
-            );
-            return Err(LiveKitError::InsufficientPermissions.into());
-        }
-
-        // check that we know all participants and query their connection ids
-        let known_participants: BTreeSet<_> = ctx
-            .participants
-            .connected()
-            .ids()
-            .filter(|p| participants.contains(p))
-            .collect();
-        let unknown_participants: BTreeSet<_> = participants
-            .difference(&known_participants)
-            .copied()
-            .collect();
-
+        return_channel: oneshot::Sender<ParticipantsMuted>,
+    ) -> Result<(), ChannelDroppedError> {
         let mut connections = ctx.participants.connections();
-        connections.retain(|p, _| known_participants.contains(p));
-        Self::notify_unknown_participants(ctx, unknown_participants, origin.clone())?;
+        connections.retain(|p, _| participants.contains(p));
 
         let room = ctx.room_id.to_string();
         let livekit_client: Arc<RoomClient> = Arc::clone(&self.livekit_client);
 
         tracing::debug!("spawn background task to mute participants");
-        ctx.spawn(loopback::mute_participants(
-            livekit_client,
-            origin,
-            connections,
-            room,
-        ));
+        ctx.spawn_optional(async move {
+            let muted =
+                loopback::mute_participants(livekit_client, sender, connections, room).await;
+            if return_channel.send(muted).is_err() {
+                tracing::error!("Channel dropped when muting participants");
+            }
+            None
+        });
         Ok(())
     }
 
@@ -351,23 +331,16 @@ impl LiveKitSubroom {
     fn notify_unknown_participants(
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         unknown_participants: BTreeSet<ParticipantId>,
-        sender: ModeratorOrModule,
+        sender: ParticipantId,
     ) -> Result<(), SignalingModuleError<LiveKitError>> {
         if !unknown_participants.is_empty() {
-            match sender {
-                ModeratorOrModule::Moderator { moderator } => {
-                    ctx.send_ws_message(
-                        [moderator],
-                        LiveKitError::UnknownParticipant {
-                            participant: unknown_participants,
-                        }
-                        .into(),
-                    )?;
+            ctx.send_ws_message(
+                [sender],
+                LiveKitError::UnknownParticipant {
+                    participant: unknown_participants,
                 }
-                ModeratorOrModule::Module { module } => {
-                    tracing::error!("Module {module} provided unknown participants")
-                }
-            }
+                .into(),
+            )?;
         }
         Ok(())
     }
@@ -429,7 +402,7 @@ impl LiveKitSubroom {
 
         let mut connections = ctx.participants.connections();
         connections.retain(|p, _| known_participants.contains(p));
-        Self::notify_unknown_participants(ctx, unknown_participants, sender.into())?;
+        Self::notify_unknown_participants(ctx, unknown_participants, sender)?;
 
         ctx.spawn(loopback::set_screenshare_permissions(
             Arc::clone(&self.livekit_client),

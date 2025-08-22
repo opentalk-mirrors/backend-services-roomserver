@@ -4,7 +4,6 @@
 use std::collections::BTreeSet;
 
 use opentalk_roomserver_signaling::signaling_module::InternalCommand;
-use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot;
 
@@ -15,10 +14,12 @@ use crate::MicrophoneRestrictionState;
 pub enum LiveKitInternal {
     /// Mutes participants
     Mute {
-        /// The module that is sending the command
-        sending_module: ModuleId,
+        /// The original sender of the command
+        sender: Option<ParticipantId>,
         /// The participants that should get muted
         participants: BTreeSet<ParticipantId>,
+        /// The return channel for the result of the operation
+        return_channel: oneshot::Sender<ParticipantsMuted>,
     },
 
     /// Enables or disables microphone restriction state
@@ -49,6 +50,15 @@ pub struct MicrophoneRestrictionError {
     pub sender: ParticipantId,
     /// The type of error that occurred
     pub error: MicrophoneRestrictionErrorKind,
+}
+
+/// Participants were muted by a moderator
+#[derive(Debug)]
+pub struct ParticipantsMuted {
+    /// The moderator that sent the command
+    pub sender: Option<ParticipantId>,
+    /// The participants that were muted
+    pub participants: BTreeSet<ParticipantId>,
 }
 
 impl InternalCommand for LiveKitInternal {}

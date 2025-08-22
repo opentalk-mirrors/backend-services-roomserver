@@ -16,12 +16,6 @@ pub enum LiveKitCommand {
     /// Indicates that a new Access Token is requested
     CreateNewAccessToken,
 
-    /// Mutes participants
-    Mute {
-        /// The participants that should get muted
-        participants: BTreeSet<ParticipantId>,
-    },
-
     /// Allows the specified participants to share their screens
     GrantScreenSharePermission {
         /// The participants that get granted screen sharing permissions

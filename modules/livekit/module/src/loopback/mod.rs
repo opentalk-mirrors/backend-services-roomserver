@@ -8,7 +8,6 @@ use futures::{StreamExt as _, stream};
 use livekit_api::services::room::{RoomClient, UpdateParticipantOptions};
 use livekit_protocol::{ParticipantInfo, ParticipantPermission, TrackSource};
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_roomserver_types_livekit::ModeratorOrModule;
 use opentalk_types_signaling::ParticipantId;
 
 pub use crate::loopback::{
@@ -27,11 +26,6 @@ mod screen_share_permissions;
 pub enum LiveKitLoopback {
     RoomCreated,
     RoomRemoved,
-
-    ParticipantsMuted {
-        sender: ModeratorOrModule,
-        participants: BTreeSet<ParticipantId>,
-    },
 
     /// Note that the token identities were removed
     NoteRevokedTokens {

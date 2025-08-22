@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashMap, mem};
+use std::{
+    collections::{BTreeSet, HashMap},
+    mem,
+};
 
+use anyhow::anyhow;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
@@ -15,7 +19,7 @@ use opentalk_roomserver_types::{
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_types_livekit::{
-    LiveKitInternal, MicrophoneRestrictionError, MicrophoneRestrictionState,
+    LiveKitInternal, MicrophoneRestrictionError, MicrophoneRestrictionState, ParticipantsMuted,
 };
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
@@ -29,6 +33,11 @@ use tokio::sync::oneshot;
 
 pub struct ModerationModule;
 
+pub enum ModerationLoopback {
+    Mute(ParticipantsMuted),
+    MicrophoneRestrictionsUpdated(Result<MicrophoneRestrictionState, MicrophoneRestrictionError>),
+}
+
 impl SignalingModule for ModerationModule {
     const NAMESPACE: ModuleId = MODERATION_MODULE_ID;
 
@@ -38,8 +47,7 @@ impl SignalingModule for ModerationModule {
 
     type Internal = NoOp;
 
-    type Loopback =
-        Result<Result<MicrophoneRestrictionState, MicrophoneRestrictionError>, ChannelDroppedError>;
+    type Loopback = Result<ModerationLoopback, ChannelDroppedError>;
 
     type JoinInfo = ModerationState;
 
@@ -111,6 +119,7 @@ impl SignalingModule for ModerationModule {
             ModerationCommand::ChangeDisplayName(ChangeDisplayName { new_name, target }) => {
                 self.change_display_name(ctx, sender, new_name, target)
             }
+            ModerationCommand::Mute { participants } => self.mute(ctx, sender, participants),
             ModerationCommand::EnableMicrophoneRestrictions {
                 unrestricted_participants,
             } => self.update_microphone_restrictions(
@@ -131,6 +140,7 @@ impl SignalingModule for ModerationModule {
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         let Ok(event) = event else {
+            // The channel was dropped
             ctx.send_ws_message(
                 ctx.participants.in_room(ctx.room).ids(),
                 ModerationEvent::Error(ModerationError::Internal),
@@ -139,11 +149,24 @@ impl SignalingModule for ModerationModule {
         };
 
         match event {
-            Ok(state) => self.notify_microphone_restrictions_updated(ctx, &state)?,
-            Err(MicrophoneRestrictionError { sender, error }) => {
-                ctx.send_ws_message([sender], ModerationEvent::Error(error.into()))?;
+            ModerationLoopback::Mute(ParticipantsMuted {
+                sender,
+                participants,
+            }) => {
+                tracing::debug!("Participants muted");
+                let Some(sender) = sender else {
+                    return Err(
+                        anyhow!("Mute loopback returned without moderator information").into(),
+                    );
+                };
+
+                ctx.send_ws_message(participants, ModerationEvent::Muted { moderator: sender })?;
+            }
+            ModerationLoopback::MicrophoneRestrictionsUpdated(result) => {
+                self.notify_microphone_restrictions_updated(ctx, result)?;
             }
         }
+
         Ok(())
     }
 }
@@ -318,6 +341,54 @@ impl ModerationModule {
         Ok(())
     }
 
+    fn mute(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        participants: BTreeSet<ParticipantId>,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        // check that we know all participants and query their connection ids
+        let known_participants: BTreeSet<_> = ctx
+            .participants
+            .connected()
+            .ids()
+            .filter(|p| participants.contains(p))
+            .collect();
+        let unknown_participants: BTreeSet<_> = participants
+            .difference(&known_participants)
+            .copied()
+            .collect();
+
+        if !unknown_participants.is_empty() {
+            ctx.send_ws_message(
+                [sender],
+                ModerationEvent::Error(ModerationError::UnknownParticipants {
+                    participants: unknown_participants,
+                }),
+            )?;
+        }
+
+        if known_participants.is_empty() {
+            // No participants to mute
+            return Ok(());
+        }
+
+        let (tx, rx) = oneshot::channel();
+        ctx.send_internal_command::<LiveKitModule>(LiveKitInternal::Mute {
+            sender: Some(sender),
+            participants,
+            return_channel: tx,
+        });
+
+        ctx.recv_loopback(rx, ModerationLoopback::Mute);
+
+        Ok(())
+    }
+
     fn update_microphone_restrictions(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
@@ -336,7 +407,7 @@ impl ModerationModule {
             return_channel: tx,
         });
 
-        ctx.recv_loopback(rx, |result| result);
+        ctx.recv_loopback(rx, ModerationLoopback::MicrophoneRestrictionsUpdated);
 
         Ok(())
     }
@@ -345,9 +416,17 @@ impl ModerationModule {
     pub fn notify_microphone_restrictions_updated(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        microphone_restrictions: &MicrophoneRestrictionState,
+        result: Result<MicrophoneRestrictionState, MicrophoneRestrictionError>,
     ) -> Result<(), SignalingModuleError<ModerationError>> {
-        match microphone_restrictions {
+        let state = match result {
+            Ok(state) => state,
+            Err(err) => {
+                ctx.send_ws_message([err.sender], ModerationEvent::Error(err.error.into()))?;
+                return Ok(());
+            }
+        };
+
+        match state {
             MicrophoneRestrictionState::Disabled => {
                 ctx.send_ws_message(
                     ctx.participants.connected().room(ctx.room).ids(),
