@@ -29,3 +29,5 @@ pub const TOGGLE_LIVEKIT_WINDOW_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::L);
 pub const TOGGLE_BREAKOUT_WINDOW_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::B);
+pub const TOGGLE_TIMER_WINDOW_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::T);

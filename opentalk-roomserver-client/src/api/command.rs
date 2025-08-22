@@ -51,7 +51,7 @@ impl From<SignalingModuleCommand> for SignalingCommand {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "namespace", content = "content", rename_all = "snake_case")]
+#[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
 pub enum SignalingModuleCommand {
     Core(CoreCommand),
     Breakout(BreakoutCommand),
@@ -127,7 +127,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "core",
-          "content": {
+          "payload": {
             "action": "enter_room"
           }
         }
@@ -145,7 +145,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "breakout",
-          "content": {
+          "payload": {
             "action": "stop"
           }
         }
@@ -167,7 +167,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "chat",
-          "content": {
+          "payload": {
             "action": "disable_chat"
           }
         }
@@ -189,7 +189,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "echo",
-          "content": {
+          "payload": {
             "action": "ping"
           }
         }
@@ -211,7 +211,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "livekit",
-          "content": {
+          "payload": {
             "action": "create_new_access_token"
           }
         }
@@ -238,7 +238,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "timer",
-          "content": {
+          "payload": {
             "action": "start",
             "kind": "stopwatch",
             "style": null,
@@ -269,7 +269,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "polls",
-          "content": {
+          "payload": {
             "action": "vote",
             "poll_id": "00000000-0000-0000-0000-000000000000",
             "choice_id": 0
@@ -297,7 +297,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "meeting_report",
-          "content": {
+          "payload": {
             "action": "generate_attendance_report",
             "include_email_addresses": false
           }
@@ -318,7 +318,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "moderation",
-          "content": {
+          "payload": {
             "action": "accept",
             "target": "00000000-0000-0000-0000-000000000000"
           }
@@ -337,7 +337,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "namespace": "raise_hands",
-          "content": {
+          "payload": {
             "action": "raise_hand"
           }
         }
