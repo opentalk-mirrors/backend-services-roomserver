@@ -202,7 +202,7 @@ lint:justfile:
 lint:docs-generated-parts:
   stage: lint
   image:
-    name: git.opentalk.dev:5050/opentalk/tools/opentalk-ci-doc-updater:v0.1.0
+    name: git.opentalk.dev:5050/opentalk/tools/opentalk-ci-doc-updater:v0.2.0
     entrypoint: ['']
   needs:
     - job: build
