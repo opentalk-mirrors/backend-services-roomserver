@@ -28,6 +28,16 @@ pub enum ModerationError {
         /// A list of participants that are currently not part of the meeting.
         participants: BTreeSet<ParticipantId>,
     },
+    /// The participant is already banned
+    AlreadyBanned,
+    /// The participant is already unbanned
+    AlreadyUnbanned,
+    /// Can't ban the room owner
+    CannotBanRoomOwner,
+    /// Can't ban guests
+    CannotBanGuests,
+    /// Cannot ban oneself
+    CannotBanSelf,
     /// The participant is not in the waiting room
     NotWaiting,
     /// The participant cannot enter the room because they were not accepted by a moderator yet.

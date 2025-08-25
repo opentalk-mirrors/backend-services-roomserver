@@ -242,42 +242,6 @@ impl std::fmt::Debug for Context {
     }
 }
 
-impl Context {
-    /// Spawn the room task from the given room parameters
-    ///
-    /// If the room is already running, the rooms idle timeout is refreshed and the given RoomParameters will be ignored
-    async fn prepare_room(
-        &self,
-        room_id: RoomId,
-        room_parameters: RoomParameters,
-    ) -> Result<(), ApiError> {
-        let Some(room_handle) = self
-            .room_tasks
-            .create_or_get(
-                room_id,
-                room_parameters.into(),
-                Arc::clone(&self.module_registry),
-                Arc::clone(&self.settings),
-                self.app_state.subscribe(),
-            )
-            .await
-        else {
-            // room has been created
-            return Ok(());
-        };
-
-        // refresh the idle timeout of the existing room to avoid race conditions
-        if let Err(e) = room_handle.refresh_idle_timeout().await {
-            // This can only fail if the rooms idle timeout has been reached or the room has been manually removed
-            tracing::error!("Failed to refresh idle timeout of room {room_id}: {e}");
-
-            return Err(ApiError::internal());
-        }
-
-        Ok(())
-    }
-}
-
 impl Backend for Context {}
 
 #[async_trait]
@@ -319,14 +283,52 @@ impl RoomBackend for Context {
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
     ) -> Result<Option<Token>, opentalk_types_api_v1::error::ApiError> {
-        match room_parameters {
-            Some(parameters) => self.prepare_room(room_id, parameters).await?,
-            None => {
-                let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
-                    return Ok(None);
-                };
+        let task_handle = self.room_tasks.get_task_handle(&room_id).await;
 
-                task_handle.refresh_idle_timeout().await?;
+        match (task_handle, room_parameters) {
+            // Room doesn't exist and no parameters were provided
+            (None, None) => return Ok(None),
+
+            // Room needs to be created
+            (None, Some(parameters)) => {
+                self.room_tasks
+                    .create_if_not_exists(
+                        room_id,
+                        parameters.into(),
+                        Arc::clone(&self.module_registry),
+                        Arc::clone(&self.settings),
+                        self.app_state.subscribe(),
+                    )
+                    .await;
+            }
+
+            // Room already exists
+            (Some(task_handle), _) => {
+                // refresh the idle timeout of the room
+                if let Err(e) = task_handle.refresh_idle_timeout().await {
+                    tracing::error!("Failed to refresh idle timeout of room {room_id}: {e}");
+                    return Err(ApiError::internal().with_message("Failed to refresh idle timeout"));
+                }
+
+                // Ensure the user isn't banned
+                if let Some(user_id) = client_parameters.kind.user_id() {
+                    let is_banned = match task_handle.is_banned(user_id).await {
+                        Ok(is_banned) => is_banned,
+                        Err(e) => {
+                            tracing::error!(
+                                "Failed to check ban status of participant {user_id} for room {room_id}: {e}"
+                            );
+                            return Err(ApiError::internal()
+                                .with_message("Failed to check the users ban status"));
+                        }
+                    };
+
+                    if is_banned {
+                        return Err(ApiError::forbidden()
+                            .with_code("banned")
+                            .with_message("User is banned from this room"));
+                    }
+                }
             }
         }
 

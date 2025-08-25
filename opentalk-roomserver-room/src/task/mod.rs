@@ -59,11 +59,13 @@ use std::{
     time::Duration,
 };
 
+use anyhow::Context;
 use breakout::state::BreakoutState;
 use chrono::Utc;
 use futures::stream::{FuturesUnordered, StreamExt};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
+    banned_participant::BannedParticipant,
     event_origin::{EventOrigin, ParticipantOrigin},
     instruction::Instruction,
     internal_module_message::InterModuleMessage,
@@ -160,6 +162,9 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 
     /// Collection of participants in the waiting room.
     waiting_participants: HashMap<ParticipantId, WaitingParticipant>,
+
+    /// Set of participants that are banned from the room
+    banned_participants: HashMap<ParticipantId, BannedParticipant>,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -239,6 +244,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 modules,
                 storage,
                 waiting_participants: HashMap::new(),
+                banned_participants: HashMap::new(),
             };
 
             room_task.run().await;
@@ -273,7 +279,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         return Ok(());
                     };
 
-                    self.handle_api_request(msg)?;
+                    if let Err(e) = self.handle_api_request(msg).await {
+                        tracing::error!("Failed to handle room task api request: {e:?}")
+                    }
                 },
                 msg = self.message_router.recv() => {
                     tracing::trace!("received {msg:?}");
@@ -310,26 +318,46 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(skip_all, parent = &msg.span, fields(opentalk.room_id = %self.info.room_id))]
-    fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> anyhow::Result<()> {
-        let api_response = match msg.request {
-            Request::RefreshIdleTimeout => {
+    async fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> anyhow::Result<()> {
+        match msg.request {
+            Request::RefreshIdleTimeout { response } => {
                 self.refresh_idle_timeout();
-                Ok(())
+                response
+                    .send(Ok(()))
+                    .ok()
+                    .context("Failed to respond to RefreshIdleTimeout, response channel dropped")?;
             }
-            Request::UpdateParameter(room_parameters) => {
-                self.update_parameter(*room_parameters);
-                Err(RoomTaskApiError::NotImplemented)
+            Request::UpdateParameter {
+                response: response_tx,
+                parameters,
+            } => {
+                self.update_parameter(*parameters);
+                response_tx
+                    .send(Err(RoomTaskApiError::NotImplemented))
+                    .ok()
+                    .context("Failed to respond to UpdateParameter, response channel dropped")?;
+            }
+            Request::IsBanned { response, user_id } => {
+                let participant_id = ParticipantId::from(Uuid::from(user_id));
+
+                response
+                    .send(Ok(self.banned_participants.contains_key(&participant_id)))
+                    .ok()
+                    .context("Failed to respond to IsBanned, response channel dropped")?;
             }
             Request::WsJoin {
+                response,
                 socket,
                 client_parameters,
             } => {
                 self.ws_join(socket, client_parameters);
-                Ok(())
+
+                response
+                    .send(Ok(()))
+                    .ok()
+                    .context("Failed to respond to WsJoin, response channel dropped")?;
             }
         };
-
-        let _ = msg.response_channel.send(api_response);
 
         Ok(())
     }
@@ -362,6 +390,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.info,
             &mut self.participants,
             &mut self.waiting_participants,
+            &mut self.banned_participants,
             msg.timestamp,
             Arc::clone(&self.storage),
             &mut messages,
@@ -447,6 +476,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.info,
             &mut self.participants,
             &mut self.waiting_participants,
+            &mut self.banned_participants,
             timestamp,
             Arc::clone(&self.storage),
             &mut messages,
@@ -469,6 +499,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         match instruction {
             Instruction::Kick { participants } => {
                 self.kick_participants(origin, participants);
+            }
+            Instruction::Ban { participant } => {
+                self.ban_participants(origin, participant);
+            }
+            Instruction::BanWaiting { participant } => {
+                self.ban_waiting_participants(participant);
             }
             Instruction::MoveToWaitingRoom { participant } => {
                 self.move_to_waiting_room(participant);
@@ -493,6 +529,33 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     CloseReason::Kicked,
                 );
             }
+        }
+    }
+
+    fn ban_participants(&mut self, origin: EventOrigin, participant_id: ParticipantId) {
+        let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
+            tracing::error!("Failed to ban participant, {participant_id} does not exist");
+            return;
+        };
+
+        let connections: Vec<ConnectionId> = state.connections().collect();
+
+        for connection_id in connections {
+            self.disconnect_participant(origin, participant_id, connection_id, CloseReason::Banned);
+        }
+    }
+
+    fn ban_waiting_participants(&mut self, participant_id: ParticipantId) {
+        let Some(waiting_participant) = self.waiting_participants.get(&participant_id) else {
+            tracing::error!("Failed to ban participant, {participant_id} does not exist");
+            return;
+        };
+
+        let connections: Vec<ConnectionId> =
+            waiting_participant.connections.keys().cloned().collect();
+
+        for connection_id in connections {
+            self.disconnect_waiting_participant(participant_id, connection_id);
         }
     }
 
@@ -624,6 +687,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.info,
             &mut self.participants,
             &mut self.waiting_participants,
+            &mut self.banned_participants,
             timestamp,
             Arc::clone(&self.storage),
             &mut messages,

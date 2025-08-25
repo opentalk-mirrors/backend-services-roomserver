@@ -5,7 +5,7 @@ use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{core::CoreEvent, disconnect_reason::DisconnectReason};
 use opentalk_roomserver_types_moderation::{
-    command::{Kick, ModerationCommand},
+    command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::CloseFrame;
@@ -22,9 +22,9 @@ async fn insufficient_permissions() {
 
     // Bob tries to kick charlie
     bob.send_command::<ModerationModule>(
-        ModerationCommand::Kick(Kick {
+        ModerationCommand::Kick {
             target: charlie.id(),
-        }),
+        },
         None,
     )
     .await
@@ -47,9 +47,9 @@ async fn unknown_participant() {
 
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::Kick(Kick {
+            ModerationCommand::Kick {
                 target: ParticipantId::from_u128(0xb0b),
-            }),
+            },
             None,
         )
         .await
@@ -72,7 +72,7 @@ async fn kick_participant() {
     flush_connected_events(&mut [&mut alice]).await;
 
     alice
-        .send_command::<ModerationModule>(ModerationCommand::Kick(Kick { target: bob.id() }), None)
+        .send_command::<ModerationModule>(ModerationCommand::Kick { target: bob.id() }, None)
         .await
         .unwrap();
 

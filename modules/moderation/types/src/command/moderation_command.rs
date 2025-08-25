@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     KickScope,
-    command::{ChangeDisplayName, Kick, SendToWaitingRoom},
+    command::{ChangeDisplayName, SendToWaitingRoom},
     event::ModerationEvent,
 };
 
@@ -21,7 +21,13 @@ use crate::{
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum ModerationCommand {
     /// Kick a participant from the room
-    Kick(Kick),
+    Kick { target: ParticipantId },
+
+    /// Ban a participant from the room
+    Ban { target: ParticipantId },
+
+    /// Unban a banned participant
+    Unban { target: ParticipantId },
 
     /// Start the debriefing
     Debrief(KickScope),
@@ -67,12 +73,6 @@ pub struct Accept {
     pub target: ParticipantId,
 }
 
-impl From<Kick> for ModerationCommand {
-    fn from(value: Kick) -> Self {
-        Self::Kick(value)
-    }
-}
-
 impl From<ChangeDisplayName> for ModerationCommand {
     fn from(value: ChangeDisplayName) -> Self {
         Self::ChangeDisplayName(value)
@@ -97,9 +97,9 @@ mod serde_tests {
 
     #[test]
     fn serialize_kick() {
-        let cmd = ModerationCommand::Kick(Kick {
+        let cmd = ModerationCommand::Kick {
             target: ParticipantId::nil(),
-        });
+        };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
         {
@@ -117,9 +117,67 @@ mod serde_tests {
         });
 
         let produced: ModerationCommand = serde_json::from_value(json).unwrap();
-        let expected = ModerationCommand::Kick(Kick {
+        let expected = ModerationCommand::Kick {
             target: ParticipantId::nil(),
+        };
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_ban() {
+        let cmd = ModerationCommand::Ban {
+            target: ParticipantId::nil(),
+        };
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "ban",
+          "target": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_ban() {
+        let json = json!({
+            "action": "ban",
+            "target": "00000000-0000-0000-0000-000000000000"
         });
+
+        let produced: ModerationCommand = serde_json::from_value(json).unwrap();
+        let expected = ModerationCommand::Ban {
+            target: ParticipantId::nil(),
+        };
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_unban() {
+        let cmd = ModerationCommand::Unban {
+            target: ParticipantId::nil(),
+        };
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "unban",
+          "target": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_unban() {
+        let json = json!({
+            "action": "unban",
+            "target": "00000000-0000-0000-0000-000000000000"
+        });
+
+        let produced: ModerationCommand = serde_json::from_value(json).unwrap();
+        let expected = ModerationCommand::Unban {
+            target: ParticipantId::nil(),
+        };
 
         assert_eq!(produced, expected);
     }

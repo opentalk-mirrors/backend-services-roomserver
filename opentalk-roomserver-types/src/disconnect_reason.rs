@@ -13,6 +13,8 @@ pub enum DisconnectReason {
     ConnectionLost,
     /// The participant was kicked by a moderator
     Kicked,
+    /// The participant was banned from the room
+    Banned,
     /// The participant was sent to the waiting room
     SentToWaitingRoom,
     /// The participant was removed due to an internal error

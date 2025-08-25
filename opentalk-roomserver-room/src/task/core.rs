@@ -294,6 +294,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     &mut self.info,
                     &mut self.participants,
                     &mut self.waiting_participants,
+                    &mut self.banned_participants,
                     timestamp,
                     Arc::clone(&self.storage),
                     &mut messages,
