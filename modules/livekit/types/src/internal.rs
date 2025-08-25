@@ -19,6 +19,4 @@ pub enum LiveKitInternal {
     },
 }
 
-impl InternalCommand for LiveKitInternal {
-    type Result = ();
-}
+impl InternalCommand for LiveKitInternal {}

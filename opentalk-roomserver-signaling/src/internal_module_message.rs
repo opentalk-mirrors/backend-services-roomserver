@@ -19,7 +19,4 @@ pub struct InterModuleMessage {
     /// [`SignalingModule::Internal`](crate::signaling_module::SignalingModule::Internal)
     /// type.
     pub command: Box<dyn Any + Send + 'static>,
-    /// A callback that is used to send the result of the [`command`](Self::command)
-    /// back to the [`sender`](Self::sender).
-    pub result_callback: ResultCallback,
 }

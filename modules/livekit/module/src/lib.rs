@@ -214,10 +214,10 @@ impl SignalingModule for LiveKitModule {
     }
 
     fn on_internal_command(
-            &mut self,
-            ctx: &mut ModuleContext<'_, Self>,
-            command: Self::Internal,
-    ) -> Result<<Self::Internal as opentalk_roomserver_signaling::signaling_module::InternalCommand>::Result, SignalingModuleError<Self::Error>>{
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        command: Self::Internal,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
         match command {
             LiveKitInternal::Mute {
                 sending_module,

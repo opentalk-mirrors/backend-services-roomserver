@@ -458,7 +458,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             DynEvent::InternalCommand {
                 sender: command.sender,
                 command: command.command,
-                return_result: command.result_callback,
             },
         ) {
             self.handle_fatal_module_error(command.receiver, origin.transaction_id(), err)

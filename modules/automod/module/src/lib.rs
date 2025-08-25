@@ -290,13 +290,10 @@ impl AutomodModule {
             ),
         )?;
 
-        ctx.send_internal_command::<LiveKitModule>(
-            LiveKitInternal::Mute {
-                sending_module: Self::NAMESPACE,
-                participants: ctx.participants.in_room(ctx.room).ids().collect(),
-            },
-            |_| {},
-        );
+        ctx.send_internal_command::<LiveKitModule>(LiveKitInternal::Mute {
+            sending_module: Self::NAMESPACE,
+            participants: ctx.participants.in_room(ctx.room).ids().collect(),
+        });
 
         Ok(())
     }
@@ -490,18 +487,15 @@ impl AutomodModule {
         previous_speaker: Option<ParticipantId>,
     ) -> Result<(), FatalError> {
         // Mute all participants when the speaker is changed
-        ctx.send_internal_command::<LiveKitModule>(
-            LiveKitInternal::Mute {
-                sending_module: Self::NAMESPACE,
-                participants: ctx
-                    .participants
-                    .in_room(ctx.room)
-                    .connected()
-                    .ids()
-                    .collect(),
-            },
-            |_| {},
-        );
+        ctx.send_internal_command::<LiveKitModule>(LiveKitInternal::Mute {
+            sending_module: Self::NAMESPACE,
+            participants: ctx
+                .participants
+                .in_room(ctx.room)
+                .connected()
+                .ids()
+                .collect(),
+        });
 
         let update = match output {
             StateMachineOutput::ContinueWith { update } => update,

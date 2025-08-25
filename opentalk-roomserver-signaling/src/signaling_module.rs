@@ -144,8 +144,7 @@ pub trait SignalingModule: Send + Sync + Sized {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         command: Self::Internal,
-    ) -> Result<<Self::Internal as InternalCommand>::Result, SignalingModuleError<Self::Error>>
-    {
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
         Err(anyhow!(
             "Received internal command in module {} that does not support internal commands",
             Self::NAMESPACE
@@ -165,15 +164,11 @@ pub trait CreateReplica<T> {
 }
 
 /// Trait that allows dynamic dispatch of [`SignalingModule::Internal`]
-pub trait InternalCommand: Send + 'static {
-    type Result: Send + 'static;
-}
+pub trait InternalCommand: Send + 'static {}
 
 pub enum NoOp {}
 
-impl InternalCommand for NoOp {
-    type Result = NoOp;
-}
+impl InternalCommand for NoOp {}
 
 pub struct ModuleJoinData<M: SignalingModule> {
     /// Module specific data that will be attached to the participants `JoinSuccess` message
