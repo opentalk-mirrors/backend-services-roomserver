@@ -4,6 +4,8 @@
 
 //! Signaling commands for the `moderation` namespace
 
+use std::collections::BTreeSet;
+
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
@@ -38,6 +40,18 @@ pub enum ModerationCommand {
 
     /// Accept a participant from the waiting room into the meeting
     Accept(Accept),
+
+    /// Enables the microphone restriction state where only the participants that are part of the
+    /// `unrestricted_participants` are allowed to unmute themselves. This will mute all
+    ///  participants who are not allowed to unmute themselves, but are currently not muted.
+    EnableMicrophoneRestrictions {
+        /// Participants that are still allowed to unmute
+        unrestricted_participants: BTreeSet<ParticipantId>,
+    },
+
+    /// Disable the microphone restriction state which will allow all participants
+    /// to unmute their microphone again.
+    DisableMicrophoneRestrictions,
 }
 
 /// Accept a participant into the meeting

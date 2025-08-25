@@ -3,8 +3,9 @@
 
 use std::{collections::HashMap, mem};
 
+use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_signaling::{
-    module_context::ModuleContext,
+    module_context::{ChannelDroppedError, ModuleContext},
     participant_state::ParticipantState,
     signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
 };
@@ -12,6 +13,9 @@ use opentalk_roomserver_types::{
     client_parameters::ClientKind,
     connection_id::ConnectionId,
     signaling::module_error::{FatalError, SignalingModuleError},
+};
+use opentalk_roomserver_types_livekit::{
+    LiveKitInternal, MicrophoneRestrictionError, MicrophoneRestrictionState,
 };
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
@@ -21,6 +25,7 @@ use opentalk_roomserver_types_moderation::{
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
+use tokio::sync::oneshot;
 
 pub struct ModerationModule;
 
@@ -33,7 +38,8 @@ impl SignalingModule for ModerationModule {
 
     type Internal = NoOp;
 
-    type Loopback = ();
+    type Loopback =
+        Result<Result<MicrophoneRestrictionState, MicrophoneRestrictionError>, ChannelDroppedError>;
 
     type JoinInfo = ModerationState;
 
@@ -105,7 +111,40 @@ impl SignalingModule for ModerationModule {
             ModerationCommand::ChangeDisplayName(ChangeDisplayName { new_name, target }) => {
                 self.change_display_name(ctx, sender, new_name, target)
             }
+            ModerationCommand::EnableMicrophoneRestrictions {
+                unrestricted_participants,
+            } => self.update_microphone_restrictions(
+                ctx,
+                sender,
+                MicrophoneRestrictionState::Enabled {
+                    unrestricted_participants,
+                },
+            ),
+            ModerationCommand::DisableMicrophoneRestrictions => self
+                .update_microphone_restrictions(ctx, sender, MicrophoneRestrictionState::Disabled),
         }
+    }
+
+    fn on_loopback_event(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        event: Self::Loopback,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        let Ok(event) = event else {
+            ctx.send_ws_message(
+                ctx.participants.in_room(ctx.room).ids(),
+                ModerationEvent::Error(ModerationError::Internal),
+            )?;
+            return Ok(());
+        };
+
+        match event {
+            Ok(state) => self.notify_microphone_restrictions_updated(ctx, &state)?,
+            Err(MicrophoneRestrictionError { sender, error }) => {
+                ctx.send_ws_message([sender], ModerationEvent::Error(error.into()))?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -275,6 +314,60 @@ impl ModerationModule {
                 new_name,
             }),
         )?;
+
+        Ok(())
+    }
+
+    fn update_microphone_restrictions(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        new_state: MicrophoneRestrictionState,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        let (tx, rx) = oneshot::channel();
+
+        ctx.send_internal_command::<LiveKitModule>(LiveKitInternal::UpdateMicrophoneRestrictions {
+            sender,
+            new_state,
+            return_channel: tx,
+        });
+
+        ctx.recv_loopback(rx, |result| result);
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip(self, ctx), fields(room= ?ctx.room))]
+    pub fn notify_microphone_restrictions_updated(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        microphone_restrictions: &MicrophoneRestrictionState,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        match microphone_restrictions {
+            MicrophoneRestrictionState::Disabled => {
+                ctx.send_ws_message(
+                    ctx.participants.connected().room(ctx.room).ids(),
+                    ModerationEvent::MicrophoneRestrictionsDisabled,
+                )?;
+            }
+            MicrophoneRestrictionState::Enabled {
+                unrestricted_participants,
+            } => {
+                ctx.send_ws_message(
+                    ctx.participants.connected().room(ctx.room).ids(),
+                    ModerationEvent::MicrophoneRestrictionsEnabled {
+                        unrestricted_participants: unrestricted_participants
+                            .iter()
+                            .copied()
+                            .collect(),
+                    },
+                )?;
+            }
+        }
 
         Ok(())
     }

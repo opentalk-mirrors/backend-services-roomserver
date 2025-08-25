@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_types::signaling::module_error::ModuleError;
+use opentalk_roomserver_types_livekit::MicrophoneRestrictionErrorKind;
 use serde::{Deserialize, Serialize};
 
 /// Error from the `moderation` module namespace
@@ -23,6 +24,21 @@ pub enum ModerationError {
     NotAccepted,
     /// Cannot send the room owner to the waiting room
     CannotSendRoomOwnerToWaitingRoom,
+    /// An internal error occurred
+    Internal,
+    ConflictingTask,
+    LivekitUnavailable,
+}
+
+impl From<MicrophoneRestrictionErrorKind> for ModerationError {
+    fn from(err: MicrophoneRestrictionErrorKind) -> Self {
+        match err {
+            MicrophoneRestrictionErrorKind::ConflictingTask => ModerationError::ConflictingTask,
+            MicrophoneRestrictionErrorKind::LivekitUnavailable => {
+                ModerationError::LivekitUnavailable
+            }
+        }
+    }
 }
 
 impl ModuleError for ModerationError {}

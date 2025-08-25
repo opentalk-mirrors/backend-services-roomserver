@@ -5916,13 +5916,18 @@ dependencies = [
 name = "opentalk-roomserver-module-moderation"
 version = "0.0.6-dev"
 dependencies = [
+ "livekit",
+ "opentalk-roomserver-mocking-livekit",
+ "opentalk-roomserver-module-livekit",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-moderation",
  "opentalk-roomserver-web-api",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "pretty_assertions",
  "serde_json",
  "test-log",
  "tokio",
@@ -6166,6 +6171,7 @@ dependencies = [
  "opentalk-types-signaling",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -6188,6 +6194,7 @@ dependencies = [
  "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-types-livekit",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",

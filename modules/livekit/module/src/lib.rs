@@ -8,11 +8,12 @@ use std::{
     time::Duration,
 };
 
+use anyhow::anyhow;
 use futures::{StreamExt as _, stream};
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
 use opentalk_roomserver_signaling::{
-    module_context::ModuleContext,
+    module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, SignalingModule, SignalingModuleInitData,
     },
@@ -23,13 +24,14 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_livekit::{
     LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitInternal, LiveKitSettings, LiveKitState,
-    MicrophoneRestrictionState, ModeratorOrModule,
+    MicrophoneRestrictionError, MicrophoneRestrictionState, ModeratorOrModule,
 };
 use opentalk_types_common::{
     modules::{ModuleId, module_id},
     rooms::RoomId,
 };
 use opentalk_types_signaling::ParticipantId;
+use tokio::sync::oneshot;
 use tracing::{Instrument, Span};
 
 use crate::{loopback::LiveKitLoopback, room::LiveKitSubroom};
@@ -162,22 +164,6 @@ impl SignalingModule for LiveKitModule {
             LiveKitCommand::RevokeScreenSharePermission { participants } => {
                 self.set_screenshare_permissions(ctx, sender, participants, false)
             }
-            LiveKitCommand::EnableMicrophoneRestrictions(unrestricted_participants) => self
-                .update_microphone_restrictions(
-                    ctx,
-                    sender,
-                    MicrophoneRestrictionState::Enabled {
-                        unrestricted_participants: unrestricted_participants
-                            .unrestricted_participants
-                            .into_iter()
-                            .collect(),
-                    },
-                ),
-            LiveKitCommand::DisableMicrophoneRestrictions => self.update_microphone_restrictions(
-                ctx,
-                sender,
-                MicrophoneRestrictionState::Disabled,
-            ),
             LiveKitCommand::RequestPopoutStreamAccessToken => {
                 self.issue_popout_stream_access_token(ctx, sender, connection_id)
             }
@@ -207,9 +193,6 @@ impl SignalingModule for LiveKitModule {
                 participants,
                 grant,
             } => self.notify_screen_share_permission_update(ctx, sender, participants, grant),
-            LiveKitLoopback::UpdatedMicrophoneRestrictions { .. } => {
-                self.notify_microphone_restrictions_updated(ctx)
-            }
         }
     }
 
@@ -223,6 +206,11 @@ impl SignalingModule for LiveKitModule {
                 sending_module,
                 participants,
             } => self.mute(ctx, sending_module.into(), participants),
+            LiveKitInternal::UpdateMicrophoneRestrictions {
+                sender,
+                new_state,
+                return_channel,
+            } => self.update_microphone_restrictions(ctx, sender, new_state, return_channel),
         }
     }
 
@@ -346,13 +334,13 @@ impl LiveKitModule {
     fn mute(
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
-        sender: ModeratorOrModule,
+        origin: ModeratorOrModule,
         participants: BTreeSet<ParticipantId>,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
         let Some(room) = self.rooms.get(&ctx.room) else {
             return Err(anyhow::anyhow!("Unknown room").into());
         };
-        room.mute(ctx, sender, participants)?;
+        room.mute(ctx, origin, participants)?;
 
         Ok(())
     }
@@ -428,21 +416,19 @@ impl LiveKitModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         new_state: MicrophoneRestrictionState,
+        return_channel: oneshot::Sender<
+            Result<MicrophoneRestrictionState, MicrophoneRestrictionError>,
+        >,
     ) -> Result<(), SignalingModuleError<LiveKitError>> {
         let Some(room) = self.rooms.get_mut(&ctx.room) else {
             return Err(anyhow::anyhow!("Unknown room").into());
         };
-        room.update_microphone_restrictions(ctx, sender, new_state)
-    }
-
-    fn notify_microphone_restrictions_updated(
-        &mut self,
-        ctx: &mut ModuleContext<'_, LiveKitModule>,
-    ) -> Result<(), SignalingModuleError<LiveKitError>> {
-        let Some(room) = self.rooms.get_mut(&ctx.room) else {
-            return Err(anyhow::anyhow!("Unknown room").into());
-        };
-        room.notify_microphone_restrictions_updated(ctx)
+        room.update_microphone_restrictions(ctx, sender, new_state, return_channel)
+            .map_err(|ChannelDroppedError| {
+                SignalingModuleError::Internal(anyhow!(
+                    "Channel dropped when restricting microphone permissions"
+                ))
+            })
     }
 }
 

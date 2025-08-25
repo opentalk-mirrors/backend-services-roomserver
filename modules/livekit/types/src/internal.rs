@@ -6,9 +6,12 @@ use std::collections::BTreeSet;
 use opentalk_roomserver_signaling::signaling_module::InternalCommand;
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
+use tokio::sync::oneshot;
+
+use crate::MicrophoneRestrictionState;
 
 /// Internal LiveKit commands that can be sent by other modules
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum LiveKitInternal {
     /// Mutes participants
     Mute {
@@ -17,6 +20,35 @@ pub enum LiveKitInternal {
         /// The participants that should get muted
         participants: BTreeSet<ParticipantId>,
     },
+
+    /// Enables or disables microphone restriction state
+    UpdateMicrophoneRestrictions {
+        /// The original sender of the command
+        sender: ParticipantId,
+        /// The new microphone restriction state
+        new_state: MicrophoneRestrictionState,
+        /// The return channel for the result of the operation
+        return_channel:
+            oneshot::Sender<Result<MicrophoneRestrictionState, MicrophoneRestrictionError>>,
+    },
+}
+
+/// The type of error that can occur when updating the microphone restriction state
+#[derive(Debug)]
+pub enum MicrophoneRestrictionErrorKind {
+    /// The received command cannot be executed since there is already a conflicting ongoing task.
+    ConflictingTask,
+    /// Livekit server is not available
+    LivekitUnavailable,
+}
+
+/// Internal error that can occur when updating the microphone restriction state
+#[derive(Debug)]
+pub struct MicrophoneRestrictionError {
+    /// The original sender of the command
+    pub sender: ParticipantId,
+    /// The type of error that occurred
+    pub error: MicrophoneRestrictionErrorKind,
 }
 
 impl InternalCommand for LiveKitInternal {}

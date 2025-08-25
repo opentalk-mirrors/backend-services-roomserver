@@ -14,7 +14,7 @@ use livekit_api::{
 };
 use livekit_protocol::TrackSource;
 use opentalk_roomserver_signaling::{
-    module_context::ModuleContext,
+    module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{ModuleJoinData, PeerDataMap, SignalingModule},
 };
 use opentalk_roomserver_types::{
@@ -22,11 +22,12 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_livekit::{
     Credentials, LiveKitError, LiveKitEvent, LiveKitSettings, LiveKitState,
-    MicrophoneRestrictionState, ModeratorOrModule, UnrestrictedParticipants,
+    MicrophoneRestrictionError, MicrophoneRestrictionErrorKind, MicrophoneRestrictionState,
+    ModeratorOrModule,
 };
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, oneshot};
 
 use crate::{
     ACCESS_TOKEN_TTL, LIVEKIT_MEDIA_SOURCES, LiveKitModule, build_livekit_participant_id, loopback,
@@ -179,11 +180,11 @@ impl LiveKitSubroom {
     pub fn mute(
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
-        sender: ModeratorOrModule,
+        origin: ModeratorOrModule,
         participants: BTreeSet<ParticipantId>,
     ) -> Result<(), SignalingModuleError<<LiveKitModule as SignalingModule>::Error>> {
         // Modules are required to check permissions themselves.
-        if let ModeratorOrModule::Moderator { moderator } = sender
+        if let ModeratorOrModule::Moderator { moderator } = origin
             && !ctx.is_moderator(moderator)
         {
             tracing::debug!(
@@ -206,7 +207,7 @@ impl LiveKitSubroom {
 
         let mut connections = ctx.participants.connections();
         connections.retain(|p, _| known_participants.contains(p));
-        Self::notify_unknown_participants(ctx, unknown_participants, sender.clone())?;
+        Self::notify_unknown_participants(ctx, unknown_participants, origin.clone())?;
 
         let room = ctx.room_id.to_string();
         let livekit_client: Arc<RoomClient> = Arc::clone(&self.livekit_client);
@@ -214,7 +215,7 @@ impl LiveKitSubroom {
         tracing::debug!("spawn background task to mute participants");
         ctx.spawn(loopback::mute_participants(
             livekit_client,
-            sender,
+            origin,
             connections,
             room,
         ));
@@ -303,19 +304,21 @@ impl LiveKitSubroom {
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         sender: ParticipantId,
         new_state: MicrophoneRestrictionState,
-    ) -> Result<(), SignalingModuleError<LiveKitError>> {
-        if !ctx.is_moderator(sender) {
-            tracing::debug!(
-                "Participant has insufficient permission to update microphone restrictions: {sender}"
-            );
-            return Err(LiveKitError::InsufficientPermissions.into());
-        }
+        return_channel: oneshot::Sender<
+            Result<MicrophoneRestrictionState, MicrophoneRestrictionError>,
+        >,
+    ) -> Result<(), ChannelDroppedError> {
         let local_lock = Arc::clone(&self.ongoing_microphone_restrictions);
         let Ok(guard) = local_lock.try_lock_owned() else {
             tracing::debug!(
                 "Received microphone restriction request during ongoing restriction update"
             );
-            return Err(LiveKitError::ConflictingTask.into());
+            return return_channel
+                .send(Err(MicrophoneRestrictionError {
+                    sender,
+                    error: MicrophoneRestrictionErrorKind::ConflictingTask,
+                }))
+                .map_err(|_| ChannelDroppedError);
         };
 
         let room = self.identifier().to_string();
@@ -325,7 +328,7 @@ impl LiveKitSubroom {
         // update the state now so that the rule is already applied to new participants.
         self.microphone_restrictions = new_state.clone();
 
-        ctx.spawn({
+        ctx.spawn_optional({
             loopback::update_restricted_microphones(
                 livekit_client,
                 room,
@@ -335,39 +338,12 @@ impl LiveKitSubroom {
             )
             .map(move |res| {
                 drop(guard);
-                res
+                if return_channel.send(res).is_err() {
+                    tracing::error!("Channel dropped when sending microphone restriction result");
+                }
+                None
             })
         });
-
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, ctx), fields(room = self.subroom_id))]
-    pub fn notify_microphone_restrictions_updated(
-        &mut self,
-        ctx: &mut ModuleContext<'_, LiveKitModule>,
-    ) -> Result<(), SignalingModuleError<LiveKitError>> {
-        match &self.microphone_restrictions {
-            MicrophoneRestrictionState::Disabled => {
-                ctx.send_ws_message(
-                    ctx.participants.connected().room(ctx.room).ids(),
-                    LiveKitEvent::MicrophoneRestrictionsDisabled,
-                )?;
-            }
-            MicrophoneRestrictionState::Enabled {
-                unrestricted_participants,
-            } => {
-                ctx.send_ws_message(
-                    ctx.participants.connected().room(ctx.room).ids(),
-                    LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
-                        unrestricted_participants: unrestricted_participants
-                            .iter()
-                            .copied()
-                            .collect(),
-                    }),
-                )?;
-            }
-        }
 
         Ok(())
     }

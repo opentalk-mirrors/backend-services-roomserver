@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::collections::BTreeSet;
+
+use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use crate::event::{DebriefingStarted, DisplayNameChanged, ModerationError};
@@ -30,6 +33,17 @@ pub enum ModerationEvent {
 
     /// Sent to all participants when a participants display name gets changed
     DisplayNameChanged(DisplayNameChanged),
+
+    /// The moderator enabled the microphone-restriction-state. Only participants listed in
+    /// `unrestricted_participants` are able to unmute themselves.
+    MicrophoneRestrictionsEnabled {
+        /// Participants that are still allowed to unmute
+        unrestricted_participants: BTreeSet<ParticipantId>,
+    },
+
+    /// The moderator disabled the microphone-restriction-state.
+    /// Participants are allowed to unmute themselves again.
+    MicrophoneRestrictionsDisabled,
 
     /// An error happened when executing a `moderation` command
     Error(ModerationError),

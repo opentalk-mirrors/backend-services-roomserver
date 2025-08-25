@@ -6,10 +6,7 @@ use std::collections::BTreeSet;
 
 use opentalk_types_signaling::ParticipantId;
 
-use crate::{
-    Credentials, command::UnrestrictedParticipants, error::LiveKitError,
-    moderator_or_module::ModeratorOrModule,
-};
+use crate::{Credentials, error::LiveKitError, moderator_or_module::ModeratorOrModule};
 
 /// The events emitted for livekit
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -17,14 +14,6 @@ use crate::{
 pub enum LiveKitEvent {
     /// The credentials for a client to use livekit
     Credentials(Credentials),
-
-    /// The moderator enabled the microphone-restriction-state. Only participants listed in
-    /// [`UnrestrictedParticipants::unrestricted_participants`] are able to unmute themselves.
-    MicrophoneRestrictionsEnabled(UnrestrictedParticipants),
-
-    /// The moderator disabled the microphone-restriction-state.
-    /// Participants are allowed to unmute themselves again.
-    MicrophoneRestrictionsDisabled,
 
     /// The moderator has muted the participant.
     Muted(ModeratorOrModule),
