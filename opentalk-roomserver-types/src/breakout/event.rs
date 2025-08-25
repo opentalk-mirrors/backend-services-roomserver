@@ -21,10 +21,10 @@ pub enum BreakoutEvent {
         /// The configured breakout rooms
         rooms: Vec<BreakoutRoom>,
         /// Optional breakout expiry. When the breakout rooms expire, all participants are moved back to the main room
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         expires_at: Option<Timestamp>,
         /// The optional assignment for the receiving participant. This assignment is not enforced by the roomserver
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         assignment: Option<BreakoutId>,
     },
 

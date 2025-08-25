@@ -29,7 +29,7 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     error::SignalingError,
     room_kind::RoomKind,
-    shared_raw_json::SharedRawJson,
+    shared_json::SharedJson,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
@@ -79,8 +79,8 @@ pub enum DynBroadcastEvent<'evt> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         module_data: &'evt mut ModuleData,
-        peer_module_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedRawJson>>,
-        participant_state: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedRawJson>>,
+        peer_module_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
+        participant_state: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     },
 
     Disconnected {

@@ -10,13 +10,13 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
-    shared_raw_json::SharedRawJson,
+    shared_json::SharedJson,
     signaling::module_error::{FatalError, ModuleError, SignalingModuleError},
 };
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize};
-use serde_json::value::to_raw_value;
+use serde_json::to_value;
 
 use super::module_context::ModuleContext;
 use crate::participant_state::ParticipantState;
@@ -206,12 +206,12 @@ impl<M: SignalingModule> Default for JoinInfo<M> {
 /// When a `Joined` message is sent to a participant, the participants associated [`SignalingModule::PeerJoinInfo`] will
 /// be attached to it.
 pub struct PeerJoinInfoMap<M: SignalingModule> {
-    pub map: BTreeMap<ParticipantId, SharedRawJson>,
+    pub map: BTreeMap<ParticipantId, SharedJson>,
     _m: PhantomData<M>,
 }
 
 impl<M: SignalingModule> PeerJoinInfoMap<M> {
-    pub fn new(map: BTreeMap<ParticipantId, SharedRawJson>) -> Self {
+    pub fn new(map: BTreeMap<ParticipantId, SharedJson>) -> Self {
         Self {
             map,
             _m: PhantomData,
@@ -244,8 +244,8 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
         participant_id: ParticipantId,
         info: M::PeerJoinInfo,
     ) -> Result<(), FatalError> {
-        let raw_value = SharedRawJson::from(
-            to_raw_value(&info)
+        let raw_value = SharedJson::from(
+            to_value(&info)
                 .with_context(|| {
                     format!(
                         "Failed to serialize PeerJoinInfo for module '{}'",
@@ -271,7 +271,7 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
         F: FnMut(ParticipantId, &ParticipantState) -> bool,
     {
         // Lazily serialize the PeerJoinInfo into a json string
-        let mut raw_value: Option<SharedRawJson> = None;
+        let mut raw_value: Option<SharedJson> = None;
 
         for (participant_id, state) in ctx.participants.connected().iter() {
             if !filter(*participant_id, state) {
@@ -281,8 +281,8 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
             // Serialize the PeerJoinInfo if it hasn't already
             let raw_value = match &mut raw_value {
                 Some(raw_value) => raw_value,
-                None => raw_value.insert(SharedRawJson::from(
-                    to_raw_value(&info)
+                None => raw_value.insert(SharedJson::from(
+                    to_value(&info)
                         .with_context(|| {
                             format!(
                                 "Failed to serialize PeerJoinInfo for module '{}'",

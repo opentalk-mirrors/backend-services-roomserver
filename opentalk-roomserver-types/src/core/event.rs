@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     connection_id::ConnectionId, disconnect_reason::DisconnectReason,
-    join::join_success::JoinSuccess, shared_raw_json::SharedRawJson,
+    join::join_success::JoinSuccess, shared_json::SharedJson,
     signaling::module_error::SignalingModuleError,
 };
 
@@ -25,7 +25,7 @@ pub enum CoreEvent {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-        peer_join_info: BTreeMap<ModuleId, SharedRawJson>, // TODO: find a better name
+        peer_join_info: BTreeMap<ModuleId, SharedJson>, // TODO: find a better name
     },
 
     /// Broadcast message sent to all participants when a participant disconnected

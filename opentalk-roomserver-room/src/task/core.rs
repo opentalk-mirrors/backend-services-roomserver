@@ -19,7 +19,7 @@ use opentalk_roomserver_types::{
     },
     room_info::RoomInfo,
     room_kind::RoomKind,
-    shared_raw_json::SharedRawJson,
+    shared_json::SharedJson,
     signaling::module_error::FatalError,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
@@ -242,7 +242,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         client_kind: ClientKind,
         role: RoomserverClientRole,
         module_data: ModuleData,
-        mut participants_module_data: BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedRawJson>>,
+        mut participants_module_data: BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     ) -> JoinSuccess {
         let participants = self
             .participants
@@ -263,8 +263,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
                 module_peer_data.insert(
                     BREAKOUT_MODULE_ID,
-                    to_shared_raw_json(&self.breakout_peer_data(state))
-                        .expect("BreakoutPeerModuleData must be serializable"),
+                    serde_json::to_value(self.breakout_peer_data(state))
+                        .expect("BreakoutPeerModuleData must be serializable")
+                        .into(),
                 );
 
                 Participant {
@@ -346,11 +347,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 }
 
-fn to_shared_raw_json(value: &impl serde::Serialize) -> Result<SharedRawJson, serde_json::Error> {
-    let raw = serde_json::value::to_raw_value(value)?;
-    Ok(SharedRawJson::from(raw))
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
@@ -362,7 +358,7 @@ mod tests {
         device_id::DeviceId,
         join::{connection_info::ConnectionInfo, join_success::JoinSuccess},
         room_info::RoomInfo,
-        shared_raw_json::SharedRawJson,
+        shared_json::SharedJson,
     };
     use opentalk_types_common::{
         events::MeetingDetails,
@@ -375,7 +371,7 @@ mod tests {
     use opentalk_types_signaling::{ModuleData, ParticipantId, Role, SignalingModuleFrontendData};
     use pretty_assertions::assert_eq;
     use serde::{Deserialize, Serialize};
-    use serde_json::{json, value::to_raw_value};
+    use serde_json::json;
 
     use super::{CoreEvent, DisconnectReason};
 
@@ -682,12 +678,9 @@ mod tests {
         let mut peer_join_info = BTreeMap::new();
         peer_join_info.insert(
             module_id!("test"),
-            SharedRawJson::from(
-                to_raw_value(&json!({
-                    "key": "value"
-                }))
-                .unwrap(),
-            ),
+            SharedJson::from(json!({
+                "key": "value"
+            })),
         );
 
         let event = CoreEvent::ParticipantConnected {
