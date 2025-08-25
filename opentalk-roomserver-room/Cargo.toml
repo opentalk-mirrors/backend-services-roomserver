@@ -34,6 +34,7 @@ url.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
+insta.workspace = true
 pretty_assertions.workspace = true
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true, features = ["macros", "rt"] }
