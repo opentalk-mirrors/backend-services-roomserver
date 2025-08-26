@@ -352,9 +352,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_state.room = room;
         let connections: Vec<ConnectionId> = participant_state.connections().collect();
 
-        let mut module_data = BTreeMap::new();
-        let mut peer_event_data = BTreeMap::new();
-        let mut other_participant_data = BTreeMap::new();
+        let mut own_data = BTreeMap::new();
+        let mut peer_events = BTreeMap::new();
+        let mut peer_data = BTreeMap::new();
 
         let actions = self.broadcast_event_to_modules(
             origin,
@@ -363,15 +363,15 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 participant_id,
                 old_room: previous_room,
                 new_room: room,
-                module_data: &mut module_data,
-                other_participant_data: &mut other_participant_data,
-                peer_event_data: &mut peer_event_data,
+                own_data: &mut own_data,
+                peer_data: &mut peer_data,
+                peer_events: &mut peer_events,
             },
         );
 
         // send switched room event to all our connections
         for &connection_id in &connections {
-            let module_data = module_data.remove(&connection_id).unwrap_or_default();
+            let own_data = own_data.remove(&connection_id).unwrap_or_default();
             self.message_router
                 .conference
                 .serialize_and_send(
@@ -379,10 +379,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     BREAKOUT_MODULE_ID,
                     origin.transaction_id(),
                     BreakoutEvent::SwitchedRoom {
-                        module_data,
+                        own_data,
                         old_room: previous_room,
                         new_room: room,
-                        other_participant_data: other_participant_data.clone(),
+                        peer_data: peer_data.clone(),
                     },
                 )
                 .await?;
@@ -396,7 +396,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .iter()
             .filter(|(p, _)| *p != &participant_id)
         {
-            let peer_event = peer_event_data.remove(&other_id);
+            let peer_event = peer_events.remove(&other_id);
 
             self.message_router
                 .conference

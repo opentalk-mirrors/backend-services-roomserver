@@ -155,7 +155,7 @@ mod tests {
             payload: SignalingModuleEvent::Core(CoreEvent::ParticipantConnected {
                 participant_id: ParticipantId::from_u128(0x01),
                 connection_id: ConnectionId::from_u128(0x02),
-                peer_join_info: Default::default(),
+                peer_data: Default::default(),
             }),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();

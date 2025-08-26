@@ -1017,12 +1017,12 @@ async fn breakout_room() {
     let event = bob
         .switch_breakout_room(&mut [&mut alice], RoomKind::Breakout(BreakoutId::from(0)))
         .await;
-    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
         panic!("Received wrong event: {:?}", event);
     };
 
     // Bob receives the automod state from the breakout room
-    let state = module_data
+    let state = own_data
         .get::<AutomodState>()
         .expect("Automod state must be valid")
         .expect("Automod state must not be none");

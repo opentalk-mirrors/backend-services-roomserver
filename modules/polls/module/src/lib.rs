@@ -11,7 +11,8 @@ use anyhow::Context;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
-        JoinInfo, NoOp, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData, SwitchInfo,
+        ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+        SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -75,17 +76,17 @@ impl SignalingModule for PollsModule {
         _participant_id: ParticipantId,
         _connection_id: ConnectionId,
         _is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Error>> {
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Error>> {
         let poll = self.polls.get(&ctx.room);
 
         if let Some(poll) = poll {
-            Ok(JoinInfo {
+            Ok(ModuleJoinData {
                 join_success: Some(poll.state.clone()),
-                peer_event_data: PeerJoinInfoMap::default(),
-                participant_data: PeerJoinInfoMap::default(),
+                peer_events: PeerDataMap::default(),
+                peer_data: PeerDataMap::default(),
             })
         } else {
-            Ok(JoinInfo::default())
+            Ok(ModuleJoinData::default())
         }
     }
 
@@ -145,15 +146,15 @@ impl SignalingModule for PollsModule {
         participant_id: ParticipantId,
         _old_room: RoomKind,
         _new_room: RoomKind,
-    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Error>> {
+    ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Error>> {
         let poll = self.polls.get(&ctx.room);
 
         let Some(poll) = poll else {
-            return Ok(SwitchInfo::<Self>::new());
+            return Ok(ModuleSwitchData::<Self>::new());
         };
 
         if poll.state.remaining().is_none() {
-            return Ok(SwitchInfo::<Self>::new());
+            return Ok(ModuleSwitchData::<Self>::new());
         }
 
         let connections = ctx
@@ -164,7 +165,7 @@ impl SignalingModule for PollsModule {
         let switch_success = connections
             .map(|con| (con, Some(poll.state.clone())))
             .collect();
-        Ok(SwitchInfo {
+        Ok(ModuleSwitchData {
             switch_success,
             ..Default::default()
         })

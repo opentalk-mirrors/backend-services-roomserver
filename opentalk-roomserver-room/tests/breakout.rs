@@ -97,7 +97,7 @@ async fn switch_breakout_rooms() {
     assert_snapshot!(serde_json::to_string_pretty(&switch_event_alice).unwrap(), @r#"
     {
       "message": "switched_room",
-      "module_data": {
+      "own_data": {
         "mock": "Switched room from Main to Breakout(BreakoutId(0))"
       },
       "old_room": {
@@ -107,7 +107,7 @@ async fn switch_breakout_rooms() {
         "kind": "breakout",
         "id": 0
       },
-      "other_participant_data": {
+      "peer_data": {
         "00000000-0000-0000-0000-000000000b0b": {
           "mock": "About 00000000-0000-0000-0000-000000000b0b for 00000000-0000-0000-0000-0000000a11ce"
         }

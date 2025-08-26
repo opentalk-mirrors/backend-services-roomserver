@@ -50,14 +50,14 @@ pub enum BreakoutEvent {
     /// The receiver has successfully switched between rooms
     SwitchedRoom {
         /// Module data that was attached by signaling modules
-        module_data: ModuleData,
+        own_data: ModuleData,
         /// The old room of the participant.
         old_room: RoomKind,
         /// The room that the participant moved to.
         new_room: RoomKind,
         /// Module data for other participants in the room.
         #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-        other_participant_data: BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
+        peer_data: BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     },
 
     /// A notice that the breakout rooms will close soon
@@ -192,17 +192,17 @@ mod tests {
     #[test]
     fn switched_room() {
         let val = BreakoutEvent::SwitchedRoom {
-            module_data: ModuleData::new(),
+            own_data: ModuleData::new(),
             old_room: RoomKind::Main,
             new_room: RoomKind::Breakout(BreakoutId::from(1)),
-            other_participant_data: Default::default(),
+            peer_data: Default::default(),
         };
 
         let serialized = serde_json::to_string_pretty(&val).unwrap();
         assert_snapshot!(serialized, @r#"
         {
           "message": "switched_room",
-          "module_data": {},
+          "own_data": {},
           "old_room": {
             "kind": "main"
           },

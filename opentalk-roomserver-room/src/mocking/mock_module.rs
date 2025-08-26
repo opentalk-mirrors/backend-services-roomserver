@@ -4,8 +4,8 @@
 use std::collections::BTreeMap;
 
 use opentalk_roomserver_signaling::signaling_module::{
-    CreateReplica, JoinInfo, NoOp, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData,
-    SwitchInfo,
+    CreateReplica, ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+    SignalingModuleInitData,
 };
 use opentalk_roomserver_types::signaling::module_error::{ModuleError, SignalingModuleError};
 use opentalk_types_common::modules::{ModuleId, module_id};
@@ -70,9 +70,9 @@ impl SignalingModule for MockModule {
         participant_id: opentalk_types_signaling::ParticipantId,
         connection_id: opentalk_roomserver_types::connection_id::ConnectionId,
         is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
-        let mut peer_event_data = PeerJoinInfoMap::default();
-        let mut participant_data = PeerJoinInfoMap::default();
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
+        let mut peer_event_data = PeerDataMap::default();
+        let mut participant_data = PeerDataMap::default();
         for p in ctx
             .participants
             .connected()
@@ -85,12 +85,12 @@ impl SignalingModule for MockModule {
                 MockPeerData(format!("From {participant_id}:{connection_id} for {p}")),
             )?;
         }
-        Ok(JoinInfo {
+        Ok(ModuleJoinData {
             join_success: Some(MockJoinInfo(format!(
                 "Self: {participant_id}:{connection_id}"
             ))),
-            peer_event_data,
-            participant_data,
+            peer_events: peer_event_data,
+            peer_data: participant_data,
         })
     }
 
@@ -100,7 +100,7 @@ impl SignalingModule for MockModule {
         participant_id: opentalk_types_signaling::ParticipantId,
         old_room: opentalk_roomserver_types::room_kind::RoomKind,
         new_room: opentalk_roomserver_types::room_kind::RoomKind,
-    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
         let mut switch_success = BTreeMap::new();
         for connection_id in ctx
             .participant_state(participant_id)
@@ -115,8 +115,8 @@ impl SignalingModule for MockModule {
             );
         }
 
-        let mut peer = PeerJoinInfoMap::default();
-        let mut participant_states = PeerJoinInfoMap::default();
+        let mut peer = PeerDataMap::default();
+        let mut participant_states = PeerDataMap::default();
         for p in ctx
             .participants
             .connected()
@@ -127,11 +127,10 @@ impl SignalingModule for MockModule {
             participant_states
                 .insert(p, MockPeerData(format!("About {p} for {participant_id}")))?;
         }
-
-        Ok(SwitchInfo {
+        Ok(ModuleSwitchData {
             switch_success,
-            peer,
-            participant_states,
+            peer_events: peer,
+            peer_data: participant_states,
         })
     }
 

@@ -167,7 +167,7 @@ impl LiveKitPlugin {
 
     fn handle_breakout(&mut self, event: &BreakoutEvent) {
         if let BreakoutEvent::SwitchedRoom {
-            module_data,
+            own_data: module_data,
             new_room,
             old_room,
             ..

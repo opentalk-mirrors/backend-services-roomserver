@@ -64,11 +64,11 @@ async fn livekit_rooms_lifecycle() {
         .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
         .await;
 
-    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
         panic!("Expected SwitchedRoom, got: {event:?}")
     };
 
-    let alice_livekit_state = module_data
+    let alice_livekit_state = own_data
         .get::<LiveKitState>()
         .expect("LiveKit state must be deserializable")
         .expect("LiveKit state must be present");

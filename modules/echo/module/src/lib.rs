@@ -3,7 +3,7 @@
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
+    signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
@@ -43,13 +43,13 @@ impl SignalingModule for EchoModule {
         participant_id: ParticipantId,
         _connection_id: ConnectionId,
         _is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
         tracing::info!("Participant {participant_id} connected");
-        let mut join_info = JoinInfo::default();
+        let mut join_info = ModuleJoinData::default();
 
         for (participant_id, ..) in ctx.participants.connected().iter() {
             join_info
-                .peer_event_data
+                .peer_events
                 .insert(*participant_id, format!("Hello {participant_id}"))?;
         }
 

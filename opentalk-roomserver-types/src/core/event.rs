@@ -25,7 +25,7 @@ pub enum CoreEvent {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-        peer_join_info: BTreeMap<ModuleId, SharedJson>, // TODO: find a better name
+        peer_data: BTreeMap<ModuleId, SharedJson>,
     },
 
     /// Broadcast message sent to all participants when a participant disconnected

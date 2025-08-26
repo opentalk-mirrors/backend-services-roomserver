@@ -13,7 +13,9 @@ use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, SignalingModule, SignalingModuleInitData, SwitchInfo},
+    signaling_module::{
+        ModuleJoinData, ModuleSwitchData, SignalingModule, SignalingModuleInitData,
+    },
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom, connection_id::ConnectionId, room_kind::RoomKind,
@@ -114,7 +116,7 @@ impl SignalingModule for LiveKitModule {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         _is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
         let room = self.rooms.entry(ctx.room).or_insert_with(|| {
             LiveKitSubroom::new(
                 ctx,
@@ -267,7 +269,7 @@ impl SignalingModule for LiveKitModule {
         participant_id: ParticipantId,
         old_room: RoomKind,
         new_room: RoomKind,
-    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
         let connections = ctx.participants.connections();
         let connections = connections.get(&participant_id).ok_or_else(|| {
             anyhow::anyhow!("Unknown participant can't switch breakout rooms {participant_id}")
@@ -296,7 +298,7 @@ impl SignalingModule for LiveKitModule {
                 .join_success;
             switch_success.insert(connection_id, join_info);
         }
-        Ok(SwitchInfo {
+        Ok(ModuleSwitchData {
             switch_success,
             ..Default::default()
         })

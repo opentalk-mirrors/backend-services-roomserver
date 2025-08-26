@@ -522,11 +522,11 @@ async fn breakout_room_ready_state() {
         .await;
 
     // Alice is still ready in room 0
-    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
         unreachable!("Received wrong event");
     };
 
-    let state = module_data.get::<TimerState>().unwrap();
+    let state = own_data.get::<TimerState>().unwrap();
     assert!(matches!(
         state,
         Some(TimerState {

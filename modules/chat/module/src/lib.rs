@@ -7,7 +7,9 @@ use anyhow::Context;
 use chat_id::{ChatId, PrivateChatId};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData, SwitchInfo},
+    signaling_module::{
+        ModuleJoinData, ModuleSwitchData, NoOp, SignalingModule, SignalingModuleInitData,
+    },
 };
 use opentalk_roomserver_types::{
     breakout::{BreakoutRoom, breakout_id::BreakoutId},
@@ -77,8 +79,8 @@ impl SignalingModule for ChatModule {
         p_joined: ParticipantId,
         _connection_id: ConnectionId,
         _is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
-        let mut join_info = JoinInfo {
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
+        let mut join_info = ModuleJoinData {
             join_success: Some(
                 self.chat_state_latest_chunks_for_participant(p_joined, RoomKind::Main),
             ),
@@ -86,7 +88,7 @@ impl SignalingModule for ChatModule {
         };
 
         join_info
-            .peer_event_data
+            .peer_events
             .insert_for_all(ctx, ChatPeerState { groups: Vec::new() })?;
 
         Ok(join_info)
@@ -172,8 +174,8 @@ impl SignalingModule for ChatModule {
         participant_id: ParticipantId,
         _old_room: RoomKind,
         new_room: RoomKind,
-    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
-        let mut switch_info = SwitchInfo::<Self>::new();
+    ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
+        let mut switch_info = ModuleSwitchData::<Self>::new();
         let chat_state = self.chat_state_latest_chunks_for_participant(participant_id, new_room);
 
         let connections = ctx

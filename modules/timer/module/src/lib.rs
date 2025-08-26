@@ -11,7 +11,8 @@ use anyhow::Context;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
-        JoinInfo, NoOp, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData, SwitchInfo,
+        ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+        SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -67,7 +68,7 @@ impl SignalingModule for TimerModule {
         participant_id: ParticipantId,
         _connection_id: ConnectionId,
         _is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
         let timer = self
             .timers
             .get(&ctx.room)
@@ -75,10 +76,10 @@ impl SignalingModule for TimerModule {
 
         // Do not add JoinSuccess or PeerJoinInfo when there is no running timer
         let Some(timer) = timer else {
-            return Ok(JoinInfo {
+            return Ok(ModuleJoinData {
                 join_success: None,
-                peer_event_data: PeerJoinInfoMap::default(),
-                participant_data: PeerJoinInfoMap::default(),
+                peer_events: PeerDataMap::default(),
+                peer_data: PeerDataMap::default(),
             });
         };
 
@@ -96,11 +97,11 @@ impl SignalingModule for TimerModule {
                 .contains(&participant_id);
 
             // Append ready state when the running timer has ready check enabled
-            let mut peer = PeerJoinInfoMap::default();
+            let mut peer = PeerDataMap::default();
             peer.insert_for_all(ctx, TimerPeerState { ready_status })?;
 
             // Collect ready state of all other participants for the joined participant
-            let mut participant_states = PeerJoinInfoMap::default();
+            let mut participant_states = PeerDataMap::default();
             for p in ctx.participants.connected().ids() {
                 let ready_status = self
                     .ready_participants
@@ -109,22 +110,22 @@ impl SignalingModule for TimerModule {
                     .contains(&p);
                 participant_states.insert(p, TimerPeerState { ready_status })?;
             }
-            Ok(JoinInfo {
+            Ok(ModuleJoinData {
                 join_success: Some(TimerState {
                     config: timer.config.clone(),
                     ready_status: Some(ready_status),
                 }),
-                participant_data: participant_states,
-                peer_event_data: peer,
+                peer_data: participant_states,
+                peer_events: peer,
             })
         } else {
-            Ok(JoinInfo {
+            Ok(ModuleJoinData {
                 join_success: Some(TimerState {
                     config: timer.config.clone(),
                     ready_status: None,
                 }),
-                participant_data: PeerJoinInfoMap::default(),
-                peer_event_data: PeerJoinInfoMap::default(),
+                peer_data: PeerDataMap::default(),
+                peer_events: PeerDataMap::default(),
             })
         }
     }
@@ -159,7 +160,7 @@ impl SignalingModule for TimerModule {
         participant_id: ParticipantId,
         _old_room: RoomKind,
         new_room: RoomKind,
-    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
         let timer = self
             .timers
             .get(&new_room)
@@ -167,7 +168,7 @@ impl SignalingModule for TimerModule {
 
         // Timer is disabled, send empty JoinInfo
         let Some(timer) = timer else {
-            return Ok(SwitchInfo::<Self>::new());
+            return Ok(ModuleSwitchData::<Self>::new());
         };
 
         let ready_status = if timer.config.ready_check_enabled {
@@ -195,7 +196,7 @@ impl SignalingModule for TimerModule {
             .connections();
         let switch_success = connections.map(|con| (con, timer_state.clone())).collect();
 
-        Ok(SwitchInfo {
+        Ok(ModuleSwitchData {
             switch_success,
             ..Default::default()
         })

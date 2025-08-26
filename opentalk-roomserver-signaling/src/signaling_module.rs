@@ -76,7 +76,7 @@ pub trait SignalingModule: Send + Sync + Sized {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>>;
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>>;
 
     fn on_participant_disconnected(
         &mut self,
@@ -110,8 +110,8 @@ pub trait SignalingModule: Send + Sync + Sized {
         participant_id: ParticipantId,
         old_room: RoomKind,
         new_room: RoomKind,
-    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
-        Ok(SwitchInfo::default())
+    ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
+        Ok(ModuleSwitchData::default())
     }
 
     #[allow(unused_variables)]
@@ -175,54 +175,54 @@ impl InternalCommand for NoOp {
     type Result = NoOp;
 }
 
-pub struct JoinInfo<M: SignalingModule> {
+pub struct ModuleJoinData<M: SignalingModule> {
     /// Module specific data that will be attached to the participants `JoinSuccess` message
     pub join_success: Option<M::JoinInfo>,
 
     /// Module specific data that will be attached to the information about other participants inside the `JoinSuccess`
-    pub peer_event_data: PeerJoinInfoMap<M>,
+    pub peer_events: PeerDataMap<M>,
 
     /// Module specific data that will be attached to other participants `Joined` message
-    pub participant_data: PeerJoinInfoMap<M>,
+    pub peer_data: PeerDataMap<M>,
 }
 
-impl<M: SignalingModule> Default for JoinInfo<M> {
+impl<M: SignalingModule> Default for ModuleJoinData<M> {
     fn default() -> Self {
         Self {
             join_success: Default::default(),
-            peer_event_data: Default::default(),
-            participant_data: Default::default(),
+            peer_events: Default::default(),
+            peer_data: Default::default(),
         }
     }
 }
 
-/// Similar to [`JoinInfo`], but with a `switch_success` for each connection of
+/// Similar to [`ModuleJoinData`], but with a `switch_success` for each connection of
 /// the switching participant.
 ///
 /// Different to a join, during a switch all connections join the new room and
 /// therefore all need initial information.
-pub struct SwitchInfo<M: SignalingModule> {
+pub struct ModuleSwitchData<M: SignalingModule> {
     /// Module specific data that will be attached to the participants `JoinSuccess` message
     pub switch_success: BTreeMap<ConnectionId, Option<<M as SignalingModule>::JoinInfo>>,
 
-    /// Module specific data that will be attached to the information about other participants inside the `JoinSuccess`
-    pub participant_states: PeerJoinInfoMap<M>,
-
     /// Module specific data that will be attached to other participants `Joined` message
-    pub peer: PeerJoinInfoMap<M>,
+    pub peer_events: PeerDataMap<M>,
+
+    /// Module specific data that will be attached to the information about other participants inside the `JoinSuccess`
+    pub peer_data: PeerDataMap<M>,
 }
 
-impl<M: SignalingModule> SwitchInfo<M> {
+impl<M: SignalingModule> ModuleSwitchData<M> {
     pub fn new() -> Self {
         Self {
             switch_success: Default::default(),
-            peer: Default::default(),
-            participant_states: Default::default(),
+            peer_events: Default::default(),
+            peer_data: Default::default(),
         }
     }
 }
 
-impl<M: SignalingModule> Default for SwitchInfo<M> {
+impl<M: SignalingModule> Default for ModuleSwitchData<M> {
     fn default() -> Self {
         Self::new()
     }
@@ -232,12 +232,12 @@ impl<M: SignalingModule> Default for SwitchInfo<M> {
 ///
 /// When a `Joined` message is sent to a participant, the participants associated [`SignalingModule::PeerJoinInfo`] will
 /// be attached to it.
-pub struct PeerJoinInfoMap<M: SignalingModule> {
+pub struct PeerDataMap<M: SignalingModule> {
     pub map: BTreeMap<ParticipantId, SharedJson>,
     _m: PhantomData<M>,
 }
 
-impl<M: SignalingModule> PeerJoinInfoMap<M> {
+impl<M: SignalingModule> PeerDataMap<M> {
     pub fn new(map: BTreeMap<ParticipantId, SharedJson>) -> Self {
         Self {
             map,
@@ -246,7 +246,7 @@ impl<M: SignalingModule> PeerJoinInfoMap<M> {
     }
 }
 
-impl<M: SignalingModule> Default for PeerJoinInfoMap<M> {
+impl<M: SignalingModule> Default for PeerDataMap<M> {
     fn default() -> Self {
         Self {
             map: Default::default(),
@@ -255,7 +255,7 @@ impl<M: SignalingModule> Default for PeerJoinInfoMap<M> {
     }
 }
 
-impl<M: SignalingModule> PeerJoinInfoMap<M> {
+impl<M: SignalingModule> PeerDataMap<M> {
     /// Attach the same [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) for all participants
     pub fn insert_for_all(
         &mut self,
