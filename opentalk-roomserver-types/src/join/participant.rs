@@ -8,7 +8,7 @@ use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, SignalingModulePeerFrontendData};
 use serde::{Deserialize, Serialize};
 
-use crate::{join::connection_info::ConnectionInfo, shared_raw_json::SharedRawJson};
+use crate::{join::connection_info::ConnectionInfo, shared_json::SharedJson};
 
 /// Status information about a participant
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -20,7 +20,7 @@ pub struct Participant {
     pub connections: Vec<ConnectionInfo>,
 
     /// Module data for the participant
-    pub module_data: BTreeMap<ModuleId, SharedRawJson>,
+    pub module_data: BTreeMap<ModuleId, SharedJson>,
 }
 
 impl Participant {
@@ -34,7 +34,7 @@ impl Participant {
 
         self.module_data
             .get(&namespace)
-            .map(|m| serde_json::from_str(m.get()))
+            .map(|m| serde_json::from_value(m.clone_inner()))
             .transpose()
     }
 }
@@ -42,20 +42,13 @@ impl Participant {
 #[cfg(test)]
 mod test {
     use opentalk_types_signaling::ParticipantId;
-    use serde::Serialize;
 
     use crate::{
         breakout::{BREAKOUT_MODULE_ID, module_data::BreakoutPeerModuleData},
         connection_id::ConnectionId,
         device_id::DeviceId,
         join::{connection_info::ConnectionInfo, participant::Participant},
-        shared_raw_json::SharedRawJson,
     };
-
-    fn to_shared_raw_json(value: &impl Serialize) -> SharedRawJson {
-        let raw = serde_json::value::to_raw_value(value).unwrap();
-        SharedRawJson::from(raw)
-    }
 
     #[test]
     fn serialize() {
@@ -70,9 +63,11 @@ mod test {
 
         participant.module_data.insert(
             BREAKOUT_MODULE_ID,
-            to_shared_raw_json(&BreakoutPeerModuleData {
+            serde_json::to_value(&BreakoutPeerModuleData {
                 room: crate::room_kind::RoomKind::Main,
-            }),
+            })
+            .unwrap()
+            .into(),
         );
 
         // insta doesn't serialize correctly
@@ -87,7 +82,11 @@ mod test {
             }
           ],
           "module_data": {
-            "breakout": {"room":{"kind":"main"}}
+            "breakout": {
+              "room": {
+                "kind": "main"
+              }
+            }
           }
         }
         "#);

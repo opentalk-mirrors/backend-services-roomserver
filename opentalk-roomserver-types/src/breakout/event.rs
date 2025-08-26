@@ -21,10 +21,10 @@ pub enum BreakoutEvent {
         /// The configured breakout rooms
         rooms: Vec<BreakoutRoom>,
         /// Optional breakout expiry. When the breakout rooms expire, all participants are moved back to the main room
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         expires_at: Option<Timestamp>,
         /// The optional assignment for the receiving participant. This assignment is not enforced by the roomserver
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         assignment: Option<BreakoutId>,
     },
 
@@ -97,9 +97,9 @@ impl ModuleError for BreakoutError {}
 
 #[cfg(test)]
 mod tests {
+    use insta::assert_snapshot;
     use opentalk_types_common::time::Timestamp;
     use opentalk_types_signaling::{ModuleData, ParticipantId};
-    use serde_json::json;
 
     use crate::{
         breakout::{
@@ -128,20 +128,25 @@ mod tests {
             assignment: None,
         };
 
-        let json = serde_json::to_value(val).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "message": "started",
-                "started_by": "00000000-0000-0000-0000-000000000000",
-                "rooms": [
-                    {"id": 0, "name": "Room 1"},
-                    {"id": 1, "name": "Room 2"}
-                ],
-                "expires_at": "1970-01-01T00:00:00Z",
+        let serialized = serde_json::to_string_pretty(&val).unwrap();
+        assert_snapshot!(serialized,
+            @r#"
+        {
+          "message": "started",
+          "started_by": "00000000-0000-0000-0000-000000000000",
+          "rooms": [
+            {
+              "id": 0,
+              "name": "Room 1"
+            },
+            {
+              "id": 1,
+              "name": "Room 2"
             }
-            )
+          ],
+          "expires_at": "1970-01-01T00:00:00Z"
+        }
+        "#
         );
     }
 
@@ -153,22 +158,21 @@ mod tests {
             new_room: RoomKind::Breakout(BreakoutId::from(1)),
         };
 
-        let json = serde_json::to_value(val).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "message": "participant_switched_room",
-                "participant_id": "00000000-0000-0000-0000-000000000000",
-                "old_room": {
-                    "kind": "main",
-                },
-                "new_room": {
-                    "kind": "breakout",
-                    "id": 1,
-                }
-            }
-            )
+        let serialized = serde_json::to_string_pretty(&val).unwrap();
+        assert_snapshot!(serialized,
+            @r#"
+        {
+          "message": "participant_switched_room",
+          "participant_id": "00000000-0000-0000-0000-000000000000",
+          "old_room": {
+            "kind": "main"
+          },
+          "new_room": {
+            "kind": "breakout",
+            "id": 1
+          }
+        }
+        "#
         );
     }
 
@@ -180,23 +184,20 @@ mod tests {
             new_room: RoomKind::Breakout(BreakoutId::from(1)),
         };
 
-        let json = serde_json::to_value(val).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "message": "switched_room",
-                "module_data": {},
-                "old_room": {
-                    "kind": "main",
-                },
-                "new_room": {
-                    "kind": "breakout",
-                    "id": 1,
-                }
-            }
-            )
-        );
+        let serialized = serde_json::to_string_pretty(&val).unwrap();
+        assert_snapshot!(serialized, @r#"
+        {
+          "message": "switched_room",
+          "module_data": {},
+          "old_room": {
+            "kind": "main"
+          },
+          "new_room": {
+            "kind": "breakout",
+            "id": 1
+          }
+        }
+        "#);
     }
 
     #[test]
@@ -206,16 +207,15 @@ mod tests {
             stops_at: Timestamp::unix_epoch(),
         };
 
-        let json = serde_json::to_value(val).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "message": "close_notice",
-                "issued_by": "00000000-0000-0000-0000-000000000000",
-                "stops_at": "1970-01-01T00:00:00Z",
-            }
-            )
+        let serialized = serde_json::to_string_pretty(&val).unwrap();
+        assert_snapshot!(serialized,
+            @r#"
+        {
+          "message": "close_notice",
+          "issued_by": "00000000-0000-0000-0000-000000000000",
+          "stops_at": "1970-01-01T00:00:00Z"
+        }
+        "#
         );
     }
 
@@ -225,15 +225,14 @@ mod tests {
             issued_by: Some(ParticipantId::nil()),
         };
 
-        let json = serde_json::to_value(val).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "message": "closing",
-                "issued_by": "00000000-0000-0000-0000-000000000000",
-            }
-            )
+        let serialized = serde_json::to_string_pretty(&val).unwrap();
+        assert_snapshot!(serialized,
+            @r#"
+        {
+          "message": "closing",
+          "issued_by": "00000000-0000-0000-0000-000000000000"
+        }
+        "#
         );
     }
 
@@ -241,14 +240,13 @@ mod tests {
     fn closing_issued_by() {
         let val = BreakoutEvent::Closing { issued_by: None };
 
-        let json = serde_json::to_value(val).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "message": "closing"
-            }
-            )
+        let serialized = serde_json::to_string_pretty(&val).unwrap();
+        assert_snapshot!(serialized,
+            @r#"
+        {
+          "message": "closing"
+        }
+        "#
         );
     }
 
@@ -256,14 +254,13 @@ mod tests {
     fn closed() {
         let val = BreakoutEvent::Closed;
 
-        let json = serde_json::to_value(val).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "message": "closed"
-            }
-            )
+        let serialized = serde_json::to_string_pretty(&val).unwrap();
+        assert_snapshot!(serialized,
+            @r#"
+        {
+          "message": "closed"
+        }
+        "#
         );
     }
 
@@ -271,15 +268,14 @@ mod tests {
     fn error() {
         let val = BreakoutEvent::Error(BreakoutError::AlreadyActive);
 
-        let json = serde_json::to_value(val).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "message": "error",
-                "error": "already_active"
-            }
-            )
+        let serialized = serde_json::to_string_pretty(&val).unwrap();
+        assert_snapshot!(serialized,
+            @r#"
+        {
+          "message": "error",
+          "error": "already_active"
+        }
+        "#
         );
     }
 
@@ -288,16 +284,15 @@ mod tests {
         let val = BreakoutEvent::Error(BreakoutError::UnknownParticipant {
             participant_id: ParticipantId::nil(),
         });
-        let json = serde_json::to_value(val).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "message": "error",
-                "error": "unknown_participant",
-                "participant_id": "00000000-0000-0000-0000-000000000000"
-            }
-            )
+        let serialized = serde_json::to_string_pretty(&val).unwrap();
+        assert_snapshot!(serialized,
+            @r#"
+        {
+          "message": "error",
+          "error": "unknown_participant",
+          "participant_id": "00000000-0000-0000-0000-000000000000"
+        }
+        "#
         );
     }
 }

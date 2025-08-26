@@ -2,7 +2,8 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use std::{
-    env, fs, io,
+    env, fs,
+    io::{self, ErrorKind},
     path::PathBuf,
     sync::{
         Mutex, Once,
@@ -44,8 +45,11 @@ impl FsStorage {
 
         let mut result = None;
         CREATE_DIRECTORY.call_once(|| {
-            if !directory.exists() {
-                result = Some(fs::create_dir(&directory));
+            let res = fs::create_dir(&directory);
+            if let Err(e) = res
+                && e.kind() != ErrorKind::AlreadyExists
+            {
+                result = Some(Err(e));
             }
         });
 
