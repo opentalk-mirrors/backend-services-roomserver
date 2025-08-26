@@ -101,8 +101,11 @@ impl<M: SignalingModule + Sync + 'static> ModuleInitializer for ModuleInitialize
         &self,
         init_data: SignalingModuleInitData,
     ) -> Option<Box<dyn ModuleHandle>> {
-        Some(Box::new(ModuleDispatcher {
-            module: M::init(init_data)?,
-        }))
+        if let Some(module) = M::init(init_data) {
+            Some(Box::new(ModuleDispatcher { module }))
+        } else {
+            tracing::debug!("`{}` module initializer returned none", M::NAMESPACE);
+            None
+        }
     }
 }
