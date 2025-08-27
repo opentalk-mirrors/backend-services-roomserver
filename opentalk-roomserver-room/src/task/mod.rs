@@ -79,12 +79,12 @@ use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, ClientParameters, Role},
     connection_id::ConnectionId,
-    core::{CORE_MODULE_ID, CoreCommand, CoreEvent},
+    core::CORE_MODULE_ID,
     device_id::DeviceId,
     error::SignalingError,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
-    signaling::{SignalingCommand, module_error::SignalingModuleError},
+    signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{rooms::RoomId, roomserver::DeviceSecret, time::Timestamp};
@@ -583,88 +583,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 )
                 .await;
             }
-        }
-    }
-
-    async fn handle_core_command(
-        &mut self,
-        participant_origin: ParticipantOrigin,
-        command: SignalingCommand,
-    ) {
-        let core_command: CoreCommand = match serde_json::from_str(command.payload.get()) {
-            Ok(command) => command,
-            Err(err) => {
-                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
-                self.message_router
-                    .conference
-                    .send_error(
-                        participant_origin.connection_id,
-                        participant_origin.transaction_id,
-                        SignalingError::InvalidJson {
-                            message: format!("{err:?}"),
-                        },
-                    )
-                    .await;
-                return;
-            }
-        };
-
-        let result = match core_command {
-            CoreCommand::EnterRoom => self.enter_room(participant_origin).await,
-        };
-
-        if let Err(e) = result {
-            match e {
-                SignalingModuleError::Internal(err) => {
-                    tracing::error!("internal error in core module: {err:?}");
-
-                    self.message_router
-                        .conference
-                        .send_error(
-                            participant_origin.connection_id,
-                            command.transaction_id,
-                            SignalingError::Internal,
-                        )
-                        .await;
-                }
-                SignalingModuleError::Fatal(err) => {
-                    tracing::error!("fatal error in core module: {err:?}");
-
-                    self.message_router
-                        .conference
-                        .send_error(
-                            participant_origin.connection_id,
-                            command.transaction_id,
-                            SignalingError::Internal,
-                        )
-                        .await;
-                }
-                SignalingModuleError::Module(module_error) => {
-                    let result = self
-                        .message_router
-                        .conference
-                        .serialize_and_send(
-                            [participant_origin.connection_id],
-                            CORE_MODULE_ID,
-                            command.transaction_id,
-                            CoreEvent::Error(module_error),
-                        )
-                        .await;
-
-                    if let Err(fatal_error) = result {
-                        tracing::error!("failed to send error in core module: {fatal_error:?}");
-
-                        self.message_router
-                            .conference
-                            .send_error(
-                                participant_origin.connection_id,
-                                command.transaction_id,
-                                SignalingError::Internal,
-                            )
-                            .await;
-                    }
-                }
-            };
         }
     }
 

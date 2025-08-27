@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{cell::RefCell, collections::BTreeMap, sync::Arc};
+use std::{
+    cell::RefCell,
+    collections::{BTreeMap, hash_map::Entry},
+    sync::Arc,
+};
 
 use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
@@ -12,7 +16,7 @@ use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, Role as RoomserverClientRole},
     connection_id::ConnectionId,
-    core::{CORE_MODULE_ID, CoreEvent},
+    core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, LeftWaitingRoom},
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     error::SignalingError,
@@ -23,7 +27,10 @@ use opentalk_roomserver_types::{
     room_info::RoomInfo,
     room_kind::RoomKind,
     shared_json::SharedJson,
-    signaling::module_error::FatalError,
+    signaling::{
+        SignalingCommand,
+        module_error::{FatalError, SignalingModuleError},
+    },
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{events::MeetingDetails, modules::ModuleId, time::Timestamp};
@@ -33,6 +40,136 @@ use super::RoomTask;
 use crate::signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext};
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
+    pub(crate) async fn handle_core_command(
+        &mut self,
+        participant_origin: ParticipantOrigin,
+        command: SignalingCommand,
+    ) {
+        let core_command: CoreCommand = match serde_json::from_str(command.payload.get()) {
+            Ok(command) => command,
+            Err(err) => {
+                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                self.message_router
+                    .conference
+                    .send_error(
+                        participant_origin.connection_id,
+                        participant_origin.transaction_id,
+                        SignalingError::InvalidJson {
+                            message: format!("{err:?}"),
+                        },
+                    )
+                    .await;
+                return;
+            }
+        };
+
+        let result = match core_command {
+            CoreCommand::EnterRoom => self.enter_room(participant_origin).await,
+        };
+
+        if let Err(e) = result {
+            match e {
+                SignalingModuleError::Internal(err) => {
+                    tracing::error!("internal error in core module: {err:?}");
+
+                    self.message_router
+                        .conference
+                        .send_error(
+                            participant_origin.connection_id,
+                            command.transaction_id,
+                            SignalingError::Internal,
+                        )
+                        .await;
+                }
+                SignalingModuleError::Fatal(err) => {
+                    tracing::error!("fatal error in core module: {err:?}");
+
+                    self.message_router
+                        .conference
+                        .send_error(
+                            participant_origin.connection_id,
+                            command.transaction_id,
+                            SignalingError::Internal,
+                        )
+                        .await;
+                }
+                SignalingModuleError::Module(module_error) => {
+                    let result = self
+                        .message_router
+                        .conference
+                        .serialize_and_send(
+                            [participant_origin.connection_id],
+                            CORE_MODULE_ID,
+                            command.transaction_id,
+                            CoreEvent::Error(module_error),
+                        )
+                        .await;
+
+                    if let Err(fatal_error) = result {
+                        tracing::error!("failed to send error in core module: {fatal_error:?}");
+
+                        self.message_router
+                            .conference
+                            .send_error(
+                                participant_origin.connection_id,
+                                command.transaction_id,
+                                SignalingError::Internal,
+                            )
+                            .await;
+                    }
+                }
+            };
+        }
+    }
+
+    async fn enter_room(
+        &mut self,
+        participant_origin: ParticipantOrigin,
+    ) -> Result<(), SignalingModuleError<CoreError>> {
+        let Entry::Occupied(participant) = self.waiting_participants.entry(participant_origin.id)
+        else {
+            tracing::debug!("Failed to enter room: participant not known");
+            return Err(CoreError::UnknownParticipant.into());
+        };
+
+        if !participant.get().accepted {
+            tracing::debug!("Failed to enter room: participant not yet accepted");
+            return Err(CoreError::NotAccepted.into());
+        }
+        let participant = participant.remove();
+
+        let moderator_ids = self.participants.connected().moderators().connection_ids();
+
+        self.message_router
+            .conference
+            .serialize_and_send(
+                moderator_ids,
+                CORE_MODULE_ID,
+                None,
+                CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
+                    id: participant_origin.id,
+                    connection_id: participant_origin.connection_id,
+                }),
+            )
+            .await?;
+
+        self.message_router
+            .upgrade_connections(participant.connections.keys());
+
+        for (&connection_id, &device_id) in &participant.connections {
+            self.join_room(
+                participant_origin.id,
+                connection_id,
+                device_id,
+                participant.kind.clone(),
+                participant.role,
+            )
+            .await;
+        }
+
+        Ok(())
+    }
+
     /// A participant connected to the conference
     ///
     /// Sends the [`CoreEvent::JoinSuccess`] to the connection of the participant that joins.
