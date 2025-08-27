@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use opentalk_roomserver_mocking_livekit as mocking;
 use opentalk_roomserver_types_livekit::{LiveKitState, MicrophoneRestrictionState};
 use pretty_assertions::assert_eq;
-
-mod common;
 
 /// Test that the JoinSuccess contains the access token for the LiveKit room.
 #[test_log::test(tokio::test)]
 #[ignore]
 async fn joined_participant_receives_key() {
-    let (_container, mut room, livekit_url) = common::build_livekit_room().await;
+    let (_container, room, livekit_url) = mocking::build_livekit_room().await;
+    let mut room = room.spawn();
 
     let alice = room.join_alice_moderator(0).await;
     let alice_livekit_state = alice

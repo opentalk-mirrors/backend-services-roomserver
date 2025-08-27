@@ -4,12 +4,15 @@
 
 [workspace]
 members = [
+  "modules/automod/module",
+  "modules/automod/types",
   "modules/chat/module",
   "modules/chat/types",
   "modules/e2ee/module",
   "modules/e2ee/types",
   "modules/echo/module",
   "modules/echo/types",
+  "modules/livekit/mock",
   "modules/livekit/module",
   "modules/livekit/types",
   "modules/meeting-report/module",
@@ -50,6 +53,8 @@ version = "0.0.6-dev"
 [workspace.dependencies]
 opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.6-dev" }
 opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.6-dev" }
+opentalk-roomserver-mocking-livekit = { path = "modules/livekit/mock", version = "0.0.6-dev" }
+opentalk-roomserver-module-automod = { path = "modules/automod/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-echo = { path = "modules/echo/module", version = "0.0.6-dev" }
@@ -66,6 +71,7 @@ opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", versio
 opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.6-dev", features = [
   "utoipa",
 ] }
+opentalk-roomserver-types-automod = { path = "modules/automod/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-e2ee = { path = "modules/e2ee/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-echo = { path = "modules/echo/types", version = "0.0.6-dev" }

@@ -5668,6 +5668,7 @@ dependencies = [
  "clap",
  "futures",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-module-automod",
  "opentalk-roomserver-module-chat",
  "opentalk-roomserver-module-e2ee",
  "opentalk-roomserver-module-echo",
@@ -5717,6 +5718,7 @@ dependencies = [
  "insta",
  "log",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-types-automod",
  "opentalk-roomserver-types-chat",
  "opentalk-roomserver-types-e2ee",
  "opentalk-roomserver-types-echo",
@@ -5781,6 +5783,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-mocking-livekit"
+version = "0.0.6-dev"
+dependencies = [
+ "anyhow",
+ "livekit",
+ "opentalk-roomserver-module-livekit",
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-types-livekit",
+ "testcontainers",
+ "tracing",
+]
+
+[[package]]
+name = "opentalk-roomserver-module-automod"
+version = "0.0.6-dev"
+dependencies = [
+ "anyhow",
+ "opentalk-roomserver-mocking-livekit",
+ "opentalk-roomserver-module-livekit",
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-automod",
+ "opentalk-roomserver-types-livekit",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "rand 0.9.2",
+ "test-log",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "opentalk-roomserver-module-chat"
 version = "0.0.6-dev"
 dependencies = [
@@ -5839,6 +5875,7 @@ dependencies = [
  "livekit",
  "livekit-api",
  "livekit-protocol",
+ "opentalk-roomserver-mocking-livekit",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5847,7 +5884,6 @@ dependencies = [
  "opentalk-types-signaling",
  "pretty_assertions",
  "test-log",
- "testcontainers",
  "tokio",
  "tracing",
 ]
@@ -6044,6 +6080,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-types-automod"
+version = "0.0.6-dev"
+dependencies = [
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "opentalk-roomserver-types-chat"
 version = "0.0.6-dev"
 dependencies = [
@@ -6087,11 +6136,13 @@ dependencies = [
 name = "opentalk-roomserver-types-livekit"
 version = "0.0.6-dev"
 dependencies = [
+ "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

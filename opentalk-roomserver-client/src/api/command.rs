@@ -5,6 +5,7 @@ use opentalk_roomserver_types::{
     breakout::{BREAKOUT_MODULE_ID, command::BreakoutCommand},
     core::{CORE_MODULE_ID, CoreCommand},
 };
+use opentalk_roomserver_types_automod::{AUTOMOD_MODULE_ID, command::AutomodCommand};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
 use opentalk_roomserver_types_echo::{ECHO_MODULE_ID, command::EchoCommand};
 use opentalk_roomserver_types_meeting_report::{
@@ -54,6 +55,7 @@ impl From<SignalingModuleCommand> for SignalingCommand {
 #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
 pub enum SignalingModuleCommand {
     Core(CoreCommand),
+    Automod(AutomodCommand),
     Breakout(BreakoutCommand),
     Echo(EchoCommand),
     Chat(ChatCommand),
@@ -75,6 +77,7 @@ impl SignalingModuleCommand {
     pub fn namespace(&self) -> ModuleId {
         match self {
             Self::Core(..) => CORE_MODULE_ID,
+            Self::Automod(..) => AUTOMOD_MODULE_ID,
             Self::Breakout(..) => BREAKOUT_MODULE_ID,
             Self::Echo(..) => ECHO_MODULE_ID,
             Self::Chat(..) => CHAT_MODULE_ID,
@@ -94,6 +97,7 @@ impl SignalingModuleCommand {
 mod tests {
     use insta::assert_snapshot;
     use opentalk_roomserver_types::{breakout::command::BreakoutCommand, core::CoreCommand};
+    use opentalk_roomserver_types_automod::command::AutomodCommand;
     use opentalk_roomserver_types_chat::command::ChatCommand;
     use opentalk_roomserver_types_echo::command::EchoCommand;
     use opentalk_roomserver_types_livekit::LiveKitCommand;
@@ -129,6 +133,24 @@ mod tests {
           "namespace": "core",
           "payload": {
             "action": "enter_room"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_command_automod() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            payload: SignalingModuleCommand::Automod(AutomodCommand::Stop),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "automod",
+          "payload": {
+            "action": "stop"
           }
         }
         "#);

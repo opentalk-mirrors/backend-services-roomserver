@@ -5,6 +5,7 @@ use opentalk_roomserver_types::{
     breakout::{BREAKOUT_MODULE_ID, event::BreakoutEvent},
     core::CoreEvent,
 };
+use opentalk_roomserver_types_automod::{AUTOMOD_MODULE_ID, event::AutomodEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
 use opentalk_roomserver_types_echo::{ECHO_MODULE_ID, event::EchoEvent};
 use opentalk_roomserver_types_meeting_report::{
@@ -54,6 +55,7 @@ impl From<SignalingModuleEvent> for SignalingEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
 pub enum SignalingModuleEvent {
+    Automod(AutomodEvent),
     Core(CoreEvent),
     Breakout(BreakoutEvent),
     Echo(EchoEvent),
@@ -75,6 +77,7 @@ pub enum SignalingModuleEvent {
 impl SignalingModuleEvent {
     pub fn namespace(&self) -> ModuleId {
         match self {
+            Self::Automod(..) => AUTOMOD_MODULE_ID,
             Self::Core(..) => CORE_MODULE_ID,
             Self::Breakout(..) => BREAKOUT_MODULE_ID,
             Self::Echo(..) => ECHO_MODULE_ID,
@@ -97,6 +100,7 @@ mod tests {
     use opentalk_roomserver_types::{
         breakout::event::BreakoutEvent, connection_id::ConnectionId, core::CoreEvent,
     };
+    use opentalk_roomserver_types_automod::event::{AutomodEvent, StoppedReason};
     use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
     use opentalk_roomserver_types_echo::event::EchoEvent;
     use opentalk_roomserver_types_livekit::LiveKitEvent;
@@ -121,6 +125,27 @@ mod tests {
     #[derive(Debug, Clone, Deserialize)]
     pub struct NamespaceOnly {
         pub namespace: ModuleId,
+    }
+
+    #[test]
+    fn serialize_event_automod() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            payload: SignalingModuleEvent::Automod(AutomodEvent::Stopped(
+                StoppedReason::SessionFinished,
+            )),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "automod",
+          "payload": {
+            "message": "stopped",
+            "reason": "session_finished"
+          }
+        }
+        "#);
     }
 
     #[test]

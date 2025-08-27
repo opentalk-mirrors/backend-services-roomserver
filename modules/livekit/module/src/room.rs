@@ -22,7 +22,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_livekit::{
     Credentials, LiveKitError, LiveKitEvent, LiveKitSettings, LiveKitState,
-    MicrophoneRestrictionState, UnrestrictedParticipants,
+    MicrophoneRestrictionState, ModeratorOrModule, UnrestrictedParticipants,
 };
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
@@ -179,12 +179,15 @@ impl LiveKitSubroom {
     pub fn force_mute(
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
-        sender: ParticipantId,
+        sender: ModeratorOrModule,
         participants: BTreeSet<ParticipantId>,
     ) -> Result<(), SignalingModuleError<<LiveKitModule as SignalingModule>::Error>> {
-        if !ctx.is_moderator(sender) {
+        // Modules are required to check permissions themselves.
+        if let ModeratorOrModule::Moderator { moderator } = sender
+            && !ctx.is_moderator(moderator)
+        {
             tracing::debug!(
-                "Participant has insufficient permission to force mute participants: {sender}"
+                "Participant has insufficient permission to force mute participants: {moderator}"
             );
             return Err(LiveKitError::InsufficientPermissions.into());
         }
@@ -203,7 +206,7 @@ impl LiveKitSubroom {
 
         let mut connections = ctx.participants.connections();
         connections.retain(|p, _| known_participants.contains(p));
-        Self::notify_unknown_participants(ctx, unknown_participants, sender)?;
+        Self::notify_unknown_participants(ctx, unknown_participants, sender.clone())?;
 
         let room = ctx.room_id.to_string();
         let livekit_client: Arc<RoomClient> = Arc::clone(&self.livekit_client);
@@ -372,16 +375,23 @@ impl LiveKitSubroom {
     fn notify_unknown_participants(
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         unknown_participants: BTreeSet<ParticipantId>,
-        sender: ParticipantId,
+        sender: ModeratorOrModule,
     ) -> Result<(), SignalingModuleError<LiveKitError>> {
         if !unknown_participants.is_empty() {
-            ctx.send_ws_message(
-                [sender],
-                LiveKitError::UnknownParticipant {
-                    participant: unknown_participants,
+            match sender {
+                ModeratorOrModule::Moderator { moderator } => {
+                    ctx.send_ws_message(
+                        [moderator],
+                        LiveKitError::UnknownParticipant {
+                            participant: unknown_participants,
+                        }
+                        .into(),
+                    )?;
                 }
-                .into(),
-            )?;
+                ModeratorOrModule::Module { module } => {
+                    tracing::error!("Module {module} provided unknown participants")
+                }
+            }
         }
         Ok(())
     }
@@ -443,7 +453,7 @@ impl LiveKitSubroom {
 
         let mut connections = ctx.participants.connections();
         connections.retain(|p, _| known_participants.contains(p));
-        Self::notify_unknown_participants(ctx, unknown_participants, sender)?;
+        Self::notify_unknown_participants(ctx, unknown_participants, sender.into())?;
 
         ctx.spawn(loopback::set_screenshare_permissions(
             Arc::clone(&self.livekit_client),

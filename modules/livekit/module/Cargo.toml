@@ -25,8 +25,8 @@ tracing.workspace = true
 
 [dev-dependencies]
 livekit.workspace = true
+opentalk-roomserver-mocking-livekit.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
 test-log = { workspace = true, features = ["trace"] }
-testcontainers.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }

@@ -4,22 +4,24 @@
 use std::collections::BTreeSet;
 
 use livekit::{RoomEvent, RoomOptions};
+use opentalk_roomserver_mocking_livekit as mocking;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types::{
     breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
     room_kind::RoomKind,
 };
-use opentalk_roomserver_types_livekit::{LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState};
+use opentalk_roomserver_types_livekit::{
+    LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState, ModeratorOrModule,
+};
 use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
-
-mod common;
 
 #[test_log::test(tokio::test)]
 #[ignore]
 async fn unknown_participant() {
-    let (_container, mut room, _public_url) = common::build_livekit_room().await;
+    let (_container, room, _public_url) = mocking::build_livekit_room().await;
+    let mut room = room.spawn();
 
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
 
@@ -47,7 +49,8 @@ async fn unknown_participant() {
 #[test_log::test(tokio::test)]
 #[ignore]
 async fn mute_bob() {
-    let (_container, mut room, public_url) = common::build_livekit_room().await;
+    let (_container, room, public_url) = mocking::build_livekit_room().await;
+    let mut room = room.spawn();
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -95,9 +98,9 @@ async fn mute_bob() {
     let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
         force_mute_event.payload,
-        LiveKitEvent::ForceMuted {
+        LiveKitEvent::ForceMuted(ModeratorOrModule::Moderator {
             moderator: alice.id()
-        }
+        })
     );
 }
 
@@ -105,7 +108,8 @@ async fn mute_bob() {
 #[ignore]
 async fn insufficient_permissions() {
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
-    let (_container, mut room, _public_url) = common::build_livekit_room().await;
+    let (_container, room, _public_url) = mocking::build_livekit_room().await;
+    let mut room = room.spawn();
 
     // Bob joins the meeting
     let mut bob = room.join_bob(0).await;
@@ -130,7 +134,8 @@ async fn insufficient_permissions() {
 #[test_log::test(tokio::test)]
 #[ignore]
 async fn alice_in_breakout_bob_in_main() {
-    let (_container, mut room, _public_url) = common::build_livekit_room().await;
+    let (_container, room, _public_url) = mocking::build_livekit_room().await;
+    let mut room = room.spawn();
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -170,8 +175,8 @@ async fn alice_in_breakout_bob_in_main() {
     let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
     assert_eq!(
         force_mute_event.payload,
-        LiveKitEvent::ForceMuted {
+        LiveKitEvent::ForceMuted(ModeratorOrModule::Moderator {
             moderator: alice.id()
-        }
+        })
     );
 }

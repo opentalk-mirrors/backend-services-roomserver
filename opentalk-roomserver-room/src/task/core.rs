@@ -4,7 +4,10 @@
 use std::{cell::RefCell, collections::BTreeMap, sync::Arc};
 
 use anyhow::anyhow;
-use opentalk_roomserver_signaling::event_origin::{EventOrigin, ParticipantOrigin};
+use opentalk_roomserver_signaling::{
+    event_origin::{EventOrigin, ParticipantOrigin},
+    module_context::ModuleMessage,
+};
 use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, Role as RoomserverClientRole},
@@ -63,18 +66,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             transaction_id: None,
         };
 
-        self.broadcast_event_to_modules(
-            participant_origin.into(),
-            current_breakout_room,
-            DynBroadcastEvent::Connected {
-                participant_id,
-                connection_id,
-                module_data: &mut module_data,
-                peer_module_data: &mut peer_module_data,
-                participant_state: &mut participant_state,
-            },
-        )
-        .await;
+        let actions = self
+            .broadcast_event_to_modules(
+                participant_origin.into(),
+                current_breakout_room,
+                DynBroadcastEvent::Connected {
+                    participant_id,
+                    connection_id,
+                    module_data: &mut module_data,
+                    peer_module_data: &mut peer_module_data,
+                    participant_state: &mut participant_state,
+                },
+            )
+            .await;
 
         self.add_breakout_module_data(&mut module_data, current_breakout_room);
 
@@ -122,6 +126,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .await?;
         }
 
+        actions.handle_requested_messages(self).await;
+
         Ok(())
     }
 
@@ -143,6 +149,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 connection_id,
             },
         )
+        .await
+        .handle_requested_messages(self)
         .await;
 
         let content = CoreEvent::ParticipantDisconnected {
@@ -158,13 +166,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .expect("CoreEvent::ParticipantDisconnected must be serializable");
     }
 
-    /// Broadcast the [`DynBroadcastEvent`] to all modules
     pub(crate) async fn broadcast_event_to_modules(
         &mut self,
         origin: EventOrigin,
-        room_scope: RoomKind,
+        room_kind: RoomKind,
         mut event: DynBroadcastEvent<'_>,
-    ) {
+    ) -> RequestedModuleActions {
         let mut errors = Vec::new();
         let mut messages = RefCell::new(Vec::new());
         let timestamp = Timestamp::now();
@@ -173,7 +180,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .on_broadcast_event(
                     &mut DynModuleContext::new(
                         self.info.room_id,
-                        room_scope,
+                        room_kind,
                         origin,
                         &mut self.info,
                         &mut self.participants,
@@ -191,12 +198,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         }
 
-        self.handle_module_messages(messages, room_scope, origin, timestamp)
-            .await;
-
-        for (namespace, err) in errors {
-            self.handle_fatal_module_error(namespace, origin.transaction_id(), err)
-                .await;
+        RequestedModuleActions {
+            messages,
+            errors,
+            timestamp,
+            room_kind,
+            origin,
         }
     }
 
@@ -343,6 +350,27 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             meeting_details,
             is_room_owner,
             module_data,
+        }
+    }
+}
+
+#[must_use]
+pub(crate) struct RequestedModuleActions {
+    pub messages: RefCell<Vec<ModuleMessage>>,
+    pub errors: Vec<(ModuleId, FatalError)>,
+    pub timestamp: Timestamp,
+    pub room_kind: RoomKind,
+    pub origin: EventOrigin,
+}
+
+impl RequestedModuleActions {
+    pub(crate) async fn handle_requested_messages(self, task: &mut RoomTask<impl SignalingSocket>) {
+        task.handle_module_messages(self.messages, self.room_kind, self.origin, self.timestamp)
+            .await;
+
+        for (namespace, err) in self.errors {
+            task.handle_fatal_module_error(namespace, self.origin.transaction_id(), err)
+                .await;
         }
     }
 }

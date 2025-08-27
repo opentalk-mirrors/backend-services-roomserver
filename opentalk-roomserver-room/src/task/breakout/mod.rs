@@ -214,12 +214,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.breakout_config = Some(breakout_config);
 
-        self.broadcast_event_to_modules(
-            EventOrigin::Participant(participant_origin),
-            room_scope,
-            breakout_started,
-        )
-        .await;
+        let actions = self
+            .broadcast_event_to_modules(
+                EventOrigin::Participant(participant_origin),
+                room_scope,
+                breakout_started,
+            )
+            .await;
 
         for (p, state) in self.participants.connected().iter() {
             let breakout_started = BreakoutEvent::Started {
@@ -239,6 +240,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 )
                 .await?;
         }
+
+        actions.handle_requested_messages(self).await;
 
         Ok(())
     }
@@ -358,17 +361,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             module_data_map.insert(conn_id, ModuleData::new());
         }
 
-        self.broadcast_event_to_modules(
-            origin,
-            room,
-            DynBroadcastEvent::SwitchRoom {
-                participant_id,
-                old_room: previous_room,
-                new_room: room,
-                module_data: &mut module_data_map,
-            },
-        )
-        .await;
+        let actions = self
+            .broadcast_event_to_modules(
+                origin,
+                room,
+                DynBroadcastEvent::SwitchRoom {
+                    participant_id,
+                    old_room: previous_room,
+                    new_room: room,
+                    module_data: &mut module_data_map,
+                },
+            )
+            .await;
 
         for (conn_id, module_data) in module_data_map {
             self.message_router
@@ -401,6 +405,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 &excluded_connections,
             )
             .await?;
+
+        actions.handle_requested_messages(self).await;
 
         Ok(())
     }
@@ -435,6 +441,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let span = tracing::debug_span!("breakout_closing");
         self.broadcast_event_to_modules(origin, RoomKind::Main, DynBroadcastEvent::BreakoutClosing)
             .instrument(span)
+            .await
+            .handle_requested_messages(self)
             .await;
 
         let all_participants = self
@@ -458,11 +466,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.breakout_config = None;
 
-        let span = tracing::debug_span!("breakout_closed");
-        self.broadcast_event_to_modules(origin, RoomKind::Main, DynBroadcastEvent::BreakoutClosed)
-            .instrument(span)
-            .await;
-
         self.message_router
             .conference
             .serialize_and_broadcast(
@@ -471,6 +474,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 BreakoutEvent::Closed,
             )
             .await?;
+
+        let span = tracing::debug_span!("breakout_closed");
+        self.broadcast_event_to_modules(origin, RoomKind::Main, DynBroadcastEvent::BreakoutClosed)
+            .instrument(span)
+            .await
+            .handle_requested_messages(self)
+            .await;
 
         Ok(())
     }

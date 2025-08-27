@@ -8,7 +8,7 @@ use futures::{StreamExt as _, stream};
 use livekit_api::services::room::{RoomClient, UpdateParticipantOptions};
 use livekit_protocol::{ParticipantInfo, ParticipantPermission, TrackSource};
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_roomserver_types_livekit::MicrophoneRestrictionState;
+use opentalk_roomserver_types_livekit::{MicrophoneRestrictionState, ModeratorOrModule};
 use opentalk_types_signaling::ParticipantId;
 
 pub use crate::loopback::{
@@ -29,7 +29,7 @@ pub enum LiveKitLoopback {
     RoomRemoved,
 
     ParticipantsMuted {
-        sender: ParticipantId,
+        sender: ModeratorOrModule,
         participants: BTreeSet<ParticipantId>,
     },
 
