@@ -260,7 +260,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         tracing::debug!("Shutting down modules");
         for (_, module_handle) in self.modules.drain() {
-            module_handle.destroy(room_id).await;
+            module_handle.destroy(room_id);
         }
 
         tracing::debug!("Closing room {room_id}");
@@ -366,10 +366,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let origin = ctx.event_origin;
         let timestamp = ctx.timestamp;
 
-        if let Err(err) = module
-            .on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value))
-            .await
-        {
+        if let Err(err) = module.on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value)) {
             self.handle_fatal_module_error(msg.namespace, transaction_id, err)
                 .await;
         }
@@ -456,17 +453,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.loopback_futures,
         );
 
-        if let Err(err) = module
-            .on_event(
-                &mut ctx,
-                DynEvent::InternalCommand {
-                    sender: command.sender,
-                    command: command.command,
-                    return_result: command.result_callback,
-                },
-            )
-            .await
-        {
+        if let Err(err) = module.on_event(
+            &mut ctx,
+            DynEvent::InternalCommand {
+                sender: command.sender,
+                command: command.command,
+                return_result: command.result_callback,
+            },
+        ) {
             self.handle_fatal_module_error(command.receiver, origin.transaction_id(), err)
                 .await;
         }
@@ -737,17 +731,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let origin = ctx.event_origin;
         let timestamp = ctx.timestamp;
 
-        if let Err(err) = module
-            .on_event(
-                &mut ctx,
-                DynEvent::WebsocketMessage {
-                    participant_id,
-                    connection_id,
-                    command: signaling_command.payload,
-                },
-            )
-            .await
-        {
+        if let Err(err) = module.on_event(
+            &mut ctx,
+            DynEvent::WebsocketMessage {
+                participant_id,
+                connection_id,
+                command: signaling_command.payload,
+            },
+        ) {
             self.handle_fatal_module_error(
                 signaling_command.namespace,
                 signaling_command.transaction_id,
@@ -789,7 +780,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         } else {
             &mut self.message_router.conference
         };
-        let connection_id = match scoped_router.add_connection(participant_id, socket).await {
+        let connection_id = match scoped_router.add_connection(participant_id, socket) {
             Ok(conn_id) => conn_id,
             Err(AlreadyConnectedError) => {
                 tracing::debug!("rejecting participant connection: already connected");

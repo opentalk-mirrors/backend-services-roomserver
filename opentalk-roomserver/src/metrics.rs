@@ -47,7 +47,7 @@ struct MetricContext<H: MetricHandle> {
 }
 
 impl<H: MetricHandle> MetricContext<H> {
-    async fn render(&mut self) -> String {
+    fn render(&mut self) -> String {
         self.metric_handle.render()
     }
 }
@@ -64,5 +64,5 @@ impl<H: MetricHandle> MetricContext<H> {
     security(),
     )]
 async fn metrics<H: MetricHandle>(mut context: State<MetricContext<H>>) -> String {
-    context.render().await
+    context.render()
 }

@@ -39,7 +39,7 @@ pub enum ExportFormat {
     Json,
 }
 
-pub(crate) async fn handle_command(command: Command) -> anyhow::Result<()> {
+pub(crate) fn handle_command(command: Command) -> anyhow::Result<()> {
     match command {
         Command::Dump { format, target } => {
             let mut outstream: Box<dyn Write> = if target == Path::new("-").to_path_buf() {
