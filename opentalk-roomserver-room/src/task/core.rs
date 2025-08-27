@@ -285,13 +285,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let display_name = client_kind.display_name();
         let (role, avatar_url, is_room_owner) = match client_kind {
-            ClientKind::Registered { profile } => (
+            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => (
                 role.to_opentalk_types_signaling_role(),
                 Some(profile.user_info.avatar_url),
                 self.info.room.created_by.id == profile.id,
             ),
             ClientKind::Guest { .. } => (Role::Guest, None, false),
             ClientKind::Recorder => (Role::Guest, None, false),
+            ClientKind::CallIn { .. } => (Role::Guest, None, false),
         };
 
         let event_info = self

@@ -31,45 +31,59 @@ pub struct ClientParameters {
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum ClientKind {
     /// A registered user
-    Registered {
-        profile: PublicUserProfile,
-    },
+    Registered { profile: PublicUserProfile },
 
     /// A guest participant
-    Guest {
-        display_name: DisplayName,
-    },
+    Guest { display_name: DisplayName },
 
+    /// Invisible service participant used by the recording service
     Recorder,
+
+    /// Telephone call-In participant which identifies via a meeting id & pin
+    CallIn { display_name: DisplayName },
+
+    /// Same as `ClientKind::CallIn` but the controller may associate a user to the call-in participant if phonenumber
+    /// matching is enabled
+    RegisteredCallIn { profile: PublicUserProfile },
 }
 
 impl ClientKind {
     pub fn user_id(&self) -> Option<UserId> {
         match self {
-            ClientKind::Registered { profile } => Some(profile.id),
-            ClientKind::Guest { .. } | ClientKind::Recorder => None,
+            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
+                Some(profile.id)
+            }
+            ClientKind::Guest { .. } | ClientKind::Recorder | ClientKind::CallIn { .. } => None,
         }
     }
 
     pub fn display_name(&self) -> DisplayName {
         match self {
-            ClientKind::Registered { profile } => profile.user_info.display_name.clone(),
-            ClientKind::Guest { display_name } => display_name.clone(),
+            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
+                profile.user_info.display_name.clone()
+            }
             ClientKind::Recorder => DisplayName::from_str_lossy("recorder"),
+            ClientKind::CallIn { display_name } | ClientKind::Guest { display_name } => {
+                display_name.clone()
+            }
         }
     }
 
     pub fn email(&self) -> Option<&str> {
         match self {
-            ClientKind::Registered { profile } => Some(&profile.email),
-            ClientKind::Guest { .. } | ClientKind::Recorder => None,
+            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
+                Some(&profile.email)
+            }
+            ClientKind::Guest { .. } | ClientKind::Recorder | ClientKind::CallIn { .. } => None,
         }
     }
 
     pub fn avatar_url(&self) -> Option<&str> {
         match self {
-            ClientKind::Registered { profile } => Some(&profile.user_info.avatar_url),
-            ClientKind::Guest { .. } | ClientKind::Recorder => None,
+            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
+                Some(&profile.user_info.avatar_url)
+            }
+            ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder => None,
         }
     }
 }
@@ -77,9 +91,10 @@ impl ClientKind {
 impl ClientKind {
     pub fn visibility(&self) -> ParticipationVisibility {
         match self {
-            ClientKind::Registered { .. } | ClientKind::Guest { .. } => {
-                ParticipationVisibility::Visible
-            }
+            ClientKind::Registered { .. }
+            | ClientKind::Guest { .. }
+            | ClientKind::CallIn { .. }
+            | ClientKind::RegisteredCallIn { .. } => ParticipationVisibility::Visible,
             ClientKind::Recorder => ParticipationVisibility::Hidden,
         }
     }
@@ -186,7 +201,6 @@ mod tests {
                         "title": "",
                         "timezone": "Europe/Berlin",
                     }
-
                 }
             )
         )
@@ -207,6 +221,59 @@ mod tests {
                 "role": "user",
                 "device_secret": "v3rys3cr3tD3v1ce5tr1ng",
                 "kind": "recorder",
+            })
+        );
+    }
+
+    #[test]
+    fn call_in() {
+        let value = serde_json::to_value(ClientParameters {
+            device_secret: DeviceSecret::example_data(),
+            kind: ClientKind::CallIn {
+                display_name: DisplayName::from_str_lossy("1001"),
+            },
+            role: Role::User,
+        })
+        .unwrap();
+
+        assert_eq!(
+            value,
+            json!({
+                "role": "user",
+                "device_secret": "v3rys3cr3tD3v1ce5tr1ng",
+                "kind": "call_in",
+                "display_name": "1001"
+            })
+        );
+    }
+
+    #[test]
+    fn registered_call_in() {
+        let value = serde_json::to_value(ClientParameters {
+            device_secret: DeviceSecret::example_data(),
+            kind: ClientKind::RegisteredCallIn {
+                profile: PublicUserProfile::example_data(),
+            },
+            role: Role::User,
+        })
+        .unwrap();
+
+        assert_eq!(
+            value,
+            json!({
+                "role": "user",
+                "device_secret": "v3rys3cr3tD3v1ce5tr1ng",
+                "kind": "registered_call_in",
+                "profile": {
+                    "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060",
+                    "display_name": "Alice Adams",
+                    "email": "alice@example.com",
+                    "firstname": "Alice",
+                    "lastname": "Adams",
+                    "id": "00000000-0000-0000-0000-0000000a11c3",
+                    "title": "",
+                    "timezone": "Europe/Berlin",
+                }
             })
         );
     }
