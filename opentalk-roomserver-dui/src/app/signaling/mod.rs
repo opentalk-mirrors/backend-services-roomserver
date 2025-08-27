@@ -23,6 +23,7 @@ use crate::{
             filtered_vec::FilteredVec,
             livekit::LiveKitPlugin,
             plugin::{Received, SignalingPlugin},
+            spam_amount::SpamAmountPlugin,
             timer::TimerPlugin,
         },
         style::{delete_btn, delete_mode_btn},
@@ -35,6 +36,7 @@ mod breakout;
 pub mod filtered_vec;
 mod livekit;
 mod plugin;
+pub mod spam_amount;
 mod timer;
 
 #[derive(Debug)]
@@ -87,6 +89,7 @@ impl SignalingView {
                 (false, Box::new(LiveKitPlugin::new(runtime, ctx, settings))),
                 (false, Box::new(BreakoutPlugin::new())),
                 (false, Box::new(TimerPlugin::new())),
+                (false, Box::new(SpamAmountPlugin::new())),
             ],
         }
     }
