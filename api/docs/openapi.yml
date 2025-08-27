@@ -170,6 +170,7 @@ components:
               enum:
                 - guest
         - type: object
+          description: Invisible service participant used by the recording service
           required:
             - kind
           properties:
@@ -177,6 +178,32 @@ components:
               type: string
               enum:
                 - recorder
+        - type: object
+          description: Telephone call-In participant which identifies via a meeting id & pin
+          required:
+            - display_name
+            - kind
+          properties:
+            display_name:
+              $ref: "#/components/schemas/DisplayName"
+            kind:
+              type: string
+              enum:
+                - call_in
+        - type: object
+          description: |-
+            Same as `ClientKind::CallIn` but the controller may associate a user to the call-in participant if phonenumber
+            matching is enabled
+          required:
+            - profile
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - registered_call_in
+            profile:
+              $ref: "#/components/schemas/PublicUserProfile"
     ClientParameters:
       allOf:
         - $ref: "#/components/schemas/ClientKind"
