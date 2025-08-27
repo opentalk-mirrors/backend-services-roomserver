@@ -47,6 +47,10 @@ pub enum RunnerCommand {
         token: Token,
     },
 
+    SuspendReceive,
+
+    ResumeReceive,
+
     Close,
 
     Send {
@@ -101,6 +105,7 @@ pub struct RoomServerRunner {
     client: Client,
 
     connection: Option<SignalingConnection>,
+    receive_suspended: bool,
 
     event_tx: mpsc::UnboundedSender<RunnerEvent>,
     command_rx: mpsc::UnboundedReceiver<RunnerCommand>,
@@ -130,6 +135,7 @@ impl RoomServerRunner {
             command_rx,
             signaling_state_tx,
             egui_ctx,
+            receive_suspended: false,
         };
 
         runtime.spawn(this.run());
@@ -148,7 +154,7 @@ impl RoomServerRunner {
                         return Ok(())
                     }
                 }
-                message = Self::next_received(self.connection.as_mut()) => {
+                message = Self::next_received(self.connection.as_mut(), self.receive_suspended) => {
                     self.process_signaling_message(message).await?;
                 }
             }
@@ -162,10 +168,11 @@ impl RoomServerRunner {
     /// If the connection is none (we are not connected with a signaling websocket) this call will be stuck in pending.
     async fn next_received(
         conn: Option<&mut SignalingConnection>,
+        suspended: bool,
     ) -> Result<Option<String>, SignalingError> {
-        match conn {
-            Some(conn) => conn.receive_raw_message().await,
-            None => std::future::pending().await,
+        match (suspended, conn) {
+            (false, Some(conn)) => conn.receive_raw_message().await,
+            (_, None) | (true, _) => std::future::pending().await,
         }
     }
 
@@ -236,6 +243,8 @@ impl RoomServerRunner {
                 self.client = client;
                 let _ = response_tx.send(Ok(()));
             }
+            RunnerCommand::SuspendReceive => self.receive_suspended = true,
+            RunnerCommand::ResumeReceive => self.receive_suspended = false,
         }
 
         Ok(())
