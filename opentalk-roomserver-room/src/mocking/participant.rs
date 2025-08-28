@@ -441,11 +441,12 @@ impl<S> MockParticipant<S> {
         }
     }
 
-    pub fn recorder() -> MockRecorderBuilder {
+    pub fn recorder(device_number: usize) -> MockRecorderBuilder {
         MockRecorderBuilder {
             profile: (),
             role: Role::User,
-            secret: DeviceSecret::from_str("Recorder Device Secret").expect("Valid device secret"),
+            secret: DeviceSecret::from_str(&format!("Recorder Device Secret {device_number}"))
+                .expect("Valid device secret"),
         }
     }
 
@@ -850,26 +851,14 @@ impl MockParticipantBuilder<DisplayName> {
 pub type MockRecorderBuilder = MockParticipantBuilder<()>;
 
 impl MockRecorderBuilder {
-    pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
-        room.join_participant(ClientParameters {
-            device_secret: self.secret,
-            kind: ClientKind::Recorder {
-                room: RoomKind::Main,
-            },
-            role: Role::User,
-        })
-        .await
-    }
-
-    pub async fn enter_waiting_room(
+    pub async fn join(
         self,
         room: &mut TestRoom,
-    ) -> Result<MockParticipantWaiting, room::Error> {
-        room.enter_waiting_room(ClientParameters {
+        room_kind: RoomKind,
+    ) -> Result<MockParticipantJoined, room::Error> {
+        room.join_participant(ClientParameters {
             device_secret: self.secret,
-            kind: ClientKind::Recorder {
-                room: RoomKind::Main,
-            },
+            kind: ClientKind::Recorder { room: room_kind },
             role: Role::User,
         })
         .await

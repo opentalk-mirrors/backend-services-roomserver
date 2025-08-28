@@ -318,7 +318,6 @@ mod tests {
                 "room": {
                     "kind": "main",
                 }
-
             })
         );
     }

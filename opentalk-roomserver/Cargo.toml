@@ -37,6 +37,7 @@ opentalk-roomserver-module-meeting-report.workspace = true
 opentalk-roomserver-module-moderation.workspace = true
 opentalk-roomserver-module-polls.workspace = true
 opentalk-roomserver-module-raise-hands.workspace = true
+opentalk-roomserver-module-recording.workspace = true
 opentalk-roomserver-module-shared-folder.workspace = true
 opentalk-roomserver-module-subroom-audio.workspace = true
 opentalk-roomserver-module-timer.workspace = true

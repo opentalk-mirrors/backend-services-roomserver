@@ -44,6 +44,7 @@ opentalk-roomserver-module-meeting-report = { path = "modules/meeting-report/mod
 opentalk-roomserver-module-moderation = { path = "modules/moderation/module", version = "0.0.25-alpha" }
 opentalk-roomserver-module-polls = { path = "modules/polls/module", version = "0.0.25-alpha" }
 opentalk-roomserver-module-raise-hands = { path = "modules/raise-hands/module", version = "0.0.25-alpha" }
+opentalk-roomserver-module-recording = { path = "modules/recording/module", version = "0.0.25-alpha" }
 opentalk-roomserver-module-shared-folder = { path = "modules/shared-folder/module", version = "0.0.25-alpha" }
 opentalk-roomserver-module-subroom-audio = { path = "modules/subroom-audio/module", version = "0.0.25-alpha" }
 opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.25-alpha" }
@@ -66,6 +67,7 @@ opentalk-roomserver-types-meeting-report = { path = "modules/meeting-report/type
 opentalk-roomserver-types-moderation = { path = "modules/moderation/types", version = "0.0.25-alpha" }
 opentalk-roomserver-types-polls = { path = "modules/polls/types", version = "0.0.25-alpha" }
 opentalk-roomserver-types-raise-hands = { path = "modules/raise-hands/types", version = "0.0.25-alpha" }
+opentalk-roomserver-types-recording = { path = "modules/recording/types", version = "0.0.25-alpha" }
 opentalk-roomserver-types-shared-folder = { path = "modules/shared-folder/types", version = "0.0.25-alpha" }
 opentalk-roomserver-types-subroom-audio = { path = "modules/subroom-audio/types", version = "0.0.25-alpha" }
 opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.25-alpha" }
@@ -127,7 +129,7 @@ opentelemetry_sdk = { version = "0.31.0", features = [
 pdf-extract = "0.10"
 pretty_assertions = "1.4.1"
 rand = "0.10"
-reqwest = { version = "0.13" }
+reqwest = { version = "0.13", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1.0.125", features = ["raw_value"] }
 serde_path_to_error = "0.1.16"

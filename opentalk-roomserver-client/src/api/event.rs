@@ -16,6 +16,7 @@ use opentalk_roomserver_types_meeting_report::{
 use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, event::ModerationEvent};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, event::RaiseHandsEvent};
+use opentalk_roomserver_types_recording::{RECORDING_MODULE_ID, event::RecordingEvent};
 use opentalk_roomserver_types_subroom_audio::{SUBROOM_AUDIO_MODULE_ID, event::SubroomAudioEvent};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
 use opentalk_roomserver_types_training_participation_report::{
@@ -79,6 +80,7 @@ pub enum SignalingModuleEvent {
     Whiteboard(WhiteboardEvent),
     LegalVote(LegalVoteEvent),
     TrainingParticipationReport(TrainingParticipationReportEvent),
+    Recording(RecordingEvent),
 }
 
 impl SignalingModuleEvent {
@@ -102,6 +104,7 @@ impl SignalingModuleEvent {
             Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
+            Self::Recording(..) => RECORDING_MODULE_ID,
         }
     }
 }
