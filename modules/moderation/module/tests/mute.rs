@@ -66,7 +66,7 @@ async fn mute_bob() {
         .expect("LiveKit state must be present");
 
     // join livekit to ensure participant exists and can be muted.
-    let (_bob_room, mut room_events) = livekit::Room::connect(
+    let (bob_room, mut room_events) = livekit::Room::connect(
         &public_url,
         &bob_livekit_state.credentials.token,
         RoomOptions::default(),
@@ -75,13 +75,12 @@ async fn mute_bob() {
     .unwrap();
     let connected = room_events.recv().await;
     assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
-    // log additional livekit events
-    tokio::spawn(async move {
-        while let Some(event) = room_events.recv().await {
-            tracing::debug!("Bob Livekit Event: {:?}", event);
-        }
-        tracing::debug!("Bob Livekit Event stream closed");
-    });
+
+    // Publish a track for Bob to ensure he can be muted
+    let track = livekit_mocking::publish_audio(&bob_room, &mut room_events)
+        .await
+        .unwrap();
+    track.unmute();
 
     // Alice sends the mute command
     alice
@@ -139,13 +138,34 @@ async fn insufficient_permissions() {
 #[test_log::test(tokio::test)]
 #[ignore]
 async fn alice_in_breakout_bob_in_main() {
-    let (_container, room, _public_url) = livekit_mocking::build_livekit_room().await;
+    let (_container, room, public_url) = livekit_mocking::build_livekit_room().await;
     let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
+
+    // Connect to livekit to ensure participants exist and can be muted.
+    let token = bob
+        .join_success()
+        .get_module::<LiveKitState>()
+        .expect("LiveKit state must be present")
+        .expect("LiveKit state must not be none")
+        .credentials
+        .token;
+    let (bob_room, mut room_events) =
+        livekit::Room::connect(&public_url, &token, RoomOptions::default())
+            .await
+            .unwrap();
+    let connected = room_events.recv().await;
+    assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
+
+    // Publish a track for Bob to ensure he can be muted
+    let track = livekit_mocking::publish_audio(&bob_room, &mut room_events)
+        .await
+        .unwrap();
+    track.unmute();
 
     alice
         .start_breakout_rooms(

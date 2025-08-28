@@ -49,7 +49,9 @@ async fn microphones_are_restricted() {
     let connected = room_events.recv().await;
     assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
     // Bob should be able to publish audio
-    mocking::publish_audio(&bob_room).await.unwrap();
+    mocking::publish_audio(&bob_room, &mut room_events)
+        .await
+        .unwrap();
 
     let unrestricted = BTreeSet::from([alice.id()]);
 
@@ -83,7 +85,11 @@ async fn microphones_are_restricted() {
     );
 
     // Bob should not be able to send audio
-    assert!(mocking::publish_audio(&bob_room).await.is_err());
+    assert!(
+        mocking::publish_audio(&bob_room, &mut room_events)
+            .await
+            .is_err()
+    );
 }
 
 /// When the restricted state is updated, the permissions are adjusted accordingly.
@@ -118,7 +124,9 @@ async fn permissions_are_updated() {
     let connected = room_events.recv().await;
     assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
     // Bob should be able to publish audio
-    mocking::publish_audio(&bob_room).await.unwrap();
+    mocking::publish_audio(&bob_room, &mut room_events)
+        .await
+        .unwrap();
 
     let unrestricted = BTreeSet::from([alice.id()]);
 
@@ -180,7 +188,7 @@ async fn permissions_are_updated() {
         }
     );
 
-    mocking::publish_audio(&bob_room)
+    mocking::publish_audio(&bob_room, &mut room_events)
         .await
         .expect("Publishing audio must work again");
 }
@@ -251,7 +259,9 @@ async fn disable_unknown_participant() {
         let connected = room_events.recv().await;
         assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
         // Bob should be able to publish audio
-        mocking::publish_audio(&bob_room).await.unwrap();
+        mocking::publish_audio(&bob_room, &mut room_events)
+            .await
+            .unwrap();
 
         let unrestricted = BTreeSet::from([alice.id()]);
 
@@ -396,7 +406,9 @@ async fn alice_in_breakout_bob_in_main() {
     let connected = room_events.recv().await;
     assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
     // Bob should be able to publish audio
-    mocking::publish_audio(&bob_room).await.unwrap();
+    mocking::publish_audio(&bob_room, &mut room_events)
+        .await
+        .unwrap();
 
     alice
         .start_breakout_rooms(
@@ -441,7 +453,9 @@ async fn alice_in_breakout_bob_in_main() {
     assert!(bob.received_nothing());
 
     // Bob should be able to publish audio since he is in another breakout room.
-    mocking::publish_audio(&bob_room).await.unwrap();
+    mocking::publish_audio(&bob_room, &mut room_events)
+        .await
+        .unwrap();
 }
 
 #[test_log::test(tokio::test)]
@@ -472,7 +486,9 @@ async fn alice_and_bob_in_breakout() {
     let connected = room_events.recv().await;
     assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
     // Bob should be able to publish audio
-    mocking::publish_audio(&bob_room).await.unwrap();
+    mocking::publish_audio(&bob_room, &mut room_events)
+        .await
+        .unwrap();
 
     alice
         .start_breakout_rooms(
@@ -525,5 +541,9 @@ async fn alice_and_bob_in_breakout() {
     );
 
     // Bob should not be able to send audio
-    assert!(mocking::publish_audio(&bob_room).await.is_err());
+    assert!(
+        mocking::publish_audio(&bob_room, &mut room_events)
+            .await
+            .is_err()
+    );
 }
