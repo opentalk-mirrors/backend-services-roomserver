@@ -15,7 +15,9 @@
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, NoOp, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData},
+    signaling_module::{
+        ModuleJoinData, NoOp, PeerDataMap, SignalingModule, SignalingModuleInitData,
+    },
 };
 use opentalk_roomserver_types::{
     client_parameters::Role, connection_id::ConnectionId,
@@ -73,18 +75,18 @@ impl SignalingModule for SharedFolderModule {
         participant_id: ParticipantId,
         _connection_id: ConnectionId,
         _is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
         if ctx.participant_role(participant_id) == Some(Role::Moderator) {
-            Ok(JoinInfo {
+            Ok(ModuleJoinData {
                 join_success: Some(self.state.clone()),
-                peer_event_data: PeerJoinInfoMap::default(),
-                participant_data: PeerJoinInfoMap::default(),
+                peer_events: PeerDataMap::default(),
+                peer_data: PeerDataMap::default(),
             })
         } else {
-            Ok(JoinInfo {
+            Ok(ModuleJoinData {
                 join_success: Some(self.state.clone().without_write_access()),
-                peer_event_data: PeerJoinInfoMap::default(),
-                participant_data: PeerJoinInfoMap::default(),
+                peer_events: PeerDataMap::default(),
+                peer_data: PeerDataMap::default(),
             })
         }
     }

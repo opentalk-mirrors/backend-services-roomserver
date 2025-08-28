@@ -35,8 +35,11 @@ use crate::signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext};
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// A participant connected to the conference
     ///
-    /// Sends the [`CoreEvent::JoinSuccess`] to the joining participant and notifies other participants with the
-    /// [`CoreEvent::ParticipantConnected`] message.
+    /// Sends the [`CoreEvent::JoinSuccess`] to the connection of the participant that joins.
+    /// Notifies other connections with the [`CoreEvent::ParticipantConnected`] message.
+    ///
+    /// NOTE: In case the joining participant is already connected with another device, they will
+    /// also receive the [`CoreEvent::ParticipantConnected`] messages on the device that is already connected.
     pub(super) async fn participant_joined(
         &mut self,
         participant_id: ParticipantId,
@@ -45,9 +48,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         client_kind: ClientKind,
         role: RoomserverClientRole,
     ) -> Result<(), FatalError> {
-        let mut module_data = ModuleData::new();
-        let mut peer_module_data = BTreeMap::new();
-        let mut participant_state = BTreeMap::new();
+        let mut own_data = ModuleData::new();
+        let mut peer_events = BTreeMap::new();
+        let mut peer_data = BTreeMap::new();
 
         let Some(current_breakout_room) = self
             .participants
@@ -72,13 +75,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             DynBroadcastEvent::Connected {
                 participant_id,
                 connection_id,
-                module_data: &mut module_data,
-                peer_module_data: &mut peer_module_data,
-                participant_state: &mut participant_state,
+                own_data: &mut own_data,
+                peer_events: &mut peer_events,
+                peer_data: &mut peer_data,
             },
         );
 
-        self.add_breakout_module_data(&mut module_data, current_breakout_room);
+        self.add_breakout_module_data(&mut own_data, current_breakout_room);
 
         let join_success_msg = self.build_join_success(
             participant_id,
@@ -86,8 +89,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             device_id,
             client_kind,
             role,
-            module_data,
-            participant_state.clone(),
+            own_data,
+            peer_data.clone(),
         );
 
         self.message_router
@@ -101,7 +104,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .await?;
 
         for (&peer_id, state) in self.participants.connected().iter() {
-            let peer_join_info = peer_module_data.remove(&peer_id);
+            let peer_join_info = peer_events.remove(&peer_id);
 
             let connections = state
                 .connections
@@ -118,7 +121,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     CoreEvent::ParticipantConnected {
                         participant_id,
                         connection_id,
-                        peer_join_info: peer_join_info.unwrap_or_default(),
+                        peer_data: peer_join_info.unwrap_or_default(),
                     },
                 )
                 .await?;
@@ -699,8 +702,8 @@ mod tests {
 
     #[test]
     fn serialize_core_event_joined() {
-        let mut peer_join_info = BTreeMap::new();
-        peer_join_info.insert(
+        let mut peer_join_data = BTreeMap::new();
+        peer_join_data.insert(
             module_id!("test"),
             SharedJson::from(json!({
                 "key": "value"
@@ -710,7 +713,7 @@ mod tests {
         let event = CoreEvent::ParticipantConnected {
             participant_id: ParticipantId::nil(),
             connection_id: ConnectionId::nil(),
-            peer_join_info,
+            peer_data: peer_join_data,
         };
         let json = serde_json::to_value(&event).unwrap();
 
@@ -720,7 +723,7 @@ mod tests {
                 "participant_connected": {
                     "participant_id": "00000000-0000-0000-0000-000000000000",
                     "connection_id": "00000000-0000-0000-0000-000000000000",
-                    "peer_join_info": {
+                    "peer_data": {
                     "test": {
                         "key": "value"
                     }

@@ -6,7 +6,7 @@ use std::{collections::HashMap, mem};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     participant_state::ParticipantState,
-    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
+    signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientKind,
@@ -52,7 +52,7 @@ impl SignalingModule for ModerationModule {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
         let moderator_data = if ctx.is_moderator(participant_id) {
             let info = ModeratorJoinInfo {
                 waiting_room_enabled: ctx.room_task_info.room.waiting_room,
@@ -67,7 +67,7 @@ impl SignalingModule for ModerationModule {
             None
         };
 
-        let join_info = JoinInfo {
+        let join_info = ModuleJoinData {
             join_success: Some(ModerationState { moderator_data }),
             ..Default::default()
         };

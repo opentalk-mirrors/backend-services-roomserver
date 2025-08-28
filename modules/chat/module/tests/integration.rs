@@ -1020,10 +1020,10 @@ async fn breakout_chat_history_chunks() {
     let event = alice
         .switch_breakout_room(&mut [], RoomKind::Breakout(BreakoutId::from(0)))
         .await;
-    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
         panic!("Received wrong breakout event");
     };
-    let chunk = module_data
+    let chunk = own_data
         .get::<ChatState>()
         .expect("Did not receive chat state")
         .expect("Chat state must not be empty")
@@ -1040,11 +1040,11 @@ async fn breakout_chat_history_chunks() {
     let event = alice
         .switch_breakout_room(&mut [], RoomKind::Breakout(breakout_id))
         .await;
-    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
         panic!("Received wrong breakout event");
     };
 
-    let chunk = module_data
+    let chunk = own_data
         .get::<ChatState>()
         .expect("Did not receive chat state")
         .expect("Chat state must not be empty")

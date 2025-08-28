@@ -68,7 +68,7 @@ use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
-        JoinInfo, NoOp, PeerJoinInfoMap, SignalingModule, SignalingModuleInitData, SwitchInfo,
+        ModuleJoinData, ModuleSwitchData, NoOp, SignalingModule, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -136,13 +136,12 @@ impl SignalingModule for AutomodModule {
         participant_id: ParticipantId,
         _connection_id: ConnectionId,
         _is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
         let state = self.join_room(ctx, ctx.room, participant_id)?;
 
-        Ok(JoinInfo {
+        Ok(ModuleJoinData {
             join_success: state,
-            peer_event_data: PeerJoinInfoMap::default(),
-            participant_data: PeerJoinInfoMap::default(),
+            ..Default::default()
         })
     }
 
@@ -216,23 +215,26 @@ impl SignalingModule for AutomodModule {
         participant_id: ParticipantId,
         old_room: RoomKind,
         new_room: RoomKind,
-    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
         // Remove the participant from the remaining list of the old room
         self.remove_participant(ctx, old_room, participant_id)?;
 
         let Some(state) = self.join_room(ctx, new_room, participant_id)? else {
-            // Automod not active in the new room, return empty `SwitchInfo`
-            return Ok(SwitchInfo::<Self>::default());
+            // Automod not active in the new room, return empty `ModuleSwitchData`
+            return Ok(ModuleSwitchData::<Self>::default());
         };
 
-        let switch_info = ctx
+        let switch_success = ctx
             .participant_state(participant_id)
             .with_context(|| format!("Missing state for participant {participant_id}"))?
             .connections()
             .map(|con| (con, Some(state.clone())))
             .collect();
 
-        Ok(switch_info)
+        Ok(ModuleSwitchData {
+            switch_success,
+            ..Default::default()
+        })
     }
 
     fn on_breakout_closed(

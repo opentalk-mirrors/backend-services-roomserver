@@ -77,9 +77,12 @@ pub enum DynBroadcastEvent<'evt> {
     Connected {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
-        module_data: &'evt mut ModuleData,
-        peer_module_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
-        participant_state: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
+        /// The module data for the participant in the new room.
+        own_data: &'evt mut ModuleData,
+        /// The module data about the joining participant, sent to the participants already in the room.
+        peer_events: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
+        /// The module data about other participants in the room, for and send to the joining participant.
+        peer_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     },
 
     Disconnected {
@@ -104,7 +107,11 @@ pub enum DynBroadcastEvent<'evt> {
         old_room: RoomKind,
         new_room: RoomKind,
         /// The module data for the participant in the new room. Each connection needs to have their own module data
-        module_data: &'evt mut BTreeMap<ConnectionId, ModuleData>,
+        own_data: &'evt mut BTreeMap<ConnectionId, ModuleData>,
+        /// The module data about the switching participant, sent to the participants already in the room.
+        peer_events: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
+        /// The module data about other participants in the room, for and send to the switching participant.
+        peer_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     },
 }
 
@@ -164,9 +171,9 @@ where
             DynBroadcastEvent::Connected {
                 participant_id,
                 connection_id,
-                module_data,
-                peer_module_data,
-                participant_state,
+                own_data,
+                peer_events,
+                peer_data,
             } => {
                 span.record("opentalk.event_type", "Connected");
                 let is_first_connection = ctx
@@ -184,7 +191,7 @@ where
                 )?;
 
                 if let Some(success_info) = join_info.join_success {
-                    module_data
+                    own_data
                         .insert(&success_info)
                         .with_context(|| {
                             format!("failed to serialize JoinInfo for module '{}'", M::NAMESPACE)
@@ -192,15 +199,15 @@ where
                         .map_err(FatalError)?;
                 }
 
-                for (participant_id, peer_join_info) in join_info.peer_event_data.map {
-                    peer_module_data
+                for (participant_id, peer_join_info) in join_info.peer_events.map {
+                    peer_events
                         .entry(participant_id)
                         .or_default()
                         .insert(M::NAMESPACE, peer_join_info);
                 }
 
-                for (participant_id, data) in join_info.participant_data.map {
-                    participant_state
+                for (participant_id, data) in join_info.peer_data.map {
+                    peer_data
                         .entry(participant_id)
                         .or_default()
                         .insert(M::NAMESPACE, data);
@@ -223,16 +230,27 @@ where
                 participant_id,
                 old_room,
                 new_room,
-                module_data,
+                own_data,
+                peer_events,
+                peer_data,
             } => {
                 span.record("opentalk.event_type", "SwitchRoom");
-                let join_infos =
+                let module_data =
                     self.module
                         .on_breakout_switch(ctx, *participant_id, *old_room, *new_room)?;
 
-                for (conn_id, join_info) in join_infos {
+                // record data sent to other peers
+                for (other, peer_join_info) in module_data.peer_events.map {
+                    peer_events
+                        .entry(other)
+                        .or_default()
+                        .insert(M::NAMESPACE, peer_join_info);
+                }
+
+                // record data about the current participant and all their connections
+                for (conn_id, join_info) in module_data.switch_success {
                     if let Some(join_info) = join_info {
-                        module_data
+                        own_data
                             .entry(conn_id)
                             .or_default()
                             .insert(&join_info)
@@ -244,6 +262,14 @@ where
                             })
                             .map_err(FatalError)?;
                     }
+                }
+
+                // record data about other participants for the current participant
+                for (other, data) in module_data.peer_data.map {
+                    peer_data
+                        .entry(other)
+                        .or_default()
+                        .insert(M::NAMESPACE, data);
                 }
             }
 

@@ -592,10 +592,10 @@ async fn breakout_switch() {
         .unwrap();
 
     let event = alice.receive::<BreakoutEvent>().await.unwrap().payload;
-    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
         panic!("Received unexpected event: {:?}", event);
     };
-    let state = module_data
+    let state = own_data
         .get::<RaiseHandsState>()
         .expect("Module data must be present")
         .expect("Moderation module state must not be None");
@@ -624,11 +624,11 @@ async fn breakout_switch() {
     .unwrap();
 
     let event = bob.receive::<BreakoutEvent>().await.unwrap().payload;
-    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
         panic!("Received unexpected event: {:?}", event);
     };
 
-    let state = module_data
+    let state = own_data
         .get::<RaiseHandsState>()
         .expect("Module data must be present")
         .expect("Moderation module state must not be None");

@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_types_common::time::Timestamp;
+use std::collections::BTreeMap;
+
+use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     breakout::{BreakoutRoom, breakout_id::BreakoutId},
     room_kind::RoomKind,
+    shared_json::SharedJson,
     signaling::module_error::ModuleError,
 };
 
@@ -38,16 +41,23 @@ pub enum BreakoutEvent {
         old_room: RoomKind,
         /// The room that the participant moved to.
         new_room: RoomKind,
+        /// Module data that was attached by signaling modules containing
+        /// information about the participant that joined the room.
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        module_data: BTreeMap<ModuleId, SharedJson>,
     },
 
     /// The receiver has successfully switched between rooms
     SwitchedRoom {
         /// Module data that was attached by signaling modules
-        module_data: ModuleData,
+        own_data: ModuleData,
         /// The old room of the participant.
         old_room: RoomKind,
         /// The room that the participant moved to.
         new_room: RoomKind,
+        /// Module data for other participants in the room.
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        peer_data: BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     },
 
     /// A notice that the breakout rooms will close soon
@@ -97,6 +107,8 @@ impl ModuleError for BreakoutError {}
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use insta::assert_snapshot;
     use opentalk_types_common::time::Timestamp;
     use opentalk_types_signaling::{ModuleData, ParticipantId};
@@ -156,6 +168,7 @@ mod tests {
             participant_id: ParticipantId::nil(),
             old_room: RoomKind::Main,
             new_room: RoomKind::Breakout(BreakoutId::from(1)),
+            module_data: BTreeMap::new(),
         };
 
         let serialized = serde_json::to_string_pretty(&val).unwrap();
@@ -179,16 +192,17 @@ mod tests {
     #[test]
     fn switched_room() {
         let val = BreakoutEvent::SwitchedRoom {
-            module_data: ModuleData::new(),
+            own_data: ModuleData::new(),
             old_room: RoomKind::Main,
             new_room: RoomKind::Breakout(BreakoutId::from(1)),
+            peer_data: Default::default(),
         };
 
         let serialized = serde_json::to_string_pretty(&val).unwrap();
         assert_snapshot!(serialized, @r#"
         {
           "message": "switched_room",
-          "module_data": {},
+          "own_data": {},
           "old_room": {
             "kind": "main"
           },

@@ -4,7 +4,7 @@
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData},
+    signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
@@ -45,8 +45,8 @@ impl SignalingModule for E2eeModule {
         _participant_id: ParticipantId,
         _connection_id: ConnectionId,
         _is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
-        Ok(JoinInfo::default())
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
+        Ok(ModuleJoinData::default())
     }
 
     fn on_participant_disconnected(

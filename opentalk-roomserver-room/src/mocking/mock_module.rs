@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::collections::BTreeMap;
+
 use opentalk_roomserver_signaling::signaling_module::{
-    CreateReplica, JoinInfo, NoOp, SignalingModule, SignalingModuleInitData,
+    CreateReplica, ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+    SignalingModuleInitData,
 };
 use opentalk_roomserver_types::signaling::module_error::{ModuleError, SignalingModuleError};
 use opentalk_types_common::modules::{ModuleId, module_id};
+use opentalk_types_signaling::{SignalingModuleFrontendData, SignalingModulePeerFrontendData};
 use serde::{Deserialize, Serialize};
 
 pub struct MockModule {}
@@ -49,9 +53,9 @@ impl SignalingModule for MockModule {
 
     type Loopback = ();
 
-    type JoinInfo = ();
+    type JoinInfo = MockJoinInfo;
 
-    type PeerJoinInfo = ();
+    type PeerJoinInfo = MockPeerData;
 
     type Error = Error;
 
@@ -66,8 +70,68 @@ impl SignalingModule for MockModule {
         participant_id: opentalk_types_signaling::ParticipantId,
         connection_id: opentalk_roomserver_types::connection_id::ConnectionId,
         is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
-        Ok(JoinInfo::default())
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
+        let mut peer_event_data = PeerDataMap::default();
+        let mut participant_data = PeerDataMap::default();
+        for p in ctx
+            .participants
+            .connected()
+            .ids()
+            .filter(|&p| p != participant_id)
+        {
+            participant_data.insert(p, MockPeerData(format!("About {p} for {participant_id}")))?;
+            peer_event_data.insert(
+                p,
+                MockPeerData(format!("From {participant_id}:{connection_id} for {p}")),
+            )?;
+        }
+        Ok(ModuleJoinData {
+            join_success: Some(MockJoinInfo(format!(
+                "Self: {participant_id}:{connection_id}"
+            ))),
+            peer_events: peer_event_data,
+            peer_data: participant_data,
+        })
+    }
+
+    fn on_breakout_switch(
+        &mut self,
+        ctx: &mut opentalk_roomserver_signaling::module_context::ModuleContext<'_, Self>,
+        participant_id: opentalk_types_signaling::ParticipantId,
+        old_room: opentalk_roomserver_types::room_kind::RoomKind,
+        new_room: opentalk_roomserver_types::room_kind::RoomKind,
+    ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
+        let mut switch_success = BTreeMap::new();
+        for connection_id in ctx
+            .participant_state(participant_id)
+            .ok_or(Error)?
+            .connections()
+        {
+            switch_success.insert(
+                connection_id,
+                Some(MockJoinInfo(format!(
+                    "Switched room from {old_room:?} to {new_room:?}"
+                ))),
+            );
+        }
+
+        let mut peer = PeerDataMap::default();
+        let mut participant_states = PeerDataMap::default();
+        for p in ctx
+            .participants
+            .connected()
+            .ids()
+            .filter(|&p| p != participant_id)
+        {
+            peer.insert(p, MockPeerData(format!("From {participant_id} for {p}")))?;
+            participant_states
+                .insert(p, MockPeerData(format!("About {p} for {participant_id}")))?;
+        }
+        Ok(ModuleSwitchData {
+            switch_success,
+            peer_events: peer,
+            peer_data: participant_states,
+        })
     }
 
     #[allow(unused_variables)]
@@ -97,4 +161,18 @@ impl SignalingModule for MockModule {
             MockCommand::Panic => panic!("Don't panic! All is not lost."),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MockJoinInfo(String);
+
+impl SignalingModuleFrontendData for MockJoinInfo {
+    const NAMESPACE: Option<ModuleId> = Some(MockModule::NAMESPACE);
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MockPeerData(String);
+
+impl SignalingModulePeerFrontendData for MockPeerData {
+    const NAMESPACE: Option<ModuleId> = Some(MockModule::NAMESPACE);
 }

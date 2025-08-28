@@ -6017,6 +6017,7 @@ dependencies = [
  "blake3",
  "chrono",
  "futures",
+ "insta",
  "opentalk-roomserver-common",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",

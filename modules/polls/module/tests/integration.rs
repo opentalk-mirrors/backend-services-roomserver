@@ -1078,10 +1078,10 @@ async fn switch_breakout_room_join_module_data() {
         .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(BreakoutId::from(0)))
         .await;
 
-    let BreakoutEvent::SwitchedRoom { module_data, .. } = event else {
+    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
         unreachable!("Received wrong event");
     };
-    let state = module_data
+    let state = own_data
         .get::<PollsState>()
         .expect("PollsState should be present in ModuleData")
         .expect("PollsState should not be None");

@@ -6,7 +6,9 @@ use std::collections::{BTreeSet, HashMap};
 use anyhow::Context as _;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, NoOp, SignalingModule, SignalingModuleInitData, SwitchInfo},
+    signaling_module::{
+        ModuleJoinData, ModuleSwitchData, NoOp, SignalingModule, SignalingModuleInitData,
+    },
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom, connection_id::ConnectionId, room_kind::RoomKind,
@@ -57,9 +59,9 @@ impl SignalingModule for RaiseHandsModule {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         is_first_connection: bool,
-    ) -> Result<JoinInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
         let raised_hands = self.raised_hands_state(ctx.room);
-        let join_info = JoinInfo {
+        let join_info = ModuleJoinData {
             join_success: Some(RaiseHandsState {
                 raise_hands_enabled: raised_hands.is_some(),
                 raised_hands,
@@ -124,7 +126,7 @@ impl SignalingModule for RaiseHandsModule {
         participant_id: ParticipantId,
         old_room: RoomKind,
         _new_room: RoomKind,
-    ) -> Result<SwitchInfo<Self>, SignalingModuleError<Self::Error>> {
+    ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
         // Reset raised hand of the participant when switching rooms
         self.raised_hands
             .entry(old_room)
@@ -136,13 +138,16 @@ impl SignalingModule for RaiseHandsModule {
             raise_hands_enabled: raised_hands.is_some(),
             raised_hands,
         };
-        let switch_info = ctx
+        let switch_success = ctx
             .participant_state(participant_id)
             .with_context(|| format!("Missing state for participant '{participant_id}'^"))?
             .connections()
             .map(|con| (con, Some(moderation_state.clone())))
             .collect();
-        Ok(switch_info)
+        Ok(ModuleSwitchData {
+            switch_success,
+            ..Default::default()
+        })
     }
 
     fn on_breakout_closed(

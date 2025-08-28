@@ -15,7 +15,7 @@ use livekit_api::{
 use livekit_protocol::TrackSource;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{JoinInfo, PeerJoinInfoMap, SignalingModule},
+    signaling_module::{ModuleJoinData, PeerDataMap, SignalingModule},
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, room_kind::RoomKind, signaling::module_error::SignalingModuleError,
@@ -89,15 +89,15 @@ impl LiveKitSubroom {
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
-    ) -> Result<JoinInfo<LiveKitModule>, SignalingModuleError<LiveKitError>> {
+    ) -> Result<ModuleJoinData<LiveKitModule>, SignalingModuleError<LiveKitError>> {
         let credentials = self.create_new_access_token(ctx, participant_id, connection_id)?;
-        Ok(JoinInfo {
+        Ok(ModuleJoinData {
             join_success: Some(LiveKitState {
                 credentials,
                 microphone_restriction_state: self.microphone_restrictions.clone(),
             }),
-            peer_event_data: PeerJoinInfoMap::default(),
-            participant_data: PeerJoinInfoMap::default(),
+            peer_events: PeerDataMap::default(),
+            peer_data: PeerDataMap::default(),
         })
     }
 
