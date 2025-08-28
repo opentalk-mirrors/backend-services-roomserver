@@ -187,7 +187,7 @@ impl LiveKitSubroom {
         let mut connections = ctx.participants.connections();
         connections.retain(|p, _| participants.contains(p));
 
-        let room = ctx.room_id.to_string();
+        let room = self.identifier().to_string();
         let livekit_client: Arc<RoomClient> = Arc::clone(&self.livekit_client);
 
         tracing::debug!("spawn background task to mute participants");
