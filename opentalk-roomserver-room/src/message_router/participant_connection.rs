@@ -41,6 +41,8 @@ const EVENT_BUFFER_SIZE: usize = 32;
 /// Dropping this handle will close the connection to the participant.
 #[derive(Debug, Clone)]
 pub(crate) struct ConnectionHandle {
+    /// The [`ParticipantId`] to which this connection belongs to.
+    participant_id: ParticipantId,
     /// Event channel to the [`ParticipantConnectionTask`].
     connection_task_event_sender: mpsc::Sender<SharedRawJson>,
 }
@@ -61,6 +63,10 @@ impl ConnectionHandle {
             .await?;
 
         Ok(())
+    }
+
+    pub(crate) fn participant_id(&self) -> ParticipantId {
+        self.participant_id
     }
 }
 
@@ -127,6 +133,7 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
     );
 
     ConnectionHandle {
+        participant_id,
         connection_task_event_sender: event_sender,
     }
 }

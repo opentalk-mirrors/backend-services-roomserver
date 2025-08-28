@@ -299,6 +299,15 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
                 }
             };
+            for (connection_id, participant_id) in self.message_router.disconnected() {
+                self.disconnect_participant(
+                    EventOrigin::Internal,
+                    participant_id,
+                    connection_id,
+                    CloseReason::ConnectionLost,
+                )
+                .await;
+            }
         }
     }
 
