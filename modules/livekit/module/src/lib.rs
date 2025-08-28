@@ -34,7 +34,10 @@ use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot;
 use tracing::{Instrument, Span};
 
-use crate::{loopback::LiveKitLoopback, room::LiveKitSubroom};
+use crate::{
+    loopback::LiveKitLoopback,
+    room::{LiveKitConnection, LiveKitSubroom},
+};
 
 pub mod loopback;
 mod room;
@@ -206,8 +209,10 @@ impl SignalingModule for LiveKitModule {
                 sender,
                 new_state,
                 return_channel,
-            } => self.update_microphone_restrictions(ctx, sender, new_state, return_channel),
+            } => self.update_microphone_restrictions(ctx, sender, new_state, return_channel)?,
         }
+
+        Ok(())
     }
 
     fn destroy(self, _room_id: RoomId) {
@@ -327,22 +332,40 @@ impl LiveKitModule {
         Ok(())
     }
 
-    fn mute(
+    #[tracing::instrument(level = "debug", skip(self, ctx, return_channel))]
+    pub fn mute(
         &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         sender: Option<ParticipantId>,
         participants: BTreeSet<ParticipantId>,
         return_channel: oneshot::Sender<ParticipantsMuted>,
-    ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
-        let Some(room) = self.rooms.get(&ctx.room) else {
-            return Err(anyhow::anyhow!("Unknown room").into());
-        };
-        room.mute(ctx, sender, participants, return_channel)
-            .map_err(|ChannelDroppedError| {
-                SignalingModuleError::Internal(anyhow!(
-                    "Channel dropped when restricting microphone permissions"
-                ))
+    ) {
+        let connections = ctx
+            .participants
+            .all_unfiltered
+            .iter()
+            .filter(|(participant_id, _)| participants.contains(participant_id))
+            .flat_map(|(participant_id, state)| {
+                state.connections().map(|connection_id| {
+                    LiveKitConnection::new(
+                        *participant_id,
+                        connection_id,
+                        ctx.room_id,
+                        state.room,
+                        Arc::clone(&self.livekit_client),
+                    )
+                })
             })
+            .collect();
+
+        tracing::debug!("spawn background task to mute participants");
+        ctx.spawn_optional(async move {
+            let muted = loopback::mute_participants(sender, connections).await;
+            if return_channel.send(muted).is_err() {
+                tracing::error!("Channel dropped when muting participants");
+            }
+            None
+        });
     }
 
     fn note_revoked_tokens(

@@ -2,40 +2,25 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use futures::{StreamExt as _, stream};
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
-use opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_roomserver_types_livekit::ParticipantsMuted;
 use opentalk_types_signaling::ParticipantId;
 use tracing::{Instrument as _, debug_span};
 
-use crate::{PARALLEL_UPDATES, build_livekit_participant_id};
+use crate::{LiveKitConnection, PARALLEL_UPDATES};
 
 pub async fn mute_participants(
-    livekit_client: Arc<RoomClient>,
     sender: Option<ParticipantId>,
-    participants: BTreeMap<ParticipantId, BTreeSet<ConnectionId>>,
-    room: String,
+    participant_connections: Vec<LiveKitConnection>,
 ) -> ParticipantsMuted {
-    let participant_connections = participants
-        .into_iter()
-        .flat_map(|(p, connections)| {
-            let p = std::iter::repeat(p);
-            connections.into_iter().zip(p)
-        })
-        .map(|(c, p)| (p, c, Arc::clone(&livekit_client)));
-
-    let room: &str = &room;
     let muted_participants = stream::iter(participant_connections).map(
-        |(participant_id, connection_id, livekit_client)| async move {
-            let mute_span = debug_span!("mute", ?participant_id, ?connection_id);
-            if let Err(e) = mute(&livekit_client, room, participant_id, connection_id)
+        |LiveKitConnection { participant_id, livekit_participant_id, livekit_room: room, livekit_client }| async move {
+            let mute_span = debug_span!("mute", livekit_participant_id);
+            if let Err(e) = mute(&livekit_client, &room, &livekit_participant_id)
                 .instrument(mute_span.clone())
                 .await
             {
@@ -55,12 +40,10 @@ pub async fn mute_participants(
 async fn mute(
     livekit_client: &Arc<RoomClient>,
     room: &str,
-    participant_id: ParticipantId,
-    connection_id: ConnectionId,
+    livekit_participant_id: &str,
 ) -> anyhow::Result<()> {
-    let livekit_participant_id = build_livekit_participant_id(participant_id, connection_id);
     let livekit_participant = livekit_client
-        .get_participant(room, &livekit_participant_id)
+        .get_participant(room, livekit_participant_id)
         .await?;
 
     for track in livekit_participant.tracks {
@@ -71,7 +54,7 @@ async fn mute(
         }
 
         livekit_client
-            .mute_published_track(room, &livekit_participant_id, &track.sid, true)
+            .mute_published_track(room, livekit_participant_id, &track.sid, true)
             .await?;
         tracing::debug!("Muted participant connection")
     }
