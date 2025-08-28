@@ -200,7 +200,7 @@ impl ScopedRouter {
                 continue;
             };
 
-            if handle.get().send_event(event.clone()).await.is_err() {
+            if handle.get().send_event(event.clone()).is_err() {
                 let handle = handle.remove();
                 self.disconnects.insert(id, handle.participant_id());
             }
@@ -225,8 +225,7 @@ impl ScopedRouter {
             let cloned_event = event.clone();
 
             send_futures.push(async move {
-                if connection_handle.send_event(cloned_event).await.is_err() {
-                    tracing::debug!("Attempted to message participant who has already left");
+                if connection_handle.send_event(cloned_event).is_err() {
                     return Some(*connection_id);
                 }
                 None
