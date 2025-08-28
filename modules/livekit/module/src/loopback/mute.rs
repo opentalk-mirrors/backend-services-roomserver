@@ -20,16 +20,24 @@ pub async fn mute_participants(
     let muted_participants = stream::iter(participant_connections).map(
         |LiveKitConnection { participant_id, livekit_participant_id, livekit_room: room, livekit_client }| async move {
             let mute_span = debug_span!("mute", livekit_participant_id);
-            if let Err(e) = mute(&livekit_client, &room, &livekit_participant_id)
+            let result = mute(&livekit_client, &room, &livekit_participant_id)
                 .instrument(mute_span.clone())
-                .await
-            {
-                // The participant might not have a microphone or already left the meeting.
-                tracing::debug!(parent: &mute_span, "failed to mute participant connection: {e}");
+                .await;
+            match result {
+                Ok(true) => Some(participant_id),
+                Ok(false) => None,
+                Err(e) => {
+                    // The participant might not have a microphone or already left the meeting.
+                    tracing::debug!(parent: &mute_span, "failed to mute participant connection '{participant_id}': {e}");
+                    None
+                }
             }
-            participant_id
         },
-    ).buffer_unordered(PARALLEL_UPDATES).collect().await;
+    )
+    .buffer_unordered(PARALLEL_UPDATES)
+    .filter_map(|participant_id| async move { participant_id })
+    .collect()
+    .await;
 
     ParticipantsMuted {
         sender,
@@ -41,11 +49,12 @@ async fn mute(
     livekit_client: &Arc<RoomClient>,
     room: &str,
     livekit_participant_id: &str,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<bool> {
     let livekit_participant = livekit_client
         .get_participant(room, livekit_participant_id)
         .await?;
 
+    let mut muted_any = false;
     for track in livekit_participant.tracks {
         if track.source != TrackSource::Microphone as i32 {
             // Don't mute non-microphone tracks
@@ -53,11 +62,17 @@ async fn mute(
             continue;
         }
 
+        if track.muted {
+            tracing::trace!("Skipped muting track, already muted.");
+            continue;
+        }
+
         livekit_client
             .mute_published_track(room, livekit_participant_id, &track.sid, true)
             .await?;
-        tracing::debug!("Muted participant connection")
+        tracing::debug!("Muted participant connection");
+        muted_any = true;
     }
 
-    Ok(())
+    Ok(muted_any)
 }
