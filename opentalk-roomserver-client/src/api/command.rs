@@ -14,6 +14,9 @@ use opentalk_roomserver_types_meeting_report::{
 use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, command::ModerationCommand};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, command::PollsCommand};
 use opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, command::RaiseHandsCommand};
+use opentalk_roomserver_types_subroom_audio::{
+    SUBROOM_AUDIO_MODULE_ID, command::SubroomAudioCommand,
+};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
@@ -71,6 +74,7 @@ pub enum SignalingModuleCommand {
     MeetingReport(MeetingReportCommand),
     Moderation(ModerationCommand),
     RaiseHands(RaiseHandsCommand),
+    SubroomAudio(SubroomAudioCommand),
 }
 
 impl SignalingModuleCommand {
@@ -89,6 +93,7 @@ impl SignalingModuleCommand {
             Self::MeetingReport(..) => MEETING_REPORT_MODULE_ID,
             Self::Moderation(..) => MODERATION_MODULE_ID,
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
+            Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
         }
     }
 }

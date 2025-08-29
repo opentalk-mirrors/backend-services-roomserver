@@ -14,6 +14,7 @@ use opentalk_roomserver_types_meeting_report::{
 use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, event::ModerationEvent};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, event::RaiseHandsEvent};
+use opentalk_roomserver_types_subroom_audio::event::SubroomAudioEvent;
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
 use opentalk_types_common::modules::{CORE_MODULE_ID, ModuleId};
 use serde::{Deserialize, Serialize};
@@ -72,6 +73,7 @@ pub enum SignalingModuleEvent {
     MeetingReport(MeetingReportEvent),
     Moderation(ModerationEvent),
     RaiseHands(RaiseHandsEvent),
+    SubroomAudio(SubroomAudioEvent),
 }
 
 impl SignalingModuleEvent {
@@ -90,12 +92,15 @@ impl SignalingModuleEvent {
             Self::MeetingReport(..) => MEETING_REPORT_MODULE_ID,
             Self::Moderation(..) => MODERATION_MODULE_ID,
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
+            Self::SubroomAudio(..) => SHARED_FOLDER_MODULE_ID,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use insta::assert_snapshot;
     use opentalk_roomserver_types::{
         breakout::event::BreakoutEvent, connection_id::ConnectionId, core::CoreEvent,
@@ -112,6 +117,11 @@ mod tests {
         event::PollsEvent,
     };
     use opentalk_roomserver_types_raise_hands::event::RaiseHandsEvent;
+    use opentalk_roomserver_types_subroom_audio::{
+        WhisperId,
+        event::SubroomAudioEvent,
+        state::{WhisperGroup, WhisperState},
+    };
     use opentalk_roomserver_types_timer::{
         TimerEvent, event::updated_ready_status::UpdatedReadyStatus,
     };
@@ -383,6 +393,47 @@ mod tests {
           "payload": {
             "message": "hand_raised",
             "participant": "00000000-0000-0000-0000-000000000000"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_event_subroom_audio() {
+        let group = WhisperGroup {
+            whisper_id: WhisperId::nil(),
+            participants: BTreeMap::from([
+                (ParticipantId::from_u128(0), WhisperState::Creator),
+                (ParticipantId::from_u128(1), WhisperState::Invited),
+            ]),
+        };
+
+        let event = SignalingEvent {
+            transaction_id: None,
+            payload: SignalingModuleEvent::SubroomAudio(SubroomAudioEvent::WhisperGroupCreated {
+                token: "<jwt-token>".into(),
+                group: group.into(),
+            }),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "subroom_audio",
+          "payload": {
+            "message": "whisper_group_created",
+            "token": "<jwt-token>",
+            "whisper_id": "00000000-0000-0000-0000-000000000000",
+            "participants": [
+              {
+                "participant_id": "00000000-0000-0000-0000-000000000000",
+                "state": "creator"
+              },
+              {
+                "participant_id": "00000000-0000-0000-0000-000000000001",
+                "state": "invited"
+              }
+            ]
           }
         }
         "#);
