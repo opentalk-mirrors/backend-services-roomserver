@@ -196,6 +196,10 @@ impl ModerationModule {
             return Err(ModerationError::InsufficientPermissions.into());
         }
 
+        if ctx.is_room_owner(target) {
+            return Err(ModerationError::CannotKickRoomOwner.into());
+        }
+
         if ctx.participants.connected().get(&target).is_none() {
             return Err(ModerationError::UnknownParticipant.into());
         }

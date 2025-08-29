@@ -44,6 +44,8 @@ pub enum ModerationError {
     NotAccepted,
     /// Cannot send the room owner to the waiting room
     CannotSendRoomOwnerToWaitingRoom,
+    /// The room owner cannot be kicked
+    CannotKickRoomOwner,
     /// An internal error occurred
     Internal,
     /// The received command cannot be executed since there is already a conflicting ongoing task.

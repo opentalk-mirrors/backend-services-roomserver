@@ -114,3 +114,32 @@ async fn kick_participant() {
         } if participant_id == bob.id() && reason == DisconnectReason::Kicked,
     ));
 }
+
+#[test_log::test(tokio::test)]
+async fn cannot_kick_room_owner() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut frank = room.join_frank_moderator(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Frank tries to kick Alice
+    frank
+        .send_command::<ModerationModule>(ModerationCommand::Kick { target: alice.id() }, None)
+        .await
+        .unwrap();
+
+    let event = frank
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    // Alice cannot be kicked because she is the room owner
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::CannotKickRoomOwner)
+    );
+
+    assert!(alice.received_nothing());
+}
