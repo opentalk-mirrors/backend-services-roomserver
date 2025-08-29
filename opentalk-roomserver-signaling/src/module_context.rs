@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use std::{
-    any::Any, cell::RefCell, collections::HashMap, future::Future, marker::PhantomData, sync::Arc,
+    cell::RefCell, collections::HashMap, future::Future, marker::PhantomData, sync::Arc,
     time::Duration,
 };
 
@@ -33,7 +33,7 @@ use crate::{
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_event::SignalingEvent,
-    signaling_module::{InternalCommand, SignalingModule},
+    signaling_module::SignalingModule,
     storage::{AssetMetaData, StorageProvider, UploadResult},
     waiting_participant::WaitingParticipant,
 };
@@ -283,29 +283,14 @@ where
     /// * `command` - The command to be sent. The type is defined by the receiving
     ///   module.
     /// * `handle_result` - Closure that receives the result of the command.
-    pub fn send_internal_command<R>(
-        &mut self,
-        command: R::Internal,
-        result_callback: impl FnOnce(<R::Internal as InternalCommand>::Result) + Send + 'static,
-    ) where
+    pub fn send_internal_command<R>(&mut self, command: R::Internal)
+    where
         R: SignalingModule,
     {
-        // Wrapper closure to downcast the result and send it to the sending module
-        let downcast = |any: Box<dyn Any + Send + 'static>| {
-            let Ok(result) = any.downcast() else {
-                tracing::error!(
-                    "Failed to downcast internal command result of module {}",
-                    R::NAMESPACE,
-                );
-                return;
-            };
-            result_callback(*result);
-        };
         let command = InterModuleMessage {
             sender: M::NAMESPACE,
             receiver: R::NAMESPACE,
             command: Box::new(command),
-            result_callback: Box::new(downcast),
         };
         self.messages
             .get_mut()
@@ -399,6 +384,35 @@ where
                 timestamp,
                 span,
                 value: Box::new(future.await),
+            })
+        });
+
+        self.loopback_futures.push(future);
+    }
+
+    /// Spawns a new task that completes the given `future` and sends the result
+    /// back to the calling module as [`SignalingModule::Loopback`] in the
+    /// [`SignalingModule::on_loopback_event`] method when the result is [`Some`].
+    ///
+    /// The room task will panic if the provided future panics.
+    pub fn spawn_optional<F>(&self, future: F)
+    where
+        F: Future<Output = Option<M::Loopback>> + Send + 'static,
+    {
+        let origin = self.event_origin;
+        let room = self.room;
+        let timestamp = self.timestamp;
+        let span = debug_span!("spawn_optional");
+
+        let future = future.instrument(span.clone());
+        let future = Box::pin(async move {
+            future.await.map(|value| LoopbackMessage {
+                namespace: M::NAMESPACE,
+                origin,
+                room,
+                timestamp,
+                span,
+                value: Box::new(value),
             })
         });
 
@@ -503,6 +517,19 @@ where
         let (tx_cancel, rx_cancel) = oneshot::channel();
         self.spawn(handle_loopback_after(duration, rx_cancel, create_result));
         tx_cancel
+    }
+
+    pub fn recv_loopback<F, R>(&self, receiver: oneshot::Receiver<R>, create_result: F)
+    where
+        F: FnOnce(R) -> T + Send + Sync + 'static,
+        R: Send + Sync + 'static,
+    {
+        self.spawn(async move {
+            match receiver.await {
+                Ok(result) => Ok(create_result(result)),
+                Err(_) => Err(ChannelDroppedError),
+            }
+        });
     }
 }
 

@@ -10,20 +10,21 @@ mod error;
 mod event;
 mod internal;
 mod microphone_restriction_state;
-mod moderator_or_module;
 mod settings;
 mod state;
 
 use opentalk_types_common::modules::{ModuleId, module_id};
 
 pub use crate::{
-    command::{LiveKitCommand, UnrestrictedParticipants},
+    command::LiveKitCommand,
     credentials::Credentials,
     error::LiveKitError,
     event::LiveKitEvent,
-    internal::LiveKitInternal,
+    internal::{
+        LiveKitInternal, MicrophoneRestrictionError, MicrophoneRestrictionErrorKind,
+        ParticipantsMuted,
+    },
     microphone_restriction_state::MicrophoneRestrictionState,
-    moderator_or_module::ModeratorOrModule,
     settings::LiveKitSettings,
     state::LiveKitState,
 };

@@ -8,30 +8,24 @@ use futures::{StreamExt as _, stream};
 use livekit_api::services::room::{RoomClient, UpdateParticipantOptions};
 use livekit_protocol::{ParticipantInfo, ParticipantPermission, TrackSource};
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_roomserver_types_livekit::{MicrophoneRestrictionState, ModeratorOrModule};
 use opentalk_types_signaling::ParticipantId;
 
 pub use crate::loopback::{
-    create_room::create_room, force_mute::force_mute_participants,
-    microphone_restriction::update_restricted_microphones, revoke_token::revoke_token,
+    create_room::create_room, microphone_restriction::update_restricted_microphones,
+    mute::mute_participants, revoke_token::revoke_token,
     screen_share_permissions::set_screenshare_permissions,
 };
 use crate::{LIVEKIT_MEDIA_SOURCES, PARALLEL_UPDATES};
 
 mod create_room;
-mod force_mute;
 mod microphone_restriction;
+mod mute;
 mod revoke_token;
 mod screen_share_permissions;
 
 pub enum LiveKitLoopback {
     RoomCreated,
     RoomRemoved,
-
-    ParticipantsMuted {
-        sender: ModeratorOrModule,
-        participants: BTreeSet<ParticipantId>,
-    },
 
     /// Note that the token identities were removed
     NoteRevokedTokens {
@@ -44,11 +38,6 @@ pub enum LiveKitLoopback {
         sender: ParticipantId,
         participants: BTreeSet<ParticipantId>,
         grant: bool,
-    },
-
-    UpdatedMicrophoneRestrictions {
-        sender: ParticipantId,
-        state: MicrophoneRestrictionState,
     },
 }
 

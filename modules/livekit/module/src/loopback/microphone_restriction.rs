@@ -10,10 +10,12 @@ use std::{
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::{ParticipantInfo, TrackSource};
 use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_roomserver_types_livekit::{LiveKitError, MicrophoneRestrictionState};
+use opentalk_roomserver_types_livekit::{
+    MicrophoneRestrictionError, MicrophoneRestrictionErrorKind, MicrophoneRestrictionState,
+};
 use opentalk_types_signaling::ParticipantId;
 
-use super::{LiveKitLoopback, update_participants_permission};
+use super::update_participants_permission;
 use crate::build_livekit_participant_id;
 
 #[tracing::instrument(skip(livekit_client), level = "debug")]
@@ -23,9 +25,11 @@ pub async fn update_restricted_microphones(
     sender: ParticipantId,
     state: MicrophoneRestrictionState,
     participant_connections: BTreeMap<ParticipantId, BTreeSet<ConnectionId>>,
-) -> Result<LiveKitLoopback, LiveKitError> {
+) -> Result<MicrophoneRestrictionState, MicrophoneRestrictionError> {
     let participants =
-        affected_participants(&livekit_client, &room, &state, participant_connections).await?;
+        affected_participants(&livekit_client, &room, &state, participant_connections)
+            .await
+            .map_err(|error| MicrophoneRestrictionError { sender, error })?;
 
     tracing::debug!("update microphone restrictions");
     update_participants_permission(
@@ -46,7 +50,7 @@ pub async fn update_restricted_microphones(
     )
     .await;
 
-    Ok(LiveKitLoopback::UpdatedMicrophoneRestrictions { sender, state })
+    Ok(state)
 }
 
 pub struct AffectedParticipants {
@@ -59,14 +63,14 @@ async fn affected_participants(
     room: &str,
     state: &MicrophoneRestrictionState,
     participant_connections: BTreeMap<ParticipantId, BTreeSet<ConnectionId>>,
-) -> Result<AffectedParticipants, LiveKitError> {
+) -> Result<AffectedParticipants, MicrophoneRestrictionErrorKind> {
     // get all participants connected to livekit
     let mut participants = livekit_client
         .list_participants(room)
         .await
         .map_err(|err| {
             tracing::error!("Failed to query participants, {err}");
-            LiveKitError::LivekitUnavailable
+            MicrophoneRestrictionErrorKind::LivekitUnavailable
         })?;
     tracing::trace!("Participants in livekit room: {:?}", participants);
 

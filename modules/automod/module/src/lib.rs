@@ -83,9 +83,10 @@ use opentalk_roomserver_types_automod::{
     event::{AutomodError, AutomodEvent, SpeakerUpdated, StoppedReason},
     state::AutomodState,
 };
-use opentalk_roomserver_types_livekit::LiveKitInternal;
+use opentalk_roomserver_types_livekit::{LiveKitInternal, ParticipantsMuted};
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
+use tokio::sync::oneshot;
 
 use crate::{
     session::Session,
@@ -107,6 +108,11 @@ pub struct AutomodModule {
     sessions: HashMap<RoomKind, Session>,
 }
 
+pub enum AutomodLoopback {
+    SpeakerTimeLimitReached { speaker: Option<ParticipantId> },
+    ParticipantsMuted(ParticipantsMuted),
+}
+
 impl SignalingModule for AutomodModule {
     const NAMESPACE: ModuleId = AUTOMOD_MODULE_ID;
 
@@ -116,7 +122,7 @@ impl SignalingModule for AutomodModule {
 
     type Internal = NoOp;
 
-    type Loopback = Result<SpeakerTimeLimitReached, ChannelDroppedError>;
+    type Loopback = Result<AutomodLoopback, ChannelDroppedError>;
 
     type JoinInfo = AutomodState;
 
@@ -190,21 +196,17 @@ impl SignalingModule for AutomodModule {
             return Ok(());
         };
 
-        let Some(session) = self.sessions.get(&ctx.room) else {
-            // The session has ended in the meantime
-            return Ok(());
-        };
-        if session.speaker != event.speaker {
-            // The speaker has changed in the meantime
-            return Ok(());
-        };
-
-        match session.parameter.selection_strategy {
-            // Selection strategies `None` and `Nomination` do not have a concept of
-            // a "next" speaker. Select no speaker.
-            SelectionStrategy::None | SelectionStrategy::Nomination => self.select_none(ctx)?,
-            _ => self.select_next(ctx)?,
-        };
+        match event {
+            AutomodLoopback::SpeakerTimeLimitReached { speaker } => {
+                self.on_speaker_time_limit_reached(ctx, speaker)?
+            }
+            AutomodLoopback::ParticipantsMuted(ParticipantsMuted { participants, .. }) => {
+                tracing::debug!(
+                    "Following participants were muted by the {} module: {participants:?}",
+                    Self::NAMESPACE
+                );
+            }
+        }
 
         Ok(())
     }
@@ -290,13 +292,14 @@ impl AutomodModule {
             ),
         )?;
 
-        ctx.send_internal_command::<LiveKitModule>(
-            LiveKitInternal::ForceMute {
-                sending_module: Self::NAMESPACE,
-                participants: ctx.participants.in_room(ctx.room).ids().collect(),
-            },
-            |_| {},
-        );
+        let (tx, rx) = oneshot::channel();
+        ctx.send_internal_command::<LiveKitModule>(LiveKitInternal::Mute {
+            sender: None,
+            participants: ctx.participants.in_room(ctx.room).ids().collect(),
+            return_channel: tx,
+        });
+
+        ctx.recv_loopback(rx, AutomodLoopback::ParticipantsMuted);
 
         Ok(())
     }
@@ -490,18 +493,18 @@ impl AutomodModule {
         previous_speaker: Option<ParticipantId>,
     ) -> Result<(), FatalError> {
         // Mute all participants when the speaker is changed
-        ctx.send_internal_command::<LiveKitModule>(
-            LiveKitInternal::ForceMute {
-                sending_module: Self::NAMESPACE,
-                participants: ctx
-                    .participants
-                    .in_room(ctx.room)
-                    .connected()
-                    .ids()
-                    .collect(),
-            },
-            |_| {},
-        );
+        let (tx, rx) = oneshot::channel();
+        ctx.send_internal_command::<LiveKitModule>(LiveKitInternal::Mute {
+            sender: None,
+            participants: ctx
+                .participants
+                .in_room(ctx.room)
+                .connected()
+                .ids()
+                .collect(),
+            return_channel: tx,
+        });
+        ctx.recv_loopback(rx, AutomodLoopback::ParticipantsMuted);
 
         let update = match output {
             StateMachineOutput::ContinueWith { update } => update,
@@ -517,7 +520,9 @@ impl AutomodModule {
         }) = update
         {
             if let Some(time_limit) = time_limit {
-                ctx.loopback_after(time_limit, move || SpeakerTimeLimitReached { speaker });
+                ctx.loopback_after(time_limit, move || {
+                    AutomodLoopback::SpeakerTimeLimitReached { speaker }
+                });
             }
 
             ctx.send_ws_message(
@@ -661,6 +666,31 @@ impl AutomodModule {
         if session.speaker == Some(participant_id) {
             self.select_next(ctx)?;
         }
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self, ctx), level = "debug")]
+    fn on_speaker_time_limit_reached(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        speaker: Option<ParticipantId>,
+    ) -> Result<(), SignalingModuleError<AutomodError>> {
+        let Some(session) = self.sessions.get(&ctx.room) else {
+            // The session has ended in the meantime
+            return Ok(());
+        };
+        if session.speaker != speaker {
+            // The speaker has changed in the meantime
+            return Ok(());
+        };
+
+        match session.parameter.selection_strategy {
+            // Selection strategies `None` and `Nomination` do not have a concept of
+            // a "next" speaker. Select no speaker.
+            SelectionStrategy::None | SelectionStrategy::Nomination => self.select_none(ctx)?,
+            _ => self.select_next(ctx)?,
+        };
 
         Ok(())
     }

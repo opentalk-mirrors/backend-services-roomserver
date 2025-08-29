@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use core::panic;
-
 use opentalk_roomserver_mocking_livekit as mocking_livekit;
 use opentalk_roomserver_module_automod::AutomodModule;
-use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::{
     participant::MockParticipantJoined,
     room::{TestRoom, flush_connected_events},
@@ -20,13 +17,11 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_automod::{
-    AUTOMOD_MODULE_ID,
     command::{AutomodCommand, Select},
     config::{FrontendConfig, Parameter, SelectionStrategy},
     event::{AutomodError, AutomodEvent, SpeakerUpdated, StoppedReason},
     state::AutomodState,
 };
-use opentalk_roomserver_types_livekit::{LiveKitEvent, ModeratorOrModule};
 use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
 
@@ -122,10 +117,10 @@ async fn insufficient_permissions_start() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn insufficient_permissions_edit() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -168,10 +163,10 @@ async fn insufficient_permissions_edit() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn insufficient_permissions_stop() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -208,10 +203,10 @@ async fn insufficient_permissions_stop() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn insufficient_permissions_select() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -248,10 +243,10 @@ async fn insufficient_permissions_select() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn insufficient_permissions_yield() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -328,10 +323,10 @@ async fn insufficient_permissions_yield() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn session_already_running() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
     let parameter = Parameter {
@@ -525,10 +520,10 @@ async fn invalid_selection_start() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn invalid_edit() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
     let parameter = Parameter {
@@ -598,10 +593,10 @@ async fn invalid_edit() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn invalid_select() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -663,10 +658,10 @@ async fn invalid_select() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn stop() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
     let parameter = Parameter {
@@ -698,10 +693,10 @@ async fn stop() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn join_success() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
     assert!(
@@ -777,10 +772,10 @@ async fn join_success() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn join_auto_append() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
     // Auto append on join is enabled
@@ -895,10 +890,10 @@ async fn join_auto_append() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn join_no_auto_append() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
     // Auto append on join is disabled
@@ -965,10 +960,10 @@ async fn join_no_auto_append() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn breakout_room() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1042,10 +1037,10 @@ async fn breakout_room() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn participant_disconnect() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1112,10 +1107,10 @@ async fn participant_disconnect() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn selection_strategy_none() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1257,10 +1252,10 @@ async fn selection_strategy_none() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn selection_strategy_playlist() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1467,10 +1462,10 @@ async fn selection_strategy_playlist() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn selection_strategy_random() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1620,10 +1615,10 @@ async fn selection_strategy_random() {
 }
 
 #[test_log::test(tokio::test)]
+#[ignore = "requires livekit container"]
 async fn selection_strategy_nomination() {
-    let mut room = TestRoom::builder()
-        .register_module::<AutomodModule>()
-        .spawn();
+    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
+    let mut room = room.register_module::<AutomodModule>().spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1768,156 +1763,6 @@ async fn selection_strategy_nomination() {
             speaker: Some(gustav.id()),
             history: Some(vec![alice.id(), bob.id(), gustav.id()]),
             remaining: Some(Vec::new())
-        })
-    );
-}
-
-#[test_log::test(tokio::test)]
-#[ignore = "Requires livekit container"]
-async fn mute() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
-
-    let mut alice = room.join_alice_moderator(0).await;
-    let mut bob = room.join_bob(0).await;
-    flush_connected_events(&mut [&mut alice]).await;
-
-    let parameter = Parameter {
-        selection_strategy: SelectionStrategy::Playlist,
-        show_remaining: true,
-        time_limit: None,
-        allow_double_selection: false,
-        auto_append_on_join: false,
-    };
-    let playlist = vec![alice.id(), bob.id()];
-    start_automod(
-        &mut alice,
-        &mut [&mut bob],
-        parameter.clone(),
-        None,
-        Some(playlist.clone()),
-    )
-    .await;
-
-    // Everyone gets muted when the automod session starts
-    let event = alice
-        .receive_event::<LiveKitModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
-            module: AUTOMOD_MODULE_ID
-        })
-    );
-
-    let event = bob.receive_event::<LiveKitModule>().await.unwrap().payload;
-    assert_eq!(
-        event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
-            module: AUTOMOD_MODULE_ID
-        })
-    );
-
-    alice
-        .send_command::<AutomodModule>(AutomodCommand::Select(Select::Next), None)
-        .await
-        .unwrap();
-
-    let event = alice
-        .receive_event::<AutomodModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
-            speaker: Some(alice.id()),
-            history: Some(vec![alice.id()]),
-            remaining: Some(vec![bob.id()])
-        })
-    );
-
-    // Everyone gets muted when a new speaker is selected
-    let event = alice
-        .receive_event::<LiveKitModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
-            module: AUTOMOD_MODULE_ID
-        })
-    );
-
-    let event = bob.receive_event::<AutomodModule>().await.unwrap().payload;
-    assert_eq!(
-        event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
-            speaker: Some(alice.id()),
-            history: Some(vec![alice.id()]),
-            remaining: Some(vec![bob.id()])
-        })
-    );
-
-    // Everyone gets muted when a new speaker is selected
-    let event = bob.receive_event::<LiveKitModule>().await.unwrap().payload;
-    assert_eq!(
-        event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
-            module: AUTOMOD_MODULE_ID
-        })
-    );
-
-    alice
-        .send_command::<AutomodModule>(AutomodCommand::Yield { next: None }, None)
-        .await
-        .unwrap();
-
-    let event = alice
-        .receive_event::<AutomodModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
-            speaker: Some(bob.id()),
-            history: Some(vec![alice.id(), bob.id()]),
-            remaining: Some(Vec::new())
-        })
-    );
-
-    let event = alice
-        .receive_event::<LiveKitModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
-            module: AUTOMOD_MODULE_ID
-        })
-    );
-
-    let event = bob.receive_event::<AutomodModule>().await.unwrap().payload;
-    assert_eq!(
-        event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
-            speaker: Some(bob.id()),
-            history: Some(vec![alice.id(), bob.id()]),
-            remaining: Some(Vec::new())
-        })
-    );
-
-    // Everyone gets muted when a new speaker is selected
-    let event = bob.receive_event::<LiveKitModule>().await.unwrap().payload;
-    assert_eq!(
-        event,
-        LiveKitEvent::ForceMuted(ModeratorOrModule::Module {
-            module: AUTOMOD_MODULE_ID
         })
     );
 }

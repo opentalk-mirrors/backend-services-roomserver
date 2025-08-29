@@ -20,7 +20,6 @@ use anyhow::Context;
 use dyn_module_context::DynModuleContext;
 use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
-    internal_module_message::ResultCallback,
     module_context::ModuleContext,
     signaling_module::{CreateReplica, SignalingModule},
 };
@@ -69,7 +68,6 @@ pub enum DynEvent {
     InternalCommand {
         sender: ModuleId,
         command: Box<dyn Any + Send + 'static>,
-        return_result: ResultCallback,
     },
 }
 
@@ -152,11 +150,9 @@ where
                 command,
             } => self.handle_ws_event(ctx, sender, connection_id, &command),
             DynEvent::LoopbackEvent(result) => self.handle_loopback_event(ctx, result),
-            DynEvent::InternalCommand {
-                sender,
-                command,
-                return_result,
-            } => self.handle_internal_command(ctx, sender, command, return_result),
+            DynEvent::InternalCommand { sender, command } => {
+                self.handle_internal_command(ctx, sender, command)
+            }
         }
     }
 
@@ -344,13 +340,12 @@ where
 
     /// Resolves a dynamic internal command that was received by [`ModuleHandle::on_event`] to the concrete
     /// [`SignalingModule::IncomingInternal`] type.
-    #[tracing::instrument(skip(self, ctx, command, result_handle), fields(opentalk.module = %M::NAMESPACE))]
+    #[tracing::instrument(skip(self, ctx, command), fields(opentalk.module = %M::NAMESPACE))]
     fn handle_internal_command(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         sender: ModuleId,
         command: Box<dyn Any + Send + 'static>,
-        result_handle: ResultCallback,
     ) -> Result<(), SignalingModuleError<M::Error>> {
         let command = command.downcast().ok().with_context(|| {
             format!(
@@ -359,9 +354,7 @@ where
             )
         })?;
 
-        let result = self.module.on_internal_command(ctx, *command)?;
-        let span = tracing::info_span!("internal command return");
-        span.in_scope(|| result_handle(Box::new(result)));
+        self.module.on_internal_command(ctx, *command)?;
 
         Ok(())
     }

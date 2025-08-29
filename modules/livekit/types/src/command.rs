@@ -16,12 +16,6 @@ pub enum LiveKitCommand {
     /// Indicates that a new Access Token is requested
     CreateNewAccessToken,
 
-    /// Force mutes participants
-    ForceMute {
-        /// The participants that should get muted
-        participants: BTreeSet<ParticipantId>,
-    },
-
     /// Allows the specified participants to share their screens
     GrantScreenSharePermission {
         /// The participants that get granted screen sharing permissions
@@ -34,15 +28,6 @@ pub enum LiveKitCommand {
         participants: BTreeSet<ParticipantId>,
     },
 
-    /// Enables the microphone restriction state where only the participants that are part of the
-    /// [`UnrestrictedParticipants::unrestricted_participants`] are allowed to unmute themselves. This will mute
-    /// all participants who are not allowed to unmute themselves, but are currently not muted.
-    EnableMicrophoneRestrictions(UnrestrictedParticipants),
-
-    /// Disable the microphone restriction state which will allow all participants
-    /// to unmute their microphone again.
-    DisableMicrophoneRestrictions,
-
     /// Request a new livekit access token that cannot publish and is hidden to other participants
     RequestPopoutStreamAccessToken,
 }
@@ -51,13 +36,4 @@ impl CreateReplica<LiveKitEvent> for LiveKitCommand {
     fn replicate(&self) -> Option<LiveKitEvent> {
         None
     }
-}
-
-/// Request a number of participants to mute themselves
-///
-/// May only be processed if the issuer is a moderator
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct UnrestrictedParticipants {
-    /// Participants that are still allowed to unmute
-    pub unrestricted_participants: BTreeSet<ParticipantId>,
 }

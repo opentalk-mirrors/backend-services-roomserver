@@ -99,7 +99,7 @@ impl SignalingModuleEvent {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, BTreeSet};
 
     use insta::assert_snapshot;
     use opentalk_roomserver_types::{
@@ -260,7 +260,10 @@ mod tests {
     fn serialize_event_livekit() {
         let event = SignalingEvent {
             transaction_id: None,
-            payload: SignalingModuleEvent::LiveKit(LiveKitEvent::MicrophoneRestrictionsDisabled),
+            payload: SignalingModuleEvent::LiveKit(LiveKitEvent::ScreenSharePermissionsUpdated {
+                grant: false,
+                participants: BTreeSet::new(),
+            }),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
@@ -268,7 +271,9 @@ mod tests {
         {
           "namespace": "livekit",
           "payload": {
-            "message": "microphone_restrictions_disabled"
+            "message": "screen_share_permissions_updated",
+            "grant": false,
+            "participants": []
           }
         }
         "#);

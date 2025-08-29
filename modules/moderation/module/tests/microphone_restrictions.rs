@@ -5,24 +5,26 @@ use std::collections::BTreeSet;
 
 use livekit::{RoomEvent, RoomOptions};
 use opentalk_roomserver_mocking_livekit as mocking;
-use opentalk_roomserver_module_livekit::LiveKitModule;
+use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types::{
     breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
     core::CoreEvent,
     room_kind::RoomKind,
 };
-use opentalk_roomserver_types_livekit::{
-    LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitState, UnrestrictedParticipants,
+use opentalk_roomserver_types_livekit::LiveKitState;
+use opentalk_roomserver_types_moderation::{
+    command::ModerationCommand,
+    event::{ModerationError, ModerationEvent},
 };
 use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
 
 #[test_log::test(tokio::test)]
-#[ignore]
+#[ignore = "requires livekit container"]
 async fn microphones_are_restricted() {
     let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -53,31 +55,31 @@ async fn microphones_are_restricted() {
 
     // Alice sends the command
     alice
-        .send_command::<LiveKitModule>(
-            LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+        .send_command::<ModerationModule>(
+            ModerationCommand::EnableMicrophoneRestrictions {
                 unrestricted_participants: unrestricted.clone(),
-            }),
+            },
             None,
         )
         .await
         .unwrap();
 
-    let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+    let success_event = alice.receive_event::<ModerationModule>().await.unwrap();
 
     assert_eq!(
         success_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: unrestricted.clone(),
-        })
+        }
     );
 
     // Bob should receive restriction state update
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        mute_event.payload,
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: unrestricted
-        })
+        }
     );
 
     // Bob should not be able to send audio
@@ -88,10 +90,10 @@ async fn microphones_are_restricted() {
 ///
 /// e.g. bob was restricted before, but is added to the unrestricted set.
 #[test_log::test(tokio::test)]
-#[ignore]
+#[ignore = "requires livekit container"]
 async fn permissions_are_updated() {
     let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -122,60 +124,60 @@ async fn permissions_are_updated() {
 
     // Alice sends the command to restrict bob
     alice
-        .send_command::<LiveKitModule>(
-            LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+        .send_command::<ModerationModule>(
+            ModerationCommand::EnableMicrophoneRestrictions {
                 unrestricted_participants: unrestricted.clone(),
-            }),
+            },
             None,
         )
         .await
         .unwrap();
 
-    let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+    let success_event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         success_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: unrestricted.clone()
-        })
+        }
     );
 
     // Bob should receive restriction state update
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        mute_event.payload,
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: unrestricted.clone()
-        })
+        }
     );
 
     let unrestricted = BTreeSet::from([alice.id(), bob.id()]);
 
     // Alice sends the command to lift bobs restrictions
     alice
-        .send_command::<LiveKitModule>(
-            LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+        .send_command::<ModerationModule>(
+            ModerationCommand::EnableMicrophoneRestrictions {
                 unrestricted_participants: unrestricted.clone(),
-            }),
+            },
             None,
         )
         .await
         .unwrap();
 
-    let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+    let success_event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         success_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: unrestricted.clone()
-        })
+        }
     );
 
     // Bob should receive restriction state update
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        mute_event.payload,
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: unrestricted
-        })
+        }
     );
 
     mocking::publish_audio(&bob_room)
@@ -184,11 +186,11 @@ async fn permissions_are_updated() {
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
+#[ignore = "requires livekit container"]
 async fn enable_unknown_participant() {
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -197,10 +199,10 @@ async fn enable_unknown_participant() {
 
     // Alice sends the command
     alice
-        .send_command::<LiveKitModule>(
-            LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+        .send_command::<ModerationModule>(
+            ModerationCommand::EnableMicrophoneRestrictions {
                 unrestricted_participants: disconnected.clone(),
-            }),
+            },
             None,
         )
         .await
@@ -208,22 +210,22 @@ async fn enable_unknown_participant() {
 
     // We allow for unknown participants in the unrestricted set. If participants disconnect their
     // permission is kept.
-    let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+    let success_event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         success_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: disconnected
-        })
+        }
     );
 }
 
 /// Alice enables restrictions except for bob, bob leaves the meeting, restrictions are lifted.
 /// At the time of lifting the restrictions bob is still in the state but not a participant anymore.
 #[test_log::test(tokio::test)]
-#[ignore]
+#[ignore = "requires livekit container"]
 async fn disable_unknown_participant() {
     let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -255,61 +257,61 @@ async fn disable_unknown_participant() {
 
         // Alice sends the command
         alice
-            .send_command::<LiveKitModule>(
-                LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+            .send_command::<ModerationModule>(
+                ModerationCommand::EnableMicrophoneRestrictions {
                     unrestricted_participants: unrestricted,
-                }),
+                },
                 None,
             )
             .await
             .unwrap();
-        let _restrictions_enabled = alice.receive_event::<LiveKitModule>().await.unwrap();
+        let _restrictions_enabled = alice.receive_event::<ModerationModule>().await.unwrap();
     }
     bob.disconnect();
     let _bob_left = alice.receive::<CoreEvent>().await.unwrap();
 
     // Alice sends the command
     alice
-        .send_command::<LiveKitModule>(LiveKitCommand::DisableMicrophoneRestrictions, None)
+        .send_command::<ModerationModule>(ModerationCommand::DisableMicrophoneRestrictions, None)
         .await
         .unwrap();
 
     // We allow for unknown participants in the unrestricted set. If participants disconnect their
     // permission is kept.
-    let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+    let success_event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         success_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsDisabled
+        ModerationEvent::MicrophoneRestrictionsDisabled
     );
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
+#[ignore = "requires livekit container"]
 async fn disable_insufficient_permissions() {
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Bob joins the meeting
     let mut bob = room.join_bob(0).await;
 
     // Bob sends the command
-    bob.send_command::<LiveKitModule>(LiveKitCommand::DisableMicrophoneRestrictions, None)
+    bob.send_command::<ModerationModule>(ModerationCommand::DisableMicrophoneRestrictions, None)
         .await
         .unwrap();
 
-    let error_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let error_event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         error_event.payload,
-        LiveKitEvent::Error(LiveKitError::InsufficientPermissions)
+        ModerationEvent::Error(ModerationError::InsufficientPermissions)
     );
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
+#[ignore = "requires livekit container"]
 async fn enable_insufficient_permissions() {
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Bob joins the meeting
     let mut bob = room.join_bob(0).await;
@@ -317,28 +319,28 @@ async fn enable_insufficient_permissions() {
     let unrestricted = BTreeSet::from([disconnected_participant]);
 
     // Bob sends the command
-    bob.send_command::<LiveKitModule>(
-        LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+    bob.send_command::<ModerationModule>(
+        ModerationCommand::EnableMicrophoneRestrictions {
             unrestricted_participants: unrestricted,
-        }),
+        },
         None,
     )
     .await
     .unwrap();
 
-    let error_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let error_event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         error_event.payload,
-        LiveKitEvent::Error(LiveKitError::InsufficientPermissions)
+        ModerationEvent::Error(ModerationError::InsufficientPermissions)
     );
 }
 
 /// The [`LiveKitModule::ongoing_microphone_restrictions`] barrier should be freed after the operation finished.
 #[test_log::test(tokio::test)]
-#[ignore]
+#[ignore = "requires livekit container"]
 async fn barrier_should_be_freed() {
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -346,31 +348,31 @@ async fn barrier_should_be_freed() {
     // Alice sends the command
     for _ in 0..2 {
         alice
-            .send_command::<LiveKitModule>(
-                LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+            .send_command::<ModerationModule>(
+                ModerationCommand::EnableMicrophoneRestrictions {
                     unrestricted_participants: BTreeSet::new(),
-                }),
+                },
                 None,
             )
             .await
             .unwrap();
 
         // wait till the command succeeded
-        let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+        let success_event = alice.receive_event::<ModerationModule>().await.unwrap();
         assert_eq!(
             success_event.payload,
-            LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+            ModerationEvent::MicrophoneRestrictionsEnabled {
                 unrestricted_participants: BTreeSet::new()
-            })
+            }
         );
     }
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
+#[ignore = "requires livekit container"]
 async fn alice_in_breakout_bob_in_main() {
     let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -417,22 +419,22 @@ async fn alice_in_breakout_bob_in_main() {
 
     // Alice sends the command
     alice
-        .send_command::<LiveKitModule>(
-            LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+        .send_command::<ModerationModule>(
+            ModerationCommand::EnableMicrophoneRestrictions {
                 unrestricted_participants: unrestricted.clone(),
-            }),
+            },
             None,
         )
         .await
         .unwrap();
 
-    let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+    let success_event = alice.receive_event::<ModerationModule>().await.unwrap();
 
     assert_eq!(
         success_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: unrestricted.clone(),
-        })
+        }
     );
 
     // Bob should not receive restriction state update since he is in another room
@@ -443,10 +445,10 @@ async fn alice_in_breakout_bob_in_main() {
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
+#[ignore = "requires livekit container"]
 async fn alice_and_bob_in_breakout() {
     let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let mut room = room.register_module::<ModerationModule>().spawn();
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -495,31 +497,31 @@ async fn alice_and_bob_in_breakout() {
 
     // Alice sends the command
     alice
-        .send_command::<LiveKitModule>(
-            LiveKitCommand::EnableMicrophoneRestrictions(UnrestrictedParticipants {
+        .send_command::<ModerationModule>(
+            ModerationCommand::EnableMicrophoneRestrictions {
                 unrestricted_participants: unrestricted.clone(),
-            }),
+            },
             None,
         )
         .await
         .unwrap();
 
-    let success_event = alice.receive_event::<LiveKitModule>().await.unwrap();
+    let success_event = alice.receive_event::<ModerationModule>().await.unwrap();
 
     assert_eq!(
         success_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: unrestricted.clone(),
-        })
+        }
     );
 
     // Bob should receive restriction state update
-    let force_mute_event = bob.receive_event::<LiveKitModule>().await.unwrap();
+    let mute_event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        force_mute_event.payload,
-        LiveKitEvent::MicrophoneRestrictionsEnabled(UnrestrictedParticipants {
+        mute_event.payload,
+        ModerationEvent::MicrophoneRestrictionsEnabled {
             unrestricted_participants: unrestricted
-        })
+        }
     );
 
     // Bob should not be able to send audio
