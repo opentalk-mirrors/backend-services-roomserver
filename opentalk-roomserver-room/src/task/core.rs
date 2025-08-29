@@ -14,7 +14,6 @@ use opentalk_roomserver_signaling::{
     signaling_event::SignalingEvent,
 };
 use opentalk_roomserver_types::{
-    breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, Role as RoomserverClientRole},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, LeftWaitingRoom},
@@ -212,7 +211,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             },
         );
 
-        self.add_breakout_module_data(&mut own_data, current_breakout_room);
+        self.join_success_breakout_own_data(&mut own_data, current_breakout_room);
 
         let join_success_msg = self.build_join_success(
             participant_id,
@@ -399,13 +398,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .collect();
 
                 let mut module_peer_data = participants_module_data.remove(id).unwrap_or_default();
-
-                module_peer_data.insert(
-                    BREAKOUT_MODULE_ID,
-                    serde_json::to_value(self.breakout_peer_data(state))
-                        .expect("BreakoutPeerModuleData must be serializable")
-                        .into(),
-                );
+                self.join_success_breakout_peer_data(&mut module_peer_data, state);
 
                 Participant {
                     id: *id,

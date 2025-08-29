@@ -21,10 +21,11 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     error::SignalingError,
     room_kind::RoomKind,
+    shared_json::SharedJson,
     signaling::{SignalingCommand, module_error::SignalingModuleError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::time::Timestamp;
+use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use state::BreakoutState;
 
@@ -386,11 +387,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    /// Add information about peers
-    pub(crate) fn breakout_peer_data(&self, state: &ParticipantState) -> BreakoutPeerModuleData {
-        BreakoutPeerModuleData { room: state.room }
-    }
-
     /// Close all breakout rooms and move the participants back to the main room
     pub(crate) fn close_breakout_rooms(
         &mut self,
@@ -446,8 +442,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    /// Attach the breakout join info data to the given [`ModuleData`]
-    pub(crate) fn add_breakout_module_data(
+    /// Attach the breakout related info to the given [`ModuleData`].
+    ///
+    /// These are the information about the joining participant send to the participant themself.
+    pub(crate) fn join_success_breakout_own_data(
         &self,
         module_data: &mut ModuleData,
         current_room: RoomKind,
@@ -472,5 +470,21 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }) {
             tracing::error!("Failed to add breakout module data to join success: {e:?}")
         }
+    }
+
+    /// Attach breakout related info about other participants (peers) for the joining participant.
+    ///
+    /// This will be sent to the joining participant.
+    pub(crate) fn join_success_breakout_peer_data(
+        &self,
+        peer_data: &mut BTreeMap<ModuleId, SharedJson>,
+        state: &ParticipantState,
+    ) {
+        peer_data.insert(
+            BREAKOUT_MODULE_ID,
+            serde_json::to_value(BreakoutPeerModuleData { room: state.room })
+                .expect("BreakoutPeerModuleData must be serializable")
+                .into(),
+        );
     }
 }
