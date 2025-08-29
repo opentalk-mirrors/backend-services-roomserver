@@ -963,10 +963,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId {
     match kind {
         ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
-            ParticipantId::from(Uuid::from(profile.id))
+            participant_id_from_uuid(profile.id)
         }
         ClientKind::Guest { .. } | ClientKind::Recorder | ClientKind::CallIn { .. } => {
-            ParticipantId::from(Uuid::from(device_id))
+            participant_id_from_uuid(device_id)
         }
     }
+}
+
+/// generates a [`ParticipantId`] from something that can be made into a [`Uuid`].
+///
+/// This should either be the [`DeviceId`] for guests or a [`UserId`] in case of registered users.
+fn participant_id_from_uuid(user_id: impl Into<Uuid>) -> ParticipantId {
+    ParticipantId::from(user_id.into())
 }
