@@ -23,7 +23,7 @@ use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 use serde::Serialize;
 use serde_json::value::RawValue;
-use tokio::sync::{Mutex, mpsc, watch};
+use tokio::sync::{mpsc, watch};
 
 use crate::message_router::participant_connection::ConnectionHandle;
 
@@ -83,8 +83,8 @@ impl MessageRouter {
         connections: impl Iterator<Item = &'a ConnectionId>,
     ) {
         for connection_id in connections {
-            if let Some(handle) = from.connections.get_mut().remove(connection_id) {
-                to.connections.get_mut().insert(*connection_id, handle);
+            if let Some(handle) = from.connections.remove(connection_id) {
+                to.connections.insert(*connection_id, handle);
             } else {
                 tracing::error!("Trying to move unknown connection {connection_id}");
             }
@@ -119,7 +119,7 @@ impl MessageRouter {
 
 pub struct ScopedRouter {
     /// A collection of active websocket connections
-    connections: Mutex<HashMap<ConnectionId, ConnectionHandle>>,
+    connections: HashMap<ConnectionId, ConnectionHandle>,
 
     disconnects: HashMap<ConnectionId, ParticipantId>,
 
@@ -139,7 +139,7 @@ impl ScopedRouter {
         app_state: watch::Receiver<ApplicationState>,
     ) -> Self {
         Self {
-            connections: Mutex::new(HashMap::new()),
+            connections: HashMap::new(),
             disconnects: HashMap::new(),
             room_task_command_sender,
             app_state,
@@ -153,7 +153,7 @@ impl ScopedRouter {
     ) -> Result<ConnectionId, AlreadyConnectedError> {
         let connection_id = ConnectionId::generate();
 
-        let entry = self.connections.get_mut().entry(connection_id);
+        let entry = self.connections.entry(connection_id);
         let Entry::Vacant(vacant) = entry else {
             tokio::task::spawn(async move {
                 websocket
@@ -181,19 +181,17 @@ impl ScopedRouter {
     }
 
     pub fn remove_connection(&mut self, connection_id: ConnectionId) {
-        self.connections.get_mut().remove(&connection_id);
+        self.connections.remove(&connection_id);
     }
 
     /// Send a [`SignalingEvent`] to a participant
-    pub async fn send_event(
+    pub fn send_event(
         &mut self,
         participant_connections: impl IntoIterator<Item = ConnectionId>,
         event: SharedRawJson,
     ) {
-        let mut connections = self.connections.lock().await;
-
         for id in participant_connections {
-            let Entry::Occupied(handle) = connections.entry(id) else {
+            let Entry::Occupied(handle) = self.connections.entry(id) else {
                 if !self.disconnects.contains_key(&id) {
                     tracing::warn!("Tried to sent message to unknown connection");
                 }
@@ -208,36 +206,26 @@ impl ScopedRouter {
     }
 
     /// Send a [`SignalingEvent`] to **all** participants
-    pub async fn broadcast_event(
-        &mut self,
-        event: SharedRawJson,
-        excluded_connections: &[ConnectionId],
-    ) {
-        let mut connections = self.connections.lock().await;
+    pub fn broadcast_event(&mut self, event: SharedRawJson, excluded_connections: &[ConnectionId]) {
+        let mut stale_connections = HashSet::new();
 
-        let mut send_futures = Vec::new();
-
-        for (connection_id, connection_handle) in &mut *connections {
+        for (connection_id, connection_handle) in &mut self.connections {
             if excluded_connections.contains(connection_id) {
                 continue;
             }
 
             let cloned_event = event.clone();
 
-            send_futures.push(async move {
-                if connection_handle.send_event(cloned_event).is_err() {
-                    return Some(*connection_id);
-                }
-                None
-            });
+            if connection_handle.send_event(cloned_event).is_err() {
+                stale_connections.insert(*connection_id);
+            }
         }
 
         // send events to all participants and collect stale connections
-        let stale_connections = futures::future::join_all(send_futures).await;
 
         // remove all stale connections
-        for &connection_id in stale_connections.iter().flatten() {
-            if let Some(handle) = connections.remove(&connection_id) {
+        for connection_id in stale_connections {
+            if let Some(handle) = self.connections.remove(&connection_id) {
                 self.disconnects
                     .insert(connection_id, handle.participant_id());
             }
@@ -249,7 +237,7 @@ impl ScopedRouter {
     /// # Errors
     ///
     /// Returns a [`FatalError`] when the content fails to serialize
-    pub(crate) async fn serialize_and_send(
+    pub(crate) fn serialize_and_send(
         &mut self,
         connections: impl IntoIterator<Item = ConnectionId>,
         namespace: ModuleId,
@@ -257,7 +245,7 @@ impl ScopedRouter {
         payload: impl Serialize,
     ) -> Result<(), FatalError> {
         let shared_json = Self::serialize_event(namespace, transaction_id, payload)?;
-        self.send_event(connections, shared_json).await;
+        self.send_event(connections, shared_json);
 
         Ok(())
     }
@@ -265,14 +253,14 @@ impl ScopedRouter {
     /// Broadcast a websocket message to all participants
     ///
     /// Returns a [`FatalError`] when the content fails to serialize.
-    pub(crate) async fn serialize_and_broadcast(
+    pub(crate) fn serialize_and_broadcast(
         &mut self,
         namespace: ModuleId,
         transaction_id: Option<u64>,
         payload: impl Serialize,
     ) -> Result<(), FatalError> {
         let shared_json = Self::serialize_event(namespace, transaction_id, payload)?;
-        self.broadcast_event(shared_json, &[]).await;
+        self.broadcast_event(shared_json, &[]);
 
         Ok(())
     }
@@ -303,7 +291,7 @@ impl ScopedRouter {
     /// Send a websocket error message of type [`SignalingError`] to the associated connection
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
-    pub(crate) async fn send_error(
+    pub(crate) fn send_error(
         &mut self,
         connection_id: ConnectionId,
         transaction_id: Option<u64>,
@@ -324,17 +312,13 @@ impl ScopedRouter {
             }
         };
 
-        self.send_event([connection_id], shared_json).await;
+        self.send_event([connection_id], shared_json);
     }
 
     /// Send a websocket error message of type [`SignalingError`] to all participants
     ///
     /// The message is always scoped to the [`error::NAMESPACE`]
-    pub(crate) async fn broadcast_error(
-        &mut self,
-        transaction_id: Option<u64>,
-        error: SignalingError,
-    ) {
+    pub(crate) fn broadcast_error(&mut self, transaction_id: Option<u64>, error: SignalingError) {
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
             transaction_id,
@@ -350,7 +334,7 @@ impl ScopedRouter {
             }
         };
 
-        self.broadcast_event(shared_json, &[]).await;
+        self.broadcast_event(shared_json, &[]);
     }
 }
 
@@ -417,9 +401,6 @@ mod tests {
         };
         let shared_json = serde_json::value::to_raw_value(&event).unwrap().into();
 
-        router
-            .conference
-            .send_event([connection], shared_json)
-            .await;
+        router.conference.send_event([connection], shared_json);
     }
 }
