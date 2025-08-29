@@ -200,6 +200,10 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         }
 
+        if !ctx.room_task_info.room.waiting_room {
+            self.set_waiting_room_enabled(ctx, true)?;
+        }
+
         ctx.send_ws_message([target], ModerationEvent::Kicked)?;
         ctx.kick_participants(Vec::from_iter([target]));
 

@@ -76,6 +76,21 @@ async fn kick_participant() {
         .await
         .unwrap();
 
+    // The waiting room gets enabled
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
     // Bob receives the kicked event
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(event.payload, ModerationEvent::Kicked);
