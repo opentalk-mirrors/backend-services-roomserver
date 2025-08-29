@@ -46,7 +46,9 @@ pub enum ModerationError {
     CannotSendRoomOwnerToWaitingRoom,
     /// An internal error occurred
     Internal,
+    /// The received command cannot be executed since there is already a conflicting ongoing task.
     ConflictingTask,
+    /// The livekit server is not available
     LivekitUnavailable,
 }
 
