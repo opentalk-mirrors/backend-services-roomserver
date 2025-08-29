@@ -3,6 +3,7 @@
 
 use std::collections::BTreeSet;
 
+use insta::assert_json_snapshot;
 use opentalk_roomserver_module_raise_hands::RaiseHandsModule;
 use opentalk_roomserver_room::mocking::{
     participant::MockParticipantJoined,
@@ -15,17 +16,19 @@ use opentalk_roomserver_types::{
         command::BreakoutCommand,
         event::BreakoutEvent,
     },
+    core::CoreEvent,
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_raise_hands::{
+    RAISE_HANDS_MODULE_ID,
     command::{RaiseHandsCommand, ResetRaisedHands},
     event::{RaiseHandsError, RaiseHandsEvent},
-    state::{RaiseHandsState, RaisedHandState},
+    state::RaisedHandState,
 };
 use pretty_assertions::assert_eq;
 
 #[test_log::test(tokio::test)]
-async fn join_success() {
+async fn join_events_contain_data() {
     let mut room = TestRoom::builder()
         .register_module::<RaiseHandsModule>()
         .spawn();
@@ -33,42 +36,54 @@ async fn join_success() {
 
     let state = alice
         .join_success()
-        .get_module::<RaiseHandsState>()
+        .get_module::<RaisedHandState>()
         .expect("Module data must be present")
-        .expect("Moderation module state must not be None");
-    assert!(state.raise_hands_enabled);
-    assert_eq!(state.raised_hands, Some(BTreeSet::new()));
+        .expect("RaisedHand module state must not be None");
+    assert_json_snapshot!(state, @r#"
+    {
+      "raise_hands_enabled": true
+    }
+    "#);
 
     alice
         .send_command::<RaiseHandsModule>(RaiseHandsCommand::RaiseHand, None)
         .await
         .unwrap();
+    alice.receive_event::<RaiseHandsModule>().await.unwrap();
 
-    let event = alice
-        .receive_event::<RaiseHandsModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        RaiseHandsEvent::HandRaised {
-            participant: alice.id()
-        }
-    );
-
+    // Bob will receive his own state and Alices state
     let bob = room.join_bob(0).await;
-    let state = bob
+    let own_state = bob
         .join_success()
-        .get_module::<RaiseHandsState>()
+        .get_module::<RaisedHandState>()
         .expect("Module data must be present")
-        .expect("Moderation module state must not be None");
-    assert!(state.raise_hands_enabled);
-    let raised_hands = state.raised_hands.unwrap();
-    assert_eq!(raised_hands.len(), 1);
-    assert!(matches!(
-        raised_hands.first().unwrap(),
-        RaisedHandState { participant_id, .. } if *participant_id == alice.id()
-    ))
+        .expect("RaisedHand module state must not be None");
+    assert_json_snapshot!(own_state,
+        @r#"
+    {
+      "raise_hands_enabled": true
+    }
+    "#);
+
+    assert_json_snapshot!(&bob.join_success().participants[0].module_data.get(&RAISE_HANDS_MODULE_ID), {
+        ".raised_at" => "[timestamp]",
+    },
+        @r#"
+    {
+      "raised_at": "[timestamp]"
+    }
+    "#);
+
+    // Alice receives Bobs state
+    let CoreEvent::ParticipantConnected { peer_data, .. } =
+        alice.receive::<CoreEvent>().await.unwrap().payload
+    else {
+        panic!("Expected participant connected event");
+    };
+    assert!(
+        !peer_data.contains_key(&RAISE_HANDS_MODULE_ID),
+        "Bob doesn't have state since he just joined"
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -544,14 +559,28 @@ async fn enable_raise_hands_does_not_overwrite() {
     );
 
     let bob = room.join_bob(0).await;
-    let state = bob
-        .join_success()
-        .get_module::<RaiseHandsState>()
+    let join_success = bob.join_success();
+    let bob_state = join_success
+        .get_module::<RaisedHandState>()
         .expect("Module data must be present")
-        .expect("Moderation module state must not be None");
+        .expect("RaisedHand module state must not be None");
     // The raised hands were not affected by the enable command
-    assert!(matches!(state.raised_hands.unwrap().first().unwrap(),
-        RaisedHandState { participant_id, .. } if *participant_id == alice.id()));
+    assert_eq!(
+        bob_state,
+        RaisedHandState {
+            raise_hands_enabled: true,
+            state: None,
+        }
+    );
+    let peer_state_alice = join_success
+        .participants
+        .iter()
+        .find(|&p| p.id == alice.id())
+        .unwrap();
+    let peer_state_alice = peer_state_alice
+        .get_module::<RaisedHandPeerState>()
+        .unwrap();
+    assert!(matches!(peer_state_alice, Some(RaisedHandPeerState { .. })));
 }
 
 #[test_log::test(tokio::test)]
@@ -596,17 +625,31 @@ async fn breakout_switch() {
         panic!("Received unexpected event: {:?}", event);
     };
     let state = own_data
-        .get::<RaiseHandsState>()
+        .get::<RaisedHandState>()
         .expect("Module data must be present")
-        .expect("Moderation module state must not be None");
-    assert!(state.raise_hands_enabled);
-    assert_eq!(state.raised_hands, Some(BTreeSet::new()));
+        .expect("RaisedHand module state must not be None");
+    assert_eq!(
+        state,
+        RaisedHandState {
+            raise_hands_enabled: true,
+            state: None,
+        }
+    );
 
     let event = bob.receive::<BreakoutEvent>().await.unwrap().payload;
-    assert!(matches!(
-        event,
-        BreakoutEvent::ParticipantSwitchedRoom { .. }
-    ));
+    assert_json_snapshot!(event, @r#"
+    {
+      "message": "participant_switched_room",
+      "participant_id": "00000000-0000-0000-0000-0000000a11ce",
+      "old_room": {
+        "kind": "main"
+      },
+      "new_room": {
+        "kind": "breakout",
+        "id": 0
+      }
+    }
+    "#);
 
     // Alice raises her hand in the breakout room
     alice
@@ -624,21 +667,35 @@ async fn breakout_switch() {
     .unwrap();
 
     let event = bob.receive::<BreakoutEvent>().await.unwrap().payload;
-    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
+    let BreakoutEvent::SwitchedRoom {
+        own_data,
+        peer_data,
+        ..
+    } = event
+    else {
         panic!("Received unexpected event: {:?}", event);
     };
 
     let state = own_data
-        .get::<RaiseHandsState>()
+        .get::<RaisedHandState>()
         .expect("Module data must be present")
-        .expect("Moderation module state must not be None");
-    assert!(state.raise_hands_enabled);
-    let raised_hands = state.raised_hands.unwrap();
-    assert_eq!(raised_hands.len(), 1);
-    assert!(matches!(
-        raised_hands.first().unwrap(),
-        RaisedHandState { participant_id, .. } if *participant_id == alice.id()
-    ));
+        .expect("RaisedHand module state must not be None");
+    assert_eq!(
+        state,
+        RaisedHandState {
+            raise_hands_enabled: true,
+            state: None,
+        }
+    );
+    let peer_state_alice = peer_data.get(&alice.id()).unwrap();
+    let peer_state_alice = peer_state_alice.get(&RAISE_HANDS_MODULE_ID).unwrap();
+    assert_json_snapshot!(peer_state_alice, {
+        ".raised_at" => "[timestamp]"
+    }, @r#"
+    {
+      "raised_at": "[timestamp]"
+    }
+    "#);
 }
 
 #[test_log::test(tokio::test)]

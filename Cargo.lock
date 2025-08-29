@@ -5995,7 +5995,7 @@ dependencies = [
 name = "opentalk-roomserver-module-raise-hands"
 version = "0.0.6-dev"
 dependencies = [
- "anyhow",
+ "insta",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
