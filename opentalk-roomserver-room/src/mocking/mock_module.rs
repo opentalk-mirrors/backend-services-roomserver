@@ -80,15 +80,10 @@ impl SignalingModule for MockModule {
             .filter(|&p| p != participant_id)
         {
             participant_data.insert(p, MockPeerData(format!("About {p} for {participant_id}")))?;
-            peer_event_data.insert(
-                p,
-                MockPeerData(format!("From {participant_id}:{connection_id} for {p}")),
-            )?;
+            peer_event_data.insert(p, MockPeerData(format!("From {participant_id} for {p}")))?;
         }
         Ok(ModuleJoinData {
-            join_success: Some(MockJoinInfo(format!(
-                "Self: {participant_id}:{connection_id}"
-            ))),
+            join_success: Some(MockJoinInfo(format!("Self: {participant_id}"))),
             peer_events: peer_event_data,
             peer_data: participant_data,
         })
