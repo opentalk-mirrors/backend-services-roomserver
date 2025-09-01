@@ -10,6 +10,7 @@ pub mod client;
 pub mod settings;
 
 fn main() -> eframe::Result {
+    const APP_NAME: &str = "OpenTalk RoomServer Developer UI";
     env_logger::init();
 
     let args = cli::Args::parse();
@@ -17,16 +18,18 @@ fn main() -> eframe::Result {
         return Ok(());
     }
 
+    let viewport = egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]);
+    let app_id = viewport.app_id.as_deref().unwrap_or(APP_NAME).to_string();
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+        viewport,
         ..Default::default()
     };
 
     eframe::run_native(
-        "OpenTalk RoomServer Developer UI",
+        APP_NAME,
         options,
         Box::new(|cc| {
-            let app = RoomServerApp::new(cc, args.config.as_deref())?;
+            let app = RoomServerApp::new(cc, args.config.as_deref(), app_id)?;
             Ok(Box::new(app))
         }),
     )
