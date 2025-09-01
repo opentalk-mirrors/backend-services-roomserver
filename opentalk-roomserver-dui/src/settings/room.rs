@@ -11,9 +11,7 @@ use opentalk_roomserver_client::api::{
     event::{E2EE_MODULE_ID, LIVEKIT_MODULE_ID, SHARED_FOLDER_MODULE_ID},
 };
 use opentalk_roomserver_types::{
-    breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, ClientParameters, Role},
-    core::CORE_MODULE_ID,
     public_user_profile::PublicUserProfile,
     room_parameters::RoomParameters,
 };
@@ -69,9 +67,7 @@ pub fn default_room_parameters() -> RoomParameters {
             name: "Starter tariff".to_string(),
             quotas: Default::default(),
             modules: BTreeMap::from([
-                (CORE_MODULE_ID, TariffModuleResource::default()),
                 (AUTOMOD_MODULE_ID, TariffModuleResource::default()),
-                (BREAKOUT_MODULE_ID, TariffModuleResource::default()),
                 (ECHO_MODULE_ID, TariffModuleResource::default()),
                 (CHAT_MODULE_ID, TariffModuleResource::default()),
                 (LIVEKIT_MODULE_ID, TariffModuleResource::default()),
