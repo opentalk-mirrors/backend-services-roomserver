@@ -47,7 +47,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_origin: ParticipantOrigin,
         command: SignalingCommand,
     ) {
-        let Some(participant_state) = self.participants.all_unfiltered.get(&participant_origin.id)
+        let Some(participant_state) = self.participants.connected().get(&participant_origin.id)
         else {
             tracing::error!(
                 "failed to get participant state for participant `{}`",

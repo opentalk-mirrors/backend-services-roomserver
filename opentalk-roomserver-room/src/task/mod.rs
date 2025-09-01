@@ -693,9 +693,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 connection_id,
                 command: signaling_command.payload,
             }
-        } else if let Some(participant_state) =
-            self.participants.all_unfiltered.get(&participant_id)
-        {
+        } else if let Some(participant_state) = self.participants.connected().get(&participant_id) {
             room = participant_state.room;
             DynEvent::WebsocketMessage {
                 participant_id,
