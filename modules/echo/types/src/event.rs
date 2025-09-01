@@ -9,15 +9,7 @@ use crate::error::EchoError;
 #[serde(tag = "message", rename_all = "snake_case")]
 pub enum EchoEvent {
     Pong,
-    DelayedPong,
     Error(EchoError),
-    Replication(Replication),
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "replicated_command", rename_all = "snake_case")]
-pub enum Replication {
-    ReplicatedPing,
 }
 
 impl From<EchoError> for EchoEvent {
