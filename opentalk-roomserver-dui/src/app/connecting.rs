@@ -10,14 +10,18 @@ use tokio::sync::{mpsc::UnboundedSender, oneshot::Receiver};
 use url::Url;
 
 use super::{TransitionToView, error::RunnerGoneError, shortcuts::SUBMIT_SHORTCUT};
-use crate::{client::RunnerCommand, settings::DuiSettings};
+use crate::{
+    client::{RunnerCommand, RunnerResponse},
+    settings::DuiSettings,
+};
 
-type RunnerResponse<T> = Receiver<Result<T, String>>;
+type ResponseReceiver<T> = Receiver<RunnerResponse<T>>;
+
 #[derive(Debug, Default)]
 struct Progress {
-    push_server_settings: SetupProgress<(Url, RunnerResponse<()>), Url>,
-    request_token: SetupProgress<RunnerResponse<Token>, Token>,
-    signaling_connection: SetupProgress<RunnerResponse<()>, ()>,
+    push_server_settings: SetupProgress<(Url, ResponseReceiver<()>), Url>,
+    request_token: SetupProgress<ResponseReceiver<Token>, Token>,
+    signaling_connection: SetupProgress<ResponseReceiver<()>, ()>,
 }
 
 #[derive(Debug)]
@@ -144,7 +148,7 @@ impl ConnectingView {
                     self.progress.push_server_settings = SetupProgress::Done(url.clone());
                 }
                 Ok(Err(err)) => {
-                    self.progress.request_token = SetupProgress::Failed(err);
+                    self.progress.request_token = SetupProgress::Failed(format!("{err:?}"));
                 }
                 Err(_) => {}
             },
@@ -179,7 +183,7 @@ impl ConnectingView {
                         self.progress.request_token = SetupProgress::Done(res);
                     }
                     Ok(Err(err)) => {
-                        self.progress.request_token = SetupProgress::Failed(err);
+                        self.progress.request_token = SetupProgress::Failed(format!("{err:?}"));
                     }
                     Err(_) => {}
                 };
@@ -220,7 +224,8 @@ impl ConnectingView {
                         self.progress.signaling_connection = SetupProgress::Done(());
                     }
                     Ok(Err(err)) => {
-                        self.progress.signaling_connection = SetupProgress::Failed(err);
+                        self.progress.signaling_connection =
+                            SetupProgress::Failed(format!("{err:?}"));
                     }
                     Err(_) => {}
                 };

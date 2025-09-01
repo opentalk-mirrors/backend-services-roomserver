@@ -20,28 +20,30 @@ use url::Url;
 #[derive(Debug)]
 struct FatalError;
 
+pub type RunnerResponse<T> = anyhow::Result<T>;
+
 #[derive(Debug)]
 pub enum RunnerCommand {
     RoomServerAccess {
-        response_tx: tokio::sync::oneshot::Sender<Result<(), String>>,
+        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<()>>,
         url: Url,
         secret: String,
     },
 
     QueryRoom {
-        response_tx: tokio::sync::oneshot::Sender<Result<bool, String>>,
+        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<bool>>,
         room_id: RoomId,
     },
 
     RequestToken {
-        response_tx: tokio::sync::oneshot::Sender<Result<Token, String>>,
+        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<Token>>,
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Box<Option<RoomParameters>>,
     },
 
     ConnectSignaling {
-        response_tx: tokio::sync::oneshot::Sender<Result<(), String>>,
+        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<()>>,
         token: Token,
     },
 
@@ -228,7 +230,7 @@ impl RoomServerRunner {
                 self.disconnect().await?;
                 let Ok(client) = Client::new(url, secret) else {
                     log::info!("Invalid roomserver secret");
-                    let _ = response_tx.send(Err("Invalid roomserver secret".to_string()));
+                    let _ = response_tx.send(Err(anyhow::anyhow!("Invalid roomserver secret")));
                     return Ok(());
                 };
                 self.client = client;
@@ -264,7 +266,7 @@ impl RoomServerRunner {
     fn query_room(
         &self,
         _room_id: RoomId,
-        response_tx: tokio::sync::oneshot::Sender<Result<bool, String>>,
+        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<bool>>,
     ) {
         let _ = response_tx.send(Ok(false));
     }
@@ -274,7 +276,7 @@ impl RoomServerRunner {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-        response_tx: tokio::sync::oneshot::Sender<Result<Token, String>>,
+        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<Token>>,
     ) {
         let res = self
             .client
@@ -285,10 +287,10 @@ impl RoomServerRunner {
                 let _ = response_tx.send(Ok(token));
             }
             Ok(None) => {
-                let _ = response_tx.send(Err("Room does not exist!?".to_string()));
+                let _ = response_tx.send(Err(anyhow::anyhow!("Room does not exist!?")));
             }
             Err(e) => {
-                let _ = response_tx.send(Err(e.to_string()));
+                let _ = response_tx.send(Err(anyhow::anyhow!(e)));
             }
         }
     }
@@ -296,14 +298,14 @@ impl RoomServerRunner {
     async fn connect_signaling(
         &mut self,
         token: Token,
-        response_tx: tokio::sync::oneshot::Sender<Result<(), String>>,
+        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<()>>,
     ) -> Result<(), FatalError> {
         self.disconnect().await?;
 
         let connection = match self.client.open_signaling_connection(token).await {
             Ok(con) => con,
             Err(e) => {
-                let _ = response_tx.send(Err(e.to_string()));
+                let _ = response_tx.send(Err(e.into()));
                 return Ok(());
             }
         };
