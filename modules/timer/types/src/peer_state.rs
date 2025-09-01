@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// A flag to track the participants ready status
 #[derive(Default, Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "kind")]
+#[serde(rename_all = "snake_case")]
 pub struct TimerPeerState {
     /// The ready status of the participant
     pub ready_status: bool,
