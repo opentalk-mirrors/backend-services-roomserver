@@ -1,13 +1,24 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::collections::BTreeMap;
+
+use opentalk_roomserver_client::api::{
+    command::{
+        AUTOMOD_MODULE_ID, CHAT_MODULE_ID, ECHO_MODULE_ID, MEETING_REPORT_MODULE_ID,
+        MODERATION_MODULE_ID, POLLS_MODULE_ID, RAISE_HANDS_MODULE_ID, SUBROOM_AUDIO_MODULE_ID,
+    },
+    event::{E2EE_MODULE_ID, LIVEKIT_MODULE_ID, SHARED_FOLDER_MODULE_ID},
+};
 use opentalk_roomserver_types::{
+    breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, ClientParameters, Role},
+    core::CORE_MODULE_ID,
     public_user_profile::PublicUserProfile,
     room_parameters::RoomParameters,
 };
+use opentalk_roomserver_types_timer::TIMER_MODULE_ID;
 use opentalk_types_common::{
-    modules::ModuleId,
     tariffs::{TariffId, TariffModuleResource, TariffResource},
     time::TimeZone,
     users::{UserId, UserInfo},
@@ -57,15 +68,22 @@ pub fn default_room_parameters() -> RoomParameters {
             id: TariffId::from_u128(0x2da2b825_6db9_4dc4_b9e6_b4fd64e66a16),
             name: "Starter tariff".to_string(),
             quotas: Default::default(),
-            modules: [("echo", TariffModuleResource::default())]
-                .into_iter()
-                .map(|(module, resource)| {
-                    (
-                        module.parse::<ModuleId>().expect("valid module id"),
-                        resource,
-                    )
-                })
-                .collect(),
+            modules: BTreeMap::from([
+                (CORE_MODULE_ID, TariffModuleResource::default()),
+                (AUTOMOD_MODULE_ID, TariffModuleResource::default()),
+                (BREAKOUT_MODULE_ID, TariffModuleResource::default()),
+                (ECHO_MODULE_ID, TariffModuleResource::default()),
+                (CHAT_MODULE_ID, TariffModuleResource::default()),
+                (LIVEKIT_MODULE_ID, TariffModuleResource::default()),
+                (E2EE_MODULE_ID, TariffModuleResource::default()),
+                (TIMER_MODULE_ID, TariffModuleResource::default()),
+                (POLLS_MODULE_ID, TariffModuleResource::default()),
+                (SHARED_FOLDER_MODULE_ID, TariffModuleResource::default()),
+                (MEETING_REPORT_MODULE_ID, TariffModuleResource::default()),
+                (MODERATION_MODULE_ID, TariffModuleResource::default()),
+                (RAISE_HANDS_MODULE_ID, TariffModuleResource::default()),
+                (SUBROOM_AUDIO_MODULE_ID, TariffModuleResource::default()),
+            ]),
         },
         streaming_links: vec![],
         e2e_encryption: false,
