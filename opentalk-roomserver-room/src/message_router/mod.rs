@@ -19,7 +19,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
     CloseFrame, SignalingSocket, SignalingSocketMessage,
 };
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use serde::Serialize;
 use serde_json::value::RawValue;
@@ -273,6 +273,7 @@ impl ScopedRouter {
         let event = SignalingEvent {
             namespace,
             transaction_id,
+            timestamp: Timestamp::now(),
             payload,
         };
         let shared_json = serde_json::value::to_raw_value(&event)
@@ -300,6 +301,7 @@ impl ScopedRouter {
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
             transaction_id,
+            timestamp: Timestamp::now(),
             payload: error,
         };
         let shared_json = match serde_json::value::to_raw_value(&event) {
@@ -322,6 +324,7 @@ impl ScopedRouter {
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
             transaction_id,
+            timestamp: Timestamp::now(),
             payload: error,
         };
         let shared_json = match serde_json::value::to_raw_value(&event) {
@@ -345,7 +348,7 @@ mod tests {
     use opentalk_roomserver_web_api::v1::signaling::websocket::{
         CloseFrame, SignalingSocketItem, SignalingSocketMessage,
     };
-    use opentalk_types_common::modules::module_id;
+    use opentalk_types_common::{modules::module_id, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
     use serde_json::{json, value::to_raw_value};
     use tokio::sync::watch;
@@ -393,6 +396,7 @@ mod tests {
         let event = SignalingEvent {
             namespace: module_id!("echo"),
             transaction_id: None,
+            timestamp: Timestamp::now(),
             payload: to_raw_value(&json!({
                 "cool": 12,
                 "thing": true,

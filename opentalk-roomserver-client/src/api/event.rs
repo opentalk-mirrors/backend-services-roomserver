@@ -16,7 +16,10 @@ use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, event::RaiseHandsEvent};
 use opentalk_roomserver_types_subroom_audio::event::SubroomAudioEvent;
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
-use opentalk_types_common::modules::{CORE_MODULE_ID, ModuleId};
+use opentalk_types_common::{
+    modules::{CORE_MODULE_ID, ModuleId},
+    time::Timestamp,
+};
 use serde::{Deserialize, Serialize};
 // reexport events for easier usage
 pub use {
@@ -34,6 +37,7 @@ pub use {
 pub struct SignalingEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<u64>,
+    timestamp: Timestamp,
     #[serde(flatten)]
     pub payload: SignalingModuleEvent,
 }
@@ -41,15 +45,6 @@ pub struct SignalingEvent {
 impl SignalingEvent {
     pub fn namespace(&self) -> ModuleId {
         self.payload.namespace()
-    }
-}
-
-impl From<SignalingModuleEvent> for SignalingEvent {
-    fn from(payload: SignalingModuleEvent) -> Self {
-        Self {
-            transaction_id: None,
-            payload,
-        }
     }
 }
 
@@ -125,7 +120,7 @@ mod tests {
     use opentalk_roomserver_types_timer::{
         TimerEvent, event::updated_ready_status::UpdatedReadyStatus,
     };
-    use opentalk_types_common::{assets::AssetId, modules::ModuleId};
+    use opentalk_types_common::{assets::AssetId, modules::ModuleId, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
     use serde::Deserialize;
 
@@ -141,6 +136,7 @@ mod tests {
     fn serialize_event_automod() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::Automod(AutomodEvent::Stopped(
                 StoppedReason::SessionFinished,
             )),
@@ -149,6 +145,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "automod",
           "payload": {
             "message": "stopped",
@@ -162,6 +159,7 @@ mod tests {
     fn serialize_event_core() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::Core(CoreEvent::ParticipantConnected {
                 participant_id: ParticipantId::from_u128(0x01),
                 connection_id: ConnectionId::from_u128(0x02),
@@ -172,6 +170,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "core",
           "payload": {
             "participant_connected": {
@@ -191,12 +190,14 @@ mod tests {
     fn serialize_event_breakout() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::Breakout(BreakoutEvent::Closed),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "breakout",
           "payload": {
             "message": "closed"
@@ -213,6 +214,7 @@ mod tests {
     fn serialize_event_chat() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::Chat(ChatEvent::ChatDisabled(ChatDisabled {
                 issued_by: ParticipantId::from_u128(0x01),
             })),
@@ -221,6 +223,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "chat",
           "payload": {
             "message": "chat_disabled",
@@ -238,12 +241,14 @@ mod tests {
     fn serialize_event_echo() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::Echo(EchoEvent::Pong),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "echo",
           "payload": {
             "message": "pong"
@@ -260,6 +265,7 @@ mod tests {
     fn serialize_event_livekit() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::LiveKit(LiveKitEvent::ScreenSharePermissionsUpdated {
                 grant: false,
                 participants: BTreeSet::new(),
@@ -269,6 +275,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "livekit",
           "payload": {
             "message": "screen_share_permissions_updated",
@@ -287,6 +294,7 @@ mod tests {
     fn serialize_event_timer() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::Timer(TimerEvent::UpdatedReadyStatus(
                 UpdatedReadyStatus {
                     participant_id: ParticipantId::nil(),
@@ -298,6 +306,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "timer",
           "payload": {
             "message": "updated_ready_status",
@@ -316,6 +325,7 @@ mod tests {
     fn serialize_event_polls() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::Polls(PollsEvent::Voted(Vote {
                 poll_id: PollId::nil(),
                 choices: Choices::Single {
@@ -327,6 +337,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "polls",
           "payload": {
             "message": "voted",
@@ -345,6 +356,7 @@ mod tests {
     fn serialize_event_meeting_report() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::MeetingReport(MeetingReportEvent::PdfAsset(PdfAsset {
                 filename: "name".into(),
                 asset_id: AssetId::nil(),
@@ -354,6 +366,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "meeting_report",
           "payload": {
             "message": "pdf_asset",
@@ -368,12 +381,14 @@ mod tests {
     fn serialize_event_moderation() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::Moderation(ModerationEvent::Accepted),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "moderation",
           "payload": {
             "message": "accepted"
@@ -386,6 +401,7 @@ mod tests {
     fn serialize_event_raise_hands() {
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::RaiseHands(RaiseHandsEvent::HandRaised {
                 participant: ParticipantId::nil(),
             }),
@@ -394,6 +410,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "raise_hands",
           "payload": {
             "message": "hand_raised",
@@ -415,6 +432,7 @@ mod tests {
 
         let event = SignalingEvent {
             transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::SubroomAudio(SubroomAudioEvent::WhisperGroupCreated {
                 token: "<jwt-token>".into(),
                 group: group.into(),
@@ -424,6 +442,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
+          "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "subroom_audio",
           "payload": {
             "message": "whisper_group_created",
