@@ -31,7 +31,7 @@ pub fn default() -> DuiSettings {
     DuiSettings {
         theme: DuiTheme::default(),
         roomserver_url: Url::parse("http://localhost:11333").expect("Static URL must be valid"),
-        roomserver_api_token: String::new(),
+        roomserver_api_token: "secret".to_string(),
         event_widget_layout: EventWidgetLayout::new(),
         is_default: true,
         history: MessageHistory::default(),
