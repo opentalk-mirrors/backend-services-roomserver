@@ -699,7 +699,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
             return;
         };
-        let room_scope = participant_state.room;
 
         let Some(module) = self.modules.get_mut(&signaling_command.namespace) else {
             self.handle_unknown_namespace(
@@ -711,12 +710,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
+        let room = participant_state.room;
         let timestamp = Timestamp::now();
         let mut messages = RefCell::new(Vec::new());
         let origin = participant_origin.into();
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
-            room_scope,
+            room,
             origin,
             &mut self.info,
             &mut self.participants,
@@ -727,10 +727,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut messages,
             &mut self.loopback_futures,
         );
-
-        let room = ctx.room;
-        let origin = ctx.event_origin;
-        let timestamp = ctx.timestamp;
 
         if let Err(err) = module.on_event(
             &mut ctx,
