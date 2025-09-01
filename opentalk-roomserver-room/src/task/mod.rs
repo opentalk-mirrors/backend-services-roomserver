@@ -105,7 +105,7 @@ use super::{
     signaling::module_initializer::{ModuleRegistry, Modules},
 };
 use crate::{
-    message_router::{MessageEnvelope, MessageRouter, SignalingMessage},
+    message_router::{MessageEnvelope, MessageRouter, ScopedRouter, SignalingMessage},
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
@@ -949,6 +949,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         hasher.finalize_xof().fill(&mut uuid_bytes);
 
         DeviceId::from(Uuid::from_bytes(uuid_bytes))
+    }
+
+    fn message_router_for_participant(
+        &mut self,
+        participant_id: ParticipantId,
+    ) -> &mut ScopedRouter {
+        if self.waiting_participants.contains_key(&participant_id) {
+            &mut self.message_router.waiting_room
+        } else {
+            &mut self.message_router.conference
+        }
     }
 }
 
