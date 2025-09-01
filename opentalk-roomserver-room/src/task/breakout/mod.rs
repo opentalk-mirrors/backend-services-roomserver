@@ -53,16 +53,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 "failed to get participant state for participant `{}`",
                 participant_origin.id
             );
-
-            // This scenario should never occur because we never delete known participants. We still
-            // attempt to send an error to the non-existent connection in a best-effort
-            // approach.
-            self.message_router.conference.send_error(
-                participant_origin.connection_id,
-                command.transaction_id,
-                SignalingError::Internal,
-            );
-
             return;
         };
 
