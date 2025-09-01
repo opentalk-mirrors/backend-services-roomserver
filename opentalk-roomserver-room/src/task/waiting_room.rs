@@ -8,16 +8,15 @@ use std::{
 
 use chrono::Utc;
 use opentalk_roomserver_signaling::{
-    event_origin::{EventOrigin, ParticipantOrigin},
-    waiting_participant::WaitingParticipant,
+    event_origin::EventOrigin, waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
     connection_id::ConnectionId,
-    core::{CORE_MODULE_ID, CoreError, CoreEvent, LeftWaitingRoom},
+    core::{CORE_MODULE_ID, CoreEvent, LeftWaitingRoom},
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
-    signaling::module_error::{FatalError, SignalingModuleError},
+    signaling::module_error::FatalError,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_signaling::ParticipantId;
@@ -26,7 +25,7 @@ use crate::task::RoomTask;
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     #[tracing::instrument(level = "debug", skip(self))]
-    pub(super) async fn disconnect_waiting_participant(
+    pub(super) fn disconnect_waiting_participant(
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
@@ -47,26 +46,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let moderator_ids = self.participants.connected().moderators().connection_ids();
 
-        let res = self
-            .message_router
-            .conference
-            .serialize_and_send(
-                moderator_ids,
-                CORE_MODULE_ID,
-                None,
-                CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
-                    id: participant_id,
-                    connection_id,
-                }),
-            )
-            .await;
+        let res = self.message_router.conference.serialize_and_send(
+            moderator_ids,
+            CORE_MODULE_ID,
+            None,
+            CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
+                id: participant_id,
+                connection_id,
+            }),
+        );
         if let Err(e) = res {
             tracing::warn!("Failed to send disconnect message to moderator: {e:?}");
         }
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn join_waiting_room(
+    pub fn join_waiting_room(
         &mut self,
         connection_id: ConnectionId,
         participant_id: ParticipantId,
@@ -94,85 +89,31 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         }
 
-        self.message_router
-            .waiting_room
-            .serialize_and_send(
-                [connection_id],
-                CORE_MODULE_ID,
-                None,
-                CoreEvent::InWaitingRoom {
-                    connection_id,
-                    participant_id,
-                },
-            )
-            .await?;
+        self.message_router.waiting_room.serialize_and_send(
+            [connection_id],
+            CORE_MODULE_ID,
+            None,
+            CoreEvent::InWaitingRoom {
+                connection_id,
+                participant_id,
+            },
+        )?;
 
         let moderator_ids = self.participants.connected().moderators().connection_ids();
 
-        self.message_router
-            .conference
-            .serialize_and_send(
-                moderator_ids,
-                CORE_MODULE_ID,
-                None,
-                CoreEvent::JoinedWaitingRoom { id: participant_id },
-            )
-            .await?;
+        self.message_router.conference.serialize_and_send(
+            moderator_ids,
+            CORE_MODULE_ID,
+            None,
+            CoreEvent::JoinedWaitingRoom { id: participant_id },
+        )?;
 
         tracing::debug!("Participant entered waiting room");
         Ok(())
     }
 
-    pub async fn enter_room(
-        &mut self,
-        participant_origin: ParticipantOrigin,
-    ) -> Result<(), SignalingModuleError<CoreError>> {
-        let Entry::Occupied(participant) = self.waiting_participants.entry(participant_origin.id)
-        else {
-            tracing::debug!("Failed to enter room: participant not known");
-            return Err(CoreError::UnknownParticipant.into());
-        };
-
-        if !participant.get().accepted {
-            tracing::debug!("Failed to enter room: participant not yet accepted");
-            return Err(CoreError::NotAccepted.into());
-        }
-        let participant = participant.remove();
-
-        let moderator_ids = self.participants.connected().moderators().connection_ids();
-
-        self.message_router
-            .conference
-            .serialize_and_send(
-                moderator_ids,
-                CORE_MODULE_ID,
-                None,
-                CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
-                    id: participant_origin.id,
-                    connection_id: participant_origin.connection_id,
-                }),
-            )
-            .await?;
-
-        self.message_router
-            .upgrade_connections(participant.connections.keys());
-
-        for (&connection_id, &device_id) in &participant.connections {
-            self.join_room(
-                participant_origin.id,
-                connection_id,
-                device_id,
-                participant.kind.clone(),
-                participant.role,
-            )
-            .await;
-        }
-
-        Ok(())
-    }
-
     #[tracing::instrument(skip(self), level = "debug")]
-    pub async fn move_to_waiting_room(&mut self, participant_id: ParticipantId) {
+    pub fn move_to_waiting_room(&mut self, participant_id: ParticipantId) {
         let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
             tracing::error!("Failed to move unknown participant {participant_id} to waiting room");
             return;
@@ -203,8 +144,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 *connection_id,
                 room,
                 DisconnectReason::SentToWaitingRoom,
-            )
-            .await;
+            );
         }
     }
 }

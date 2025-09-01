@@ -30,9 +30,6 @@ use super::message::{CloseReason, MessageEnvelope, SignalingMessage};
 /// within this period, the connection will be forcefully terminated.
 const CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// Timeout for sending messages to the participant.
-const SEND_TIMEOUT: Duration = Duration::from_secs(1);
-
 /// The buffer size for events sent to the participant.
 const EVENT_BUFFER_SIZE: usize = 32;
 
@@ -41,6 +38,8 @@ const EVENT_BUFFER_SIZE: usize = 32;
 /// Dropping this handle will close the connection to the participant.
 #[derive(Debug, Clone)]
 pub(crate) struct ConnectionHandle {
+    /// The [`ParticipantId`] to which this connection belongs to.
+    participant_id: ParticipantId,
     /// Event channel to the [`ParticipantConnectionTask`].
     connection_task_event_sender: mpsc::Sender<SharedRawJson>,
 }
@@ -55,12 +54,19 @@ impl ConnectionHandle {
     ///
     /// Sending an event will fail after 1 second. If the participant is
     /// congested, the event is dropped.
-    pub async fn send_event(&self, event: SharedRawJson) -> anyhow::Result<()> {
+    pub fn send_event(
+        &self,
+        event: SharedRawJson,
+    ) -> Result<(), mpsc::error::TrySendError<SharedRawJson>> {
         self.connection_task_event_sender
-            .send_timeout(event, SEND_TIMEOUT)
-            .await?;
+            .try_send(event)
+            .inspect_err(|_| {
+                tracing::debug!("Failed to send event to ConnectionTask, channel full");
+            })
+    }
 
-        Ok(())
+    pub(crate) fn participant_id(&self) -> ParticipantId {
+        self.participant_id
     }
 }
 
@@ -127,6 +133,7 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
     );
 
     ConnectionHandle {
+        participant_id,
         connection_task_event_sender: event_sender,
     }
 }

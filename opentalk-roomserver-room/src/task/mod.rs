@@ -79,12 +79,12 @@ use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, ClientParameters, Role},
     connection_id::ConnectionId,
-    core::{CORE_MODULE_ID, CoreCommand, CoreEvent},
+    core::CORE_MODULE_ID,
     device_id::DeviceId,
     error::SignalingError,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
-    signaling::{SignalingCommand, module_error::SignalingModuleError},
+    signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{rooms::RoomId, roomserver::DeviceSecret, time::Timestamp};
@@ -93,7 +93,6 @@ use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
 };
-use tracing::Instrument;
 use uuid::Uuid;
 
 use super::{
@@ -274,22 +273,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         return Ok(());
                     };
 
-                    self.handle_api_request(msg).await?;
+                    self.handle_api_request(msg)?;
                 },
                 msg = self.message_router.recv() => {
                     tracing::trace!("received {msg:?}");
-                    self.handle_message(msg).await;
+                    self.handle_message(msg);
 
                 }
                 Some(msg) = self.loopback_futures.next() => {
-                    self.handle_loopback(msg).await;
+                    self.handle_loopback(msg);
                 },
                 () = self.idle_timeout.has_timed_out() => {
                     tracing::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
                     return Ok(());
                 }
                 () = Self::check_breakout_timeout(&mut self.breakout_config) => {
-                    self.breakout_expired().await;
+                    self.breakout_expired();
                 }
                 result = self.app_state.changed() => {
                     if result.is_err() || self.app_state.borrow().is_shutting_down() {
@@ -299,11 +298,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
                 }
             };
+            for (connection_id, participant_id) in self.message_router.disconnected() {
+                self.disconnect_participant(
+                    EventOrigin::Internal,
+                    participant_id,
+                    connection_id,
+                    CloseReason::ConnectionLost,
+                );
+            }
         }
     }
 
     #[tracing::instrument(skip_all, parent = &msg.span, fields(opentalk.room_id = %self.info.room_id))]
-    async fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> anyhow::Result<()> {
+    fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> anyhow::Result<()> {
         let api_response = match msg.request {
             Request::RefreshIdleTimeout => {
                 self.refresh_idle_timeout();
@@ -317,7 +324,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 socket,
                 client_parameters,
             } => {
-                self.ws_join(socket, client_parameters).await;
+                self.ws_join(socket, client_parameters);
                 Ok(())
             }
         };
@@ -327,17 +334,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         Ok(())
     }
 
-    async fn handle_loopback(&mut self, msg: Option<LoopbackMessage>) {
+    fn handle_loopback(&mut self, msg: Option<LoopbackMessage>) {
         let Some(msg) = msg else {
             tracing::error!("Signaling module channel was dropped");
             return;
         };
 
         let span = msg.span.clone();
-        self.handle_loopback_message(msg).instrument(span).await;
+        let _enter = span.enter();
+        self.handle_loopback_message(msg);
     }
 
-    async fn handle_loopback_message(&mut self, msg: LoopbackMessage) {
+    fn handle_loopback_message(&mut self, msg: LoopbackMessage) {
         let Some(module) = self.modules.get_mut(&msg.namespace) else {
             tracing::error!(
                 "Received loopback event for unknown module {}",
@@ -365,15 +373,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let timestamp = ctx.timestamp;
 
         if let Err(err) = module.on_event(&mut ctx, DynEvent::LoopbackEvent(msg.value)) {
-            self.handle_fatal_module_error(msg.namespace, transaction_id, err)
-                .await;
+            self.handle_fatal_module_error(msg.namespace, transaction_id, err);
         }
 
-        self.handle_module_messages(messages, room, origin, timestamp)
-            .await;
+        self.handle_module_messages(messages, room, origin, timestamp);
     }
 
-    async fn handle_module_messages(
+    fn handle_module_messages(
         &mut self,
         messages: RefCell<Vec<ModuleMessage>>,
         room_kind: RoomKind,
@@ -388,35 +394,31 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 } => {
                     self.message_router
                         .conference
-                        .send_event([connection_id], message)
-                        .await;
+                        .send_event([connection_id], message);
                 }
                 ModuleMessage::WaitingRoomWebsocket {
                     connection_id,
                     message,
-                } => {
-                    self.message_router
-                        .waiting_room
-                        .send_event([connection_id], message)
-                        .await
-                }
+                } => self
+                    .message_router
+                    .waiting_room
+                    .send_event([connection_id], message),
                 ModuleMessage::InternalCommand(inter_module_message) => {
                     self.handle_internal_command(
                         inter_module_message,
                         room_kind,
                         origin,
                         timestamp,
-                    )
-                    .await;
+                    );
                 }
                 ModuleMessage::Instruction(instruction) => {
-                    self.handle_instruction(origin, instruction).await;
+                    self.handle_instruction(origin, instruction);
                 }
             }
         }
     }
 
-    async fn handle_internal_command(
+    fn handle_internal_command(
         &mut self,
         command: InterModuleMessage,
         room: RoomKind,
@@ -458,27 +460,23 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 command: command.command,
             },
         ) {
-            self.handle_fatal_module_error(command.receiver, origin.transaction_id(), err)
-                .await;
+            self.handle_fatal_module_error(command.receiver, origin.transaction_id(), err);
         }
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn handle_instruction(&mut self, origin: EventOrigin, instruction: Instruction) {
+    fn handle_instruction(&mut self, origin: EventOrigin, instruction: Instruction) {
         match instruction {
             Instruction::Kick { participants } => {
-                // This needs boxing because disconnecting a participant invokes a
-                // broadcast event. This can lead to recursion because modules can
-                // invoke core commands from broadcast events.
-                Box::pin(self.kick_participants(origin, participants)).await;
+                self.kick_participants(origin, participants);
             }
             Instruction::MoveToWaitingRoom { participant } => {
-                Box::pin(self.move_to_waiting_room(participant)).await;
+                self.move_to_waiting_room(participant);
             }
         };
     }
 
-    async fn kick_participants(&mut self, origin: EventOrigin, participants: Vec<ParticipantId>) {
+    fn kick_participants(&mut self, origin: EventOrigin, participants: Vec<ParticipantId>) {
         for participant_id in participants {
             let Some(state) = self.participants.all_unfiltered.get(&participant_id) else {
                 tracing::error!(
@@ -493,8 +491,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     participant_id,
                     connection_id,
                     CloseReason::Kicked,
-                )
-                .await;
+                );
             }
         }
     }
@@ -511,13 +508,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(level = "info", skip_all)]
-    async fn ws_join(&mut self, socket: Socket, client_parameters: ClientParameters) {
-        self.connect_participant(socket, client_parameters).await;
+    fn ws_join(&mut self, socket: Socket, client_parameters: ClientParameters) {
+        self.connect_participant(socket, client_parameters);
         self.idle_timeout.stop();
     }
 
     #[tracing::instrument(level = "info", skip_all, parent = &span, fields(participant_id = %participant_id))]
-    async fn handle_message(
+    fn handle_message(
         &mut self,
         MessageEnvelope {
             participant_id,
@@ -540,18 +537,16 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     participant_id,
                     connection_id,
                     close_reason,
-                )
-                .await;
+                );
             }
 
             SignalingMessage::Command(signaling_command) => {
-                self.handle_command(signaling_command, participant_id, connection_id)
-                    .await;
+                self.handle_command(signaling_command, participant_id, connection_id);
             }
         }
     }
 
-    async fn handle_command(
+    fn handle_command(
         &mut self,
         signaling_command: SignalingCommand,
         participant_id: ParticipantId,
@@ -567,12 +562,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         match &signaling_command.namespace {
             m if *m == CORE_MODULE_ID => {
-                self.handle_core_command(participant_origin, signaling_command)
-                    .await;
+                self.handle_core_command(participant_origin, signaling_command);
             }
             m if *m == BREAKOUT_MODULE_ID => {
-                self.handle_breakout_command(participant_origin, signaling_command)
-                    .await;
+                self.handle_breakout_command(participant_origin, signaling_command);
             }
             _ => {
                 self.execute_signaling_module_command(
@@ -580,95 +573,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     participant_id,
                     connection_id,
                     participant_origin,
-                )
-                .await;
+                );
             }
         }
     }
 
-    async fn handle_core_command(
-        &mut self,
-        participant_origin: ParticipantOrigin,
-        command: SignalingCommand,
-    ) {
-        let core_command: CoreCommand = match serde_json::from_str(command.payload.get()) {
-            Ok(command) => command,
-            Err(err) => {
-                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
-                self.message_router
-                    .conference
-                    .send_error(
-                        participant_origin.connection_id,
-                        participant_origin.transaction_id,
-                        SignalingError::InvalidJson {
-                            message: format!("{err:?}"),
-                        },
-                    )
-                    .await;
-                return;
-            }
-        };
-
-        let result = match core_command {
-            CoreCommand::EnterRoom => self.enter_room(participant_origin).await,
-        };
-
-        if let Err(e) = result {
-            match e {
-                SignalingModuleError::Internal(err) => {
-                    tracing::error!("internal error in core module: {err:?}");
-
-                    self.message_router
-                        .conference
-                        .send_error(
-                            participant_origin.connection_id,
-                            command.transaction_id,
-                            SignalingError::Internal,
-                        )
-                        .await;
-                }
-                SignalingModuleError::Fatal(err) => {
-                    tracing::error!("fatal error in core module: {err:?}");
-
-                    self.message_router
-                        .conference
-                        .send_error(
-                            participant_origin.connection_id,
-                            command.transaction_id,
-                            SignalingError::Internal,
-                        )
-                        .await;
-                }
-                SignalingModuleError::Module(module_error) => {
-                    let result = self
-                        .message_router
-                        .conference
-                        .serialize_and_send(
-                            [participant_origin.connection_id],
-                            CORE_MODULE_ID,
-                            command.transaction_id,
-                            CoreEvent::Error(module_error),
-                        )
-                        .await;
-
-                    if let Err(fatal_error) = result {
-                        tracing::error!("failed to send error in core module: {fatal_error:?}");
-
-                        self.message_router
-                            .conference
-                            .send_error(
-                                participant_origin.connection_id,
-                                command.transaction_id,
-                                SignalingError::Internal,
-                            )
-                            .await;
-                    }
-                }
-            };
-        }
-    }
-
-    async fn execute_signaling_module_command(
+    fn execute_signaling_module_command(
         &mut self,
         signaling_command: SignalingCommand,
         participant_id: ParticipantId,
@@ -684,14 +594,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
             // This scenario should never occur because we never delete known participants. We still attempt to
             // send an error to the non-existent connection in a best-effort approach.
-            self.message_router
-                .conference
-                .send_error(
-                    participant_origin.connection_id,
-                    signaling_command.transaction_id,
-                    SignalingError::Internal,
-                )
-                .await;
+            self.message_router.conference.send_error(
+                participant_origin.connection_id,
+                signaling_command.transaction_id,
+                SignalingError::Internal,
+            );
 
             return;
         };
@@ -702,8 +609,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 connection_id,
                 signaling_command.transaction_id,
                 signaling_command.namespace.to_string(),
-            )
-            .await;
+            );
 
             return;
         };
@@ -740,15 +646,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 signaling_command.namespace,
                 signaling_command.transaction_id,
                 err,
-            )
-            .await;
+            );
         }
 
-        self.handle_module_messages(messages, room, origin, timestamp)
-            .await;
+        self.handle_module_messages(messages, room, origin, timestamp);
     }
 
-    async fn connect_participant(&mut self, socket: Socket, client_parameters: ClientParameters) {
+    fn connect_participant(&mut self, socket: Socket, client_parameters: ClientParameters) {
         let device_id = self.derive_device_id(&client_parameters.device_secret);
         let participant_id = build_participant_id(&client_parameters.kind, device_id);
         let role = client_parameters.role;
@@ -786,14 +690,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         if join_waiting_room {
-            if let Err(err) = self
-                .join_waiting_room(connection_id, participant_id, device_id, client_parameters)
-                .await
+            if let Err(err) =
+                self.join_waiting_room(connection_id, participant_id, device_id, client_parameters)
             {
                 tracing::error!("failed to add participant to waiting room {err:#?}");
 
-                self.disconnect_waiting_participant(participant_id, connection_id)
-                    .await;
+                self.disconnect_waiting_participant(participant_id, connection_id);
             }
         } else {
             self.join_room(
@@ -802,12 +704,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 device_id,
                 client_parameters.kind,
                 client_parameters.role,
-            )
-            .await;
+            );
         }
     }
 
-    async fn join_room(
+    fn join_room(
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
@@ -838,9 +739,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
-        if let Err(err) = self
-            .participant_joined(participant_id, connection_id, device_id, client_kind, role)
-            .await
+        if let Err(err) =
+            self.participant_joined(participant_id, connection_id, device_id, client_kind, role)
         {
             tracing::error!("failed to add participant to conference {err:#?}");
 
@@ -849,14 +749,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 participant_id,
                 connection_id,
                 CloseReason::InternalError,
-            )
-            .await;
+            );
         }
     }
 
     /// This method either disconnects a waiting room participant or a participant that already joined the room.
     /// For that it either calls [`Self::disconnect_participant`] or [`Self::disconnect_waiting_participant`].
-    async fn handle_disconnect(
+    fn handle_disconnect(
         &mut self,
         origin: EventOrigin,
         participant_id: ParticipantId,
@@ -864,15 +763,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         reason: CloseReason,
     ) {
         if self.waiting_participants.contains_key(&participant_id) {
-            self.disconnect_waiting_participant(participant_id, connection_id)
-                .await;
+            self.disconnect_waiting_participant(participant_id, connection_id);
         } else {
-            self.disconnect_participant(origin, participant_id, connection_id, reason)
-                .await;
+            self.disconnect_participant(origin, participant_id, connection_id, reason);
         }
     }
 
-    async fn disconnect_participant(
+    fn disconnect_participant(
         &mut self,
         origin: EventOrigin,
         participant_id: ParticipantId,
@@ -902,8 +799,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .remove_connection(connection_id);
 
         let room = state.room;
-        self.participant_disconnected(origin, participant_id, connection_id, room, reason.into())
-            .await;
+        self.participant_disconnected(origin, participant_id, connection_id, room, reason.into());
 
         // start idle timeout when no one is connected
         if !self
@@ -916,7 +812,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    async fn handle_unknown_namespace(
+    fn handle_unknown_namespace(
         &mut self,
         origin: ConnectionId,
         transaction_id: Option<u64>,
@@ -933,8 +829,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.message_router
             .conference
-            .send_error(origin, transaction_id, signaling_error)
-            .await;
+            .send_error(origin, transaction_id, signaling_error);
     }
 
     /// Generate a [`DeviceId`] from a device secret

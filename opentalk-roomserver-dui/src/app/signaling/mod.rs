@@ -23,6 +23,7 @@ use crate::{
             filtered_vec::FilteredVec,
             livekit::LiveKitPlugin,
             plugin::{Received, SignalingPlugin},
+            spam_amount::SpamAmountPlugin,
             timer::TimerPlugin,
         },
         style::{delete_btn, delete_mode_btn},
@@ -35,6 +36,7 @@ mod breakout;
 pub mod filtered_vec;
 mod livekit;
 mod plugin;
+pub mod spam_amount;
 mod timer;
 
 #[derive(Debug)]
@@ -67,6 +69,8 @@ pub struct SignalingView {
 
     delete_mode: bool,
 
+    receive_suspended: bool,
+
     plugins: Vec<(bool, Box<dyn SignalingPlugin>)>,
 }
 
@@ -80,10 +84,12 @@ impl SignalingView {
             show_history_panel: true,
             force_focus: true,
             delete_mode: false,
+            receive_suspended: false,
             plugins: vec![
                 (false, Box::new(LiveKitPlugin::new(runtime, ctx, settings))),
                 (false, Box::new(BreakoutPlugin::new())),
                 (false, Box::new(TimerPlugin::new())),
+                (false, Box::new(SpamAmountPlugin::new())),
             ],
         }
     }
@@ -127,8 +133,27 @@ impl SignalingView {
                 self.show_plain_messages = !self.show_plain_messages;
             }
 
+            let btn_receive_toggle_txt = if self.receive_suspended {
+                "Resume receive"
+            } else {
+                "Suspend receive"
+            };
+            let btn_receive_toggle = egui::Button::new(btn_receive_toggle_txt);
+            if ui.add(btn_receive_toggle).clicked() {
+                self.receive_suspended = !self.receive_suspended;
+                if self.receive_suspended {
+                    command_tx.send(RunnerCommand::SuspendReceive)?;
+                } else {
+                    command_tx.send(RunnerCommand::ResumeReceive)?;
+                }
+            }
+
             delete_mode_btn(ui, &mut self.delete_mode);
-        });
+
+            Ok::<(), RunnerGoneError>(())
+        })
+        .inner
+        .transpose()?;
 
         match signaling_state {
             SignalingState::Connected => {

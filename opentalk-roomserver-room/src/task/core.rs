@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{cell::RefCell, collections::BTreeMap, sync::Arc};
+use std::{
+    cell::RefCell,
+    collections::{BTreeMap, hash_map::Entry},
+    sync::Arc,
+};
 
 use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
@@ -12,7 +16,7 @@ use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, Role as RoomserverClientRole},
     connection_id::ConnectionId,
-    core::{CORE_MODULE_ID, CoreEvent},
+    core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, LeftWaitingRoom},
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     error::SignalingError,
@@ -23,7 +27,10 @@ use opentalk_roomserver_types::{
     room_info::RoomInfo,
     room_kind::RoomKind,
     shared_json::SharedJson,
-    signaling::module_error::FatalError,
+    signaling::{
+        SignalingCommand,
+        module_error::{FatalError, SignalingModuleError},
+    },
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{events::MeetingDetails, modules::ModuleId, time::Timestamp};
@@ -33,6 +40,116 @@ use super::RoomTask;
 use crate::signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext};
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
+    pub(crate) fn handle_core_command(
+        &mut self,
+        participant_origin: ParticipantOrigin,
+        command: SignalingCommand,
+    ) {
+        let core_command: CoreCommand = match serde_json::from_str(command.payload.get()) {
+            Ok(command) => command,
+            Err(err) => {
+                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                self.message_router.conference.send_error(
+                    participant_origin.connection_id,
+                    participant_origin.transaction_id,
+                    SignalingError::InvalidJson {
+                        message: format!("{err:?}"),
+                    },
+                );
+                return;
+            }
+        };
+
+        let result = match core_command {
+            CoreCommand::EnterRoom => self.enter_room(participant_origin),
+        };
+
+        if let Err(e) = result {
+            match e {
+                SignalingModuleError::Internal(err) => {
+                    tracing::error!("internal error in core module: {err:?}");
+
+                    self.message_router.conference.send_error(
+                        participant_origin.connection_id,
+                        command.transaction_id,
+                        SignalingError::Internal,
+                    );
+                }
+                SignalingModuleError::Fatal(err) => {
+                    tracing::error!("fatal error in core module: {err:?}");
+
+                    self.message_router.conference.send_error(
+                        participant_origin.connection_id,
+                        command.transaction_id,
+                        SignalingError::Internal,
+                    );
+                }
+                SignalingModuleError::Module(module_error) => {
+                    let result = self.message_router.conference.serialize_and_send(
+                        [participant_origin.connection_id],
+                        CORE_MODULE_ID,
+                        command.transaction_id,
+                        CoreEvent::Error(module_error),
+                    );
+
+                    if let Err(fatal_error) = result {
+                        tracing::error!("failed to send error in core module: {fatal_error:?}");
+
+                        self.message_router.conference.send_error(
+                            participant_origin.connection_id,
+                            command.transaction_id,
+                            SignalingError::Internal,
+                        );
+                    }
+                }
+            };
+        }
+    }
+
+    fn enter_room(
+        &mut self,
+        participant_origin: ParticipantOrigin,
+    ) -> Result<(), SignalingModuleError<CoreError>> {
+        let Entry::Occupied(participant) = self.waiting_participants.entry(participant_origin.id)
+        else {
+            tracing::debug!("Failed to enter room: participant not known");
+            return Err(CoreError::UnknownParticipant.into());
+        };
+
+        if !participant.get().accepted {
+            tracing::debug!("Failed to enter room: participant not yet accepted");
+            return Err(CoreError::NotAccepted.into());
+        }
+        let participant = participant.remove();
+
+        let moderator_ids = self.participants.connected().moderators().connection_ids();
+
+        self.message_router.conference.serialize_and_send(
+            moderator_ids,
+            CORE_MODULE_ID,
+            None,
+            CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
+                id: participant_origin.id,
+                connection_id: participant_origin.connection_id,
+            }),
+        )?;
+
+        self.message_router
+            .upgrade_connections(participant.connections.keys());
+
+        for (&connection_id, &device_id) in &participant.connections {
+            self.join_room(
+                participant_origin.id,
+                connection_id,
+                device_id,
+                participant.kind.clone(),
+                participant.role,
+            );
+        }
+
+        Ok(())
+    }
+
     /// A participant connected to the conference
     ///
     /// Sends the [`CoreEvent::JoinSuccess`] to the connection of the participant that joins.
@@ -40,7 +157,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ///
     /// NOTE: In case the joining participant is already connected with another device, they will
     /// also receive the [`CoreEvent::ParticipantConnected`] messages on the device that is already connected.
-    pub(super) async fn participant_joined(
+    pub(super) fn participant_joined(
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
@@ -93,15 +210,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             peer_data.clone(),
         );
 
-        self.message_router
-            .conference
-            .serialize_and_send(
-                [connection_id],
-                CORE_MODULE_ID,
-                None,
-                CoreEvent::JoinSuccess(Box::new(join_success_msg)),
-            )
-            .await?;
+        self.message_router.conference.serialize_and_send(
+            [connection_id],
+            CORE_MODULE_ID,
+            None,
+            CoreEvent::JoinSuccess(Box::new(join_success_msg)),
+        )?;
 
         for (&peer_id, state) in self.participants.connected().iter() {
             let peer_join_info = peer_events.remove(&peer_id);
@@ -112,29 +226,26 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .copied()
                 .filter(|&c| c != connection_id);
 
-            self.message_router
-                .conference
-                .serialize_and_send(
-                    connections,
-                    CORE_MODULE_ID,
-                    None,
-                    CoreEvent::ParticipantConnected {
-                        participant_id,
-                        connection_id,
-                        peer_data: peer_join_info.unwrap_or_default(),
-                    },
-                )
-                .await?;
+            self.message_router.conference.serialize_and_send(
+                connections,
+                CORE_MODULE_ID,
+                None,
+                CoreEvent::ParticipantConnected {
+                    participant_id,
+                    connection_id,
+                    peer_data: peer_join_info.unwrap_or_default(),
+                },
+            )?;
         }
 
-        actions.handle_requested_messages(self).await;
+        actions.handle_requested_messages(self);
 
         Ok(())
     }
 
     /// Inform modules that the participant has left the conference and broadcast [`CoreEvent::ParticipantDisconnected`]
     /// to all participants
-    pub(super) async fn participant_disconnected(
+    pub(super) fn participant_disconnected(
         &mut self,
         origin: EventOrigin,
         participant_id: ParticipantId,
@@ -150,8 +261,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 connection_id,
             },
         )
-        .handle_requested_messages(self)
-        .await;
+        .handle_requested_messages(self);
 
         let content = CoreEvent::ParticipantDisconnected {
             participant_id,
@@ -162,7 +272,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .conference
             .serialize_and_broadcast(CORE_MODULE_ID, None, content)
-            .await
             .expect("CoreEvent::ParticipantDisconnected must be serializable");
     }
 
@@ -208,7 +317,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
     ///
     /// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
-    pub(crate) async fn handle_fatal_module_error(
+    pub(crate) fn handle_fatal_module_error(
         &mut self,
         namespace: ModuleId,
         transaction_id: Option<u64>,
@@ -229,13 +338,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         // Remove the module from the room state
         self.info.room.tariff.modules.remove(&namespace);
 
-        self.message_router
-            .conference
-            .broadcast_error(
-                transaction_id,
-                SignalingError::FatalModuleError { namespace },
-            )
-            .await;
+        self.message_router.conference.broadcast_error(
+            transaction_id,
+            SignalingError::FatalModuleError { namespace },
+        );
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -363,13 +469,11 @@ pub(crate) struct RequestedModuleActions {
 }
 
 impl RequestedModuleActions {
-    pub(crate) async fn handle_requested_messages(self, task: &mut RoomTask<impl SignalingSocket>) {
-        task.handle_module_messages(self.messages, self.room_kind, self.origin, self.timestamp)
-            .await;
+    pub(crate) fn handle_requested_messages(self, task: &mut RoomTask<impl SignalingSocket>) {
+        task.handle_module_messages(self.messages, self.room_kind, self.origin, self.timestamp);
 
         for (namespace, err) in self.errors {
-            task.handle_fatal_module_error(namespace, self.origin.transaction_id(), err)
-                .await;
+            task.handle_fatal_module_error(namespace, self.origin.transaction_id(), err);
         }
     }
 }
