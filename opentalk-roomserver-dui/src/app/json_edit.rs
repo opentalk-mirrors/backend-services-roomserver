@@ -24,6 +24,7 @@ pub(crate) fn json_editor(ui: &mut egui::Ui, text: &mut String) -> egui::Respons
             egui::TextEdit::multiline(text)
                 .font(egui::TextStyle::Monospace)
                 .min_size(ui.available_size())
+                .desired_width(ui.available_width())
                 .code_editor()
                 .lock_focus(true)
                 .layouter(&mut layouter)
