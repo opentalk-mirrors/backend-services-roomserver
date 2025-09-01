@@ -5801,6 +5801,7 @@ dependencies = [
  "opentalk-roomserver-room",
  "opentalk-roomserver-types-livekit",
  "testcontainers",
+ "tokio",
  "tracing",
 ]
 

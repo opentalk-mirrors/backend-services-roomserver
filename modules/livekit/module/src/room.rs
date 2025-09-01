@@ -23,7 +23,6 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_livekit::{
     Credentials, LiveKitError, LiveKitEvent, LiveKitSettings, LiveKitState,
     MicrophoneRestrictionError, MicrophoneRestrictionErrorKind, MicrophoneRestrictionState,
-    ParticipantsMuted,
 };
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
@@ -174,32 +173,6 @@ impl LiveKitSubroom {
             public_url: self.settings.public_url.clone(),
             service_url: None,
         })
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, ctx), fields(room = self.subroom_id))]
-    pub fn mute(
-        &self,
-        ctx: &mut ModuleContext<'_, LiveKitModule>,
-        sender: Option<ParticipantId>,
-        participants: BTreeSet<ParticipantId>,
-        return_channel: oneshot::Sender<ParticipantsMuted>,
-    ) -> Result<(), ChannelDroppedError> {
-        let mut connections = ctx.participants.connections();
-        connections.retain(|p, _| participants.contains(p));
-
-        let room = self.identifier().to_string();
-        let livekit_client: Arc<RoomClient> = Arc::clone(&self.livekit_client);
-
-        tracing::debug!("spawn background task to mute participants");
-        ctx.spawn_optional(async move {
-            let muted =
-                loopback::mute_participants(livekit_client, sender, connections, room).await;
-            if return_channel.send(muted).is_err() {
-                tracing::error!("Channel dropped when muting participants");
-            }
-            None
-        });
-        Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self), fields(room = self.subroom_id))]
@@ -437,5 +410,30 @@ fn build_subroom_id(room_id: RoomId, room_kind: RoomKind) -> String {
     match room_kind {
         RoomKind::Breakout(breakout_id) => format!("{room_id}:{breakout_id}"),
         RoomKind::Main => format!("{room_id}:main"),
+    }
+}
+
+/// Information about a participant's connection to a LiveKit room.
+pub struct LiveKitConnection {
+    pub participant_id: ParticipantId,
+    pub livekit_participant_id: String,
+    pub livekit_room: String,
+    pub livekit_client: Arc<RoomClient>,
+}
+
+impl LiveKitConnection {
+    pub fn new(
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+        room_id: RoomId,
+        room_kind: RoomKind,
+        livekit_client: Arc<RoomClient>,
+    ) -> LiveKitConnection {
+        Self {
+            participant_id,
+            livekit_participant_id: build_livekit_participant_id(participant_id, connection_id),
+            livekit_room: build_subroom_id(room_id, room_kind),
+            livekit_client,
+        }
     }
 }

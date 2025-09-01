@@ -153,7 +153,10 @@ impl SignalingModule for ModerationModule {
                 sender,
                 participants,
             }) => {
-                tracing::debug!("Participants muted");
+                tracing::debug!(
+                    "Following participants were muted by the {} module: {participants:?}",
+                    Self::NAMESPACE
+                );
                 let Some(sender) = sender else {
                     return Err(
                         anyhow!("Mute loopback returned without moderator information").into(),
