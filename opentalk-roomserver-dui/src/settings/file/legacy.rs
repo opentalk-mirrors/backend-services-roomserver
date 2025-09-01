@@ -9,7 +9,7 @@ use crate::{
     app::event_widget::EventWidgetLayout,
     settings::{
         DuiSettings, DuiTheme, LiveKitSettings, MessageHistory,
-        room::{default_client_parameters, default_room_parameters},
+        room::{alice_client_parameters, default_room_parameters},
     },
 };
 
@@ -84,8 +84,8 @@ impl Default for DuiSettingsLegacy {
             selected_room_parameters: 0,
 
             client_parameters: [(
-                "Default".to_string(),
-                serde_json::to_value(default_client_parameters()).expect("msg"),
+                "Alice-1".to_string(),
+                serde_json::to_value(alice_client_parameters(1)).expect("msg"),
             )]
             .to_vec(),
             selected_client_parameters: 0,

@@ -8,7 +8,6 @@ use opentalk_roomserver_types::{
 };
 use opentalk_types_common::{
     modules::ModuleId,
-    roomserver::DeviceSecret,
     tariffs::{TariffId, TariffModuleResource, TariffResource},
     time::TimeZone,
     users::{UserId, UserInfo},
@@ -18,14 +17,29 @@ use opentalk_types_signaling::ModuleData;
 
 pub fn alice_profile() -> PublicUserProfile {
     PublicUserProfile {
-        id: UserId::from_u128(0xf53bc453_64f3_471f_bc4b_a1adcc8a392d),
+        id: UserId::from_u128(0xa11ce),
         email: "alice@example.com".to_string(),
         user_info: UserInfo {
-            title: "".parse().expect("valid user title"),
+            title: "M.Sc.".parse().expect("Valid title"),
             firstname: "Alice".to_string(),
-            lastname: "Adams".to_string(),
-            display_name: "Alice Adams".parse().expect("valid display name"),
-            avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060".to_string(),
+            lastname: "Aal".to_string(),
+            display_name: "Alice the angry".parse().expect("Valid DisplayName"),
+            avatar_url: "https://example.com/avatar-of-alice".to_string(),
+        },
+        timezone: TimeZone::example_data(),
+    }
+}
+
+pub fn bob_profile() -> PublicUserProfile {
+    PublicUserProfile {
+        id: UserId::from_u128(0xb0b),
+        email: "bob@example.com".to_string(),
+        user_info: UserInfo {
+            title: "".parse().expect("Valid title"),
+            firstname: "Bob".to_string(),
+            lastname: "Barsch".to_string(),
+            display_name: "Bob the bold".parse().expect("Valid DisplayName"),
+            avatar_url: "https://example.com/avatar-of-bob".to_string(),
         },
         timezone: TimeZone::example_data(),
     }
@@ -59,12 +73,40 @@ pub fn default_room_parameters() -> RoomParameters {
     }
 }
 
-pub fn default_client_parameters() -> ClientParameters {
+pub fn alice_client_parameters(connection: usize) -> ClientParameters {
     ClientParameters {
-        device_secret: DeviceSecret::example_data(),
+        device_secret: format!("v3rys3cr3tD3v1ce5tr1ng-alice-{connection}")
+            .parse()
+            .expect("secret must be valid"),
         kind: ClientKind::Registered {
             profile: alice_profile(),
         },
         role: Role::Moderator,
+    }
+}
+
+pub fn bob_client_parameters(connection: usize) -> ClientParameters {
+    ClientParameters {
+        device_secret: format!("v3rys3cr3tD3v1ce5tr1ng-bob-{connection}")
+            .parse()
+            .expect("secret must be valid"),
+        kind: ClientKind::Registered {
+            profile: bob_profile(),
+        },
+        role: Role::User,
+    }
+}
+
+pub fn gustav_client_parameters(connection: usize) -> ClientParameters {
+    ClientParameters {
+        device_secret: format!("v3rys3cr3tD3v1ce5tr1ng-gustav-{connection}")
+            .parse()
+            .expect("secret must be valid"),
+        kind: ClientKind::Guest {
+            display_name: "Gustav"
+                .parse()
+                .expect("Gustav must be a valid DisplayName"),
+        },
+        role: Role::User,
     }
 }

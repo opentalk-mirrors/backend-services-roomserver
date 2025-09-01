@@ -14,7 +14,10 @@ use crate::{
     settings::{
         DuiTheme, LiveKitSettings, MessageHistory,
         file::legacy::DuiSettingsLegacy,
-        room::{default_client_parameters, default_room_parameters},
+        room::{
+            alice_client_parameters, bob_client_parameters, default_room_parameters,
+            gustav_client_parameters,
+        },
     },
 };
 
@@ -43,15 +46,39 @@ pub fn default() -> DuiSettings {
 
         room_parameters: [(
             "Default".to_string(),
-            serde_json::to_string(&default_room_parameters()).expect("msg"),
+            serde_json::to_string_pretty(&default_room_parameters())
+                .expect("ClientParameter must be serializable"),
         )]
         .to_vec(),
         selected_room_parameters: 0,
 
-        client_parameters: [(
-            "Default".to_string(),
-            serde_json::to_string(&default_client_parameters()).expect("msg"),
-        )]
+        client_parameters: [
+            (
+                "Alice-1".to_string(),
+                serde_json::to_string_pretty(&alice_client_parameters(1))
+                    .expect("ClientParameter must be serializable"),
+            ),
+            (
+                "Alice-2".to_string(),
+                serde_json::to_string_pretty(&alice_client_parameters(2))
+                    .expect("ClientParameter must be serializable"),
+            ),
+            (
+                "Bob-1".to_string(),
+                serde_json::to_string_pretty(&bob_client_parameters(1))
+                    .expect("ClientParameter must be serializable"),
+            ),
+            (
+                "Bob-2".to_string(),
+                serde_json::to_string_pretty(&bob_client_parameters(2))
+                    .expect("ClientParameter must be serializable"),
+            ),
+            (
+                "Gustav-1".to_string(),
+                serde_json::to_string_pretty(&gustav_client_parameters(1))
+                    .expect("ClientParameter must be serializable"),
+            ),
+        ]
         .to_vec(),
         selected_client_parameters: 0,
 
