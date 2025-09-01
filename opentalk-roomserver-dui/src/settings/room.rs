@@ -13,10 +13,12 @@ use opentalk_roomserver_client::api::{
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     public_user_profile::PublicUserProfile,
-    room_parameters::RoomParameters,
+    room_parameters::{EventContext, RoomParameters},
 };
 use opentalk_roomserver_types_timer::TIMER_MODULE_ID;
 use opentalk_types_common::{
+    events::EventId,
+    shared_folders::{SharedFolder, SharedFolderAccess},
     tariffs::{TariffId, TariffModuleResource, TariffResource},
     time::TimeZone,
     users::{UserId, UserInfo},
@@ -60,7 +62,26 @@ pub fn default_room_parameters() -> RoomParameters {
         password: None,
         waiting_room: false,
         call_in: None,
-        event: None,
+        event: Some(EventContext {
+            id: EventId::from_u128(0xbdc9186e_ccdd_468a_b83c_35bf62b43a13),
+            title: "Dui Test Event".parse().expect("valid title"),
+            description: "This is a test event started from the infamous DUI"
+                .parse()
+                .expect("valid description"),
+            is_adhoc: true,
+            starts_at: None,
+            ends_at: None,
+            shared_folder: Some(SharedFolder {
+                read: SharedFolderAccess {
+                    url: "https://example.com/shared-folder/dui-test-event/read-only".to_string(),
+                    password: "shared-folder/dui-test-event/read-only".to_string(),
+                },
+                read_write: Some(SharedFolderAccess {
+                    url: "https://example.com/shared-folder/dui-test-event/write".to_string(),
+                    password: "shared-folder/dui-test-event/write".to_string(),
+                }),
+            }),
+        }),
         invite_code: None,
         tariff: TariffResource {
             id: TariffId::from_u128(0x2da2b825_6db9_4dc4_b9e6_b4fd64e66a16),
