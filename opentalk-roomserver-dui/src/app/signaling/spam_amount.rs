@@ -90,6 +90,7 @@ impl SpamAmountPlugin {
                 self.running = false;
             } else if self.running {
                 self.message_count -= 1;
+                log::trace!("request repaint: message count decreased");
                 ui.ctx().request_repaint();
                 return Some(self.message.clone());
             }

@@ -195,7 +195,6 @@ impl LiveKitPlugin {
     }
 
     fn handle_opentalk_events(&mut self, received: &[Received]) {
-        log::trace!("received {} events", received.len());
         for msg in received {
             let Received::SignalingEvent(event) = msg else {
                 continue;

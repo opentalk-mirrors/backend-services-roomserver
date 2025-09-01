@@ -233,6 +233,7 @@ impl SignalingView {
         }
         if ctx.input_mut(|i| i.consume_shortcut(&FOCUS_MESSAGE_INPUT_SHORTCUT)) {
             self.force_focus = true;
+            log::trace!("request repaint: change focus to message input");
             ctx.request_repaint();
         }
 
@@ -423,6 +424,7 @@ impl SignalingView {
     fn clear_messages(&mut self, ctx: &egui::Context) {
         self.messages.clear();
         self.historic_message_state.take();
+        log::trace!("request repaint: clear messages");
         ctx.request_repaint();
     }
 

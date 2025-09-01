@@ -230,6 +230,7 @@ impl ConnectionConfigView {
             if settings.selected_room_id > index {
                 settings.selected_room_id = settings.selected_room_id.saturating_sub(1);
             }
+            log::trace!("request repaint: room_id deleted");
             ui.ctx().request_repaint();
         }
     }
