@@ -1,34 +1,34 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_types::{
-    breakout::{BREAKOUT_MODULE_ID, command::BreakoutCommand},
-    core::{CORE_MODULE_ID, CoreCommand},
-};
-use opentalk_roomserver_types_automod::{AUTOMOD_MODULE_ID, command::AutomodCommand};
-use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand};
-use opentalk_roomserver_types_echo::{ECHO_MODULE_ID, command::EchoCommand};
-use opentalk_roomserver_types_meeting_report::{
-    MEETING_REPORT_MODULE_ID, command::MeetingReportCommand,
-};
-use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, command::ModerationCommand};
-use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, command::PollsCommand};
-use opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, command::RaiseHandsCommand};
-use opentalk_roomserver_types_subroom_audio::{
-    SUBROOM_AUDIO_MODULE_ID, command::SubroomAudioCommand,
-};
-use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
 // reexport commands for easier usage
 pub use {
+    opentalk_roomserver_types::{
+        breakout::{BREAKOUT_MODULE_ID, command::BreakoutCommand},
+        core::{CORE_MODULE_ID, CoreCommand},
+    },
+    opentalk_roomserver_types_automod::{AUTOMOD_MODULE_ID, command::AutomodCommand},
+    opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand},
     opentalk_roomserver_types_e2ee::{E2EE_MODULE_ID, E2eeCommand},
+    opentalk_roomserver_types_echo::{ECHO_MODULE_ID, command::EchoCommand},
     opentalk_roomserver_types_livekit::{
         LIVEKIT_MODULE_ID, LiveKitCommand, MicrophoneRestrictionState,
     },
+    opentalk_roomserver_types_meeting_report::{
+        MEETING_REPORT_MODULE_ID, command::MeetingReportCommand,
+    },
+    opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, command::ModerationCommand},
+    opentalk_roomserver_types_polls::{POLLS_MODULE_ID, command::PollsCommand},
+    opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, command::RaiseHandsCommand},
     opentalk_roomserver_types_shared_folder::{
         SHARED_FOLDER_MODULE_ID, command::SharedFolderCommand,
     },
+    opentalk_roomserver_types_subroom_audio::{
+        SUBROOM_AUDIO_MODULE_ID, command::SubroomAudioCommand,
+    },
+    opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand},
 };
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -18,6 +18,7 @@ use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_meeting_report::MeetingReportModule;
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_module_polls::PollsModule;
+use opentalk_roomserver_module_raise_hands::RaiseHandsModule;
 use opentalk_roomserver_module_shared_folder::SharedFolderModule;
 use opentalk_roomserver_module_subroom_audio::SubroomAudioModule;
 use opentalk_roomserver_module_timer::TimerModule;
@@ -215,6 +216,7 @@ fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<SharedFolderModule>();
     module_registry.add_module::<SubroomAudioModule>();
     module_registry.add_module::<TimerModule>();
+    module_registry.add_module::<RaiseHandsModule>();
     module_registry
 }
 

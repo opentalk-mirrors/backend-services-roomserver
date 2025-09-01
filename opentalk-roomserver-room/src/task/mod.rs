@@ -212,9 +212,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 // Remove unknown modules from the room parameters
                 let mut params = (*room_parameters).clone();
                 for module_id in uninitialized {
-                    tracing::debug!(
-                        "Unable to initialize unknown module {module_id} for room {room_id}"
-                    );
+                    tracing::debug!("Unable to initialize module {module_id} for room {room_id}");
                     params.tariff.modules.remove(&module_id);
                 }
                 room_parameters = Arc::new(params);

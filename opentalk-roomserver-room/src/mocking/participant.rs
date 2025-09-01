@@ -386,7 +386,7 @@ impl<S> MockParticipant<S> {
             user_info: UserInfo {
                 title: "".parse().expect("Valid title"),
                 firstname: "Dave".to_string(),
-                lastname: "Dove".to_string(),
+                lastname: "Dorsch".to_string(),
                 display_name: "Dave the daring".parse().expect("Valid DisplayName"),
                 avatar_url: "https://example.com/avatar-of-dave".to_string(),
             },

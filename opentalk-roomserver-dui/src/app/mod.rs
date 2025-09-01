@@ -25,23 +25,26 @@ use tokio::{
 };
 
 use crate::{
+    app::about::AboutView,
     client::{RoomServerRunner, RunnerCommand, RunnerEvent, SignalingState},
     settings::DuiSettings,
 };
 
+mod about;
 mod connecting;
 mod connection_config;
+mod error;
 pub mod error_view;
 pub mod event_widget;
 pub mod json_edit;
 mod settings;
 pub mod shortcuts;
 mod signaling;
-
-mod error;
 pub mod style;
 
 pub struct RoomServerApp {
+    app_id: String,
+
     runtime: Runtime,
     settings: DuiSettings,
 
@@ -51,10 +54,15 @@ pub struct RoomServerApp {
 
     view: CentralAppView,
     settings_view: Option<SettingsView>,
+    about_view: Option<AboutView>,
 }
 
 impl RoomServerApp {
-    pub fn new(cc: &CreationContext, roomserver_config: Option<&Path>) -> anyhow::Result<Self> {
+    pub fn new(
+        cc: &CreationContext,
+        roomserver_config: Option<&Path>,
+        app_id: String,
+    ) -> anyhow::Result<Self> {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()?;
@@ -78,6 +86,8 @@ impl RoomServerApp {
         let view = CentralAppView::ConnectionConfig(Box::new(ConnectionConfigView::new(&settings)));
 
         Ok(Self {
+            app_id,
+
             runtime,
             settings,
 
@@ -87,6 +97,7 @@ impl RoomServerApp {
 
             view,
             settings_view,
+            about_view: None,
         })
     }
 
@@ -175,6 +186,15 @@ impl RoomServerApp {
                     }
                     _ => None,
                 };
+
+                ui.menu_button("Help", |ui| {
+                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+                    let about_btn = Button::new("About");
+                    if ui.add(about_btn).clicked() && self.about_view.is_none() {
+                        self.about_view = Some(AboutView::new(self.app_id.clone()));
+                    }
+                });
+
                 if let Some(request) = request {
                     self.transition_to_view(request, ctx);
                 }
@@ -261,6 +281,14 @@ impl eframe::App for RoomServerApp {
             });
             if modal.should_close() {
                 self.settings_view.take();
+            }
+        }
+        if let Some(view) = &mut self.about_view {
+            let modal = egui::Modal::new(egui::Id::new("About")).show(ctx, |ui| {
+                view.ui(ui);
+            });
+            if modal.should_close() {
+                self.about_view.take();
             }
         }
         if ctx.input_mut(|i| i.consume_shortcut(&EXIT_SHORTCUT)) {

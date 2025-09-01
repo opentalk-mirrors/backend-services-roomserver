@@ -5681,6 +5681,7 @@ dependencies = [
  "opentalk-roomserver-module-meeting-report",
  "opentalk-roomserver-module-moderation",
  "opentalk-roomserver-module-polls",
+ "opentalk-roomserver-module-raise-hands",
  "opentalk-roomserver-module-shared-folder",
  "opentalk-roomserver-module-subroom-audio",
  "opentalk-roomserver-module-timer",
