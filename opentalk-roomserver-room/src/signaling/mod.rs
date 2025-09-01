@@ -66,6 +66,11 @@ pub enum DynEvent {
         connection_id: ConnectionId,
         command: Box<RawValue>,
     },
+    WaitingRoomWebsocketMessage {
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+        command: Box<RawValue>,
+    },
     LoopbackEvent(Box<dyn Any + Send + 'static>),
     InternalCommand {
         sender: ModuleId,
@@ -157,6 +162,11 @@ where
                 connection_id,
                 command,
             } => self.handle_ws_event(ctx, sender, connection_id, &command),
+            DynEvent::WaitingRoomWebsocketMessage {
+                participant_id: sender,
+                connection_id,
+                command,
+            } => self.handle_waiting_room_ws_event(ctx, sender, connection_id, &command),
             DynEvent::LoopbackEvent(result) => self.handle_loopback_event(ctx, result),
             DynEvent::InternalCommand { sender, command } => {
                 self.handle_internal_command(ctx, sender, command)
@@ -327,6 +337,41 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(skip_all, fields(opentalk.command.sender = %sender, opentalk.module = %M::NAMESPACE))]
+    fn handle_waiting_room_ws_event(
+        &mut self,
+        ctx: &mut ModuleContext<'_, M>,
+        sender: ParticipantId,
+        connection_id: ConnectionId,
+        command: &RawValue,
+    ) -> Result<(), SignalingModuleError<M::Error>> {
+        let payload: <M as SignalingModule>::Incoming = match serde_json::from_str(command.get()) {
+            Ok(payload) => payload,
+            Err(err) => {
+                tracing::debug!(
+                    "failed to deserialize websocket message for namespace {}: {}",
+                    M::NAMESPACE,
+                    err
+                );
+
+                ctx.handle_error(SignalingError::InvalidJson {
+                    message: "failed to deserialize websocket message".into(),
+                });
+
+                return Ok(());
+            }
+        };
+
+        if let Some(replication_event) = payload.replicate() {
+            ctx.send_replica(sender, connection_id, replication_event)?;
+        }
+
+        self.module
+            .on_websocket_message_waiting_room(ctx, sender, connection_id, payload)?;
+
+        Ok(())
+    }
+
     /// Resolves a dynamic loopback message that was received by [`ModuleHandle::on_event`] to the
     /// concrete [`SignalingModule::Loopback`] type.
     #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
@@ -393,10 +438,11 @@ where
                         tracing::warn!(
                             "module '{}' returned a websocket error message but the event origin is internal: {msg:?} ",
                             M::NAMESPACE
-                        )
+                        );
                     }
                 }
             }
+            SignalingModuleError::NotSupported => ctx.handle_error(SignalingError::NotSupported),
         }
         Ok(())
     }

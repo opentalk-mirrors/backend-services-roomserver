@@ -108,6 +108,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         );
                     }
                 }
+                SignalingModuleError::NotSupported => {
+                    router.send_error(
+                        participant_origin.connection_id,
+                        command.transaction_id,
+                        SignalingError::NotSupported,
+                    );
+                }
             };
         }
     }

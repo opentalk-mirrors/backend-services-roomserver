@@ -131,6 +131,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         );
                     }
                 }
+                SignalingModuleError::NotSupported => {
+                    self.message_router.conference.send_error(
+                        participant_origin.connection_id,
+                        command.transaction_id,
+                        SignalingError::NotSupported,
+                    );
+                }
             };
         }
     }

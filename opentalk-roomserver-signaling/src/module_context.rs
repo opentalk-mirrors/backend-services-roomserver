@@ -39,6 +39,7 @@ use crate::{
     waiting_participant::WaitingParticipant,
 };
 
+#[derive(Debug)]
 pub enum ModuleMessage {
     Websocket {
         connection_id: ConnectionId,
@@ -363,23 +364,29 @@ where
             }
         };
 
-        let Some(state) = self.participants.connected().get(&participant_id) else {
+        let mut messages = self.messages.borrow_mut();
+        if let Some(state) = self.participants.connected().get(&participant_id) {
+            for connection_id in state.connections() {
+                messages.push(ModuleMessage::Websocket {
+                    connection_id,
+                    message: shared_json.clone(),
+                });
+            }
+        } else if let Some(waiting_participant) = self.waiting_participants.get(&participant_id) {
+            let connections = waiting_participant.connections.keys();
+            for &connection_id in connections {
+                messages.push(ModuleMessage::WaitingRoomWebsocket {
+                    connection_id,
+                    message: shared_json.clone(),
+                });
+            }
+        } else {
             tracing::error!(
                 "Module '{}' attempted to send a websocket error message to unknown participant {}",
                 M::NAMESPACE,
                 participant_id,
             );
-            return;
         };
-
-        let mut messages = self.messages.borrow_mut();
-
-        for (connection_id, ..) in &state.connections {
-            messages.push(ModuleMessage::Websocket {
-                connection_id: *connection_id,
-                message: shared_json.clone(),
-            });
-        }
     }
 
     /// Spawns a new task that completes the given `future` and sends the result

@@ -681,8 +681,28 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         connection_id: ConnectionId,
         participant_origin: ParticipantOrigin,
     ) {
-        let Some(participant_state) = self.participants.all_unfiltered.get(&participant_origin.id)
-        else {
+        let room;
+        let timestamp = Timestamp::now();
+        let mut messages = RefCell::new(Vec::new());
+        let origin = participant_origin.into();
+
+        let event = if self.waiting_participants.contains_key(&participant_id) {
+            room = RoomKind::Main;
+            DynEvent::WaitingRoomWebsocketMessage {
+                participant_id,
+                connection_id,
+                command: signaling_command.payload,
+            }
+        } else if let Some(participant_state) =
+            self.participants.all_unfiltered.get(&participant_id)
+        {
+            room = participant_state.room;
+            DynEvent::WebsocketMessage {
+                participant_id,
+                connection_id,
+                command: signaling_command.payload,
+            }
+        } else {
             tracing::error!(
                 "failed to get participant state for participant `{}`",
                 participant_origin.id
@@ -702,6 +722,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let Some(module) = self.modules.get_mut(&signaling_command.namespace) else {
             self.handle_unknown_namespace(
+                participant_id,
                 connection_id,
                 signaling_command.transaction_id,
                 signaling_command.namespace.to_string(),
@@ -710,10 +731,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
-        let room = participant_state.room;
-        let timestamp = Timestamp::now();
-        let mut messages = RefCell::new(Vec::new());
-        let origin = participant_origin.into();
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
             room,
@@ -727,15 +744,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut messages,
             &mut self.loopback_futures,
         );
-
-        if let Err(err) = module.on_event(
-            &mut ctx,
-            DynEvent::WebsocketMessage {
-                participant_id,
-                connection_id,
-                command: signaling_command.payload,
-            },
-        ) {
+        if let Err(err) = module.on_event(&mut ctx, event) {
             self.handle_fatal_module_error(
                 signaling_command.namespace,
                 signaling_command.transaction_id,
@@ -910,7 +919,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     fn handle_unknown_namespace(
         &mut self,
-        origin: ConnectionId,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
         transaction_id: Option<u64>,
         namespace: String,
     ) {
@@ -923,9 +933,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             invalid_namespace: namespace,
         };
 
-        self.message_router
-            .conference
-            .send_error(origin, transaction_id, signaling_error);
+        self.message_router_for_participant(participant_id)
+            .send_error(connection_id, transaction_id, signaling_error);
     }
 
     /// Generate a [`DeviceId`] from a device secret
