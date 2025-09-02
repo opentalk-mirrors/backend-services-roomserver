@@ -30,7 +30,7 @@ impl Timeout {
     /// Starts the timeout
     ///
     /// Does nothing if the timeout is already running
-    pub(super) fn _start(&mut self) {
+    pub(super) fn start(&mut self) {
         if self.timeout.is_none() {
             self.restart();
         }

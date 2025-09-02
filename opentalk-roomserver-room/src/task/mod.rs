@@ -89,7 +89,9 @@ use opentalk_roomserver_types::{
     signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::{rooms::RoomId, roomserver::DeviceSecret, time::Timestamp};
+use opentalk_types_common::{
+    rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType, time::Timestamp,
+};
 use opentalk_types_signaling::ParticipantId;
 use tokio::{
     sync::{mpsc, watch},
@@ -165,6 +167,9 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 
     /// Set of participants that are banned from the room
     banned_participants: HashMap<ParticipantId, BannedParticipant>,
+
+    /// Timeout for the room time limit quota
+    quota_timeout: Timeout,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -231,6 +236,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             let loopback_futures: FuturesUnordered<LoopbackFuture> = FuturesUnordered::new();
             loopback_futures.push(Box::pin(pending()));
 
+            let time_limit = room_info
+                .room
+                .tariff
+                .quota(&QuotaType::RoomTimeLimitSecs)
+                .unwrap_or(0);
+
             let room_task = RoomTask {
                 info: room_info,
                 api_rx: rx,
@@ -245,6 +256,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 storage,
                 waiting_participants: HashMap::new(),
                 banned_participants: HashMap::new(),
+                quota_timeout: Timeout::new(Duration::from_secs(time_limit)),
             };
 
             room_task.run().await;
@@ -304,6 +316,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         return Ok(())
                     }
 
+                }
+                () = self.quota_timeout.wait_for_completion() => {
+                    tracing::debug!("Room task {} reached its time limit, exiting", self.info.room_id);
+                    self.time_limit_quota_elapsed();
+                    return Ok(());
                 }
             };
             for (connection_id, participant_id) in self.message_router.disconnected() {
