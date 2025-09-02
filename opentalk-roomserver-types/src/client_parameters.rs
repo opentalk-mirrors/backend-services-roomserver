@@ -3,7 +3,7 @@
 
 use opentalk_types_common::{
     roomserver::DeviceSecret,
-    users::{DisplayName, UserId},
+    users::{DisplayName, UserId, UserInfo},
     utils::ExampleData,
 };
 use opentalk_types_signaling::ParticipationVisibility;
@@ -82,6 +82,15 @@ impl ClientKind {
         match self {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.user_info.avatar_url)
+            }
+            ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder => None,
+        }
+    }
+
+    pub fn user_info(&self) -> Option<&UserInfo> {
+        match self {
+            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
+                Some(&profile.user_info)
             }
             ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder => None,
         }

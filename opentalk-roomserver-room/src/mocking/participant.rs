@@ -427,6 +427,17 @@ impl<S> MockParticipant<S> {
         Ok(())
     }
 
+    pub fn frank(device_number: usize) -> MockParticipantBuilder<PublicUserProfile> {
+        let profile = frank_public_user_profile();
+
+        MockParticipantBuilder {
+            profile,
+            role: Role::Moderator,
+            secret: DeviceSecret::from_str(&format!("Frank Device Secret {device_number}"))
+                .expect("Valid device secret"),
+        }
+    }
+
     pub fn queue_send_ping(&self) {
         let mut sender = self.sender.clone();
         tokio::spawn(async move {
@@ -586,6 +597,21 @@ pub fn bob_public_user_profile() -> PublicUserProfile {
             lastname: "Barsch".to_string(),
             display_name: "Bob the bold".parse().expect("Valid DisplayName"),
             avatar_url: "https://example.com/avatar-of-bob".to_string(),
+        },
+        timezone: TimeZone::example_data(),
+    }
+}
+
+pub fn frank_public_user_profile() -> PublicUserProfile {
+    PublicUserProfile {
+        id: UserId::from_u128(0xf9a00),
+        email: "frank@example.com".to_string(),
+        user_info: UserInfo {
+            title: "".parse().expect("Valid title"),
+            firstname: "Frank".to_string(),
+            lastname: "Forelle".to_string(),
+            display_name: "Frank the fabulous".parse().expect("Valid DisplayName"),
+            avatar_url: "https://example.com/avatar-of-frank".to_string(),
         },
         timezone: TimeZone::example_data(),
     }

@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::event::{DebriefingStarted, DisplayNameChanged, ModerationError};
+use crate::event::{BannedParticipantInfo, DebriefingStarted, DisplayNameChanged, ModerationError};
 
 /// Events sent out by the `moderation` module
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -15,6 +15,15 @@ use crate::event::{DebriefingStarted, DisplayNameChanged, ModerationError};
 pub enum ModerationEvent {
     /// Sent to a participant when they are kicked from a meeting
     Kicked,
+
+    /// Sent to a participant when they are banned from a meeting
+    Banned,
+
+    /// Sent to all moderators when a participant gets banned
+    ParticipantBanned(BannedParticipantInfo),
+
+    /// Sent to all moderators when a participant is unbanned
+    ParticipantUnbanned { participant_id: ParticipantId },
 
     /// Sent out when debriefing of a session started
     DebriefingStarted(DebriefingStarted),

@@ -6,6 +6,7 @@
 //! Types required to develop signaling modules. Every module is required to
 //! implement the [`SignalingModule`](signaling_module::SignalingModule) trait.
 
+pub mod banned_participant;
 pub mod event_origin;
 pub mod instruction;
 /// The [`internal_module_message`] module is intended for internal use only

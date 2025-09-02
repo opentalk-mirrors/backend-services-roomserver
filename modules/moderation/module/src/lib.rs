@@ -9,6 +9,7 @@ use std::{
 use anyhow::anyhow;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_signaling::{
+    banned_participant::BannedParticipant,
     module_context::{ChannelDroppedError, ModuleContext},
     participant_state::ParticipantState,
     signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
@@ -23,8 +24,11 @@ use opentalk_roomserver_types_livekit::{
 };
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
-    command::{Accept, ChangeDisplayName, Kick, ModerationCommand, SendToWaitingRoom},
-    event::{DebriefingStarted, DisplayNameChanged, ModerationError, ModerationEvent},
+    command::{Accept, ChangeDisplayName, ModerationCommand, SendToWaitingRoom},
+    event::{
+        BannedParticipantInfo, DebriefingStarted, DisplayNameChanged, ModerationError,
+        ModerationEvent,
+    },
     state::{ModerationState, ModeratorJoinInfo, WaitingParticipantPeerData},
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
@@ -75,6 +79,11 @@ impl SignalingModule for ModerationModule {
                     .iter()
                     .map(WaitingParticipantPeerData::from)
                     .collect(),
+                banned_participants: ctx
+                    .banned_participants
+                    .iter()
+                    .map(BannedParticipantInfo::from)
+                    .collect(),
             };
             Some(info)
         } else {
@@ -106,7 +115,9 @@ impl SignalingModule for ModerationModule {
         content: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match content {
-            ModerationCommand::Kick(Kick { target }) => self.kick_participant(ctx, sender, target),
+            ModerationCommand::Kick { target } => self.kick_participant(ctx, sender, target),
+            ModerationCommand::Ban { target } => self.ban_participant(ctx, sender, target),
+            ModerationCommand::Unban { target } => self.unban_participant(ctx, sender, target),
             ModerationCommand::Debrief(kick_scope) => self.debrief(ctx, sender, kick_scope),
             ModerationCommand::EnableWaitingRoom => Ok(self.set_waiting_room_enabled(ctx, true)?),
             ModerationCommand::Accept(Accept { target }) => {
@@ -191,6 +202,108 @@ impl ModerationModule {
 
         ctx.send_ws_message([target], ModerationEvent::Kicked)?;
         ctx.kick_participants(Vec::from_iter([target]));
+
+        Ok(())
+    }
+
+    fn ban_participant(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        if sender == target {
+            return Err(ModerationError::CannotBanSelf.into());
+        }
+
+        if ctx.is_room_owner(target) {
+            return Err(ModerationError::CannotBanRoomOwner.into());
+        }
+
+        if ctx.banned_participants.contains_key(&target) {
+            return Err(ModerationError::AlreadyBanned.into());
+        }
+
+        let user_info = if let Some(waiting) = ctx.waiting_participants.get(&target) {
+            let user_info = waiting
+                .kind
+                .user_info()
+                .cloned()
+                .ok_or(ModerationError::CannotBanGuests)?;
+
+            ctx.send_ws_message_to_waiting_room([target], ModerationEvent::Banned)?;
+            ctx.ban_waiting_participant(target);
+            user_info
+        } else if let Some(target_state) = ctx.participants.all_unfiltered.get(&target) {
+            let user_info = target_state
+                .kind
+                .user_info()
+                .cloned()
+                .ok_or(ModerationError::CannotBanGuests)?;
+
+            if target_state.is_connected() {
+                ctx.send_ws_message([target], ModerationEvent::Banned)?;
+            }
+
+            ctx.ban_participant(target);
+            user_info
+        } else {
+            return Err(ModerationError::UnknownParticipant.into());
+        };
+
+        let banned_participant = BannedParticipant {
+            display_name: user_info.display_name,
+            avatar_url: user_info.avatar_url,
+            banned_by: sender,
+            banned_at: ctx.timestamp,
+        };
+
+        // Update ban list
+        ctx.banned_participants
+            .insert(target, banned_participant.clone());
+
+        let moderators = ctx
+            .participants
+            .moderators()
+            .ids()
+            .filter(|participant_id| participant_id != &target);
+
+        ctx.send_ws_message(
+            moderators,
+            ModerationEvent::ParticipantBanned(BannedParticipantInfo {
+                participant_id: target,
+                banned_participant,
+            }),
+        )?;
+
+        Ok(())
+    }
+
+    fn unban_participant(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        if ctx.banned_participants.remove(&target).is_some() {
+            let moderators = ctx.participants.moderators().connected().ids();
+            ctx.send_ws_message(
+                moderators,
+                ModerationEvent::ParticipantUnbanned {
+                    participant_id: target,
+                },
+            )?;
+        } else {
+            return Err(ModerationError::AlreadyUnbanned.into());
+        }
 
         Ok(())
     }

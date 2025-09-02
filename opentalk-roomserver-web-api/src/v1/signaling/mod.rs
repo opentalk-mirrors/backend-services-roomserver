@@ -59,6 +59,7 @@ async fn open_signaling_socket<B: SignalingBackend + 'static>(
 
     let span = Span::current();
     span.record("opentalk.room_id", room_id.to_string());
+
     Ok(ws.on_upgrade(move |socket| {
         handle_socket(socket, ctx, room_id, signaling_context.client_parameters).instrument(span)
     }))

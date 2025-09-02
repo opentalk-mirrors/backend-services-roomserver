@@ -5,11 +5,9 @@
 //! Signaling commands for the `moderation` namespace
 
 mod change_display_name;
-mod kick;
 mod moderation_command;
 mod send_to_waiting_room;
 
 pub use change_display_name::ChangeDisplayName;
-pub use kick::Kick;
 pub use moderation_command::{Accept, ModerationCommand};
 pub use send_to_waiting_room::SendToWaitingRoom;

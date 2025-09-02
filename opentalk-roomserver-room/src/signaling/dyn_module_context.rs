@@ -5,6 +5,7 @@ use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
+    banned_participant::BannedParticipant,
     event_origin::EventOrigin,
     loopback::LoopbackFuture,
     module_context::{ModuleContext, ModuleMessage},
@@ -26,6 +27,7 @@ pub struct DynModuleContext<'ctx> {
     pub room_task_info: &'ctx mut RoomTaskInfo,
     pub participants: &'ctx mut Participants,
     pub waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
+    pub banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
     pub timestamp: Timestamp,
     pub storage: Arc<dyn StorageProvider>,
     pub messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
@@ -41,6 +43,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         room_task_info: &'ctx mut RoomTaskInfo,
         participants: &'ctx mut Participants,
         waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
+        banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
         timestamp: Timestamp,
         storage: Arc<dyn StorageProvider>,
         messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
@@ -53,6 +56,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             room_task_info,
             participants,
             waiting_participants,
+            banned_participants,
             timestamp,
             storage,
             messages,
@@ -69,6 +73,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             room_task_info: self.room_task_info,
             participants: self.participants,
             waiting_participants: self.waiting_participants,
+            banned_participants: self.banned_participants,
             timestamp: self.timestamp,
             storage: Arc::clone(&self.storage),
             messages: self.messages,
@@ -85,6 +90,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             self.messages,
             self.participants,
             self.waiting_participants,
+            self.banned_participants,
             self.timestamp,
             self.loopback_futures,
             self.storage,

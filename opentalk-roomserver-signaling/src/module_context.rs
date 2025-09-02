@@ -26,6 +26,7 @@ use tokio::{
 use tracing::{Instrument as _, debug_span};
 
 use crate::{
+    banned_participant::BannedParticipant,
     event_origin::EventOrigin,
     instruction::Instruction,
     internal_module_message::InterModuleMessage,
@@ -65,6 +66,7 @@ where
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
     pub waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
+    pub banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
     pub timestamp: Timestamp,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
     storage: Arc<dyn StorageProvider>,
@@ -85,6 +87,7 @@ where
         messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
         participants: &'ctx mut Participants,
         waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
+        banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
         timestamp: Timestamp,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
         storage: Arc<dyn StorageProvider>,
@@ -97,6 +100,7 @@ where
             messages,
             participants,
             waiting_participants,
+            banned_participants,
             timestamp,
             loopback_futures,
             storage,
@@ -113,6 +117,7 @@ where
             messages: self.messages,
             participants: self.participants,
             waiting_participants: self.waiting_participants,
+            banned_participants: self.banned_participants,
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
             storage: Arc::clone(&self.storage),
@@ -300,6 +305,17 @@ where
     /// Kick the specified participants
     pub fn kick_participants(&mut self, participants: Vec<ParticipantId>) {
         let command = ModuleMessage::Instruction(Instruction::Kick { participants });
+        self.messages.get_mut().push(command);
+    }
+
+    pub fn ban_participant(&mut self, participant: ParticipantId) {
+        let command = ModuleMessage::Instruction(Instruction::Ban { participant });
+        self.messages.get_mut().push(command);
+    }
+
+    pub fn ban_waiting_participant(&mut self, participant: ParticipantId) {
+        let command: ModuleMessage =
+            ModuleMessage::Instruction(Instruction::BanWaiting { participant });
         self.messages.get_mut().push(command);
     }
 

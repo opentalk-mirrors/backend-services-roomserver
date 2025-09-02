@@ -170,7 +170,7 @@ impl Default for TestRoomBuilder {
 
 pub struct TestRoom {
     room_id: RoomId,
-    room_handle: RoomTaskHandle<MockSocket>,
+    pub room_handle: RoomTaskHandle<MockSocket>,
     storage: Arc<FsStorage>,
     _settings: Arc<Settings>,
     _app_state_tx: watch::Sender<ApplicationState>,
@@ -262,6 +262,13 @@ impl TestRoom {
 
     pub async fn join_dave(&mut self, device_number: usize) -> MockParticipantJoined {
         MockParticipantJoining::dave(device_number)
+            .join(self)
+            .await
+            .unwrap()
+    }
+
+    pub async fn join_frank_moderator(&mut self, device_number: usize) -> MockParticipantJoined {
+        MockParticipantJoining::frank(device_number)
             .join(self)
             .await
             .unwrap()

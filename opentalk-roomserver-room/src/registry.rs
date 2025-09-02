@@ -100,21 +100,20 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         });
     }
 
-    /// Spawns a new room task or returns the [`RoomTaskHandle`] if the room task is already running.
-    ///
-    /// Returns [`None`] when the room was created.
-    pub async fn create_or_get(
+    /// Spawns a new room task if it does not already exists
+    pub async fn create_if_not_exists(
         &self,
         room_id: RoomId,
         room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
-    ) -> Option<RoomTaskHandle<Socket>> {
+    ) {
         let registry = self.inner.write().await;
 
-        if let Some(task_handle) = registry.get(&room_id) {
-            return Some(task_handle.clone());
+        if registry.get(&room_id).is_some() {
+            // Room already exists
+            return;
         }
 
         let storage = create_storage_provider();
@@ -127,9 +126,8 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             settings,
             app_state,
         );
-        self.insert(room_id, registry, &task_handle, join_handle);
 
-        None
+        self.insert(room_id, registry, &task_handle, join_handle);
     }
 
     /// Checks if the requested room id exists and refreshes the idle timeout if it does

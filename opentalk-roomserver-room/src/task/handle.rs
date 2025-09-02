@@ -6,7 +6,11 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_api_v1::error::ApiError;
-use tokio::sync::{mpsc, oneshot};
+use opentalk_types_common::users::UserId;
+use tokio::sync::{
+    mpsc,
+    oneshot::{self, Receiver},
+};
 use tracing::Span;
 
 use super::RoomTaskApiError;
@@ -78,10 +82,7 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         &self,
         request: Request<Socket>,
     ) -> Result<(), RoomTaskHandleError<Socket>> {
-        let (tx, rx) = oneshot::channel();
-
-        let msg = TaskMessage::new(request, tx);
-
+        let msg = TaskMessage::new(request);
         self.sender
             .send(msg)
             .await
@@ -89,18 +90,31 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
                 request: Box::new(Some(e.0.request)),
             })?;
 
-        rx.await.map_err(|_| RoomTaskHandleError::Gone {
+        Ok(())
+    }
+
+    async fn receive_response<T>(
+        rx: Receiver<Result<T, RoomTaskApiError>>,
+    ) -> Result<T, RoomTaskHandleError<Socket>> {
+        let response = rx.await.map_err(|_| RoomTaskHandleError::Gone {
             request: Box::new(None),
         })??;
 
-        Ok(())
+        Ok(response)
     }
 
     /// Refresh the room idle timeout to its original duration
     ///
     /// This can only fail if the room has reached its idle timeout or been removed by a user
     pub async fn refresh_idle_timeout(&self) -> Result<(), RoomTaskHandleError<Socket>> {
-        self.send_request(Request::RefreshIdleTimeout).await
+        let (tx, rx) = oneshot::channel();
+
+        self.send_request(Request::RefreshIdleTimeout { response: tx })
+            .await?;
+
+        Self::receive_response(rx).await?;
+
+        Ok(())
     }
 
     /// Update the parameters for the room
@@ -108,8 +122,17 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         &self,
         parameter: RoomParameters,
     ) -> Result<(), RoomTaskHandleError<Socket>> {
-        self.send_request(Request::UpdateParameter(Box::new(parameter)))
-            .await
+        let (tx, rx) = oneshot::channel();
+
+        self.send_request(Request::UpdateParameter {
+            response: tx,
+            parameters: Box::new(parameter),
+        })
+        .await?;
+
+        Self::receive_response(rx).await?;
+
+        Ok(())
     }
 
     pub async fn accept_signaling_socket(
@@ -117,11 +140,32 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         socket: Socket,
         client_parameters: ClientParameters,
     ) -> Result<(), RoomTaskHandleError<Socket>> {
+        let (tx, rx) = oneshot::channel();
+
         self.send_request(Request::WsJoin {
+            response: tx,
             socket,
             client_parameters,
         })
-        .await
+        .await?;
+
+        Self::receive_response(rx).await?;
+
+        Ok(())
+    }
+
+    pub async fn is_banned(&self, user_id: UserId) -> Result<bool, RoomTaskHandleError<Socket>> {
+        let (tx, rx) = oneshot::channel();
+
+        self.send_request(Request::IsBanned {
+            response: tx,
+            user_id,
+        })
+        .await?;
+
+        let response = Self::receive_response(rx).await?;
+
+        Ok(response)
     }
 }
 
@@ -131,38 +175,40 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
 pub(super) struct TaskMessage<Socket: SignalingSocket> {
     /// The specific request
     pub request: Request<Socket>,
-    /// A channel for the [`RoomTask`](super::RoomTask) to respond
-    pub response_channel: oneshot::Sender<Result<(), RoomTaskApiError>>,
-
     /// Parent span on the caller side, used to track spans across channels.
     pub span: Span,
 }
 
 impl<Socket: SignalingSocket> TaskMessage<Socket> {
-    fn new(
-        request: Request<Socket>,
-        response_channel: oneshot::Sender<Result<(), RoomTaskApiError>>,
-    ) -> Self {
+    fn new(request: Request<Socket>) -> Self {
         let span = tracing::Span::current();
-        Self {
-            request,
-            response_channel,
-            span,
-        }
+        Self { request, span }
     }
 }
+
+type ResponseSender<T> = oneshot::Sender<Result<T, RoomTaskApiError>>;
 
 /// A request to a [`RoomTask`](super::RoomTask)
 #[derive(Debug)]
 pub enum Request<Socket: SignalingSocket> {
     /// Refresh the room tasks idle timeout
-    RefreshIdleTimeout,
+    RefreshIdleTimeout { response: ResponseSender<()> },
 
     /// Update the parameters for the room
-    UpdateParameter(Box<RoomParameters>),
+    UpdateParameter {
+        response: ResponseSender<()>,
+        parameters: Box<RoomParameters>,
+    },
+
+    /// Check if a user with the given UserId is banned
+    IsBanned {
+        response: ResponseSender<bool>,
+        user_id: UserId,
+    },
 
     /// Join the room with a given websocket stream and sink
     WsJoin {
+        response: ResponseSender<()>,
         socket: Socket,
         client_parameters: ClientParameters,
     },

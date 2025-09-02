@@ -8,6 +8,8 @@ use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
+use crate::event::BannedParticipantInfo;
+
 /// Moderation module state that is visible only to moderators
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModeratorJoinInfo {
@@ -15,8 +17,12 @@ pub struct ModeratorJoinInfo {
     pub waiting_room_enabled: bool,
 
     /// The participants that are currently in the waiting room (if any)
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub waiting_room_participants: Vec<WaitingParticipantPeerData>,
+
+    /// The participants that are currently banned from the room
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub banned_participants: Vec<BannedParticipantInfo>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

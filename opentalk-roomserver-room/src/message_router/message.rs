@@ -21,6 +21,9 @@ pub enum CloseReason {
     /// The participant was kicked by a moderator
     Kicked,
 
+    /// The participant was banned from the room
+    Banned,
+
     InternalError,
 }
 
@@ -30,6 +33,7 @@ impl From<CloseReason> for DisconnectReason {
             CloseReason::ParticipantClosed => DisconnectReason::Leave,
             CloseReason::ConnectionLost => DisconnectReason::ConnectionLost,
             CloseReason::Kicked => DisconnectReason::Kicked,
+            CloseReason::Banned => DisconnectReason::Banned,
             CloseReason::InternalError | CloseReason::TaskClosed => DisconnectReason::InternalError,
         }
     }

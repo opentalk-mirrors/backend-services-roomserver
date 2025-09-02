@@ -434,12 +434,12 @@ async fn wait_close<Stream: SignalingStream>(mut stream: Stream) {
                 return;
             }
             Err(e) => {
-                tracing::info!("Client dropped connection without close frame: {e:?}");
+                tracing::debug!("Client dropped connection without close frame: {e:?}");
                 return;
             }
             // Discard all messages, but error and close
             Ok(msg) => {
-                tracing::info!("Received message after sending close frame: {msg:?}");
+                tracing::warn!("Received message after sending close frame: {msg:?}");
             }
         }
     }
