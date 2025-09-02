@@ -140,6 +140,7 @@ where
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
+            timestamp: Timestamp::now(),
             payload: msg,
         };
         let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
@@ -183,6 +184,7 @@ where
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
+            timestamp: Timestamp::now(),
             payload: msg,
         };
         let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
@@ -209,6 +211,7 @@ where
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
+            timestamp: Timestamp::now(),
             payload: msg,
         };
         let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
@@ -254,6 +257,7 @@ where
         let event = SignalingEvent {
             namespace: M::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
+            timestamp: Timestamp::now(),
             payload: replication_event,
         };
 
@@ -345,6 +349,7 @@ where
         let event = SignalingEvent {
             namespace: error::NAMESPACE,
             transaction_id: self.event_origin.transaction_id(),
+            timestamp: Timestamp::now(),
             payload: error,
         };
 

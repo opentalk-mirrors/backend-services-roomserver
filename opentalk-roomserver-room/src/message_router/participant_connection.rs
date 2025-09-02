@@ -14,6 +14,7 @@ use opentalk_roomserver_web_api::v1::signaling::websocket::{
     CloseFrame, SignalingSink, SignalingSocket, SignalingSocketItem, SignalingSocketMessage,
     SignalingStream,
 };
+use opentalk_types_common::time::Timestamp;
 use opentalk_types_signaling::ParticipantId;
 use tokio::{
     sync::{
@@ -338,6 +339,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         let event: SignalingEvent<SignalingError> = SignalingEvent {
             namespace: opentalk_roomserver_types::error::NAMESPACE,
             transaction_id,
+            timestamp: Timestamp::now(),
             payload: error.into(),
         };
         let error_message = serde_json::to_string(&event)
