@@ -7,7 +7,9 @@ use std::collections::BTreeSet;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::event::{BannedParticipantInfo, DebriefingStarted, DisplayNameChanged, ModerationError};
+use crate::event::{
+    BannedParticipantInfo, DebriefingStarted, DisplayNameChanged, ModerationError, RoleUpdate,
+};
 
 /// Events sent out by the `moderation` module
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -24,6 +26,9 @@ pub enum ModerationEvent {
 
     /// Sent to all moderators when a participant is unbanned
     ParticipantUnbanned { participant_id: ParticipantId },
+
+    /// A participants role has been updated
+    RoleUpdated(RoleUpdate),
 
     /// Sent out when debriefing of a session started
     DebriefingStarted(DebriefingStarted),
@@ -85,6 +90,7 @@ impl From<ModerationError> for ModerationEvent {
 #[cfg(test)]
 mod serde_tests {
     use insta::assert_snapshot;
+    use opentalk_roomserver_types::client_parameters::Role;
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -107,6 +113,76 @@ mod serde_tests {
         let expected = json!({"message": "kicked"});
 
         let produced = serde_json::to_value(ModerationEvent::Kicked).unwrap();
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_role_updated_moderator() {
+        let cmd = ModerationEvent::RoleUpdated(RoleUpdate {
+            participant_id: ParticipantId::nil(),
+            new_role: Role::Moderator,
+        });
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "message": "role_updated",
+          "participant_id": "00000000-0000-0000-0000-000000000000",
+          "new_role": "moderator"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_role_updated_moderator() {
+        let expected = json!
+        ({
+          "message": "role_updated",
+          "participant_id": "00000000-0000-0000-0000-000000000000",
+          "new_role": "moderator"
+        });
+
+        let event = ModerationEvent::RoleUpdated(RoleUpdate {
+            participant_id: ParticipantId::nil(),
+            new_role: Role::Moderator,
+        });
+
+        let produced = serde_json::to_value(event).unwrap();
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_role_updated_user() {
+        let cmd = ModerationEvent::RoleUpdated(RoleUpdate {
+            participant_id: ParticipantId::nil(),
+            new_role: Role::User,
+        });
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "message": "role_updated",
+          "participant_id": "00000000-0000-0000-0000-000000000000",
+          "new_role": "user"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_role_updated_user() {
+        let expected = json!
+        ({
+          "message": "role_updated",
+          "participant_id": "00000000-0000-0000-0000-000000000000",
+          "new_role": "user"
+        });
+
+        let event = ModerationEvent::RoleUpdated(RoleUpdate {
+            participant_id: ParticipantId::nil(),
+            new_role: Role::User,
+        });
+
+        let produced = serde_json::to_value(event).unwrap();
 
         assert_eq!(expected, produced);
     }

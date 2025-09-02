@@ -14,11 +14,10 @@
 //!
 //! [`RoomParameters::module_data`]: opentalk_roomserver_types::room_parameters::RoomParameters::module_data
 
+pub use internal::UpdateSharedFolder;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{
-        ModuleJoinData, NoOp, PeerDataMap, SignalingModule, SignalingModuleInitData,
-    },
+    signaling_module::{ModuleJoinData, PeerDataMap, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
     client_parameters::Role, connection_id::ConnectionId,
@@ -28,9 +27,11 @@ use opentalk_roomserver_types_shared_folder::{
     SHARED_FOLDER_MODULE_ID,
     command::SharedFolderCommand,
     event::{SharedFolderError, SharedFolderEvent},
+    internal,
 };
 use opentalk_types_common::{modules::ModuleId, shared_folders::SharedFolder};
 use opentalk_types_signaling::ParticipantId;
+
 pub struct SharedFolderModule {
     state: SharedFolder,
 }
@@ -42,7 +43,7 @@ impl SignalingModule for SharedFolderModule {
 
     type Outgoing = SharedFolderEvent;
 
-    type Internal = NoOp;
+    type Internal = internal::UpdateSharedFolder;
 
     type Loopback = ();
 
@@ -108,6 +109,30 @@ impl SignalingModule for SharedFolderModule {
         _connection_id: ConnectionId,
         _content: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
+        Ok(())
+    }
+
+    fn on_internal_command(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        command: Self::Internal,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        let Some(participant) = ctx.participants.connected().get(&command.participant_id) else {
+            // Participant disconnected, nothing to do
+            return Ok(());
+        };
+
+        let shared_folder = if participant.is_moderator() {
+            self.state.clone()
+        } else {
+            self.state.clone().without_write_access()
+        };
+
+        ctx.send_ws_message(
+            [command.participant_id],
+            SharedFolderEvent::Updated(shared_folder),
+        )?;
+
         Ok(())
     }
 }

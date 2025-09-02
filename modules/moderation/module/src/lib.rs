@@ -8,6 +8,7 @@ use std::{
 
 use anyhow::anyhow;
 use opentalk_roomserver_module_livekit::LiveKitModule;
+use opentalk_roomserver_module_shared_folder::{SharedFolderModule, UpdateSharedFolder};
 use opentalk_roomserver_signaling::{
     banned_participant::BannedParticipant,
     module_context::{ChannelDroppedError, ModuleContext},
@@ -15,7 +16,7 @@ use opentalk_roomserver_signaling::{
     signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
 };
 use opentalk_roomserver_types::{
-    client_parameters::ClientKind,
+    client_parameters::{ClientKind, Role},
     connection_id::ConnectionId,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
@@ -27,7 +28,7 @@ use opentalk_roomserver_types_moderation::{
     command::{Accept, ChangeDisplayName, ModerationCommand, SendToWaitingRoom},
     event::{
         BannedParticipantInfo, DebriefingStarted, DisplayNameChanged, ModerationError,
-        ModerationEvent,
+        ModerationEvent, RoleUpdate,
     },
     state::{ModerationState, ModeratorJoinInfo, WaitingParticipantPeerData},
 };
@@ -118,6 +119,10 @@ impl SignalingModule for ModerationModule {
             ModerationCommand::Kick { target } => self.kick_participant(ctx, sender, target),
             ModerationCommand::Ban { target } => self.ban_participant(ctx, sender, target),
             ModerationCommand::Unban { target } => self.unban_participant(ctx, sender, target),
+            ModerationCommand::UpdateRole(RoleUpdate {
+                participant_id,
+                new_role,
+            }) => self.update_participant_role(ctx, sender, participant_id, new_role),
             ModerationCommand::Debrief(kick_scope) => self.debrief(ctx, sender, kick_scope),
             ModerationCommand::EnableWaitingRoom => self.enable_waiting_room(ctx, sender, true),
             ModerationCommand::Accept(Accept { target }) => {
@@ -312,6 +317,46 @@ impl ModerationModule {
         } else {
             return Err(ModerationError::AlreadyUnbanned.into());
         }
+
+        Ok(())
+    }
+
+    fn update_participant_role(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        target: ParticipantId,
+        new_role: Role,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        if ctx.is_room_owner(target) {
+            return Err(ModerationError::CannotChangeRoomOwnerRole.into());
+        }
+
+        let Some(target_state) = ctx.participants.all_unfiltered.get_mut(&target) else {
+            return Err(ModerationError::UnknownParticipant.into());
+        };
+
+        if target_state.role == new_role {
+            return Err(ModerationError::RoleAlreadyAssigned.into());
+        }
+
+        target_state.role = new_role;
+
+        ctx.send_ws_message(
+            ctx.participants.connected().ids(),
+            ModerationEvent::RoleUpdated(RoleUpdate {
+                participant_id: target,
+                new_role,
+            }),
+        )?;
+
+        ctx.send_internal_command::<SharedFolderModule>(UpdateSharedFolder {
+            participant_id: target,
+        });
 
         Ok(())
     }
