@@ -3,6 +3,7 @@
 
 mod command;
 mod event;
+pub mod state;
 
 pub use command::CoreCommand;
 pub use event::{CoreError, CoreEvent, LeftWaitingRoom};

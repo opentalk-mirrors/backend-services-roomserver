@@ -11,12 +11,13 @@ use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
     module_context::ModuleMessage,
+    participant_state::ParticipantState,
     signaling_event::SignalingEvent,
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, Role as RoomserverClientRole},
     connection_id::ConnectionId,
-    core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, LeftWaitingRoom},
+    core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, LeftWaitingRoom, state::CoreState},
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     error::SignalingError,
@@ -40,7 +41,10 @@ use opentalk_types_common::{
 use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
 
 use super::RoomTask;
-use crate::signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext};
+use crate::{
+    signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext},
+    task::participant_id_from_uuid,
+};
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(crate) fn handle_core_command(
@@ -212,6 +216,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         );
 
         self.join_success_breakout_own_data(&mut own_data, current_breakout_room);
+        self.join_success_core_peer_events(participant_id, &mut peer_events)?;
 
         let join_success_msg = self.build_join_success(
             participant_id,
@@ -399,6 +404,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
                 let mut module_peer_data = participants_module_data.remove(id).unwrap_or_default();
                 self.join_success_breakout_peer_data(&mut module_peer_data, state);
+                self.join_success_core_peer_data(participant_id, state, &mut module_peer_data);
 
                 Participant {
                     id: *id,
@@ -501,6 +507,60 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .waiting_room
             .broadcast_event(shared_json, &[]);
+    }
+
+    /// Attach core related info about the joining participant for other participants (peers).
+    ///
+    /// This will be sent to all other participants, but not the joining participant.
+    pub(crate) fn join_success_core_peer_events(
+        &self,
+        participant_id: ParticipantId,
+        peer_events: &mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
+    ) -> Result<(), FatalError> {
+        let Some(joinee) = self.participants.all_unfiltered.get(&participant_id) else {
+            return Err(FatalError(anyhow::anyhow!("joining participant not found")));
+        };
+        let data = CoreState {
+            display_name: joinee.kind.display_name(),
+            role: joinee.role,
+            avatar_url: joinee.kind.avatar_url().map(|s| s.to_owned()),
+            participation_kind: joinee.kind.participant_kind(),
+            joined_at: joinee.joined_at.into(),
+            left_at: joinee.left_at.map(Into::into),
+            is_room_owner: participant_id_from_uuid(self.info.owner()) == participant_id,
+        };
+        let data =
+            SharedJson::from(serde_json::to_value(data).expect("CoreState must be serializable"));
+        for peer_id in self.participants.connected().ids() {
+            peer_events
+                .entry(peer_id)
+                .or_default()
+                .insert(CORE_MODULE_ID, data.clone());
+        }
+        Ok(())
+    }
+
+    /// Attach core related info about the other participant (`peer`) for the joining participant.
+    ///
+    /// This will be sent to the joining participant.
+    pub(crate) fn join_success_core_peer_data(
+        &self,
+        peer: ParticipantId,
+        state: &ParticipantState,
+        peer_data: &mut BTreeMap<ModuleId, SharedJson>,
+    ) {
+        let data = CoreState {
+            display_name: state.kind.display_name(),
+            role: state.role,
+            avatar_url: state.kind.avatar_url().map(str::to_owned),
+            participation_kind: state.kind.participant_kind(),
+            joined_at: state.joined_at.into(),
+            left_at: state.left_at.map(Into::into),
+            is_room_owner: participant_id_from_uuid(self.info.owner()) == peer,
+        };
+        let data =
+            SharedJson::from(serde_json::to_value(data).expect("CoreState must be serializable"));
+        peer_data.insert(CORE_MODULE_ID, data);
     }
 }
 

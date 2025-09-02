@@ -34,7 +34,7 @@ url.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
-insta.workspace = true
+insta = { workspace = true, features = ["json", "redactions"] }
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
 test-log = { workspace = true, features = ["trace"] }
