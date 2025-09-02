@@ -119,11 +119,11 @@ impl SignalingModule for ModerationModule {
             ModerationCommand::Ban { target } => self.ban_participant(ctx, sender, target),
             ModerationCommand::Unban { target } => self.unban_participant(ctx, sender, target),
             ModerationCommand::Debrief(kick_scope) => self.debrief(ctx, sender, kick_scope),
-            ModerationCommand::EnableWaitingRoom => Ok(self.set_waiting_room_enabled(ctx, true)?),
+            ModerationCommand::EnableWaitingRoom => self.enable_waiting_room(ctx, sender, true),
             ModerationCommand::Accept(Accept { target }) => {
                 Self::accept_waiting_room_participant(ctx, sender, target)
             }
-            ModerationCommand::DisableWaitingRoom => Ok(self.set_waiting_room_enabled(ctx, false)?),
+            ModerationCommand::DisableWaitingRoom => self.enable_waiting_room(ctx, sender, false),
             ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target }) => {
                 self.send_to_waiting_room(ctx, sender, target)
             }
@@ -340,6 +340,21 @@ impl ModerationModule {
 
         ctx.send_ws_message(kicked.clone(), ModerationEvent::Kicked)?;
         ctx.kick_participants(kicked);
+
+        Ok(())
+    }
+
+    fn enable_waiting_room(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        enabled: bool,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        self.set_waiting_room_enabled(ctx, enabled)?;
 
         Ok(())
     }
