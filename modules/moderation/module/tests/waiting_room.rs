@@ -370,6 +370,31 @@ async fn enable_waiting_room() {
 }
 
 #[test_log::test(tokio::test)]
+async fn enable_waiting_room_insufficient_permissions() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut bob = room.join_bob(0).await;
+
+    // Bob tries to enable the waiting room
+    bob.send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
+        .await
+        .unwrap();
+
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+
+    // Bob is not allowed to enable the waiting room because he isn't a moderator
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::InsufficientPermissions)
+    );
+}
+
+#[test_log::test(tokio::test)]
 async fn disable_waiting_room() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
@@ -388,6 +413,54 @@ async fn disable_waiting_room() {
         .unwrap()
         .payload;
     assert_eq!(event, ModerationEvent::WaitingRoomDisabled);
+}
+
+#[test_log::test(tokio::test)]
+async fn disable_waiting_room_insufficient_permissions() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice enables the waiting room
+    alice
+        .send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
+        .await
+        .unwrap();
+
+    // Alice receives the waiting room enabled event
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
+    // Bob receives the waiting room enabled event
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
+    // Bob tries to disable the waiting room
+    bob.send_command::<ModerationModule>(ModerationCommand::DisableWaitingRoom, None)
+        .await
+        .unwrap();
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+
+    // Bob is not allowed to disable the waiting room because he isn't a moderator
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::InsufficientPermissions)
+    );
 }
 
 #[test_log::test(tokio::test)]
