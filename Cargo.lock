@@ -6057,6 +6057,7 @@ dependencies = [
  "futures",
  "insta",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
