@@ -3,6 +3,7 @@
 
 use egui::{Color32, RichText, Widget};
 use egui_json_tree::{JsonTree, JsonTreeStyle, ToggleButtonsState};
+use uuid::Uuid;
 
 use crate::client::{RunnerEvent, RunnerEventType};
 
@@ -22,6 +23,7 @@ pub(crate) struct EventWidget {
 
     /// Reset the json tree
     reset_expanded: bool,
+    id: Uuid,
 }
 
 impl EventWidget {
@@ -40,6 +42,7 @@ impl EventWidget {
             json,
             timestamp,
             reset_expanded: false,
+            id: Uuid::new_v4(),
         }
     }
 
@@ -99,7 +102,7 @@ impl EventWidget {
                 RunnerEventType::Received { message }
                 | RunnerEventType::SendSuccess { message } => match &self.json {
                     Some(json) if !show_plain => {
-                        let res = JsonTree::new((&self.timestamp, message), json)
+                        let res = JsonTree::new(self.id, json)
                             .style(
                                 JsonTreeStyle::new()
                                     .toggle_buttons_state(ToggleButtonsState::VisibleEnabled),
