@@ -25,6 +25,7 @@ use crate::{
             plugin::{Received, SignalingPlugin},
             spam_amount::SpamAmountPlugin,
             timer::TimerPlugin,
+            waiting_room::WaitingRoomPlugin,
         },
         style::{delete_btn, delete_mode_btn},
     },
@@ -38,6 +39,7 @@ mod livekit;
 mod plugin;
 pub mod spam_amount;
 mod timer;
+mod waiting_room;
 
 #[derive(Debug)]
 pub struct HistorySelectState {
@@ -90,6 +92,7 @@ impl SignalingView {
                 (false, Box::new(BreakoutPlugin::new())),
                 (false, Box::new(TimerPlugin::new())),
                 (false, Box::new(SpamAmountPlugin::new())),
+                (false, Box::new(WaitingRoomPlugin::new())),
             ],
         }
     }

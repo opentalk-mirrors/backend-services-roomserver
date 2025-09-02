@@ -33,3 +33,5 @@ pub const TOGGLE_TIMER_WINDOW_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::T);
 pub const TOGGLE_SPAM_AMOUNT_WINDOW_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::M);
+pub const TOGGLE_WAITING_ROOM_WINDOW_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::W);
