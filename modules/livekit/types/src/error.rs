@@ -24,9 +24,6 @@ pub enum LiveKitError {
         /// A list of participants that are currently not part of the meeting.
         participant: BTreeSet<ParticipantId>,
     },
-
-    /// The received command cannot be executed since there is already a conflicting ongoing task.
-    ConflictingTask,
 }
 
 impl ModuleError for LiveKitError {}
