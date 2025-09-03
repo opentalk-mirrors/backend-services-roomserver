@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-//! All [`SignalingModule`]s need to be accessed from the same collection by the [`RoomTask`](super::task::RoomTask).
-//! They can not be stored directly in a single collection, because they use associated types and therefore are
-//! generic. To store them in a single collection despite that, we make use of dynamic dispatch and polymorphism using
+//! All [`SignalingModule`]s need to be accessed from the same collection by the
+//! [`RoomTask`](super::task::RoomTask). They can not be stored directly in a single collection,
+//! because they use associated types and therefore are generic. To store them in a single
+//! collection despite that, we make use of dynamic dispatch and polymorphism using
 //! the [`ModuleHandle`] trait.
 //!
 //! The [`ModuleDispatcher`] acts as an intermediate between the generic JSON messages and the
-//! [`SignalingModule`]s, turning received messages into concrete types that are specific to the [`SignalingModule`].
-//! This works because the [`ModuleDispatcher`] is generic over the [`SignalingModule`] and can defer its
-//! specific types.
+//! [`SignalingModule`]s, turning received messages into concrete types that are specific to the
+//! [`SignalingModule`]. This works because the [`ModuleDispatcher`] is generic over the
+//! [`SignalingModule`] and can defer its specific types.
 //!
-//! Due to the generic nature of the [`ModuleDispatcher`] they cannot be stored in a single collection either,
-//! at least not when their generic type differs. This is where the [`ModuleHandle`] is used as an abstraction
-//! to remove any generic bounds. We achieve this with dynamic dispatch by storing them as a `Box<dyn ModuleDispatcher>`.
+//! Due to the generic nature of the [`ModuleDispatcher`] they cannot be stored in a single
+//! collection either, at least not when their generic type differs. This is where the
+//! [`ModuleHandle`] is used as an abstraction to remove any generic bounds. We achieve this with
+//! dynamic dispatch by storing them as a `Box<dyn ModuleDispatcher>`.
 use std::{any::Any, collections::BTreeMap, fmt::Display, time::Duration};
 
 use anyhow::Context;
@@ -77,9 +79,11 @@ pub enum DynBroadcastEvent<'evt> {
         connection_id: ConnectionId,
         /// The module data for the participant in the new room.
         own_data: &'evt mut ModuleData,
-        /// The module data about the joining participant, sent to the participants already in the room.
+        /// The module data about the joining participant, sent to the participants already in the
+        /// room.
         peer_events: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
-        /// The module data about other participants in the room, for and send to the joining participant.
+        /// The module data about other participants in the room, for and send to the joining
+        /// participant.
         peer_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     },
 
@@ -93,7 +97,8 @@ pub enum DynBroadcastEvent<'evt> {
         duration: Option<Duration>,
     },
 
-    /// Breakout rooms are about to be closed. All participants will be moved to the main room automatically.
+    /// Breakout rooms are about to be closed. All participants will be moved to the main room
+    /// automatically.
     BreakoutClosing,
 
     /// Breakout rooms have been closed and all participant are moved back to the main room.
@@ -104,11 +109,14 @@ pub enum DynBroadcastEvent<'evt> {
         participant_id: ParticipantId,
         old_room: RoomKind,
         new_room: RoomKind,
-        /// The module data for the participant in the new room. Each connection needs to have their own module data
+        /// The module data for the participant in the new room. Each connection needs to have
+        /// their own module data
         own_data: &'evt mut BTreeMap<ConnectionId, ModuleData>,
-        /// The module data about the switching participant, sent to the participants already in the room.
+        /// The module data about the switching participant, sent to the participants already in
+        /// the room.
         peer_events: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
-        /// The module data about other participants in the room, for and send to the switching participant.
+        /// The module data about other participants in the room, for and send to the switching
+        /// participant.
         peer_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     },
 }
@@ -282,8 +290,8 @@ where
         Ok(())
     }
 
-    /// Resolves a generic JSON message that was received by [`ModuleHandle::on_event`] to the concrete
-    /// [`SignalingModule::Incoming`] type.
+    /// Resolves a generic JSON message that was received by [`ModuleHandle::on_event`] to the
+    /// concrete [`SignalingModule::Incoming`] type.
     #[tracing::instrument(skip_all, fields(opentalk.command.sender = %sender, opentalk.module = %M::NAMESPACE))]
     fn handle_ws_event(
         &mut self,
@@ -319,8 +327,8 @@ where
         Ok(())
     }
 
-    /// Resolves a dynamic loopback message that was received by [`ModuleHandle::on_event`] to the concrete
-    /// [`SignalingModule::Loopback`] type.
+    /// Resolves a dynamic loopback message that was received by [`ModuleHandle::on_event`] to the
+    /// concrete [`SignalingModule::Loopback`] type.
     #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
     fn handle_loopback_event(
         &mut self,
@@ -338,8 +346,8 @@ where
         Ok(())
     }
 
-    /// Resolves a dynamic internal command that was received by [`ModuleHandle::on_event`] to the concrete
-    /// [`SignalingModule::IncomingInternal`] type.
+    /// Resolves a dynamic internal command that was received by [`ModuleHandle::on_event`] to the
+    /// concrete [`SignalingModule::IncomingInternal`] type.
     #[tracing::instrument(skip(self, ctx, command), fields(opentalk.module = %M::NAMESPACE))]
     fn handle_internal_command(
         &mut self,

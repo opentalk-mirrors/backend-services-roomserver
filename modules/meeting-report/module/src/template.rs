@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 //! Types used inside the tera template.
-//!
 // IMPORTANT: when changing the structs below, make sure to update the following documentation:
 // * docs/admin/core/meeting_reports.md
 

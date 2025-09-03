@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 pub enum TokenResponse {
     /// The signaling token for the requested room
     Token { token: Token },
-    /// The requested room is unknown to the roomserver and needs to be provided through the [TokenRequestBody](super::TokenRequestBody)
+    /// The requested room is unknown to the roomserver and needs to be provided through the
+    /// [TokenRequestBody](super::TokenRequestBody)
     UnknownRoom,
 }
 

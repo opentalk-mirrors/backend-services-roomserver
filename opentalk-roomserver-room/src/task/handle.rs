@@ -19,8 +19,9 @@ use super::RoomTaskApiError;
 pub enum RoomTaskHandleError<Socket: SignalingSocket> {
     /// The room task is gone.
     ///
-    /// If the room task received the request, [`request`](RoomTaskHandleError::Gone::request) will be `None`.
-    /// If the room task did not receive the request, it's returned to the sender by setting it here.
+    /// If the room task received the request, [`request`](RoomTaskHandleError::Gone::request) will
+    /// be `None`. If the room task did not receive the request, it's returned to the sender by
+    /// setting it here.
     #[error("The room task is no longer available")]
     Gone {
         /// If the request couldn't be dispatched to the room task, it's returned here.

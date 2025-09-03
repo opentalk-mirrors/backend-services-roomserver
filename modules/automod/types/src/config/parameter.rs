@@ -29,7 +29,8 @@ pub struct Parameter {
     /// speaker twice in a single automod session
     pub allow_double_selection: bool,
 
-    /// Append the `allow_list` or `playlist` with joining participants, depending on the `selection_strategy`
+    /// Append the `allow_list` or `playlist` with joining participants, depending on the
+    /// `selection_strategy`
     pub auto_append_on_join: bool,
 }
 

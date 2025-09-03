@@ -64,7 +64,8 @@ impl PrivateChatId {
 
     /// Returns the other participant in the chat.
     ///
-    /// If the provided `participant` matches any member of this chat, the method returns the other participant.
+    /// If the provided `participant` matches any member of this chat, the method returns the other
+    /// participant.
     pub fn other(&self, participant: ParticipantId) -> ParticipantId {
         if self.0 == participant {
             self.1
@@ -75,8 +76,8 @@ impl PrivateChatId {
 
     /// Returns a scope for this chat for the given participant.
     ///
-    /// Since [`Scope::Private`] contains one [`ParticipantId`] and the other participant is implicit,
-    /// we need to create the Scope for this implicit participant.
+    /// Since [`Scope::Private`] contains one [`ParticipantId`] and the other participant is
+    /// implicit, we need to create the Scope for this implicit participant.
     pub fn to_scope(&self, base: ParticipantId) -> Scope {
         Scope::Private(self.other(base))
     }

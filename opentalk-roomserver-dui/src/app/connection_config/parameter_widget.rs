@@ -60,7 +60,8 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                                     self.save_ui(ui, collection, selected_index);
                                 });
 
-                                // The JSON editor has to be last since it's using all available space.
+                                // The JSON editor has to be last since it's using all available
+                                // space.
                                 let res = json_editor(ui, &mut self.edit);
                                 if res.changed() {
                                     self.parsed = serde_json::from_str(&self.edit);

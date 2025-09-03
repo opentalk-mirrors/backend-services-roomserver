@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-//! This module provides two way communication between the room server and it's clients (e.g. web-app).
+//! This module provides two way communication between the room server and it's clients (e.g.
+//! web-app).
 
 use std::fmt::Debug;
 
@@ -83,7 +84,8 @@ async fn handle_socket<B: SignalingBackend + 'static>(
 /// Logic for handling signaling steams.
 ///
 /// Before a new stream can be added, the WebAPI ensures that the room to which
-/// the signaling stream should be added exists using [`ensure_room_exists`](SignalingBackend::ensure_room_exists).
+/// the signaling stream should be added exists using
+/// [`ensure_room_exists`](SignalingBackend::ensure_room_exists).
 #[async_trait]
 pub trait SignalingBackend: Clone + Send + Sync + std::fmt::Debug {
     type Error: Debug + IntoResponse;

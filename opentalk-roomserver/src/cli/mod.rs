@@ -40,10 +40,12 @@ pub(crate) struct Args {
     ///
     /// If present, exactly this config file will be used.
     ///
-    /// If absent, `roomserver` looks for a config file in these locations and uses the first one that is found:
+    /// If absent, `roomserver` looks for a config file in these locations and uses the first one
+    /// that is found:
     ///
     /// - `roomserver.toml` in the current directory
-    /// - `<XDG_CONFIG_HOME>/opentalk/roomserver.toml` (where `XDG_CONFIG_HOME` is usually `~/.config`)
+    /// - `<XDG_CONFIG_HOME>/opentalk/roomserver.toml` (where `XDG_CONFIG_HOME` is usually
+    ///   `~/.config`)
     /// - `/etc/opentalk/roomserver.toml`
     #[clap(short, long, help = "Specify path to configuration file")]
     pub(crate) config: Option<PathBuf>,
@@ -58,7 +60,8 @@ pub(crate) struct Args {
 impl Args {
     /// Execute potential informational tasks like printing help messages or version info.
     ///
-    /// When [`ProgramFlow::Exit`] is returned, the program should exit, otherwise the program should continue.
+    /// When [`ProgramFlow::Exit`] is returned, the program should exit, otherwise the program
+    /// should continue.
     pub(crate) fn run_tasks(&self) -> ProgramFlow {
         if !self.info.should_print() {
             return ProgramFlow::Continue;

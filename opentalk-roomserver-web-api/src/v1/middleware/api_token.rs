@@ -29,7 +29,8 @@ impl<S> Layer<S> for ServiceAuthLayer {
 /// The API token is expected to be in the `Authorization` header with the format `bearer <token>`.
 ///
 /// Returns a `401` Unauthorized error when the provided token is invalid or missing
-/// Returns a `400` Bad Request error when the authorization header could not be parsed due to invalid ascii or formatting
+/// Returns a `400` Bad Request error when the authorization header could not be parsed due to
+/// invalid ascii or formatting
 #[derive(Debug, Clone)]
 pub(crate) struct ApiTokenMiddleware<S> {
     inner: S,

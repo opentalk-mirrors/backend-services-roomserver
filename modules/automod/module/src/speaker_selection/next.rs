@@ -280,8 +280,8 @@ mod test {
         assert_eq!(session.speaker, Some(p1));
     }
 
-    /// Test next when selection_strategy is Nomination but no nomination was given and the allow_list
-    /// is empty
+    /// Test next when selection_strategy is Nomination but no nomination was given and the
+    /// allow_list is empty
     #[test_log::test(tokio::test)]
     async fn nomination_without_nomination_empty_allow_list() {
         let mut rng = rng();

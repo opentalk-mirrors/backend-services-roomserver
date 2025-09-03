@@ -42,8 +42,8 @@ pub enum ClientKind {
     /// Telephone call-In participant which identifies via a meeting id & pin
     CallIn { display_name: DisplayName },
 
-    /// Same as `ClientKind::CallIn` but the controller may associate a user to the call-in participant if phonenumber
-    /// matching is enabled
+    /// Same as `ClientKind::CallIn` but the controller may associate a user to the call-in
+    /// participant if phonenumber matching is enabled
     RegisteredCallIn { profile: PublicUserProfile },
 }
 

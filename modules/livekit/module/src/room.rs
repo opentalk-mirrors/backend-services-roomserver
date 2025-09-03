@@ -48,10 +48,12 @@ pub struct LiveKitSubroom {
     /// The record of all issued tokens for each participant.
     token_identities: BTreeMap<(ParticipantId, ConnectionId), BTreeSet<String>>,
 
-    /// Activating the microphone can be restricted by the moderator. A subset of users might still be allowed to unmute.
+    /// Activating the microphone can be restricted by the moderator. A subset of users might still
+    /// be allowed to unmute.
     microphone_restrictions: MicrophoneRestrictionState,
 
-    /// There must only be one background task updating the microphone restrictions at any given time.
+    /// There must only be one background task updating the microphone restrictions at any given
+    /// time.
     ongoing_microphone_restrictions: Arc<Mutex<()>>,
 
     subroom_id: String,

@@ -92,7 +92,8 @@ fn init_tracing_layer(
 
 /// Create the logging filter
 ///
-/// The priority of the different config options is `ROOMSERVER_LOG` > `RUST_LOG` > hard-coded defaults.
+/// The priority of the different config options is `ROOMSERVER_LOG` > `RUST_LOG` > hard-coded
+/// defaults.
 fn create_filter(log_filter_settings: Option<String>) -> EnvFilter {
     fn read_env_var(var: &str) -> Option<String> {
         std::env::var(var).ok().filter(|v| !v.is_empty())

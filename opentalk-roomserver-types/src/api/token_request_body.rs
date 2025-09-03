@@ -15,7 +15,8 @@ pub struct TokenRequestBody {
 
     /// The room that the token is requested for.
     ///
-    /// Once this was provided to the roomserver, further request do not need to include the room parameters
+    /// Once this was provided to the roomserver, further request do not need to include the room
+    /// parameters
     // Field is non-required already, utoipa adds a `nullable: true` entry
     // by default which creates a false positive in the spectral linter when
     // combined with example data.

@@ -21,7 +21,8 @@ pub(crate) struct Args {
 impl Args {
     /// Execute potential informational tasks like printing help messages or version info.
     ///
-    /// When [`ProgramFlow::Exit`] is returned, the program should exit, otherwise the program should continue.
+    /// When [`ProgramFlow::Exit`] is returned, the program should exit, otherwise the program
+    /// should continue.
     pub(crate) fn run_tasks(&self) -> ProgramFlow {
         if !self.info.should_print() {
             return ProgramFlow::Continue;

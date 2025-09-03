@@ -68,7 +68,8 @@ mod test {
     }
 
     /// Test that history works when selecting a random member
-    /// 3 entries are added, assert that every time select_random returns an entry, it is also appended to the history.
+    /// 3 entries are added, assert that every time select_random returns an entry, it is also
+    /// appended to the history.
     #[test_log::test(tokio::test)]
     async fn history_addition() {
         let mut rng = rng();
@@ -238,7 +239,8 @@ mod test {
     }
 
     /// Test random selection when selection_strategy is Random and reselection is allowed
-    /// 3 entries are added to the allow_list. Select 4 times. Assert that at least once a double selection was encountered
+    /// 3 entries are added to the allow_list. Select 4 times. Assert that at least once a double
+    /// selection was encountered
     #[test_log::test(tokio::test)]
     async fn select_random_when_random_allow_double_select() {
         let mut rng = rng();

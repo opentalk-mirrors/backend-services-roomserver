@@ -63,7 +63,8 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
     ) -> Result<Option<Token>, ApiError>;
 }
 
-/// Creates a new room instance with the specified parameters if no room with the provided id exists.
+/// Creates a new room instance with the specified parameters if no room with the provided id
+/// exists.
 ///
 /// If a room with the provided room ID already exists, the rooms idle timeout is refreshed.
 #[utoipa::path(
@@ -96,12 +97,14 @@ pub(crate) async fn put_room<B: RoomBackend>(
 
 /// Creates a new signaling token for the specified user and room
 ///
-/// The signaling token can be used to establish a websocket connection with the roomserver through the
-/// `/signaling/<token>` endpoint. The token has a limited lifetime (30 seconds by default) and can only be used once.
+/// The signaling token can be used to establish a websocket connection with the roomserver through
+/// the `/signaling/<token>` endpoint. The token has a limited lifetime (30 seconds by default) and
+/// can only be used once.
 ///
-/// Calling this endpoint will start a new room task or refresh existing ones. To get a token for an unknown room, the
-/// request body has to contain the `room_parameters` field (See [`TokenRequestBody`]). If the room is already running,
-/// any provided `room_parameters` will be ignored.
+/// Calling this endpoint will start a new room task or refresh existing ones. To get a token for an
+/// unknown room, the request body has to contain the `room_parameters` field (See
+/// [`TokenRequestBody`]). If the room is already running, any provided `room_parameters` will be
+/// ignored.
 #[utoipa::path(
     post,
     path = "/rooms/{room_id}/token",

@@ -14,9 +14,10 @@ pub async fn remove_participant(
     whisper_id: String,
     participant_id: String,
 ) -> Result<SubroomAudioLoopback, SubroomAudioError> {
-    // This errors with a `not_found` when the participant already left or never joined. The frontend client
-    // might leave the livekit room with the participant before we attempt to remove them. We can't match the
-    // livekit error because the inner error types are not exposed. Simply ignore potential errors for now.
+    // This errors with a `not_found` when the participant already left or never joined. The
+    // frontend client might leave the livekit room with the participant before we attempt to
+    // remove them. We can't match the livekit error because the inner error types are not
+    // exposed. Simply ignore potential errors for now.
     let result = livekit_client
         .remove_participant(&whisper_id, &participant_id)
         .await;

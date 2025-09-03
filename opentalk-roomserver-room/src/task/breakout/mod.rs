@@ -39,8 +39,9 @@ pub(crate) mod state;
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Serialize and handle the breakout [`SignalingCommand`]
     ///
-    /// Similar to the `core` namespace, the breakout commands are not handled by a designated signaling module but
-    /// directly by the [`RoomTask`]. Any fatal errors that occur here will be considered internal errors.
+    /// Similar to the `core` namespace, the breakout commands are not handled by a designated
+    /// signaling module but directly by the [`RoomTask`]. Any fatal errors that occur here will
+    /// be considered internal errors.
     pub(crate) fn handle_breakout_command(
         &mut self,
         participant_origin: ParticipantOrigin,
@@ -53,8 +54,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 participant_origin.id
             );
 
-            // This scenario should never occur because we never delete known participants. We still attempt to
-            // send an error to the non-existent connection in a best-effort approach.
+            // This scenario should never occur because we never delete known participants. We still
+            // attempt to send an error to the non-existent connection in a best-effort
+            // approach.
             self.message_router.conference.send_error(
                 participant_origin.connection_id,
                 command.transaction_id,
@@ -222,8 +224,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     /// Stop the breakout rooms and move participants back to the main room
     ///
-    /// When a `delay` is provided, this will send out a [`BreakoutEvent::CloseNotice`] and keep the breakout rooms
-    /// alive for the specified duration before closing them
+    /// When a `delay` is provided, this will send out a [`BreakoutEvent::CloseNotice`] and keep the
+    /// breakout rooms alive for the specified duration before closing them
     fn breakout_stop(
         &mut self,
         origin: ParticipantOrigin,
@@ -300,8 +302,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ///
     /// Providing no breakout room will move the participant to the main room.
     ///
-    /// Sends a [`BreakoutEvent::SwitchedRoom`] to the moved participant and [`BreakoutEvent::ParticipantSwitchedRoom`] to
-    /// all participants.
+    /// Sends a [`BreakoutEvent::SwitchedRoom`] to the moved participant and
+    /// [`BreakoutEvent::ParticipantSwitchedRoom`] to all participants.
     #[tracing::instrument(level = "debug", skip(self))]
     fn move_participant(
         &mut self,

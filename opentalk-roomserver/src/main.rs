@@ -2,7 +2,8 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 // SPDX-FileCopyrightText: Wolfgang Silbermayr <w.silbermayr@opentalk.eu>
 
-//! This crate builds an executable that runs the RoomServer. It implements the [_OpenTalk RoomServer Web API_][opentalk_roomserver_web_api].
+//! This crate builds an executable that runs the RoomServer. It implements the [_OpenTalk
+//! RoomServer Web API_][opentalk_roomserver_web_api].
 
 use std::{path::Path, result, sync::Arc, time::Duration};
 

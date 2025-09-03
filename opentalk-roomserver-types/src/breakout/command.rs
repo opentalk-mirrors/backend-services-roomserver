@@ -15,17 +15,19 @@ pub enum BreakoutCommand {
     /// Start the specified amount of breakout rooms
     Start(BreakoutConfig),
 
-    /// Move to the targeted room. Providing no BreakoutId will move the participant to the main room.
+    /// Move to the targeted room. Providing no BreakoutId will move the participant to the main
+    /// room.
     ///
-    /// Switching the room moves all active connections to that room, a participant can only be in one room at a time.
+    /// Switching the room moves all active connections to that room, a participant can only be in
+    /// one room at a time.
     SwitchRoom(RoomKind),
 
     /// Stop all breakout rooms, moving participants back to the main room.
     Stop {
         /// Delay the stop of the breakout rooms to give participants time to leave by themselves.
         ///
-        /// Providing `None` or a 0 second delay will immediately stop all breakout rooms and force participants back to
-        /// the main room.
+        /// Providing `None` or a 0 second delay will immediately stop all breakout rooms and force
+        /// participants back to the main room.
         #[serde(
             default,
             skip_serializing_if = "Option::is_none",

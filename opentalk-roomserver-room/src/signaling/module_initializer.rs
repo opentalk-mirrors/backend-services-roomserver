@@ -37,9 +37,9 @@ impl ModuleRegistry {
 
     /// Attempt to initialize all given modules
     ///
-    /// A given module id might be unknown to the [`ModuleRegistry`] and can't be initialized. A module might also not
-    /// be able to initialize with the given [`SignalingModuleInitData`]. Uninitialized modules are returned in a
-    /// separate list.
+    /// A given module id might be unknown to the [`ModuleRegistry`] and can't be initialized. A
+    /// module might also not be able to initialize with the given [`SignalingModuleInitData`].
+    /// Uninitialized modules are returned in a separate list.
     pub(crate) async fn initialize_modules(
         &self,
         init_data: SignalingModuleInitData,
