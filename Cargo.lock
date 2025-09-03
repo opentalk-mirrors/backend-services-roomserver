@@ -4828,9 +4828,9 @@ dependencies = [
 
 [[package]]
 name = "livekit-api"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31e6905308a1804a88e57033a039f0552968c5abe32c1329c32dc9ddb40b1718"
+checksum = "4a17951fa8d398241f4a9503b57a7b38b3f40fb9dc94954f17b9fe99683e6b9b"
 dependencies = [
  "base64 0.21.7",
  "futures-util",
