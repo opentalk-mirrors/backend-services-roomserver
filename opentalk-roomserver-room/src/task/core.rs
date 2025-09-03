@@ -11,6 +11,7 @@ use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
     module_context::ModuleMessage,
+    signaling_event::SignalingEvent,
 };
 use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
@@ -27,13 +28,16 @@ use opentalk_roomserver_types::{
     room_info::RoomInfo,
     room_kind::RoomKind,
     shared_json::SharedJson,
+    shared_raw_json::SharedRawJson,
     signaling::{
         SignalingCommand,
         module_error::{FatalError, SignalingModuleError},
     },
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::{events::MeetingDetails, modules::ModuleId, time::Timestamp};
+use opentalk_types_common::{
+    events::MeetingDetails, modules::ModuleId, tariffs::QuotaType, time::Timestamp,
+};
 use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
 
 use super::RoomTask;
@@ -239,6 +243,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         actions.handle_requested_messages(self);
+
+        // Start the quota timer if the room has a time limit
+        if self
+            .info
+            .room
+            .tariff
+            .quotas
+            .contains_key(&QuotaType::RoomTimeLimitSecs)
+        {
+            // This will have no effect if the timer is already running
+            self.quota_timeout.start();
+        }
 
         Ok(())
     }
@@ -457,6 +473,29 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             is_room_owner,
             module_data,
         }
+    }
+
+    /// Sends a [`CoreEvent::TimeLimitQuotaElapsed`] to all participants in the conference and waiting room
+    pub(crate) fn time_limit_quota_elapsed(&mut self) {
+        let event = SignalingEvent {
+            namespace: CORE_MODULE_ID,
+            transaction_id: None,
+            timestamp: Timestamp::now(),
+            payload: CoreEvent::TimeLimitQuotaElapsed,
+        };
+        let Ok(raw_value) = serde_json::value::to_raw_value(&event) else {
+            tracing::error!("Failed to serialize CoreEvent");
+            return;
+        };
+
+        let shared_json: SharedRawJson = raw_value.into();
+        self.message_router
+            .conference
+            .broadcast_event(shared_json.clone(), &[]);
+
+        self.message_router
+            .waiting_room
+            .broadcast_event(shared_json, &[]);
     }
 }
 

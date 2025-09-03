@@ -89,7 +89,9 @@ use opentalk_roomserver_types::{
     signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_common::{rooms::RoomId, roomserver::DeviceSecret, time::Timestamp};
+use opentalk_types_common::{
+    rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType, time::Timestamp,
+};
 use opentalk_types_signaling::ParticipantId;
 use tokio::{
     sync::{mpsc, watch},
@@ -106,7 +108,7 @@ use crate::{
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
-        idle_timeout::IdleTimeout,
+        timeout::Timeout,
     },
 };
 
@@ -114,7 +116,7 @@ pub mod breakout;
 pub mod core;
 pub mod fs_storage;
 pub mod handle;
-pub mod idle_timeout;
+pub mod timeout;
 pub mod waiting_room;
 
 #[derive(Debug, thiserror::Error)]
@@ -132,7 +134,7 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
-/// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
+/// An idle [`Timeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
 /// exits.
 pub struct RoomTask<Socket: SignalingSocket + 'static> {
     info: RoomTaskInfo,
@@ -141,7 +143,7 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
     api_rx: mpsc::Receiver<TaskMessage<Socket>>,
 
     /// The rooms idle timeout, only active when no participants are in the room.
-    idle_timeout: IdleTimeout,
+    idle_timeout: Timeout,
 
     message_router: MessageRouter,
 
@@ -165,6 +167,9 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 
     /// Set of participants that are banned from the room
     banned_participants: HashMap<ParticipantId, BannedParticipant>,
+
+    /// Timeout for the room time limit quota
+    quota_timeout: Timeout,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -231,10 +236,16 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             let loopback_futures: FuturesUnordered<LoopbackFuture> = FuturesUnordered::new();
             loopback_futures.push(Box::pin(pending()));
 
+            let time_limit = room_info
+                .room
+                .tariff
+                .quota(&QuotaType::RoomTimeLimitSecs)
+                .unwrap_or(0);
+
             let room_task = RoomTask {
                 info: room_info,
                 api_rx: rx,
-                idle_timeout: IdleTimeout::start_new(timeout),
+                idle_timeout: Timeout::start_new(timeout),
                 message_router,
                 breakout_config: None,
                 loopback_futures,
@@ -245,6 +256,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 storage,
                 waiting_participants: HashMap::new(),
                 banned_participants: HashMap::new(),
+                quota_timeout: Timeout::new(Duration::from_secs(time_limit)),
             };
 
             room_task.run().await;
@@ -291,7 +303,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 Some(msg) = self.loopback_futures.next() => {
                     self.handle_loopback(msg);
                 },
-                () = self.idle_timeout.has_timed_out() => {
+                () = self.idle_timeout.wait_for_completion() => {
                     tracing::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
                     return Ok(());
                 }
@@ -304,6 +316,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         return Ok(())
                     }
 
+                }
+                () = self.quota_timeout.wait_for_completion() => {
+                    tracing::debug!("Room task {} reached its time limit, exiting", self.info.room_id);
+                    self.time_limit_quota_elapsed();
+                    return Ok(());
                 }
             };
             for (connection_id, participant_id) in self.message_router.disconnected() {
@@ -561,7 +578,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     #[tracing::instrument(level = "info", skip_all)]
     fn refresh_idle_timeout(&mut self) {
-        self.idle_timeout.refresh();
+        self.idle_timeout.reset();
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -872,7 +889,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .values()
             .any(|s| s.is_connected())
         {
-            self.idle_timeout.start(IDLE_TIMEOUT);
+            self.idle_timeout.restart();
         }
     }
 

@@ -47,6 +47,9 @@ pub enum CoreEvent {
         participant_id: ParticipantId,
     },
 
+    /// The quota's time limit has elapsed
+    TimeLimitQuotaElapsed,
+
     /// An error happened when executing a `core` command
     Error(CoreError),
 }

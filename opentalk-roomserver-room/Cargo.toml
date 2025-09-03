@@ -35,6 +35,7 @@ uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 insta.workspace = true
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true, features = ["macros", "rt"] }

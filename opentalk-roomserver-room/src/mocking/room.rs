@@ -141,6 +141,11 @@ impl TestRoomBuilder {
         self
     }
 
+    pub fn tariff(mut self, tariff: TariffResource) -> Self {
+        self.room_parameters.tariff = tariff;
+        self
+    }
+
     pub fn room_parameters(mut self, room_parameters: RoomParameters) -> Self {
         self.room_parameters = room_parameters;
         self
