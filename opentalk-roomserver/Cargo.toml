@@ -25,6 +25,7 @@ opentalk-roomserver-module-chat.workspace = true
 opentalk-roomserver-module-e2ee.workspace = true
 opentalk-roomserver-module-echo.workspace = true
 opentalk-roomserver-module-livekit.workspace = true
+opentalk-roomserver-module-meeting-notes.workspace = true
 opentalk-roomserver-module-meeting-report.workspace = true
 opentalk-roomserver-module-moderation.workspace = true
 opentalk-roomserver-module-polls.workspace = true

@@ -15,6 +15,8 @@ members = [
   "modules/livekit/mock",
   "modules/livekit/module",
   "modules/livekit/types",
+  "modules/meeting-notes/module",
+  "modules/meeting-notes/types",
   "modules/meeting-report/module",
   "modules/meeting-report/types",
   "modules/moderation/module",
@@ -59,6 +61,7 @@ opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0
 opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-echo = { path = "modules/echo/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-livekit = { path = "modules/livekit/module", version = "0.0.6-dev" }
+opentalk-roomserver-module-meeting-notes = { path = "modules/meeting-notes/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-meeting-report = { path = "modules/meeting-report/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-moderation = { path = "modules/moderation/module", version = "0.0.6-dev" }
 opentalk-roomserver-module-polls = { path = "modules/polls/module", version = "0.0.6-dev" }
@@ -77,6 +80,7 @@ opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.6
 opentalk-roomserver-types-e2ee = { path = "modules/e2ee/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-echo = { path = "modules/echo/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = "0.0.6-dev" }
+opentalk-roomserver-types-meeting-notes = { path = "modules/meeting-notes/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-meeting-report = { path = "modules/meeting-report/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-moderation = { path = "modules/moderation/types", version = "0.0.6-dev" }
 opentalk-roomserver-types-polls = { path = "modules/polls/types", version = "0.0.6-dev" }
@@ -121,6 +125,9 @@ livekit-api = "0.4"
 livekit-protocol = "0.4.0"
 livekit-runtime = { version = "0.4", default-features = false }
 log = "0.4.22"
+opentalk-etherpad-client = { version = "0.3", default-features = false, features = [
+  "rustls-tls-native-roots",
+] }
 opentalk-version = "0.2.0"
 opentelemetry = "0.30.0"
 opentelemetry-otlp = { version = "0.30.0", features = ["grpc-tonic"] }

@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk RoomServer Meeting Notes"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-module-meeting-notes"
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+futures.workspace = true
+opentalk-etherpad-client.workspace = true
+opentalk-roomserver-room.workspace = true
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-meeting-notes.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+url.workspace = true

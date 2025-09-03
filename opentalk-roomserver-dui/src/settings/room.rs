@@ -5,8 +5,9 @@ use std::collections::BTreeMap;
 
 use opentalk_roomserver_client::api::{
     command::{
-        AUTOMOD_MODULE_ID, CHAT_MODULE_ID, ECHO_MODULE_ID, MEETING_REPORT_MODULE_ID,
-        MODERATION_MODULE_ID, POLLS_MODULE_ID, RAISE_HANDS_MODULE_ID, SUBROOM_AUDIO_MODULE_ID,
+        AUTOMOD_MODULE_ID, CHAT_MODULE_ID, ECHO_MODULE_ID, MEETING_NOTES_MODULE_ID,
+        MEETING_REPORT_MODULE_ID, MODERATION_MODULE_ID, POLLS_MODULE_ID, RAISE_HANDS_MODULE_ID,
+        SUBROOM_AUDIO_MODULE_ID,
     },
     event::{E2EE_MODULE_ID, LIVEKIT_MODULE_ID, SHARED_FOLDER_MODULE_ID},
 };
@@ -100,6 +101,7 @@ pub fn default_room_parameters() -> RoomParameters {
                 (MODERATION_MODULE_ID, TariffModuleResource::default()),
                 (RAISE_HANDS_MODULE_ID, TariffModuleResource::default()),
                 (SUBROOM_AUDIO_MODULE_ID, TariffModuleResource::default()),
+                (MEETING_NOTES_MODULE_ID, TariffModuleResource::default()),
             ]),
         },
         streaming_links: vec![],
