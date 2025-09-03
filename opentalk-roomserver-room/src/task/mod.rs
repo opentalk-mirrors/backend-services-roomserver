@@ -106,7 +106,7 @@ use crate::{
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
-        idle_timeout::IdleTimeout,
+        timeout::Timeout,
     },
 };
 
@@ -114,7 +114,7 @@ pub mod breakout;
 pub mod core;
 pub mod fs_storage;
 pub mod handle;
-pub mod idle_timeout;
+pub mod timeout;
 pub mod waiting_room;
 
 #[derive(Debug, thiserror::Error)]
@@ -132,7 +132,7 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
-/// An [`IdleTimeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
+/// An idle [`Timeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
 /// exits.
 pub struct RoomTask<Socket: SignalingSocket + 'static> {
     info: RoomTaskInfo,
@@ -141,7 +141,7 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
     api_rx: mpsc::Receiver<TaskMessage<Socket>>,
 
     /// The rooms idle timeout, only active when no participants are in the room.
-    idle_timeout: IdleTimeout,
+    idle_timeout: Timeout,
 
     message_router: MessageRouter,
 
@@ -234,7 +234,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             let room_task = RoomTask {
                 info: room_info,
                 api_rx: rx,
-                idle_timeout: IdleTimeout::start_new(timeout),
+                idle_timeout: Timeout::start_new(timeout),
                 message_router,
                 breakout_config: None,
                 loopback_futures,
@@ -291,7 +291,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 Some(msg) = self.loopback_futures.next() => {
                     self.handle_loopback(msg);
                 },
-                () = self.idle_timeout.has_timed_out() => {
+                () = self.idle_timeout.wait_for_completion() => {
                     tracing::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
                     return Ok(());
                 }
@@ -561,7 +561,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     #[tracing::instrument(level = "info", skip_all)]
     fn refresh_idle_timeout(&mut self) {
-        self.idle_timeout.refresh();
+        self.idle_timeout.reset();
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -872,7 +872,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .values()
             .any(|s| s.is_connected())
         {
-            self.idle_timeout.start(IDLE_TIMEOUT);
+            self.idle_timeout.restart();
         }
     }
 
