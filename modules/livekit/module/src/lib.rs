@@ -347,20 +347,15 @@ impl LiveKitModule {
             .filter(|(participant_id, _)| participants.contains(participant_id))
             .flat_map(|(participant_id, state)| {
                 state.connections().map(|connection_id| {
-                    LiveKitConnection::new(
-                        *participant_id,
-                        connection_id,
-                        ctx.room_id,
-                        state.room,
-                        Arc::clone(&self.livekit_client),
-                    )
+                    LiveKitConnection::new(*participant_id, connection_id, ctx.room_id, state.room)
                 })
             })
             .collect();
 
         tracing::debug!("spawn background task to mute participants");
+        let livekit_client = Arc::clone(&self.livekit_client);
         ctx.spawn_optional(async move {
-            let muted = loopback::mute_participants(sender, connections).await;
+            let muted = loopback::mute_participants(livekit_client, sender, connections).await;
             if return_channel.send(muted).is_err() {
                 tracing::error!("Channel dropped when muting participants");
             }

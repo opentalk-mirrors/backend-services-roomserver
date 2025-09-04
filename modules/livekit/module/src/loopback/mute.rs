@@ -14,22 +14,26 @@ use tracing::{Instrument as _, debug_span};
 use crate::{LiveKitConnection, PARALLEL_UPDATES};
 
 pub async fn mute_participants(
+    livekit_client: Arc<RoomClient>,
     sender: Option<ParticipantId>,
     participant_connections: Vec<LiveKitConnection>,
 ) -> ParticipantsMuted {
     let muted_participants = stream::iter(participant_connections).map(
-        |LiveKitConnection { participant_id, livekit_participant_id, livekit_room: room, livekit_client }| async move {
-            let mute_span = debug_span!("mute", livekit_participant_id);
-            let result = mute(&livekit_client, &room, &livekit_participant_id)
-                .instrument(mute_span.clone())
-                .await;
-            match result {
-                Ok(true) => Some(participant_id),
-                Ok(false) => None,
-                Err(e) => {
-                    // The participant might not have a microphone or already left the meeting.
-                    tracing::debug!(parent: &mute_span, "failed to mute participant connection '{participant_id}': {e}");
-                    None
+        |LiveKitConnection { participant_id, livekit_participant_id, livekit_room: room}| {
+            let client = Arc::clone(&livekit_client);
+            async move {
+                let mute_span = debug_span!("mute", livekit_participant_id);
+                let result = mute(&client, &room, &livekit_participant_id)
+                    .instrument(mute_span.clone())
+                    .await;
+                match result {
+                    Ok(true) => Some(participant_id),
+                    Ok(false) => None,
+                    Err(e) => {
+                        // The participant might not have a microphone or already left the meeting.
+                        tracing::debug!(parent: &mute_span, "failed to mute participant connection '{participant_id}': {e}");
+                        None
+                    }
                 }
             }
         },
