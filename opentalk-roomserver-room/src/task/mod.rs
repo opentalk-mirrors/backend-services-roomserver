@@ -510,6 +510,21 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         ) {
             self.handle_fatal_module_error(command.receiver, origin.transaction_id(), err);
         }
+
+        // Disallow modules to trigger internal commands from internal commands
+        messages.borrow_mut().retain(|message| match message {
+            ModuleMessage::InternalCommand(InterModuleMessage {
+                sender, receiver, ..
+            }) => {
+                tracing::warn!(
+                    "Dropping internal command from '{sender}' to '{receiver}' to prevent recursion"
+                );
+                false
+            }
+            _ => true,
+        });
+
+        self.handle_module_messages(messages, room, origin, timestamp);
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

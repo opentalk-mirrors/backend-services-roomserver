@@ -14,12 +14,14 @@ version.workspace = true
 [dependencies]
 anyhow.workspace = true
 opentalk-roomserver-module-livekit.workspace = true
+opentalk-roomserver-module-shared-folder.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
 opentalk-roomserver-types-moderation.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
+
 tokio.workspace = true
 tracing.workspace = true
 
@@ -27,6 +29,7 @@ tracing.workspace = true
 livekit.workspace = true
 opentalk-roomserver-mocking-livekit.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+opentalk-roomserver-types-shared-folder.workspace = true
 opentalk-roomserver-web-api.workspace = true
 pretty_assertions.workspace = true
 serde_json.workspace = true

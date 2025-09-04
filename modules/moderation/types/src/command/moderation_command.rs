@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     KickScope,
     command::{ChangeDisplayName, SendToWaitingRoom},
-    event::ModerationEvent,
+    event::{ModerationEvent, RoleUpdate},
 };
 
 /// Commands for the `moderation` namespace
@@ -28,6 +28,9 @@ pub enum ModerationCommand {
 
     /// Unban a banned participant
     Unban { target: ParticipantId },
+
+    /// Change the role of a participant
+    UpdateRole(RoleUpdate),
 
     /// Start the debriefing
     Debrief(KickScope),

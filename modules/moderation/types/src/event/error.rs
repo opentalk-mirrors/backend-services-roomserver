@@ -38,6 +38,10 @@ pub enum ModerationError {
     CannotBanGuests,
     /// Cannot ban oneself
     CannotBanSelf,
+    /// Cannot change the role of the room owner
+    CannotChangeRoomOwnerRole,
+    /// The participant already has the role assigned
+    RoleAlreadyAssigned,
     /// The participant is not in the waiting room
     NotWaiting,
     /// The participant cannot enter the room because they were not accepted by a moderator yet.
