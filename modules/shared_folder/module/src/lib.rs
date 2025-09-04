@@ -8,8 +8,9 @@
 //! Shares URL and password to access a shared folder. Moderators as provided with a
 //! read-write URL while other users receive a read-only URL.
 //!
-//! This module requires that the [`SharedFolder`] is available in the [`RoomParameters::module_data`].
-//! If these are not present, the module won't initialize and stays disabled.
+//! This module requires that the [`SharedFolder`] is available in the
+//! [`RoomParameters::module_data`]. If these are not present, the module won't initialize and stays
+//! disabled.
 //!
 //! [`RoomParameters::module_data`]: opentalk_roomserver_types::room_parameters::RoomParameters::module_data
 

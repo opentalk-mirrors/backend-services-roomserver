@@ -39,9 +39,10 @@
 //! Every connection to a Room is identified by the [`ConnectionId`]. The connection ID is generated
 //! by [`ScopedRouter::add_connection`](crate::message_router::ScopedRouter::add_connection).
 //!
-//! For registered users, the [`ParticipantId`] is derived from the [`UserId`] that is part of the [`PublicUserProfile`].
-//! Guests and services don't have a such a profile. These clients provide a `device_secret` that is used
-//! to derive a [`DeviceId`] which in turn is used to derive the [`ParticipantId`].
+//! For registered users, the [`ParticipantId`] is derived from the [`UserId`] that is part of the
+//! [`PublicUserProfile`]. Guests and services don't have a such a profile. These clients provide a
+//! `device_secret` that is used to derive a [`DeviceId`] which in turn is used to derive the
+//! [`ParticipantId`].
 //!
 //! [`SignalingModule`]: opentalk_roomserver_signaling::signaling_module::SignalingModule
 //! [`UserId`]: opentalk_types_common::users::UserId
@@ -128,14 +129,14 @@ pub enum RoomTaskApiError {
 
 /// The timeout for an empty room
 ///
-/// Should be higher than the lifetime of the signaling token from the token store to ensure that the room doesn't
-/// expire before the signaling token does.
+/// Should be higher than the lifetime of the signaling token from the token store to ensure that
+/// the room doesn't expire before the signaling token does.
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
-/// An idle [`Timeout`] starts when a room has no participants in it. When the idle timeout is reached, the room task
-/// exits.
+/// An idle [`Timeout`] starts when a room has no participants in it. When the idle timeout is
+/// reached, the room task exits.
 pub struct RoomTask<Socket: SignalingSocket + 'static> {
     info: RoomTaskInfo,
 
@@ -672,8 +673,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 participant_origin.id
             );
 
-            // This scenario should never occur because we never delete known participants. We still attempt to
-            // send an error to the non-existent connection in a best-effort approach.
+            // This scenario should never occur because we never delete known participants. We still
+            // attempt to send an error to the non-existent connection in a best-effort
+            // approach.
             self.message_router.conference.send_error(
                 participant_origin.connection_id,
                 signaling_command.transaction_id,
@@ -738,8 +740,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let participant_id = build_participant_id(&client_parameters.kind, device_id);
         let role = client_parameters.role;
 
-        // If we ever run into the issue of an uuid collision, a guest could hijack a user session and vice versa. We'd
-        // rather decline the new connection when the participant id is known, but the participant kinds differ.
+        // If we ever run into the issue of an uuid collision, a guest could hijack a user session
+        // and vice versa. We'd rather decline the new connection when the participant id is
+        // known, but the participant kinds differ.
         if let Some(existing_participant) = self.participants.all_unfiltered.get(&participant_id)
             && mem::discriminant(&existing_participant.kind)
                 != mem::discriminant(&client_parameters.kind)
@@ -834,8 +837,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    /// This method either disconnects a waiting room participant or a participant that already joined the room.
-    /// For that it either calls [`Self::disconnect_participant`] or [`Self::disconnect_waiting_participant`].
+    /// This method either disconnects a waiting room participant or a participant that already
+    /// joined the room. For that it either calls [`Self::disconnect_participant`] or
+    /// [`Self::disconnect_waiting_participant`].
     fn handle_disconnect(
         &mut self,
         origin: EventOrigin,
@@ -915,12 +919,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     /// Generate a [`DeviceId`] from a device secret
     ///
-    /// This function hashes the device secret and the salt that is configured for the roomserver. The first 128
-    /// bit of the output hash are then used as the uuid for the [`DeviceId`]. This is repeatable, the same device
-    /// secret will result in the same [`DeviceId`] until the salt changes because of a roomserver restart.
+    /// This function hashes the device secret and the salt that is configured for the roomserver.
+    /// The first 128 bit of the output hash are then used as the uuid for the [`DeviceId`].
+    /// This is repeatable, the same device secret will result in the same [`DeviceId`] until
+    /// the salt changes because of a roomserver restart.
     ///
-    /// Reusing the salt is fine in this case since the salt is private and the device secret already has a high entropy.
-    /// In contrast to a password salt, our salt needs to stay private.
+    /// Reusing the salt is fine in this case since the salt is private and the device secret
+    /// already has a high entropy. In contrast to a password salt, our salt needs to stay
+    /// private.
     fn derive_device_id(&self, device_secret: &DeviceSecret) -> DeviceId {
         let mut hasher = blake3::Hasher::new();
         let salt = self.settings.conference.signaling_salt.as_bytes();

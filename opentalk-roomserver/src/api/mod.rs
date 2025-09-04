@@ -109,8 +109,8 @@ impl utoipa::Modify for SecurityAddon {
 
 /// Starts the web server
 ///
-/// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional, if no version is specified
-/// the latest api version is used.
+/// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional, if no
+/// version is specified the latest api version is used.
 pub(crate) async fn run_web_server<L>(
     settings: Arc<Settings>,
     app_state: watch::Sender<ApplicationState>,
@@ -183,7 +183,8 @@ where
     }
 
     if !settings.http.disable_openapi {
-        // TODO: Having this enabled causes the utoipa schema to be cloned and dropped for each request which increases cost by about ~40%
+        // TODO: Having this enabled causes the utoipa schema to be cloned and dropped for each
+        // request which increases cost by about ~40%
         let mut openapi = ApiDoc::openapi();
         openapi.servers = Some(vec![utoipa::openapi::Server::new("/v1")]);
         router = router.merge(SwaggerUi::new("/swagger").url("/docs/openapi.json", openapi));

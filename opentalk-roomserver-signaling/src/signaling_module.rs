@@ -23,17 +23,20 @@ use crate::participant_state::ParticipantState;
 
 /// The trait that defines a signaling module
 ///
-/// Implementors can be added as a module to the room task. The room task will forward signaling events to the module
-/// with the corresponding [`SignalingModule::NAMESPACE`]. All event calls are handled in sequence on the same task.
-/// Signaling modules are expected to spawn separate tasks when compute intense or long-running operations need to be
-/// executed (See [`SignalingModule::Loopback`] for more details).
+/// Implementors can be added as a module to the room task. The room task will forward signaling
+/// events to the module with the corresponding [`SignalingModule::NAMESPACE`]. All event calls are
+/// handled in sequence on the same task. Signaling modules are expected to spawn separate tasks
+/// when compute intense or long-running operations need to be executed (See
+/// [`SignalingModule::Loopback`] for more details).
 pub trait SignalingModule: Send + Sync + Sized {
     /// The unique namespace for the module
     ///
-    /// This is used as a general identifier to dispatch incoming signaling messages to the correct module.
+    /// This is used as a general identifier to dispatch incoming signaling messages to the correct
+    /// module.
     const NAMESPACE: ModuleId;
 
-    /// The incoming websocket payload which is received as in [`SignalingModule::on_websocket_message`]
+    /// The incoming websocket payload which is received as in
+    /// [`SignalingModule::on_websocket_message`]
     type Incoming: for<'de> Deserialize<'de> + Send + CreateReplica<Self::Outgoing>;
 
     /// The outgoing websocket payload that is sent to the clients
@@ -44,8 +47,8 @@ pub trait SignalingModule: Send + Sync + Sized {
 
     /// Internal result type for asynchronous tasks
     ///
-    /// These are received in the [`SignalingModule::on_loopback_event`] when an asynchronous task created by
-    /// the module finishes.
+    /// These are received in the [`SignalingModule::on_loopback_event`] when an asynchronous task
+    /// created by the module finishes.
     ///
     /// Tasks can be created with [`ModuleContext::spawn`] or [`ModuleContext::spawn_blocking`].
     type Loopback: Send + 'static;
@@ -55,9 +58,9 @@ pub trait SignalingModule: Send + Sync + Sized {
 
     /// Namespaced data that can be attached to the `Joined` message
     ///
-    /// When a participant connects they trigger a `Joined` event for all other participants in the conference. Modules
-    /// can append this type to the message to communicate module specific state of a new participant to the other
-    /// participants.
+    /// When a participant connects they trigger a `Joined` event for all other participants in the
+    /// conference. Modules can append this type to the message to communicate module specific
+    /// state of a new participant to the other participants.
     type PeerJoinInfo: Serialize + Send + 'static;
 
     /// The non-fatal error that can be returned from signaling module event handlers
@@ -174,7 +177,8 @@ pub struct ModuleJoinData<M: SignalingModule> {
     /// Module specific data that will be attached to the participants `JoinSuccess` message
     pub join_success: Option<M::JoinInfo>,
 
-    /// Module specific data that will be attached to the information about other participants inside the `JoinSuccess`
+    /// Module specific data that will be attached to the information about other participants
+    /// inside the `JoinSuccess`
     pub peer_events: PeerDataMap<M>,
 
     /// Module specific data that will be attached to other participants `Joined` message
@@ -203,7 +207,8 @@ pub struct ModuleSwitchData<M: SignalingModule> {
     /// Module specific data that will be attached to other participants `Joined` message
     pub peer_events: PeerDataMap<M>,
 
-    /// Module specific data that will be attached to the information about other participants inside the `JoinSuccess`
+    /// Module specific data that will be attached to the information about other participants
+    /// inside the `JoinSuccess`
     pub peer_data: PeerDataMap<M>,
 }
 
@@ -225,8 +230,8 @@ impl<M: SignalingModule> Default for ModuleSwitchData<M> {
 
 /// A map of participants and their [`SignalingModule::PeerJoinInfo`]
 ///
-/// When a `Joined` message is sent to a participant, the participants associated [`SignalingModule::PeerJoinInfo`] will
-/// be attached to it.
+/// When a `Joined` message is sent to a participant, the participants associated
+/// [`SignalingModule::PeerJoinInfo`] will be attached to it.
 pub struct PeerDataMap<M: SignalingModule> {
     pub map: BTreeMap<ParticipantId, SharedJson>,
     _m: PhantomData<M>,
@@ -282,7 +287,8 @@ impl<M: SignalingModule> PeerDataMap<M> {
         Ok(())
     }
 
-    /// Attach [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) for all participants that match the given filter
+    /// Attach [`PeerJoinInfo`](SignalingModule::PeerJoinInfo) for all participants that match the
+    /// given filter
     pub fn insert_for_matching<F>(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,

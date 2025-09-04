@@ -213,7 +213,8 @@ async fn join_via_waiting_room() {
         .await;
     }
 
-    // No additional messages, bob_0 or bob_1 might receive a ParticipantJoined event depending on the order of joining
+    // No additional messages, bob_0 or bob_1 might receive a ParticipantJoined event depending on
+    // the order of joining
     assert!(alice.received_nothing());
     assert!(charlie.received_nothing());
 }

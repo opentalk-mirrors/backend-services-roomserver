@@ -16,7 +16,8 @@ use crate::participant_filter::{ParticipantsFiltered, ParticipantsFilteredMut};
 
 #[derive(Debug, Default)]
 pub struct Participants {
-    /// Contains all connected and disconnected participants, even those outside of the current breakout scope
+    /// Contains all connected and disconnected participants, even those outside of the current
+    /// breakout scope
     pub all_unfiltered: HashMap<ParticipantId, ParticipantState>,
 }
 

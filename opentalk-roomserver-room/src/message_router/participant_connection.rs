@@ -165,8 +165,8 @@ fn spawn<Socket: SignalingSocket + 'static>(
 
 /// Handles the messaging between client and [`RoomTask`](super::super::task::RoomTask)
 ///
-/// Messages that were sent by the client get tagged with the associated participant id and will be forwarded to the
-/// room task. Messages from the room task will be forwarded to the client.
+/// Messages that were sent by the client get tagged with the associated participant id and will be
+/// forwarded to the room task. Messages from the room task will be forwarded to the client.
 pub(super) struct ParticipantConnectionTask<Stream: SignalingStream, Sink: SignalingSink> {
     /// The participant id that is used to tag messages that are send to the room task
     participant_id: ParticipantId,
@@ -196,7 +196,8 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             let mut stream = Pin::new(&mut self.stream);
 
             // Build the receive future. We don't bind this to self since this would
-            // not allow us to also have a mutable reference in the `self.room_task_event_receiver` (aka send-future).
+            // not allow us to also have a mutable reference in the `self.room_task_event_receiver`
+            // (aka send-future).
             let allocated_receive =
                 Self::allocated_receive(self.room_task_command_sender.clone(), &mut stream);
 
@@ -238,7 +239,8 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
     /// ## Cancel Safety
     ///
     /// This function needs to be cancel safe, i.e. when canceled no messages must be dropped.
-    /// It is expected that this function will be canceled whenever an event is sent to the participant.
+    /// It is expected that this function will be canceled whenever an event is sent to the
+    /// participant.
     ///
     /// [`RoomTask`]: crate::room::task::RoomTask
     async fn allocated_receive(
@@ -397,7 +399,8 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
 
         // In case the channel is full, we don't want to wait until we can process this message.
         drop(tokio::spawn(async move {
-            // we don't care if the room tasks command receiver was dropped. There is nothing we can do.
+            // we don't care if the room tasks command receiver was dropped. There is nothing we can
+            // do.
             let _ = room_task_command_sender
                 .send(
                     SignalingMessage::Closed(CloseReason::from(exit_reason))
@@ -411,7 +414,8 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             let _ = sink
                 .send(SignalingSocketMessage::Close(Some(close_frame)))
                 .await;
-            // Wait for a close frame for the duration of `CLOSE_TIMEOUT` until we forcefully terminate the connection
+            // Wait for a close frame for the duration of `CLOSE_TIMEOUT` until we forcefully
+            // terminate the connection
             if tokio::time::timeout(CLOSE_TIMEOUT, wait_close(stream))
                 .await
                 .is_err()
@@ -501,7 +505,8 @@ mod tests {
             &mut p1_socket,
         );
 
-        // Insert a pending message in the socket, that must not get lost when canceling the receive message
+        // Insert a pending message in the socket, that must not get lost when canceling the receive
+        // message
         p1.queue_send_ping();
 
         let timeout = tokio::time::timeout(Duration::from_millis(100), receive_future).await;

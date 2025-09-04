@@ -28,9 +28,9 @@ pub struct SpeakerUpdated {
     /// Optional modification of the remaining participants.
     ///
     /// Remaining participants must be interpreted differently depending on the selection strategy.
-    /// E.g. in the playlist moderation `remaining` lists the participants left inside the playlist.
-    /// All other strategies will use `remaining` (if at all) to list all participants (if public)
-    /// that are eligible to be selected.
+    /// E.g. in the playlist moderation `remaining` lists the participants left inside the
+    /// playlist. All other strategies will use `remaining` (if at all) to list all
+    /// participants (if public) that are eligible to be selected.
     ///
     /// This will only be set when using the `playlist` selection_strategy.
     ///

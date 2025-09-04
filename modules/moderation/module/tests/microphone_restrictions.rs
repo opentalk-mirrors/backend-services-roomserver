@@ -345,7 +345,8 @@ async fn enable_insufficient_permissions() {
     );
 }
 
-/// The [`LiveKitModule::ongoing_microphone_restrictions`] barrier should be freed after the operation finished.
+/// The [`LiveKitModule::ongoing_microphone_restrictions`] barrier should be freed after the
+/// operation finished.
 #[test_log::test(tokio::test)]
 #[ignore = "requires livekit container"]
 async fn barrier_should_be_freed() {

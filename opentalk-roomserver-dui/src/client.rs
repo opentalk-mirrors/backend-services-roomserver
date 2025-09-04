@@ -165,7 +165,8 @@ impl RoomServerRunner {
 
     /// Wrapper to receive from an optional connection.
     ///
-    /// If the connection is none (we are not connected with a signaling websocket) this call will be stuck in pending.
+    /// If the connection is none (we are not connected with a signaling websocket) this call will
+    /// be stuck in pending.
     async fn next_received(
         conn: Option<&mut SignalingConnection>,
         suspended: bool,

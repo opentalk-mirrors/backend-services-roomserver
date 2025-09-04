@@ -19,7 +19,8 @@ use opentalk_roomserver_types::room_kind::RoomKind;
 use opentalk_types_common::{rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 
-/// Contains the state of the [`RoomTask`](super::super::task::RoomTask) that is accessible to all [`SignalingModule`]s
+/// Contains the state of the [`RoomTask`](super::super::task::RoomTask) that is accessible to all
+/// [`SignalingModule`]s
 pub struct DynModuleContext<'ctx> {
     pub room_id: RoomId,
     pub room: RoomKind,

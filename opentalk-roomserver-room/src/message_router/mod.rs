@@ -46,7 +46,8 @@ pub struct MessageRouter {
 
     pub conference: ScopedRouter,
 
-    /// The internal receiver for [`room_task_command_sender`](MessageRouter::room_task_command_sender) that contains
+    /// The internal receiver for
+    /// [`room_task_command_sender`](MessageRouter::room_task_command_sender) that contains
     /// messages for the room task. Can be read through the [`recv`](MessageRouter::recv) method.
     room_task_command_receiver: mpsc::Receiver<MessageEnvelope<SignalingMessage>>,
 }
@@ -123,7 +124,8 @@ pub struct ScopedRouter {
 
     disconnects: HashMap<ConnectionId, ParticipantId>,
 
-    /// An internal sender that is given to each [`ParticipantConnectionTask`] to communicate with the [`RoomTask`](super::task::RoomTask)
+    /// An internal sender that is given to each [`ParticipantConnectionTask`] to communicate with
+    /// the [`RoomTask`](super::task::RoomTask)
     ///
     /// [`ParticipantConnectionTask`]: participant_connection::ParticipantConnectionTask
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,

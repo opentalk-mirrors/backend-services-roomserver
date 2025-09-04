@@ -23,10 +23,12 @@ pub enum BreakoutEvent {
         started_by: ParticipantId,
         /// The configured breakout rooms
         rooms: Vec<BreakoutRoom>,
-        /// Optional breakout expiry. When the breakout rooms expire, all participants are moved back to the main room
+        /// Optional breakout expiry. When the breakout rooms expire, all participants are moved
+        /// back to the main room
         #[serde(default, skip_serializing_if = "Option::is_none")]
         expires_at: Option<Timestamp>,
-        /// The optional assignment for the receiving participant. This assignment is not enforced by the roomserver
+        /// The optional assignment for the receiving participant. This assignment is not enforced
+        /// by the roomserver
         #[serde(default, skip_serializing_if = "Option::is_none")]
         assignment: Option<BreakoutId>,
     },
@@ -72,7 +74,8 @@ pub enum BreakoutEvent {
     ///
     /// Is received before all participants are moved back to the main room
     Closing {
-        /// The participant that issued the close command. Is `None` when the breakout rooms expired.
+        /// The participant that issued the close command. Is `None` when the breakout rooms
+        /// expired.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         issued_by: Option<ParticipantId>,
     },
@@ -95,7 +98,8 @@ pub enum BreakoutError {
     AlreadyInRoom,
     /// A provided participant id is unknown to the roomserver
     UnknownParticipant { participant_id: ParticipantId },
-    /// Invalid selection of assignments when starting the breakout rooms, e.g. a participant is assigned to multiple rooms
+    /// Invalid selection of assignments when starting the breakout rooms, e.g. a participant is
+    /// assigned to multiple rooms
     InvalidSelection,
     /// Provided an unknown BreakoutId
     UnknownBreakoutId,

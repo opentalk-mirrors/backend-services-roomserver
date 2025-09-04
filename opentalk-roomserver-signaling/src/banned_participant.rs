@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 pub struct BannedParticipant {
     /// The display name of the banned participant
     ///
-    /// Needs to be saved because a banned participant might have never joined the conference, we can't ensure that the
-    /// participant id can be resolved by the frontend.
+    /// Needs to be saved because a banned participant might have never joined the conference, we
+    /// can't ensure that the participant id can be resolved by the frontend.
     pub display_name: DisplayName,
 
     /// The avatar url of the banned participant

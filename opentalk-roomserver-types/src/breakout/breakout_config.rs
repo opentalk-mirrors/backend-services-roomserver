@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct BreakoutConfig {
-    /// The breakout rooms and their config, their [`BreakoutId`](super::breakout_id::BreakoutId) is equal to the index in the list
+    /// The breakout rooms and their config, their [`BreakoutId`](super::breakout_id::BreakoutId)
+    /// is equal to the index in the list
     pub rooms: Vec<BreakoutRoomConfig>,
 
     /// The duration for all breakout rooms, minimum of 60 seconds.
@@ -27,7 +28,8 @@ pub struct BreakoutRoomConfig {
     /// The name of the breakout room
     pub name: String,
 
-    /// The breakout assignments for participants, these are not strictly enforced by the roomserver.
+    /// The breakout assignments for participants, these are not strictly enforced by the
+    /// roomserver.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub assignments: Vec<ParticipantId>,
 }

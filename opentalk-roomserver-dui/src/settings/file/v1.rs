@@ -15,7 +15,8 @@ use crate::{
 pub struct DuiSettingsV1 {
     /// True if no settings where stored before.
     ///
-    /// In case no config file or persistent settings where found, the default settings will be used.
+    /// In case no config file or persistent settings where found, the default settings will be
+    /// used.
     #[serde(skip)]
     pub is_default: bool,
 
@@ -65,7 +66,8 @@ pub struct DuiSettingsV1 {
 impl DuiSettingsV1 {
     /// True if no settings where stored before.
     ///
-    /// In case no config file or persistent settings where found, the default settings will be used.
+    /// In case no config file or persistent settings where found, the default settings will be
+    /// used.
     pub fn is_default(&self) -> bool {
         self.is_default
     }

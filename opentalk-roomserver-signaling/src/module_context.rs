@@ -125,7 +125,8 @@ where
         }
     }
 
-    /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given `participant_ids`
+    /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given
+    /// `participant_ids`
     ///
     /// The message is always scoped to the [`SignalingModule::NAMESPACE`]
     ///
@@ -289,8 +290,7 @@ where
 
     /// Send a command to another [`SignalingModule`]
     ///
-    /// * `command` - The command to be sent. The type is defined by the receiving
-    ///   module.
+    /// * `command` - The command to be sent. The type is defined by the receiving module.
     /// * `handle_result` - Closure that receives the result of the command.
     pub fn send_internal_command<R>(&mut self, command: R::Internal)
     where
@@ -444,7 +444,8 @@ where
     /// back to the calling module as [`SignalingModule::Loopback`] in the
     /// [`SignalingModule::on_loopback_event`] method.
     ///
-    /// If the provided function panics, any results will be discarded and the module won't be notified.
+    /// If the provided function panics, any results will be discarded and the module won't be
+    /// notified.
     pub fn spawn_blocking<F>(&self, blocking_function: F)
     where
         F: FnOnce() -> M::Loopback + Send + 'static,

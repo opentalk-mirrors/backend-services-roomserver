@@ -207,7 +207,8 @@ impl SignalingView {
             }
         });
 
-        // we cannot handle the shortcuts inside the menu button ui since this is not executed if the menu is closed
+        // we cannot handle the shortcuts inside the menu button ui since this is not executed if
+        // the menu is closed
         for (open, plugin) in &mut self.plugins {
             if plugin
                 .shortcut()
@@ -371,8 +372,8 @@ impl SignalingView {
                     .show(ui, |ui| {
                         for (index, msg) in history.iter().enumerate().rev() {
                             if ui.button("send").clicked() {
-                                // we don't want to mess with the "history-select-state" or the message
-                                // input. Just send it!
+                                // we don't want to mess with the "history-select-state" or the
+                                // message input. Just send it!
                                 let message = msg.text().to_string();
                                 command_tx.send(RunnerCommand::Send { message })?;
                             }

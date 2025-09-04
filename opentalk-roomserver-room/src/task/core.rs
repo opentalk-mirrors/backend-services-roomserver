@@ -160,7 +160,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Notifies other connections with the [`CoreEvent::ParticipantConnected`] message.
     ///
     /// NOTE: In case the joining participant is already connected with another device, they will
-    /// also receive the [`CoreEvent::ParticipantConnected`] messages on the device that is already connected.
+    /// also receive the [`CoreEvent::ParticipantConnected`] messages on the device that is already
+    /// connected.
     pub(super) fn participant_joined(
         &mut self,
         participant_id: ParticipantId,
@@ -259,8 +260,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         Ok(())
     }
 
-    /// Inform modules that the participant has left the conference and broadcast [`CoreEvent::ParticipantDisconnected`]
-    /// to all participants
+    /// Inform modules that the participant has left the conference and broadcast
+    /// [`CoreEvent::ParticipantDisconnected`] to all participants
     pub(super) fn participant_disconnected(
         &mut self,
         origin: EventOrigin,
@@ -331,7 +332,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    /// An unrecoverable module error occurred and the module needs to be removed for the remainder of the conference
+    /// An unrecoverable module error occurred and the module needs to be removed for the remainder
+    /// of the conference
     ///
     /// Further requests to the module will result in a [`SignalingError::UnknownNamespace`] error.
     pub(crate) fn handle_fatal_module_error(
@@ -475,7 +477,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    /// Sends a [`CoreEvent::TimeLimitQuotaElapsed`] to all participants in the conference and waiting room
+    /// Sends a [`CoreEvent::TimeLimitQuotaElapsed`] to all participants in the conference and
+    /// waiting room
     pub(crate) fn time_limit_quota_elapsed(&mut self) {
         let event = SignalingEvent {
             namespace: CORE_MODULE_ID,

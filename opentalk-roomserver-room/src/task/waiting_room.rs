@@ -70,8 +70,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), FatalError> {
         match self.waiting_participants.entry(participant_id) {
             Entry::Occupied(mut occupied_entry) => {
-                // The user joins with a second device. The client parameter (e.g. username, role) could have changed since the last connect.
-                // If the participant is already connected we ignore the new client parameter.
+                // The user joins with a second device. The client parameter (e.g. username, role)
+                // could have changed since the last connect. If the participant is
+                // already connected we ignore the new client parameter.
 
                 occupied_entry
                     .get_mut()

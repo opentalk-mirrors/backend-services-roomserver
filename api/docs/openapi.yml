@@ -17,7 +17,9 @@ paths:
     put:
       tags:
         - "v1::rooms"
-      summary: Creates a new room instance with the specified parameters if no room with the provided id exists.
+      summary: |-
+        Creates a new room instance with the specified parameters if no room with the provided id
+        exists.
       description: "If a room with the provided room ID already exists, the rooms idle timeout is refreshed."
       operationId: put_room
       parameters:
@@ -54,12 +56,14 @@ paths:
         - "v1::rooms"
       summary: Creates a new signaling token for the specified user and room
       description: |-
-        The signaling token can be used to establish a websocket connection with the roomserver through the
-        `/signaling/<token>` endpoint. The token has a limited lifetime (30 seconds by default) and can only be used once.
+        The signaling token can be used to establish a websocket connection with the roomserver through
+        the `/signaling/<token>` endpoint. The token has a limited lifetime (30 seconds by default) and
+        can only be used once.
 
-        Calling this endpoint will start a new room task or refresh existing ones. To get a token for an unknown room, the
-        request body has to contain the `room_parameters` field (See [`TokenRequestBody`]). If the room is already running,
-        any provided `room_parameters` will be ignored.
+        Calling this endpoint will start a new room task or refresh existing ones. To get a token for an
+        unknown room, the request body has to contain the `room_parameters` field (See
+        [`TokenRequestBody`]). If the room is already running, any provided `room_parameters` will be
+        ignored.
       operationId: request_token
       parameters:
         - name: room_id
@@ -192,8 +196,8 @@ components:
                 - call_in
         - type: object
           description: |-
-            Same as `ClientKind::CallIn` but the controller may associate a user to the call-in participant if phonenumber
-            matching is enabled
+            Same as `ClientKind::CallIn` but the controller may associate a user to the call-in
+            participant if phonenumber matching is enabled
           required:
             - profile
             - kind
@@ -636,7 +640,8 @@ components:
           description: |-
             The room that the token is requested for.
 
-            Once this was provided to the roomserver, further request do not need to include the room parameters
+            Once this was provided to the roomserver, further request do not need to include the room
+            parameters
       example:
         client_parameters:
           device_secret: v3rys3cr3tD3v1ce5tr1ng
@@ -721,7 +726,9 @@ components:
             token:
               $ref: "#/components/schemas/Token"
         - type: object
-          description: "The requested room is unknown to the roomserver and needs to be provided through the [TokenRequestBody](super::TokenRequestBody)"
+          description: |-
+            The requested room is unknown to the roomserver and needs to be provided through the
+            [TokenRequestBody](super::TokenRequestBody)
           required:
             - response
           properties:

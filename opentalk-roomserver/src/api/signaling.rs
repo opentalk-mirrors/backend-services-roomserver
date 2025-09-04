@@ -49,7 +49,8 @@ impl SignalingBackend for Context {
             .accept_signaling_socket(WebSocketAdapter::new(socket), client_parameters)
             .await;
 
-        // handle that the socket might not reach the room task. In that case we need to close it ourself.
+        // handle that the socket might not reach the room task. In that case we need to close it
+        // ourself.
         if let Err(e) = &mut res
             && let Some(Request::WsJoin { socket, .. }) = e.take_request()
         {
