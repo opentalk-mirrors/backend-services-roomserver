@@ -4,6 +4,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
+use opentalk_roomserver_signaling::module_resources::provider::ModuleResourceProvider;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
 use opentalk_types_common::rooms::RoomId;
@@ -16,6 +17,7 @@ use super::signaling::module_initializer::ModuleRegistry;
 use crate::task::{
     RoomTask,
     handle::{RoomTaskHandle, RoomTaskHandleError},
+    memory_module_storage::MemoryModuleResourceStorage,
 };
 
 /// The room task registry
@@ -67,10 +69,13 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             return Ok((RoomAction::Updated, task_handle.clone()));
         }
 
+        let module_resources = create_module_storage_provider();
+
         let (task_handle, join_handle) = RoomTask::spawn(
             room_id,
             room_parameters,
             module_registry,
+            module_resources,
             settings,
             app_state,
         );
@@ -111,10 +116,13 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             return;
         }
 
+        let module_resources = create_module_storage_provider();
+
         let (task_handle, join_handle) = RoomTask::spawn(
             room_id,
             room_parameters,
             module_registry,
+            module_resources,
             settings,
             app_state,
         );
@@ -154,4 +162,9 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         tracing::trace!("Remove room task handle from registry: {room_id}");
         room_list.remove(&room_id);
     }
+}
+
+// TODO: this function will be replaced once a real module storage provider has been implemented
+fn create_module_storage_provider() -> Arc<dyn ModuleResourceProvider> {
+    Arc::new(MemoryModuleResourceStorage::new())
 }

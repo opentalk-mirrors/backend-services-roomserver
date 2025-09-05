@@ -366,6 +366,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     &mut self.banned_participants,
                     timestamp,
                     Arc::clone(&self.storage),
+                    Arc::clone(&self.module_resources),
                     &mut messages,
                     &mut self.loopback_futures,
                 ),

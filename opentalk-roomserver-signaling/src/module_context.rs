@@ -31,6 +31,7 @@ use crate::{
     instruction::Instruction,
     internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
+    module_resources::{ModuleResourceStorage, provider::ModuleResourceProvider},
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_event::SignalingEvent,
@@ -74,6 +75,7 @@ where
     pub timestamp: Timestamp,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
     storage: Arc<dyn AssetStorageProvider>,
+    module_resources: Arc<dyn ModuleResourceProvider>,
 
     m: PhantomData<fn() -> M>,
 }
@@ -95,6 +97,7 @@ where
         timestamp: Timestamp,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
         storage: Arc<dyn AssetStorageProvider>,
+        module_resources: Arc<dyn ModuleResourceProvider>,
     ) -> ModuleContext<'ctx, M> {
         Self {
             room_id,
@@ -108,6 +111,7 @@ where
             timestamp,
             loopback_futures,
             storage,
+            module_resources,
             m: PhantomData,
         }
     }
@@ -125,6 +129,7 @@ where
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
             storage: Arc::clone(&self.storage),
+            module_resources: Arc::clone(&self.module_resources),
             m: PhantomData,
         }
     }
@@ -515,6 +520,10 @@ where
 
     pub fn storage(&self) -> ModuleAssetStorage {
         ModuleAssetStorage::new(Arc::clone(&self.storage), self.storage_context())
+    }
+
+    pub fn module_resources(&self) -> ModuleResourceStorage {
+        ModuleResourceStorage::new(Arc::clone(&self.module_resources), self.storage_context())
     }
 
     fn storage_context(&self) -> StorageContext {

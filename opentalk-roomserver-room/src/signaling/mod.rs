@@ -143,7 +143,7 @@ impl Display for DynBroadcastEvent<'_> {
 /// Resolves generic JSON messages into concrete types for the associated [`SignalingModule`]
 ///
 /// Implements the [`ModuleHandle`] trait.
-pub struct ModuleDispatcher<M: SignalingModule + Send> {
+pub struct ModuleDispatcher<M: SignalingModule + Send + 'static> {
     module: M,
 }
 
