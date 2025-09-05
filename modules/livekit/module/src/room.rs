@@ -124,7 +124,7 @@ impl LiveKitSubroom {
             available_sources.retain(|s| s != &TrackSource::Microphone);
         }
 
-        if !self.default_screenshare_permission {
+        if !self.default_screenshare_permission && !ctx.is_moderator(participant) {
             available_sources
                 .retain(|s| s != &TrackSource::ScreenShare && s != &TrackSource::ScreenShareAudio);
         };

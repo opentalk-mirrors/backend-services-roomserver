@@ -74,6 +74,11 @@ service_url = "http://localhost:7880"
 
 api_key = "devkey"
 api_secret = "secret"
+
+# [defaults]
+# When true, participants can't share their screens unless permission is granted by a moderator.
+# Moderators can always share their screen.
+# screen_share_requires_permission = true
 ```
 
 <!-- end:fromfile:example/roomserver.toml.md -->
