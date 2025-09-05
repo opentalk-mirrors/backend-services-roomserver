@@ -23,6 +23,9 @@ pub enum SignalingError {
     ///
     /// Further messages to this namespace will be ignored.
     FatalModuleError { namespace: ModuleId },
+
+    /// The requested operation is not supported in the current context
+    NotSupported,
 }
 
 impl From<serde_json::Error> for SignalingError {

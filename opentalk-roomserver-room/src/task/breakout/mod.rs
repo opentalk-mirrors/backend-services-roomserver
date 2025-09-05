@@ -47,22 +47,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_origin: ParticipantOrigin,
         command: SignalingCommand,
     ) {
-        let Some(participant_state) = self.participants.all_unfiltered.get(&participant_origin.id)
+        let Some(participant_state) = self.participants.connected().get(&participant_origin.id)
         else {
             tracing::error!(
                 "failed to get participant state for participant `{}`",
                 participant_origin.id
             );
-
-            // This scenario should never occur because we never delete known participants. We still
-            // attempt to send an error to the non-existent connection in a best-effort
-            // approach.
-            self.message_router.conference.send_error(
-                participant_origin.connection_id,
-                command.transaction_id,
-                SignalingError::Internal,
-            );
-
             return;
         };
 
@@ -130,6 +120,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                             SignalingError::Internal,
                         );
                     }
+                }
+                SignalingModuleError::NotSupported => {
+                    self.message_router.conference.send_error(
+                        participant_origin.connection_id,
+                        command.transaction_id,
+                        SignalingError::NotSupported,
+                    );
                 }
             };
         }

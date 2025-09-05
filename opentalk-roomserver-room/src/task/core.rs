@@ -53,13 +53,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             Ok(command) => command,
             Err(err) => {
                 tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
-                self.message_router.conference.send_error(
-                    participant_origin.connection_id,
-                    participant_origin.transaction_id,
-                    SignalingError::InvalidJson {
-                        message: format!("{err:?}"),
-                    },
-                );
+                self.message_router_for_participant(participant_origin.id)
+                    .send_error(
+                        participant_origin.connection_id,
+                        participant_origin.transaction_id,
+                        SignalingError::InvalidJson {
+                            message: format!("{err:?}"),
+                        },
+                    );
                 return;
             }
         };
@@ -68,12 +69,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             CoreCommand::EnterRoom => self.enter_room(participant_origin),
         };
 
+        let router = self.message_router_for_participant(participant_origin.id);
         if let Err(e) = result {
             match e {
                 SignalingModuleError::Internal(err) => {
                     tracing::error!("internal error in core module: {err:?}");
 
-                    self.message_router.conference.send_error(
+                    router.send_error(
                         participant_origin.connection_id,
                         command.transaction_id,
                         SignalingError::Internal,
@@ -82,14 +84,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 SignalingModuleError::Fatal(err) => {
                     tracing::error!("fatal error in core module: {err:?}");
 
-                    self.message_router.conference.send_error(
+                    router.send_error(
                         participant_origin.connection_id,
                         command.transaction_id,
                         SignalingError::Internal,
                     );
                 }
                 SignalingModuleError::Module(module_error) => {
-                    let result = self.message_router.conference.serialize_and_send(
+                    let result = router.serialize_and_send(
                         [participant_origin.connection_id],
                         CORE_MODULE_ID,
                         command.transaction_id,
@@ -99,12 +101,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     if let Err(fatal_error) = result {
                         tracing::error!("failed to send error in core module: {fatal_error:?}");
 
-                        self.message_router.conference.send_error(
+                        router.send_error(
                             participant_origin.connection_id,
                             command.transaction_id,
                             SignalingError::Internal,
                         );
                     }
+                }
+                SignalingModuleError::NotSupported => {
+                    router.send_error(
+                        participant_origin.connection_id,
+                        command.transaction_id,
+                        SignalingError::NotSupported,
+                    );
                 }
             };
         }

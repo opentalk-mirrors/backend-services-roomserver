@@ -22,6 +22,8 @@ pub enum SignalingModuleError<E> {
     ///
     /// Is turned into a websocket message and returned to the command issuing participant
     Module(E),
+    /// The requested operation is not supported in the current context
+    NotSupported,
 }
 
 impl<E> From<anyhow::Error> for SignalingModuleError<E> {

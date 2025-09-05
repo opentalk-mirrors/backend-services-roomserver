@@ -25,7 +25,7 @@ impl SignalingModule for EchoModule {
 
     type Internal = NoOp;
 
-    type Loopback = DelayedEchoCompleted;
+    type Loopback = ();
 
     type JoinInfo = ();
 
@@ -74,22 +74,21 @@ impl SignalingModule for EchoModule {
         payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match payload {
-            EchoCommand::Ping | EchoCommand::ReplicatedPing => {
-                ctx.send_ws_message([participant_id], EchoEvent::Pong)?
-            }
+            EchoCommand::Ping => ctx.send_ws_message([participant_id], EchoEvent::Pong)?,
         }
         Ok(())
     }
 
-    fn on_loopback_event(
+    fn on_websocket_message_waiting_room(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        event: Self::Loopback,
+        sender: ParticipantId,
+        _connection_id: ConnectionId,
+        payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        ctx.send_ws_message([event.0], EchoEvent::DelayedPong)
-            .unwrap();
+        match payload {
+            EchoCommand::Ping => ctx.send_ws_message_to_waiting_room([sender], EchoEvent::Pong)?,
+        }
         Ok(())
     }
 }
-
-pub struct DelayedEchoCompleted(ParticipantId);

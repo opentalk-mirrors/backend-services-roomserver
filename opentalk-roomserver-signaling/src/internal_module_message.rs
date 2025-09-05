@@ -9,6 +9,7 @@ pub type ResultCallback = Box<dyn FnOnce(Box<dyn Any + Send + 'static>) + Send +
 
 /// Holds a command and corresponding metadata send between
 /// [`SignalingModule`](crate::signaling_module::SignalingModule)s.
+#[derive(Debug)]
 pub struct InterModuleMessage {
     /// The module that sent the command
     pub sender: ModuleId,

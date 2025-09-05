@@ -97,6 +97,17 @@ pub trait SignalingModule: Send + Sync + Sized {
     ) -> Result<(), SignalingModuleError<Self::Error>>;
 
     #[allow(unused_variables)]
+    fn on_websocket_message_waiting_room(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        connection_id: ConnectionId,
+        payload: Self::Incoming,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        Err(SignalingModuleError::NotSupported)
+    }
+
+    #[allow(unused_variables)]
     fn on_breakout_start(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
