@@ -292,6 +292,7 @@ skip = [
   { name = "litemap", version = "0.7" },
   { name = "phf", version = "0.11" },
   { name = "phf_shared", version = "0.11" },
+  { name = "png", version = "0.17" },
   { name = "prost", version = "0.12.6" },
   { name = "prost-derive", version = "0.12.6" },
   { name = "prost-types", version = "0.12" },
