@@ -114,10 +114,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(skip(self), level = "debug")]
-    pub fn move_to_waiting_room(&mut self, participant_id: ParticipantId) {
+    pub fn move_to_waiting_room(
+        &mut self,
+        participant_id: ParticipantId,
+    ) -> Result<(), FatalError> {
         let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
             tracing::error!("Failed to move unknown participant {participant_id} to waiting room");
-            return;
+            return Ok(());
         };
 
         let connections = mem::take(&mut state.connections);
@@ -145,7 +148,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 *connection_id,
                 room,
                 DisconnectReason::SentToWaitingRoom,
-            );
+            )?;
         }
+        Ok(())
     }
 }

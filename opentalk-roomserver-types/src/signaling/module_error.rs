@@ -38,8 +38,9 @@ impl<E: ModuleError> From<E> for SignalingModuleError<E> {
     }
 }
 
-#[derive(Debug)]
-pub struct FatalError(pub anyhow::Error);
+#[derive(Debug, thiserror::Error)]
+#[error("An unrecoverable error occurred")]
+pub struct FatalError(#[source] pub anyhow::Error);
 
 impl<E> From<FatalError> for SignalingModuleError<E> {
     fn from(err: FatalError) -> Self {

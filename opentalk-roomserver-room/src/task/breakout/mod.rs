@@ -22,7 +22,10 @@ use opentalk_roomserver_types::{
     error::SignalingError,
     room_kind::RoomKind,
     shared_json::SharedJson,
-    signaling::{SignalingCommand, module_error::SignalingModuleError},
+    signaling::{
+        SignalingCommand,
+        module_error::{FatalError, SignalingModuleError},
+    },
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
@@ -215,7 +218,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )?;
         }
 
-        actions.handle_requested_messages(self);
+        actions.handle_requested_messages(self)?;
 
         Ok(())
     }
@@ -356,7 +359,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )?;
         }
 
-        actions.handle_requested_messages(self);
+        actions.handle_requested_messages(self)?;
 
         for (&other_id, state) in self
             .participants
@@ -401,7 +404,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         )?;
 
         self.broadcast_event_to_modules(origin, RoomKind::Main, DynBroadcastEvent::BreakoutClosing)
-            .handle_requested_messages(self);
+            .handle_requested_messages(self)?;
 
         let all_participants = self
             .participants
@@ -429,7 +432,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         )?;
 
         self.broadcast_event_to_modules(origin, RoomKind::Main, DynBroadcastEvent::BreakoutClosed)
-            .handle_requested_messages(self);
+            .handle_requested_messages(self)?;
 
         Ok(())
     }
@@ -479,12 +482,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &self,
         peer_data: &mut BTreeMap<ModuleId, SharedJson>,
         state: &ParticipantState,
-    ) {
+    ) -> Result<(), FatalError> {
         peer_data.insert(
             BREAKOUT_MODULE_ID,
             serde_json::to_value(BreakoutPeerModuleData { room: state.room })
-                .expect("BreakoutPeerModuleData must be serializable")
+                .context("BreakoutPeerModuleData must be serializable")
+                .map_err(|e| FatalError(anyhow!(e)))?
                 .into(),
         );
+        Ok(())
     }
 }

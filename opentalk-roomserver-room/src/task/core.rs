@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
     module_context::ModuleMessage,
@@ -160,7 +160,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 device_id,
                 participant.kind.clone(),
                 participant.role,
-            );
+            )?;
         }
 
         Ok(())
@@ -226,7 +226,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             role,
             own_data,
             peer_data.clone(),
-        );
+        )?;
 
         self.message_router.conference.serialize_and_send(
             [connection_id],
@@ -256,7 +256,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )?;
         }
 
-        actions.handle_requested_messages(self);
+        actions.handle_requested_messages(self)?;
 
         // Start the quota timer if the room has a time limit
         if self
@@ -282,7 +282,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         connection_id: ConnectionId,
         room: RoomKind,
         reason: DisconnectReason,
-    ) {
+    ) -> Result<(), FatalError> {
         self.broadcast_event_to_modules(
             origin,
             room,
@@ -291,7 +291,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 connection_id,
             },
         )
-        .handle_requested_messages(self);
+        .handle_requested_messages(self)?;
 
         let content = CoreEvent::ParticipantDisconnected {
             participant_id,
@@ -301,8 +301,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.message_router
             .conference
-            .serialize_and_broadcast(CORE_MODULE_ID, None, content)
-            .expect("CoreEvent::ParticipantDisconnected must be serializable");
+            .serialize_and_broadcast(CORE_MODULE_ID, None, content)?;
+
+        Ok(())
     }
 
     #[tracing::instrument(skip(self, event), fields(%event))]
@@ -386,7 +387,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         role: RoomserverClientRole,
         module_data: ModuleData,
         mut participants_module_data: BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
-    ) -> JoinSuccess {
+    ) -> Result<JoinSuccess, FatalError> {
         let participants = self
             .participants
             .all_unfiltered
@@ -403,16 +404,16 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .collect();
 
                 let mut module_peer_data = participants_module_data.remove(id).unwrap_or_default();
-                self.join_success_breakout_peer_data(&mut module_peer_data, state);
-                self.join_success_core_peer_data(participant_id, state, &mut module_peer_data);
+                self.join_success_breakout_peer_data(&mut module_peer_data, state)?;
+                self.join_success_core_peer_data(participant_id, state, &mut module_peer_data)?;
 
-                Participant {
+                Ok(Participant {
                     id: *id,
                     connections,
                     module_data: module_peer_data,
-                }
+                })
             })
-            .collect();
+            .collect::<Result<Vec<_>, FatalError>>()?;
 
         let display_name = client_kind.display_name();
         let (role, avatar_url, is_room_owner) = match client_kind {
@@ -462,7 +463,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             })
             .unwrap_or_default();
 
-        JoinSuccess {
+        Ok(JoinSuccess {
             id: participant_id,
             connection_id,
             device_id,
@@ -482,7 +483,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             meeting_details,
             is_room_owner,
             module_data,
-        }
+        })
     }
 
     /// Sends a [`CoreEvent::TimeLimitQuotaElapsed`] to all participants in the conference and
@@ -529,8 +530,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             left_at: joinee.left_at.map(Into::into),
             is_room_owner: participant_id_from_uuid(self.info.owner()) == participant_id,
         };
-        let data =
-            SharedJson::from(serde_json::to_value(data).expect("CoreState must be serializable"));
+        let data = SharedJson::from(
+            serde_json::to_value(data)
+                .context("Failed to serialize CoreState")
+                .map_err(FatalError)?,
+        );
         for peer_id in self.participants.connected().ids() {
             peer_events
                 .entry(peer_id)
@@ -548,7 +552,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         peer: ParticipantId,
         state: &ParticipantState,
         peer_data: &mut BTreeMap<ModuleId, SharedJson>,
-    ) {
+    ) -> Result<(), FatalError> {
         let data = CoreState {
             display_name: state.kind.display_name(),
             role: state.role,
@@ -558,9 +562,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             left_at: state.left_at.map(Into::into),
             is_room_owner: participant_id_from_uuid(self.info.owner()) == peer,
         };
-        let data =
-            SharedJson::from(serde_json::to_value(data).expect("CoreState must be serializable"));
+        let data = SharedJson::from(
+            serde_json::to_value(data)
+                .context("Failed to serialize CoreState")
+                .map_err(FatalError)?,
+        );
         peer_data.insert(CORE_MODULE_ID, data);
+
+        Ok(())
     }
 }
 
@@ -574,12 +583,16 @@ pub(crate) struct RequestedModuleActions {
 }
 
 impl RequestedModuleActions {
-    pub(crate) fn handle_requested_messages(self, task: &mut RoomTask<impl SignalingSocket>) {
-        task.handle_module_messages(self.messages, self.room_kind, self.origin, self.timestamp);
+    pub(crate) fn handle_requested_messages(
+        self,
+        task: &mut RoomTask<impl SignalingSocket>,
+    ) -> Result<(), FatalError> {
+        task.handle_module_messages(self.messages, self.room_kind, self.origin, self.timestamp)?;
 
         for (namespace, err) in self.errors {
             task.handle_fatal_module_error(namespace, self.origin.transaction_id(), err);
         }
+        Ok(())
     }
 }
 
