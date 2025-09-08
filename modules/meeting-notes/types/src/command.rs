@@ -56,7 +56,7 @@ mod serde_tests {
         assert_snapshot!(
             serde_json::to_string_pretty(&command).unwrap(), @r#"
         {
-          "action": "select_writer",
+          "action": "grant_write_access",
           "participant_ids": [
             "00000000-0000-0000-0000-000000000000",
             "00000000-0000-0000-0000-000000000001"
@@ -68,7 +68,7 @@ mod serde_tests {
     #[test]
     fn deserialize_select_writer() {
         let json = json!({
-            "action": "select_writer",
+            "action": "grant_write_access",
             "participant_ids": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000001"]
         });
 
@@ -96,7 +96,7 @@ mod serde_tests {
         assert_snapshot!(
             serde_json::to_string_pretty(&command).unwrap(), @r#"
         {
-          "action": "deselect_writer",
+          "action": "revoke_write_access",
           "participant_ids": [
             "00000000-0000-0000-0000-000000000000",
             "00000000-0000-0000-0000-000000000001"
@@ -108,7 +108,7 @@ mod serde_tests {
     #[test]
     fn deserialize_deselect_writer() {
         let json = json!({
-            "action": "deselect_writer",
+            "action": "revoke_write_access",
             "participant_ids": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000001"]
         });
 

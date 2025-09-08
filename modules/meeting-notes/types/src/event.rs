@@ -108,7 +108,7 @@ mod serde_tests {
 
         assert_snapshot!(serde_json::to_string_pretty(&event).unwrap(), @r#"
         {
-          "message": "write_url",
+          "message": "write_access_received",
           "url": "http://localhost/auth_session?sessionID=s.session&padName=meeting_notes&groupID=g.group"
         }
         "#);
@@ -117,7 +117,7 @@ mod serde_tests {
     #[test]
     fn deserialize_write_url() {
         let expected = json!({
-            "message": "write_url",
+            "message": "write_access_received",
             "url": "http://localhost/auth_session?sessionID=s.session&padName=meeting_notes&groupID=g.group",
         });
 
@@ -138,7 +138,7 @@ mod serde_tests {
 
         assert_snapshot!(serde_json::to_string_pretty(&event).unwrap(), @r#"
         {
-          "message": "read_url",
+          "message": "read_access_received",
           "url": "http://localhost/auth_session?sessionID=s.session&padName=meeting_notes&groupID=g.group"
         }
         "#);
@@ -147,7 +147,7 @@ mod serde_tests {
     #[test]
     fn deserialize_read_url() {
         let expected = json!({
-            "message": "read_url",
+            "message": "read_access_received",
             "url": "http://localhost:9001/auth_session?sessionID=s.session_id&padName=r.readonly_id",
         });
 
