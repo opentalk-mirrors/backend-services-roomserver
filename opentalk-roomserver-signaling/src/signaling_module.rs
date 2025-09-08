@@ -185,14 +185,23 @@ pub enum NoOp {}
 impl InternalCommand for NoOp {}
 
 pub struct ModuleJoinData<M: SignalingModule> {
-    /// Module specific data that will be attached to the participants `JoinSuccess` message
+    /// Module specific data that will be attached to the participants [`JoinSuccess::module_data`]
+    /// event.
+    ///
+    /// [`JoinSuccess::module_data`]: opentalk_roomserver_types::join::join_success::JoinSuccess::module_data
     pub join_success: Option<M::JoinInfo>,
 
-    /// Module specific data that will be attached to the information about other participants
-    /// inside the `JoinSuccess`
+    /// Module specific data that will be attached to other participants
+    /// [`ParticipantConnected::peer_data`] event.
+    ///
+    /// [`ParticipantConnected::peer_data`]: opentalk_roomserver_types::core::CoreEvent::ParticipantConnected::peer_data
     pub peer_events: PeerDataMap<M>,
 
-    /// Module specific data that will be attached to other participants `Joined` message
+    /// Module specific data that will be attached to the information about other participants
+    /// inside the [`JoinSuccess::participants`] (specifically [`Participant::module_data`]).
+    ///
+    /// [`JoinSuccess::participants`]: opentalk_roomserver_types::join::join_success::JoinSuccess::participants
+    /// [`Participant::module_data`]: opentalk_roomserver_types::join::participant::Participant::module_data
     pub peer_data: PeerDataMap<M>,
 }
 
@@ -212,14 +221,22 @@ impl<M: SignalingModule> Default for ModuleJoinData<M> {
 /// Different to a join, during a switch all connections join the new room and
 /// therefore all need initial information.
 pub struct ModuleSwitchData<M: SignalingModule> {
-    /// Module specific data that will be attached to the participants `JoinSuccess` message
+    /// Module specific data that will be attached to the participants [`SwitchedRoom::own_data`]
+    /// event.
+    ///
+    /// [`SwitchedRoom::own_data`]: opentalk_roomserver_types::breakout::event::BreakoutEvent::SwitchedRoom::own_data
     pub switch_success: BTreeMap<ConnectionId, Option<<M as SignalingModule>::JoinInfo>>,
 
-    /// Module specific data that will be attached to other participants `Joined` message
+    /// Module specific data that will be attached to other participants
+    /// [`ParticipantSwitchedRoom::module_data`] event.
+    ///
+    /// [`ParticipantSwitchedRoom::module_data`]: opentalk_roomserver_types::breakout::event::BreakoutEvent::ParticipantSwitchedRoom::module_data
     pub peer_events: PeerDataMap<M>,
 
     /// Module specific data that will be attached to the information about other participants
-    /// inside the `JoinSuccess`
+    /// inside the [`SwitchedRoom::peer_data`].
+    ///
+    /// [`SwitchedRoom::peer_data`]: opentalk_roomserver_types::breakout::event::BreakoutEvent::SwitchedRoom::peer_data
     pub peer_data: PeerDataMap<M>,
 }
 
