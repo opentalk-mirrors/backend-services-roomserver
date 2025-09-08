@@ -247,7 +247,9 @@ impl MockParticipantJoined {
             );
         }
 
-        self.receive::<BreakoutEvent>().await.unwrap().payload
+        let event = self.receive::<BreakoutEvent>().await.unwrap().payload;
+        assert!(matches!(event, BreakoutEvent::SwitchedRoom { .. }));
+        event
     }
 
     pub async fn stop_breakout_rooms(
