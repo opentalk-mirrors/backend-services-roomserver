@@ -23,7 +23,7 @@ use opentalk_roomserver_types_raise_hands::{
     RAISE_HANDS_MODULE_ID,
     command::{RaiseHandsCommand, ResetRaisedHands},
     event::{RaiseHandsError, RaiseHandsEvent},
-    state::RaisedHandState,
+    state::{RaisedHandPeerState, RaisedHandState},
 };
 use pretty_assertions::assert_eq;
 
@@ -45,11 +45,7 @@ async fn join_events_contain_data() {
     }
     "#);
 
-    alice
-        .send_command::<RaiseHandsModule>(RaiseHandsCommand::RaiseHand, None)
-        .await
-        .unwrap();
-    alice.receive_event::<RaiseHandsModule>().await.unwrap();
+    raise_hand(&mut alice, &mut []).await;
 
     // Bob will receive his own state and Alices state
     let bob = room.join_bob(0).await;
@@ -652,10 +648,7 @@ async fn breakout_switch() {
     "#);
 
     // Alice raises her hand in the breakout room
-    alice
-        .send_command::<RaiseHandsModule>(RaiseHandsCommand::RaiseHand, None)
-        .await
-        .unwrap();
+    raise_hand(&mut alice, &mut []).await;
 
     assert!(bob.received_nothing());
 
@@ -801,6 +794,61 @@ async fn raise_hand_is_breakout_local() {
 
     // Charlie can still raise his hand
     raise_hand(&mut charlie, &mut []).await;
+}
+
+#[test_log::test(tokio::test)]
+async fn raise_hand_resets_when_switching_rooms() {
+    let mut room = TestRoom::builder()
+        .register_module::<RaiseHandsModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice raises her hand in the main room
+    raise_hand(&mut alice, &mut []).await;
+
+    alice
+        .start_breakout_rooms(
+            &mut [],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Breakout Room".into(),
+                    assignments: Vec::new(),
+                }],
+                duration: None,
+            },
+        )
+        .await;
+    alice
+        .switch_breakout_room(&mut [], RoomKind::Breakout(BreakoutId::from(0)))
+        .await;
+
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    let peer_state_alice = bob
+        .join_success()
+        .participants
+        .iter()
+        .find(|&p| p.id == alice.id())
+        .unwrap();
+    let peer_state_alice = peer_state_alice
+        .get_module::<RaisedHandPeerState>()
+        .unwrap();
+    assert!(
+        peer_state_alice.is_none(),
+        "Alice state must be none since she left the room, but was: {:?}",
+        peer_state_alice,
+    );
+
+    let event = bob
+        .switch_breakout_room(&mut [&mut alice], RoomKind::Breakout(BreakoutId::from(0)))
+        .await;
+    let BreakoutEvent::SwitchedRoom { peer_data, .. } = event else {
+        panic!("unexpected event");
+    };
+
+    // there should be no state for alice in the breakout room
+    assert!(!peer_data.contains_key(&alice.id()));
 }
 
 async fn raise_hand(
