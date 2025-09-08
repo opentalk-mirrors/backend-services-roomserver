@@ -6112,6 +6112,7 @@ version = "0.0.6-dev"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bytes",
  "chrono",
  "futures",
  "opentalk-roomserver-common",
@@ -6123,6 +6124,7 @@ dependencies = [
  "opentalk-roomserver-types-moderation",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "reqwest 0.12.23",
  "serde",
  "serde_json",
  "test-log",

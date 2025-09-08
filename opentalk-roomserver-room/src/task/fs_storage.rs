@@ -2,8 +2,10 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use std::{
-    env, fs,
-    io::{self, ErrorKind},
+    collections::BTreeSet,
+    env,
+    fs::{self, File, OpenOptions},
+    io::{self, ErrorKind, Write},
     path::PathBuf,
     sync::{
         Mutex, Once,
@@ -11,7 +13,7 @@ use std::{
     },
 };
 
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use async_trait::async_trait;
 use opentalk_roomserver_signaling::storage::{
     AssetMetaData, AssetUploaded, StorageError, StorageProvider, UploadResult,
@@ -31,6 +33,7 @@ pub struct FsStorage {
     quota: u64,
     used: AtomicU64,
     paths: Mutex<Vec<PathBuf>>,
+    running_uploads: Mutex<BTreeSet<AssetId>>,
 }
 
 impl FsStorage {
@@ -62,6 +65,7 @@ impl FsStorage {
             quota,
             used: AtomicU64::new(0),
             paths: Mutex::new(Vec::new()),
+            running_uploads: Mutex::new(BTreeSet::new()),
         })
     }
 
@@ -89,6 +93,49 @@ impl StorageProvider for FsStorage {
 
         let url = format!("file://{}", path.to_string_lossy());
         self.paths.lock().unwrap().push(path);
+        let url = Url::parse(&url).expect("Parsing url failed");
+
+        Ok(AssetUploaded {
+            id,
+            filename: metadata.to_string(),
+            remaining_quota: self.remaining_quota().await,
+            url,
+        })
+    }
+
+    async fn upload_chunk(&self, id: AssetId, chunk: &[u8]) -> Result<(), StorageError> {
+        let mut guard = self.running_uploads.lock().unwrap();
+        let path = self.directory.join(id.to_string());
+        let mut file = if !guard.contains(&id) {
+            if self.used.load(Ordering::Relaxed) >= self.quota {
+                return Err(StorageError::QuotaReached);
+            }
+            guard.insert(id);
+            File::create(&path).context("Failed to create file")?
+        } else {
+            OpenOptions::new()
+                .append(true)
+                .open(&path)
+                .context("Failed to open file for appending")?
+        };
+
+        let written = file.write(chunk).context("Writing chunk failed")?;
+        self.used.fetch_add(written as u64, Ordering::Relaxed);
+
+        Ok(())
+    }
+
+    async fn finalize_upload(&self, id: AssetId, metadata: AssetMetaData) -> UploadResult {
+        if !self.running_uploads.lock().unwrap().remove(&id) {
+            return Err(anyhow!("No upload with id {id} running").into());
+        }
+
+        let old_path = self.directory.join(id.to_string());
+        let file_name = format!("{id}_{metadata}");
+        let new_path = self.directory.join(file_name);
+        fs::rename(old_path, &new_path).context("Renaming file failed")?;
+
+        let url = format!("file://{}", new_path.to_string_lossy());
         let url = Url::parse(&url).expect("Parsing url failed");
 
         Ok(AssetUploaded {
