@@ -3,7 +3,7 @@
 
 use std::{str::FromStr, time::Duration};
 
-use futures::channel::oneshot;
+use futures::channel::oneshot::{self, Canceled};
 use opentalk_roomserver_signaling::{
     signaling_event::SignalingEvent, signaling_module::SignalingModule,
 };
@@ -43,7 +43,7 @@ use super::{
     socket::MockSocket,
 };
 
-const RECV_TIMEOUT: Duration = Duration::from_millis(500);
+const SOCKET_TIMEOUT: Duration = Duration::from_millis(500);
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParticipantError {
@@ -59,25 +59,42 @@ pub enum ParticipantError {
 pub enum ReceiveError {
     #[error("Closed")]
     Closed,
+
     #[error("Timeout")]
     Timeout,
+
     #[error("InvalidJson {message:?}: {error:?}")]
     InvalidJson {
         error: serde_json::Error,
         message: SignalingSocketMessage,
     },
+
     #[error("UnexpectedMessage {0:?}")]
     UnexpectedMessage(SignalingSocketMessage),
+}
+
+impl From<Elapsed> for ReceiveError {
+    fn from(_value: Elapsed) -> Self {
+        Self::Timeout
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum SendError {
     #[error("Closed")]
     Closed,
+
     #[error("Invalid json: {0:?}")]
     InvalidJson(serde_json::Error),
+
     #[error("UnexpectedMessage {0:?}")]
     UnexpectedMessage(SignalingSocketMessage),
+
+    #[error("The room task did not acknowledge the message, but dropped the return channel")]
+    Canceled,
+
+    #[error("Timeout")]
+    Timeout,
 }
 
 impl<T> From<mpsc::error::SendError<T>> for SendError {
@@ -86,7 +103,7 @@ impl<T> From<mpsc::error::SendError<T>> for SendError {
     }
 }
 
-impl From<Elapsed> for ReceiveError {
+impl From<Elapsed> for SendError {
     fn from(_value: Elapsed) -> Self {
         Self::Timeout
     }
@@ -110,7 +127,7 @@ pub struct MockParticipant<S> {
 
 impl MockParticipant<()> {
     pub(crate) async fn join_success(mut self) -> Result<MockParticipantJoined, ReceiveError> {
-        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
+        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         match received {
@@ -140,7 +157,7 @@ impl MockParticipant<()> {
     pub(crate) async fn join_waiting_room(
         mut self,
     ) -> Result<MockParticipantWaiting, ReceiveError> {
-        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
+        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         match received {
@@ -265,7 +282,7 @@ impl MockParticipantWaiting {
     /// 1. Receive ModerationEvent::Accepted
     /// 2. Receive JoinSuccess
     pub async fn wait_accept(&mut self) -> Result<(), ReceiveError> {
-        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
+        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         match received {
@@ -297,7 +314,7 @@ impl MockParticipantWaiting {
     }
 
     pub async fn join_success(mut self) -> Result<MockParticipantJoined, ParticipantError> {
-        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv())
+        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv())
             .await
             .map_err(|_| ReceiveError::Timeout)?
         else {
@@ -477,7 +494,9 @@ impl<S> MockParticipant<S> {
             }))
             .await?;
 
-        let _ = rx.await;
+        if rx.await.is_err() {
+            return Err(SendError::Canceled);
+        };
         Ok(())
     }
 
@@ -514,7 +533,7 @@ impl<S> MockParticipant<S> {
         M: SignalingModule,
         M::Outgoing: DeserializeOwned,
     {
-        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
+        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         match received {
@@ -533,7 +552,7 @@ impl<S> MockParticipant<S> {
     pub async fn receive<E: DeserializeOwned>(
         &mut self,
     ) -> Result<SignalingEvent<E>, ReceiveError> {
-        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
+        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         match received {
@@ -556,7 +575,7 @@ impl<S> MockParticipant<S> {
     }
 
     pub async fn receive_close_frame(&mut self) -> Result<Option<CloseFrame>, ReceiveError> {
-        let Some(received) = timeout(RECV_TIMEOUT, self.receiver.recv()).await? else {
+        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         let SignalingSocketMessage::Close(frame) = received else {
@@ -566,9 +585,49 @@ impl<S> MockParticipant<S> {
         Ok(frame)
     }
 
-    pub fn disconnect(self) {
-        // Dropping the sender will result in a disconnect
-        drop(self.sender);
+    pub async fn disconnect(mut self) -> Result<(), ParticipantError> {
+        let (tx, rx) = oneshot::channel();
+
+        timeout(
+            SOCKET_TIMEOUT,
+            self.sender.send(Ok(SignalingSocketItem {
+                message: SignalingSocketMessage::Close(Some(CloseFrame {
+                    code: 1000,
+                    reason: "leaving".to_string(),
+                })),
+                done: Some(tx),
+            })),
+        )
+        .await
+        .map_err(SendError::from)?
+        .map_err(SendError::from)?;
+
+        match timeout(SOCKET_TIMEOUT, rx).await {
+            Ok(Ok(())) => {}
+            Ok(Err(Canceled)) => return Err(SendError::Canceled.into()),
+            Err(_) => {
+                tracing::debug!("Timeout while waiting for acknowledgement");
+                return Err(SendError::Timeout.into());
+            }
+        }
+        tracing::debug!("Close frame sent");
+        loop {
+            match timeout(SOCKET_TIMEOUT, self.receiver.recv()).await {
+                Ok(None) | Ok(Some(SignalingSocketMessage::Close(..))) => {
+                    // We won't receive a close frame since the close frame is normally sent by the
+                    // websocket implementation and not by the
+                    // `ParticipantConnectionTask`. The mocking setup is missing the websocket and
+                    // therefore nobody will send the close frame for the RoomServer.
+                    return Ok(());
+                }
+                Ok(Some(..)) => {
+                    tracing::debug!("Received event after close frame");
+                }
+                Err(_) => {
+                    return Err(ParticipantError::Receive(ReceiveError::Timeout));
+                }
+            }
+        }
     }
 }
 

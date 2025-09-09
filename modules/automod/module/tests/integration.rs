@@ -1066,7 +1066,7 @@ async fn participant_disconnect() {
 
     // Bob disconnects
     let bob_id = bob.id();
-    bob.disconnect();
+    bob.disconnect().await.unwrap();
 
     // Bob was removed from the `remaining` list
     let event = alice

@@ -357,7 +357,9 @@ async fn global_chat_is_cleared() {
     );
 
     // When bob reconnects, the join success should only contain the private message
-    bob.disconnect();
+    bob.disconnect().await.unwrap();
+    alice.receive::<CoreEvent>().await.unwrap();
+
     let bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
@@ -442,7 +444,7 @@ async fn last_seen_timestamp_should_be_stored() {
         })
     );
 
-    alice.disconnect();
+    alice.disconnect().await.unwrap();
     let alice = room.join_alice_moderator(0).await;
     let chat_state = alice
         .join_success()
@@ -971,10 +973,8 @@ async fn room_chat_history_chunks() {
     let message_count = (2 * CHAT_CHUNK_SIZE) + 1;
     fill_messages(&mut alice, &mut [], Scope::Global, "", message_count).await;
 
-    alice.disconnect();
+    alice.disconnect().await.unwrap();
     let mut alice = room.join_alice_moderator(1).await;
-    // Alice receives her own disconnect because she reconnects before the event is sent
-    alice.receive::<CoreEvent>().await.unwrap();
 
     let chunk = alice
         .join_success()
@@ -1094,10 +1094,7 @@ async fn private_chat_history_chunks() {
     )
     .await;
 
-    alice.disconnect();
-    let mut alice = room.join_alice_moderator(1).await;
-    // Alice receives her own disconnect because she reconnects before the event is sent
-    alice.receive::<CoreEvent>().await.unwrap();
+    let mut alice = room.join_alice_moderator(2).await;
 
     let chunk = &alice
         .join_success()
@@ -1275,8 +1272,12 @@ async fn private_chat_history_on_join() {
     assert!(charlie.received_nothing());
 
     // Bob reconnects
-    bob.disconnect();
+    bob.disconnect().await.unwrap();
+    alice.receive::<CoreEvent>().await.unwrap();
+    charlie.receive::<CoreEvent>().await.unwrap();
+
     let bob = room.join_bob(1).await;
+    flush_connected_events(&mut [&mut alice, &mut charlie]).await;
 
     // Bobs JoinSuccess contains the message from alice
     let mut chat_state = bob
@@ -1309,7 +1310,9 @@ async fn private_chat_history_on_join() {
     );
 
     // Charlie reconnects
-    charlie.disconnect();
+    charlie.disconnect().await.unwrap();
+    alice.receive::<CoreEvent>().await.unwrap();
+
     let charlie = room.join_charlie(1).await;
 
     // Charlies JoinSuccess does not contain any private chat messages

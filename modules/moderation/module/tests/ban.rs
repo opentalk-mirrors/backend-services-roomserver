@@ -64,7 +64,7 @@ async fn join_info() {
         }) if participant_id == bob.id() && &banned_participant.display_name == bob.display_name()
     ));
 
-    alice.disconnect();
+    alice.disconnect().await.unwrap();
 
     // reconnect to get the join success
     let alice = room.join_alice_moderator(0).await;
