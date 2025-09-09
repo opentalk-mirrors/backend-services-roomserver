@@ -114,8 +114,8 @@ async fn livekit_rooms_lifecycle() {
     let room_id = room.id();
     assert_eq!(room_list, BTreeSet::from([format!("{room_id}:main")]));
 
-    alice.disconnect();
-    bob.disconnect();
+    alice.disconnect().await.unwrap();
+    bob.disconnect().await.unwrap();
 
     // there is no way to wait for the room to be destroyed
 }

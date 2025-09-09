@@ -102,6 +102,11 @@ impl MessageRouter {
             .expect("internal room_task_channel was closed");
 
         if matches!(msg.message, SignalingMessage::Closed(_)) {
+            tracing::debug!(
+                "Remove connection {} for participant {}",
+                msg.connection_id,
+                msg.participant_id,
+            );
             self.conference.remove_connection(msg.connection_id);
             self.waiting_room.remove_connection(msg.connection_id);
         }
@@ -202,6 +207,10 @@ impl ScopedRouter {
 
             if handle.get().send_event(event.clone()).is_err() {
                 let handle = handle.remove();
+                tracing::trace!(
+                    "Failed to send event to ParticipantConnectionTask, disconnecting (connection {id}, participant {})",
+                    handle.participant_id()
+                );
                 self.disconnects.insert(id, handle.participant_id());
             }
         }
@@ -228,6 +237,10 @@ impl ScopedRouter {
         // remove all stale connections
         for connection_id in stale_connections {
             if let Some(handle) = self.connections.remove(&connection_id) {
+                tracing::trace!(
+                    "Failed to send event to ParticipantConnectionTask, disconnecting (connection {connection_id}, participant {})",
+                    handle.participant_id(),
+                );
                 self.disconnects
                     .insert(connection_id, handle.participant_id());
             }

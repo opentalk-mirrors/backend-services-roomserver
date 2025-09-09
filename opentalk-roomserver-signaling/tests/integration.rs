@@ -129,7 +129,7 @@ async fn waiting_participants_dont_receive_broadcasts() {
 
     assert!(bob.received_nothing());
 
-    charlie.disconnect();
+    charlie.disconnect().await.unwrap();
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(

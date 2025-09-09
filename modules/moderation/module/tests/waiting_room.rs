@@ -278,7 +278,7 @@ async fn registered_users_once_accepted_always_skip() {
     let bob = room.waiting_room_bob(0).await;
     let bob = accept_participant(&mut alice, bob).await;
 
-    bob.disconnect();
+    bob.disconnect().await.unwrap();
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.payload,
@@ -308,7 +308,7 @@ async fn guest_users_once_accepted_always_skip() {
     let gustav = room.waiting_room_gustav_guest().await;
     let gustav = accept_participant(&mut alice, gustav).await;
 
-    gustav.disconnect();
+    gustav.disconnect().await.unwrap();
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.payload,
@@ -338,7 +338,7 @@ async fn event_when_leaving_waiting_room() {
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. }));
 
-    bob.disconnect();
+    bob.disconnect().await.unwrap();
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(event.payload, CoreEvent::LeftWaitingRoom(..)));
 }

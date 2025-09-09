@@ -187,6 +187,8 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
     async fn run(mut self) {
         let exit_reason = self.message_loop().await;
 
+        tracing::trace!("exited message loop");
+
         self.perform_close_handshake(exit_reason).await;
     }
 
@@ -256,11 +258,13 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         let _ = stream.as_mut().peek().await;
 
         let Ok(permit) = sender.clone().reserve_owned().await else {
+            tracing::debug!("ParticipantConnection closed by room task (channel dropped)");
             return Err(ExitReason::ClosedByRoomTask);
         };
 
         // `next`-future must be ready since we already peeked above and received a value
         let Some(frame) = stream.next().now_or_never().flatten() else {
+            tracing::debug!("Unexpected websocket disconnect (peeked message disappeared)");
             return Err(ExitReason::UnexpectedDisconnection);
         };
         let Ok(message) = frame else {
@@ -277,7 +281,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         frame: SignalingSocketItem,
         permit: OwnedPermit<MessageEnvelope<SignalingMessage>>,
     ) -> Result<(), ExitReason> {
-        match frame.message {
+        let res = match frame.message {
             SignalingSocketMessage::Text(message) => {
                 self.handle_text_frame(message.to_string(), permit).await
             }
@@ -294,7 +298,13 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                 tracing::debug!("Ignoring ping, pong or binary websocket message");
                 Ok(())
             }
+        };
+
+        // Mark the message as done.
+        if let Some(channel) = frame.done {
+            let _ = channel.send(());
         }
+        res
     }
 
     async fn handle_text_frame(

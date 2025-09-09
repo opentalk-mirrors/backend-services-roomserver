@@ -381,7 +381,7 @@ async fn ready_state_persists() {
         }),
     );
 
-    alice.disconnect();
+    alice.disconnect().await.unwrap();
 
     let alice = room.join_alice_moderator(0).await;
 

@@ -197,7 +197,7 @@ async fn disconnect_event_is_sent() {
     // Bob disconnects
     let bob_id = bob.id();
     let bob_connection_id = bob.connection_id();
-    bob.disconnect();
+    bob.disconnect().await.unwrap();
 
     // Alice should receive a disconnect event for Bob
     let event = alice.receive_event::<E2eeModule>().await.unwrap().payload;

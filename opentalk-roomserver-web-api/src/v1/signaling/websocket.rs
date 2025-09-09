@@ -103,21 +103,7 @@ impl From<axum::extract::ws::Message> for SignalingSocketMessage {
 #[derive(Debug)]
 pub struct SignalingSocketItem {
     pub message: SignalingSocketMessage,
-    pub done: Option<oneshot::Sender<bool>>,
-}
-
-impl SignalingSocketItem {
-    pub fn done(&mut self) {
-        if let Some(channel) = self.done.take() {
-            let _ = channel.send(true);
-        }
-    }
-
-    pub fn failed(&mut self) {
-        if let Some(channel) = self.done.take() {
-            let _ = channel.send(false);
-        }
-    }
+    pub done: Option<oneshot::Sender<()>>,
 }
 
 /// A stream of messages for a single signaling connection

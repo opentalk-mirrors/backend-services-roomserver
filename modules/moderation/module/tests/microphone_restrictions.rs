@@ -277,7 +277,7 @@ async fn disable_unknown_participant() {
             .unwrap();
         let _restrictions_enabled = alice.receive_event::<ModerationModule>().await.unwrap();
     }
-    bob.disconnect();
+    bob.disconnect().await.unwrap();
     let _bob_left = alice.receive::<CoreEvent>().await.unwrap();
 
     // Alice sends the command
