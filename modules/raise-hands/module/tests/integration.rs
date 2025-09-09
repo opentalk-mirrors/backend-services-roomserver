@@ -851,6 +851,86 @@ async fn raise_hand_resets_when_switching_rooms() {
     assert!(!peer_data.contains_key(&alice.id()));
 }
 
+/// The raised hand state is not reset when the participant disconnects but is
+/// still connected with another connection
+#[test_log::test(tokio::test)]
+async fn raise_hand_not_reset_when_connected() {
+    let mut room = TestRoom::builder()
+        .register_module::<RaiseHandsModule>()
+        .spawn();
+    let mut alice_0 = room.join_alice_moderator(0).await;
+
+    // Alice raises her hand in the main room
+    raise_hand(&mut alice_0, &mut []).await;
+
+    // Second connection should see raised hand
+    let mut alice_1 = room.join_alice_moderator(1).await;
+    flush_connected_events(&mut [&mut alice_0]).await;
+
+    let alice_1_state = alice_1
+        .join_success()
+        .get_module::<RaisedHandState>()
+        .unwrap();
+    assert!(matches!(
+        alice_1_state,
+        Some(RaisedHandState {
+            raise_hands_enabled: true,
+            state: Some(_),
+        })
+    ));
+
+    // alice_0 disconnects
+    alice_0.disconnect().await.unwrap();
+    alice_1.receive::<CoreEvent>().await.unwrap();
+
+    // raised hand state should still persist
+    let alice_0 = room.join_alice_moderator(0).await;
+    flush_connected_events(&mut [&mut alice_1]).await;
+
+    let alice_0_state = alice_0
+        .join_success()
+        .get_module::<RaisedHandState>()
+        .unwrap();
+    assert!(matches!(
+        alice_0_state,
+        Some(RaisedHandState {
+            raise_hands_enabled: true,
+            state: Some(_),
+        })
+    ));
+}
+
+#[test_log::test(tokio::test)]
+async fn raise_hand_resets_last_connection_is_closed() {
+    let mut room = TestRoom::builder()
+        .register_module::<RaiseHandsModule>()
+        .spawn();
+    let mut alice_0 = room.join_alice_moderator(0).await;
+
+    // Alice raises her hand in the main room
+    raise_hand(&mut alice_0, &mut []).await;
+
+    // alice_0 disconnects
+    alice_0.disconnect().await.unwrap();
+
+    // Second connection should not see raised hand since alice disconnected
+    let alice_1 = room.join_alice_moderator(1).await;
+    let alice_1_state = alice_1
+        .join_success()
+        .get_module::<RaisedHandState>()
+        .unwrap();
+    assert!(
+        matches!(
+            alice_1_state,
+            Some(RaisedHandState {
+                raise_hands_enabled: true,
+                state: None,
+            })
+        ),
+        "Wrong state: {alice_1_state:?}"
+    );
+}
+
 async fn raise_hand(
     participant: &mut MockParticipantJoined,
     others: &mut [&mut MockParticipantJoined],

@@ -93,7 +93,11 @@ impl SignalingModule for RaiseHandsModule {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        if let Some(raised_hands) = self.raised_hands.get_mut(&ctx.room) {
+        let was_last_connection = ctx
+            .participant_state(participant_id)
+            .map(|state| state.connections.is_empty())
+            .unwrap_or(true);
+        if was_last_connection && let Some(raised_hands) = self.raised_hands.get_mut(&ctx.room) {
             raised_hands.remove(&participant_id);
         };
 
