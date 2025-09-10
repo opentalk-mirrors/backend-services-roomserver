@@ -16,8 +16,7 @@ use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
 
 #[test_log::test(tokio::test)]
-// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
-// available there.
+// The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_unknown_participant() {
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
@@ -47,8 +46,7 @@ async fn livekit_unknown_participant() {
 }
 
 #[test_log::test(tokio::test)]
-// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
-// available there.
+// The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_insufficient_permissions() {
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
@@ -75,8 +73,7 @@ async fn livekit_insufficient_permissions() {
 }
 
 #[test_log::test(tokio::test)]
-// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
-// available there.
+// The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_grant_bob() {
     let (_container, room, public_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
@@ -126,8 +123,7 @@ async fn livekit_grant_bob() {
 }
 
 #[test_log::test(tokio::test)]
-// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
-// available there.
+// The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_alice_in_breakout_bob_in_main() {
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
