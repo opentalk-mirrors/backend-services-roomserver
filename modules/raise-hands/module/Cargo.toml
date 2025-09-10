@@ -12,7 +12,6 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-anyhow.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-raise-hands.workspace = true
@@ -20,6 +19,7 @@ opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 
 [dev-dependencies]
+insta = { workspace = true, features = ["json", "redactions"] }
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
 test-log.workspace = true

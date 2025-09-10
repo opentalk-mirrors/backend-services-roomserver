@@ -24,6 +24,8 @@ pub enum CoreEvent {
     ParticipantConnected {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
+
+        /// Module specific information about the joined participant.
         #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
         peer_data: BTreeMap<ModuleId, SharedJson>,
     },

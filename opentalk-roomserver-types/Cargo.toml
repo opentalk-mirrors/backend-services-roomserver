@@ -19,6 +19,7 @@ opentalk-types-common = { workspace = true, features = ["rand"] }
 opentalk-types-signaling = { workspace = true, features = ["utoipa"] }
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 utoipa = { workspace = true, features = [
   "chrono",
   "url",

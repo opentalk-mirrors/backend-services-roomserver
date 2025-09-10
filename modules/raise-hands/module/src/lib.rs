@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-use anyhow::Context as _;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, SignalingModule, SignalingModuleInitData,
+        ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+        SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -18,7 +18,7 @@ use opentalk_roomserver_types_raise_hands::{
     RAISE_HANDS_MODULE_ID,
     command::{RaiseHandsCommand, ResetRaisedHands},
     event::{RaiseHandsError, RaiseHandsEvent},
-    state::{RaiseHandsState, RaisedHandState},
+    state::{RaisedHandPeerState, RaisedHandState},
 };
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
@@ -40,9 +40,9 @@ impl SignalingModule for RaiseHandsModule {
 
     type Loopback = ();
 
-    type JoinInfo = RaiseHandsState;
+    type JoinInfo = RaisedHandState;
 
-    type PeerJoinInfo = ();
+    type PeerJoinInfo = RaisedHandPeerState;
 
     type Error = RaiseHandsError;
 
@@ -60,15 +60,30 @@ impl SignalingModule for RaiseHandsModule {
         connection_id: ConnectionId,
         is_first_connection: bool,
     ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
-        let raised_hands = self.raised_hands_state(ctx.room);
-        let join_info = ModuleJoinData {
-            join_success: Some(RaiseHandsState {
-                raise_hands_enabled: raised_hands.is_some(),
-                raised_hands,
-            }),
-            ..Default::default()
+        let mut raised_hands = self.raised_hands_state(ctx.room);
+
+        let join_success = RaisedHandState {
+            raise_hands_enabled: raised_hands.is_some(),
+            state: raised_hands
+                .as_mut()
+                .and_then(|m| m.remove(&participant_id)),
         };
-        Ok(join_info)
+
+        let mut peer_data = PeerDataMap::default();
+        for (participant_id, peer_state) in raised_hands.unwrap_or_default() {
+            peer_data.insert(participant_id, peer_state)?;
+        }
+
+        let mut peer_events = PeerDataMap::default();
+        if let Some(state) = &join_success.state {
+            peer_events.insert_for_all(ctx, state.clone())?;
+        }
+
+        Ok(ModuleJoinData {
+            join_success: Some(join_success),
+            peer_data,
+            peer_events,
+        })
     }
 
     #[allow(unused_variables)]
@@ -78,7 +93,11 @@ impl SignalingModule for RaiseHandsModule {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        if let Some(raised_hands) = self.raised_hands.get_mut(&ctx.room) {
+        let was_last_connection = ctx
+            .participant_state(participant_id)
+            .map(|state| state.connections.is_empty())
+            .unwrap_or(true);
+        if was_last_connection && let Some(raised_hands) = self.raised_hands.get_mut(&ctx.room) {
             raised_hands.remove(&participant_id);
         };
 
@@ -125,7 +144,7 @@ impl SignalingModule for RaiseHandsModule {
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
         old_room: RoomKind,
-        _new_room: RoomKind,
+        new_room: RoomKind,
     ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
         // Reset raised hand of the participant when switching rooms
         self.raised_hands
@@ -133,20 +152,37 @@ impl SignalingModule for RaiseHandsModule {
             .and_modify(|raised_hands| {
                 raised_hands.remove(&participant_id);
             });
-        let raised_hands = self.raised_hands_state(ctx.room);
-        let moderation_state = RaiseHandsState {
+
+        let mut raised_hands = self.raised_hands_state(new_room);
+        let own_state = RaisedHandState {
             raise_hands_enabled: raised_hands.is_some(),
-            raised_hands,
+            state: raised_hands
+                .as_mut()
+                .and_then(|m| m.remove(&participant_id)),
         };
         let switch_success = ctx
-            .participant_state(participant_id)
-            .with_context(|| format!("Missing state for participant '{participant_id}'^"))?
+            .participants
+            .all_unfiltered
+            .get(&participant_id)
+            .ok_or(RaiseHandsError::UnknownParticipant)?
             .connections()
-            .map(|con| (con, Some(moderation_state.clone())))
+            .map(|con_id| (con_id, Some(own_state.clone())))
             .collect();
+
+        let mut peer_data = PeerDataMap::default();
+        for (participant_id, peer_state) in raised_hands.unwrap_or_default() {
+            peer_data.insert(participant_id, peer_state)?;
+        }
+
+        let mut peer_events = PeerDataMap::default();
+        if let Some(state) = own_state.state {
+            peer_events.insert_for_all(ctx, state)?;
+        }
+
         Ok(ModuleSwitchData {
             switch_success,
-            ..Default::default()
+            peer_data,
+            peer_events,
         })
     }
 
@@ -286,13 +322,15 @@ impl RaiseHandsModule {
         Ok(())
     }
 
-    fn raised_hands_state(&self, room: RoomKind) -> Option<BTreeSet<RaisedHandState>> {
+    fn raised_hands_state(
+        &self,
+        room: RoomKind,
+    ) -> Option<BTreeMap<ParticipantId, RaisedHandPeerState>> {
         self.raised_hands.get(&room).map(|raised_hands| {
             raised_hands
                 .iter()
-                .map(|(&participant_id, &raised_at)| RaisedHandState {
-                    participant_id,
-                    raised_at,
+                .map(|(&participant_id, &raised_at)| {
+                    (participant_id, RaisedHandPeerState { raised_at })
                 })
                 .collect()
         })

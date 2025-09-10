@@ -95,6 +95,16 @@ impl ClientKind {
             ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder => None,
         }
     }
+
+    pub fn participant_kind(&self) -> ParticipationKind {
+        match &self {
+            ClientKind::Registered { .. } => ParticipationKind::Registered,
+            ClientKind::Guest { .. } => ParticipationKind::Guest,
+            ClientKind::Recorder => ParticipationKind::Recorder,
+            ClientKind::CallIn { .. } => ParticipationKind::CallIn,
+            ClientKind::RegisteredCallIn { .. } => ParticipationKind::RegisteredCallIn,
+        }
+    }
 }
 
 impl ClientKind {
@@ -146,6 +156,16 @@ impl Role {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ParticipationKind {
+    Registered,
+    Guest,
+    Recorder,
+    CallIn,
+    RegisteredCallIn,
+}
+
 #[cfg(test)]
 mod tests {
     use opentalk_types_common::{roomserver::DeviceSecret, users::DisplayName, utils::ExampleData};
@@ -154,20 +174,25 @@ mod tests {
 
     use super::ClientKind;
     use crate::{
-        client_parameters::{ClientParameters, Role},
+        client_parameters::{ClientParameters, ParticipationKind, Role},
         public_user_profile::PublicUserProfile,
     };
 
     #[test]
     fn guest() {
-        let value = serde_json::to_value(ClientParameters {
+        let client_parameter = ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::Guest {
                 display_name: DisplayName::from_str_lossy("test"),
             },
             role: Role::User,
-        })
-        .unwrap();
+        };
+        assert_eq!(
+            client_parameter.kind.participant_kind(),
+            ParticipationKind::Guest
+        );
+
+        let value = serde_json::to_value(client_parameter).unwrap();
 
         assert_eq!(
             value,
@@ -184,14 +209,19 @@ mod tests {
 
     #[test]
     fn registered() {
-        let value = serde_json::to_value(ClientParameters {
+        let client_parameter = ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::Registered {
                 profile: PublicUserProfile::example_data(),
             },
             role: Role::User,
-        })
-        .unwrap();
+        };
+        assert_eq!(
+            client_parameter.kind.participant_kind(),
+            ParticipationKind::Registered
+        );
+
+        let value = serde_json::to_value(client_parameter).unwrap();
 
         assert_eq!(
             value,
@@ -217,12 +247,17 @@ mod tests {
 
     #[test]
     fn service() {
-        let value = serde_json::to_value(ClientParameters {
+        let client_parameter = ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::Recorder,
             role: Role::User,
-        })
-        .unwrap();
+        };
+        assert_eq!(
+            client_parameter.kind.participant_kind(),
+            ParticipationKind::Recorder
+        );
+
+        let value = serde_json::to_value(client_parameter).unwrap();
 
         assert_eq!(
             value,
@@ -236,14 +271,19 @@ mod tests {
 
     #[test]
     fn call_in() {
-        let value = serde_json::to_value(ClientParameters {
+        let client_parameter = ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::CallIn {
                 display_name: DisplayName::from_str_lossy("1001"),
             },
             role: Role::User,
-        })
-        .unwrap();
+        };
+        assert_eq!(
+            client_parameter.kind.participant_kind(),
+            ParticipationKind::CallIn
+        );
+
+        let value = serde_json::to_value(client_parameter).unwrap();
 
         assert_eq!(
             value,
@@ -258,14 +298,19 @@ mod tests {
 
     #[test]
     fn registered_call_in() {
-        let value = serde_json::to_value(ClientParameters {
+        let client_parameter = ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::RegisteredCallIn {
                 profile: PublicUserProfile::example_data(),
             },
             role: Role::User,
-        })
-        .unwrap();
+        };
+        assert_eq!(
+            client_parameter.kind.participant_kind(),
+            ParticipationKind::RegisteredCallIn
+        );
+
+        let value = serde_json::to_value(client_parameter).unwrap();
 
         assert_eq!(
             value,
