@@ -5,7 +5,7 @@
 default-filter = 'all()'
 
 [profile.ci]
-default-filter = 'not test(#livekit_*)'
+default-filter = 'all()'
 
 [profile.ci.junit]
 path = "junit.xml"

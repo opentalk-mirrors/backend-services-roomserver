@@ -17,6 +17,7 @@ livekit.workspace = true
 opentalk-roomserver-module-livekit.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-roomserver-types-livekit.workspace = true
+opentalk-types-common.workspace = true
 testcontainers.workspace = true
 tokio.workspace = true
 tracing.workspace = true

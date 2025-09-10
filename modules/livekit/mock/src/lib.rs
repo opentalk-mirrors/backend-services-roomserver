@@ -16,6 +16,7 @@ use livekit::{
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, TestRoomBuilder};
 use opentalk_roomserver_types_livekit::LiveKitSettings;
+use opentalk_types_common::rooms::RoomId;
 use testcontainers::{
     ContainerAsync, GenericImage, ImageExt as _,
     core::{IntoContainerPort, WaitFor, logs::consumer::logging_consumer::LoggingConsumer},
@@ -97,6 +98,7 @@ pub async fn build_livekit_room() -> (ContainerGuard, TestRoomBuilder, String) {
     };
 
     let room = TestRoom::builder()
+        .room_id(RoomId::generate())
         .register_module::<LiveKitModule>()
         .add_init_module_data(&settings)
         .unwrap();
