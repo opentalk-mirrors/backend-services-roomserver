@@ -7,8 +7,9 @@ use pretty_assertions::assert_eq;
 
 /// Test that the JoinSuccess contains the access token for the LiveKit room.
 #[test_log::test(tokio::test)]
-#[ignore]
-async fn joined_participant_receives_key() {
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
+async fn livekit_joined_participant_receives_key() {
     let (_container, room, livekit_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
 

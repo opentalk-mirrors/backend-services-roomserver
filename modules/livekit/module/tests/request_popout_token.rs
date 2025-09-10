@@ -12,8 +12,9 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_livekit::{LiveKitCommand, LiveKitEvent};
 
 #[test_log::test(tokio::test)]
-#[ignore]
-async fn request_access_token() {
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
+async fn livekit_request_access_token() {
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
 
@@ -36,8 +37,9 @@ async fn request_access_token() {
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
-async fn alice_in_breakout_bob_in_main() {
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
+async fn livekit_alice_in_breakout_bob_in_main() {
     let (_container, room, public_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
 

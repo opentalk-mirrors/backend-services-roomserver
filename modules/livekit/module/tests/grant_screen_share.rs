@@ -16,8 +16,9 @@ use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
 
 #[test_log::test(tokio::test)]
-#[ignore]
-async fn unknown_participant() {
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
+async fn livekit_unknown_participant() {
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
@@ -46,8 +47,9 @@ async fn unknown_participant() {
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
-async fn insufficient_permissions() {
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
+async fn livekit_insufficient_permissions() {
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
@@ -73,8 +75,9 @@ async fn insufficient_permissions() {
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
-async fn grant_bob() {
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
+async fn livekit_grant_bob() {
     let (_container, room, public_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
 
@@ -123,8 +126,9 @@ async fn grant_bob() {
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
-async fn alice_in_breakout_bob_in_main() {
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
+async fn livekit_alice_in_breakout_bob_in_main() {
     let (_container, room, _public_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
 

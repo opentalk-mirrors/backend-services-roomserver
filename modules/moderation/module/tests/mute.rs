@@ -48,8 +48,9 @@ async fn unknown_participant() {
 }
 
 #[test_log::test(tokio::test)]
-#[ignore = "requires livekit container"]
-async fn mute_bob() {
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
+async fn livekit_mute_bob() {
     let (_container, room, public_url) = livekit_mocking::build_livekit_room().await;
     let mut room = room.register_module::<ModerationModule>().spawn();
 
@@ -136,8 +137,9 @@ async fn insufficient_permissions() {
 }
 
 #[test_log::test(tokio::test)]
-#[ignore]
-async fn alice_in_breakout_bob_in_main() {
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
+async fn livekit_alice_in_breakout_bob_in_main() {
     let (_container, room, public_url) = livekit_mocking::build_livekit_room().await;
     let mut room = room.register_module::<ModerationModule>().spawn();
 
