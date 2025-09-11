@@ -30,6 +30,7 @@ pub use {
         SUBROOM_AUDIO_MODULE_ID, command::SubroomAudioCommand,
     },
     opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand},
+    opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardCommand},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -77,6 +78,7 @@ pub enum SignalingModuleCommand {
     RaiseHands(RaiseHandsCommand),
     SubroomAudio(SubroomAudioCommand),
     MeetingNotes(MeetingNotesCommand),
+    Whiteboard(WhiteboardCommand),
 }
 
 impl SignalingModuleCommand {
@@ -97,6 +99,7 @@ impl SignalingModuleCommand {
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
             Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
+            Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
         }
     }
 }
@@ -120,6 +123,7 @@ mod tests {
     };
     use opentalk_roomserver_types_raise_hands::command::RaiseHandsCommand;
     use opentalk_roomserver_types_timer::{Start, TimerCommand, command::Kind};
+    use opentalk_roomserver_types_whiteboard::WhiteboardCommand;
     use opentalk_types_common::modules::ModuleId;
     use opentalk_types_signaling::ParticipantId;
     use serde::Deserialize;
@@ -393,6 +397,24 @@ mod tests {
           "payload": {
             "action": "grant_write_access",
             "participant_ids": []
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_command_whiteboard() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            payload: SignalingModuleCommand::Whiteboard(WhiteboardCommand::Initialize),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "whiteboard",
+          "payload": {
+            "action": "initialize"
           }
         }
         "#);

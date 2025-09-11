@@ -23,6 +23,7 @@ use opentalk_roomserver_module_raise_hands::RaiseHandsModule;
 use opentalk_roomserver_module_shared_folder::SharedFolderModule;
 use opentalk_roomserver_module_subroom_audio::SubroomAudioModule;
 use opentalk_roomserver_module_timer::TimerModule;
+use opentalk_roomserver_module_whiteboard::WhiteboardModule;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters, room_parameters::RoomParameters,
@@ -220,6 +221,7 @@ fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<SubroomAudioModule>();
     module_registry.add_module::<TimerModule>();
     module_registry.add_module::<RaiseHandsModule>();
+    module_registry.add_module::<WhiteboardModule>();
     module_registry
 }
 
