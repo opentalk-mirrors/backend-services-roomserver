@@ -101,7 +101,7 @@ commit-release: _check_yq
     git log HEAD^..HEAD
 
 # Create the release tag
-tag-release:
+tag-release: _check_yq
     #!/usr/bin/env bash
     current_version=$(cat Cargo.toml | yq -ptoml .workspace.package.version)
     git tag -s -m "v$current_version" "v$current_version"
