@@ -56,7 +56,7 @@ async fn accept_participant(
     let event = moderator.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.payload,
-        CoreEvent::JoinedWaitingRoom { id } if id == joinee.id()
+        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == joinee.id()
     ));
     assert!(joinee.received_nothing());
 
@@ -125,14 +125,14 @@ async fn join_via_waiting_room() {
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.payload,
-        CoreEvent::JoinedWaitingRoom { id } if id == bob_0.id()
+        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == bob_0.id()
     ));
 
     let mut bob_1 = room.waiting_room_bob(1).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
         event.payload,
-        CoreEvent::JoinedWaitingRoom{ id } if id == bob_1.id()
+        CoreEvent::JoinedWaitingRoom{ participant_id, .. } if participant_id == bob_1.id()
     ));
 
     assert!(bob_0.received_nothing());
