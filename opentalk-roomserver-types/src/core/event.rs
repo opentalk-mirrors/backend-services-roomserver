@@ -3,7 +3,8 @@
 
 use std::collections::BTreeMap;
 
-use opentalk_types_common::modules::ModuleId;
+use chrono::{DateTime, Utc};
+use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +39,22 @@ pub enum CoreEvent {
     },
 
     /// Sent to the moderator when a participant joined the waiting room
-    JoinedWaitingRoom { id: ParticipantId },
+    JoinedWaitingRoom {
+        /// The id of the participant
+        participant_id: ParticipantId,
+
+        /// The id of the connection used by the participant
+        connection_id: ConnectionId,
+
+        /// The time when the participant joined the waiting room with their first connection
+        joined_at: DateTime<Utc>,
+
+        /// The participants display name
+        display_name: DisplayName,
+
+        /// The participants avatar URL
+        avatar_url: Option<String>,
+    },
 
     /// Sent to the moderators when a participant left the waiting room
     LeftWaitingRoom(LeftWaitingRoom),
@@ -87,6 +103,7 @@ impl From<CoreError> for SignalingModuleError<CoreError> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::DateTime;
     use insta::assert_snapshot;
     use opentalk_types_signaling::ParticipantId;
 
@@ -96,14 +113,22 @@ mod tests {
     #[test]
     fn joined_waiting_room() {
         let produced = serde_json::to_string_pretty(&CoreEvent::JoinedWaitingRoom {
-            id: ParticipantId::from_u128(123),
+            participant_id: ParticipantId::from_u128(123),
+            joined_at: DateTime::UNIX_EPOCH,
+            display_name: "Waiting Walter".parse().unwrap(),
+            avatar_url: Some("https://example.com/avatar_url/waiting-walter".to_string()),
+            connection_id: ConnectionId::from_u128(456),
         })
         .unwrap();
 
         assert_snapshot!(produced, @r#"
         {
           "joined_waiting_room": {
-            "id": "00000000-0000-0000-0000-00000000007b"
+            "participant_id": "00000000-0000-0000-0000-00000000007b",
+            "connection_id": "00000000-0000-0000-0000-0000000001c8",
+            "joined_at": "1970-01-01T00:00:00Z",
+            "display_name": "Waiting Walter",
+            "avatar_url": "https://example.com/avatar_url/waiting-walter"
           }
         }
         "#);

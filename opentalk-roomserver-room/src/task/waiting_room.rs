@@ -68,24 +68,27 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         device_id: DeviceId,
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
+        let joined_at;
+        let display_name = client_parameters.kind.display_name();
+        let avatar_url = client_parameters.kind.avatar_url().map(str::to_string);
         match self.waiting_participants.entry(participant_id) {
             Entry::Occupied(mut occupied_entry) => {
                 // The user joins with a second device. The client parameter (e.g. username, role)
                 // could have changed since the last connect. If the participant is
                 // already connected we ignore the new client parameter.
 
-                occupied_entry
-                    .get_mut()
-                    .connections
-                    .insert(connection_id, device_id);
+                let state = occupied_entry.get_mut();
+                state.connections.insert(connection_id, device_id);
+                joined_at = state.joined_at;
             }
             Entry::Vacant(vacant_entry) => {
+                joined_at = Utc::now();
                 vacant_entry.insert(WaitingParticipant {
                     kind: client_parameters.kind,
                     role: client_parameters.role,
                     connections: HashMap::from_iter([(connection_id, device_id)]),
                     accepted: false,
-                    joined_at: Utc::now(),
+                    joined_at,
                 });
             }
         }
@@ -106,7 +109,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             moderator_ids,
             CORE_MODULE_ID,
             None,
-            CoreEvent::JoinedWaitingRoom { id: participant_id },
+            CoreEvent::JoinedWaitingRoom {
+                participant_id,
+                connection_id,
+                joined_at,
+                display_name,
+                avatar_url,
+            },
         )?;
 
         tracing::debug!("Participant entered waiting room");
