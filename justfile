@@ -121,3 +121,6 @@ generate-deps-graph: _check_cargo_depgraph _check_dot
     OUT_PATH=`mktemp --suffix=.png`
     cargo depgraph --workspace-only --all-deps | dot -Tpng > $OUT_PATH
     echo "Created dependency graph at $OUT_PATH"
+
+test-coverage:
+    cargo llvm-cov nextest --lcov --output-path lcov.info

@@ -18,7 +18,8 @@ use opentalk_roomserver_types_livekit::LiveKitState;
 
 /// Test that the JoinSuccess contains the access token for the LiveKit room.
 #[test_log::test(tokio::test)]
-#[ignore]
+// The `livekit_` prefix ensures that this test is skipped in the CI. The Livekit server is not
+// available there.
 async fn livekit_rooms_lifecycle() {
     let (_container, room, public_url) = mocking::build_livekit_room().await;
     let mut room = room.spawn();
