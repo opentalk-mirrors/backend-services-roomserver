@@ -23,6 +23,7 @@ use opentalk_roomserver_types_moderation::{
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
+use rand::RngCore as _;
 
 use super::plugin::Received;
 use crate::app::{
@@ -38,6 +39,7 @@ pub struct WaitingRoomPlugin {
     waiting_room_enabled: bool,
     waiting: BTreeMap<ParticipantId, WaitingParticipant>,
     in_room: BTreeMap<ParticipantId, InRoomParticipant>,
+    rng: rand::prelude::ThreadRng,
 }
 
 impl SignalingPlugin for WaitingRoomPlugin {
@@ -78,17 +80,22 @@ impl SignalingPlugin for WaitingRoomPlugin {
 
 impl WaitingRoomPlugin {
     pub fn new() -> Self {
+        let rng = rand::rng();
         Self {
             waiting: BTreeMap::new(),
             in_room: BTreeMap::new(),
             waiting_room_enabled: false,
+            rng,
         }
     }
 
     fn control_ui(&mut self, messages: &mut Vec<String>, ui: &mut egui::Ui) {
         if let Some(cmd) = self.waiting_controls_ui(ui) {
+            let mut signaling_command = SignalingCommand::from(cmd);
+            signaling_command.transaction_id = Some(self.rng.next_u64());
+
             messages.push(
-                serde_json::to_string(&SignalingCommand::from(cmd))
+                serde_json::to_string(&signaling_command)
                     .expect("SignalingCommand must be serializable"),
             )
         }

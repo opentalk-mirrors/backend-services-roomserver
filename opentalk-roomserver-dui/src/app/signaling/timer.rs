@@ -3,6 +3,7 @@
 
 use opentalk_roomserver_client::api::command::{SignalingCommand, SignalingModuleCommand};
 use opentalk_roomserver_types_timer::{Start, TimerCommand, command::Kind};
+use rand::RngCore as _;
 
 use super::plugin::Received;
 use crate::app::{shortcuts::TOGGLE_TIMER_WINDOW_SHORTCUT, signaling::plugin::SignalingPlugin};
@@ -12,6 +13,7 @@ pub struct TimerPlugin {
     new_timer_kind: Kind,
     new_timer_ready_check: bool,
     mark_me_ready: bool,
+    rng: rand::prelude::ThreadRng,
 }
 
 impl SignalingPlugin for TimerPlugin {
@@ -46,17 +48,22 @@ impl SignalingPlugin for TimerPlugin {
 
 impl TimerPlugin {
     pub fn new() -> Self {
+        let rng = rand::rng();
         Self {
             new_timer_kind: Kind::Stopwatch,
             new_timer_ready_check: false,
             mark_me_ready: false,
+            rng,
         }
     }
 
     fn control_ui(&mut self, messages: &mut Vec<String>, ui: &mut egui::Ui) {
         if let Some(cmd) = self.timer_controls_ui(ui) {
+            let mut signaling_command = SignalingCommand::from(SignalingModuleCommand::Timer(cmd));
+            signaling_command.transaction_id = Some(self.rng.next_u64());
+
             messages.push(
-                serde_json::to_string(&SignalingCommand::from(SignalingModuleCommand::Timer(cmd)))
+                serde_json::to_string(&signaling_command)
                     .expect("SignalingCommand must be serializable"),
             )
         }

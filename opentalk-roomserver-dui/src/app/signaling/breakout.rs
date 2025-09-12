@@ -18,6 +18,7 @@ use opentalk_roomserver_types::{
     join::join_success::JoinSuccess,
     room_kind::RoomKind,
 };
+use rand::RngCore;
 
 use super::plugin::Received;
 use crate::app::{shortcuts::TOGGLE_BREAKOUT_WINDOW_SHORTCUT, signaling::plugin::SignalingPlugin};
@@ -32,6 +33,8 @@ pub struct BreakoutPlugin {
     state: BreakoutState,
 
     num_breakout_rooms: usize,
+
+    rng: rand::prelude::ThreadRng,
 }
 
 impl SignalingPlugin for BreakoutPlugin {
@@ -84,11 +87,13 @@ impl SignalingPlugin for BreakoutPlugin {
 
 impl BreakoutPlugin {
     pub fn new() -> Self {
+        let rng = rand::rng();
         Self {
             errors: Vec::new(),
             current_room: RoomKind::Main,
             state: BreakoutState::NoBreakout,
             num_breakout_rooms: 3,
+            rng,
         }
     }
 
@@ -112,11 +117,10 @@ impl BreakoutPlugin {
     fn control_ui(&mut self, messages: &mut Vec<String>, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if let Some(cmd) = self.room_status_ui(ui) {
+                let mut cmd = SignalingCommand::from(SignalingModuleCommand::Breakout(cmd));
+                cmd.transaction_id = Some(self.rng.next_u64());
                 messages.push(
-                    serde_json::to_string(&SignalingCommand::from(
-                        SignalingModuleCommand::Breakout(cmd),
-                    ))
-                    .expect("SignalingCommand must be serializable"),
+                    serde_json::to_string(&cmd).expect("SignalingCommand must be serializable"),
                 )
             }
         });
