@@ -22,6 +22,7 @@ repos:
     rev: 0.4.0
     hooks:
       - id: cargo-fmt
+        entry: cargo +nightly fmt
       - id: cargo-clippy
         args:
           - --all-targets
