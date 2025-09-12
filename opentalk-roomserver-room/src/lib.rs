@@ -48,7 +48,7 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{participant::create_participant_connection, socket::MockSocket},
-        task::{RoomTask, fs_storage::FsStorage},
+        task::{RoomTask, memory_file_storage::MemoryFileStorage},
     };
 
     const TIMEOUT: Duration = Duration::from_millis(500);
@@ -59,8 +59,7 @@ mod tests {
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
-        let storage = FsStorage::new(1024, None).expect("Failed to create storage");
-        let storage = Arc::new(storage);
+        let storage = Arc::new(MemoryFileStorage::new(1024));
         (
             RoomTask::spawn_with_timeout(
                 id,

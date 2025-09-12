@@ -115,8 +115,8 @@ use crate::{
 
 pub mod breakout;
 pub mod core;
-pub mod fs_storage;
 pub mod handle;
+pub mod memory_file_storage;
 pub mod timeout;
 pub mod waiting_room;
 

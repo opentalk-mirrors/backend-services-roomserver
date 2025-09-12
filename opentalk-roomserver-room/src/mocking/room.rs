@@ -4,7 +4,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     net::Ipv6Addr,
-    path::PathBuf,
     sync::Arc,
 };
 
@@ -20,6 +19,7 @@ use opentalk_roomserver_types::{
     room_parameters::{EventContext, RoomParameters},
 };
 use opentalk_types_common::{
+    assets::AssetId,
     rooms::RoomId,
     tariffs::{TariffId, TariffModuleResource, TariffResource},
 };
@@ -35,7 +35,7 @@ use crate::{
         },
         socket::MockSocket,
     },
-    task::{RoomTask, fs_storage::FsStorage},
+    task::{RoomTask, memory_file_storage::MemoryFileStorage},
 };
 
 #[derive(Debug)]
@@ -176,7 +176,7 @@ impl Default for TestRoomBuilder {
 pub struct TestRoom {
     room_id: RoomId,
     pub room_handle: RoomTaskHandle<MockSocket>,
-    storage: Arc<FsStorage>,
+    storage: Arc<MemoryFileStorage>,
     _settings: Arc<Settings>,
     _app_state_tx: watch::Sender<ApplicationState>,
 }
@@ -196,8 +196,7 @@ impl TestRoom {
         let settings = Arc::new(settings);
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
 
-        let storage = FsStorage::new(storage_quota, None).expect("Failed to create storage");
-        let storage = Arc::new(storage);
+        let storage = Arc::new(MemoryFileStorage::new(storage_quota));
         let tmp = Arc::clone(&storage);
 
         let (room_handle, _) = RoomTask::spawn(
@@ -315,8 +314,8 @@ impl TestRoom {
         self.room_id
     }
 
-    pub fn stored_files(&self) -> Vec<PathBuf> {
-        self.storage.paths()
+    pub async fn stored_file(&self, id: AssetId) -> Option<Vec<u8>> {
+        self.storage.file(id).await
     }
 }
 
