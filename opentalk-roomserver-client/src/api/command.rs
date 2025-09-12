@@ -16,6 +16,7 @@ pub use {
     opentalk_roomserver_types_livekit::{
         LIVEKIT_MODULE_ID, LiveKitCommand, MicrophoneRestrictionState,
     },
+    opentalk_roomserver_types_meeting_notes::{MEETING_NOTES_MODULE_ID, MeetingNotesCommand},
     opentalk_roomserver_types_meeting_report::{
         MEETING_REPORT_MODULE_ID, command::MeetingReportCommand,
     },
@@ -75,6 +76,7 @@ pub enum SignalingModuleCommand {
     Moderation(ModerationCommand),
     RaiseHands(RaiseHandsCommand),
     SubroomAudio(SubroomAudioCommand),
+    MeetingNotes(MeetingNotesCommand),
 }
 
 impl SignalingModuleCommand {
@@ -94,6 +96,7 @@ impl SignalingModuleCommand {
             Self::Moderation(..) => MODERATION_MODULE_ID,
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
             Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
+            Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
         }
     }
 }

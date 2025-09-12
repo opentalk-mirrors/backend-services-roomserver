@@ -239,6 +239,16 @@ test:cargo_test:
   script:
     - cargo llvm-cov nextest --profile ci
     - cargo llvm-cov report --cobertura --output-path target/llvm-cov-target/cobertura.xml
+  variables:
+    # etherpad api key, used in the etherpad service and the cargo tests
+    EP_APIKEY: secret123
+    # etherpad port and host used in the cargo tests
+    TEST_ETHERPAD_PORT: 9001
+    TEST_ROOMSERVER_ETHERPAD_HOST: etherpad
+  # etherpad container for meeting notes module tests
+  services:
+    - name: registry.opencode.de/opentalk/etherpad:latest
+      alias: etherpad
 
 build:
   stage: build

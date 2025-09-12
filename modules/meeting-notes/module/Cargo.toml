@@ -3,36 +3,32 @@
 
 [package]
 authors.workspace = true
-description = "OpenTalk RoomServer Signaling"
+description = "OpenTalk RoomServer Meeting Notes"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
-name = "opentalk-roomserver-signaling"
+name = "opentalk-roomserver-module-meeting-notes"
 repository.workspace = true
 version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-async-trait.workspace = true
-bytes.workspace = true
 chrono.workspace = true
 futures.workspace = true
-opentalk-roomserver-common.workspace = true
+opentalk-etherpad-client.workspace = true
+opentalk-roomserver-room.workspace = true
+opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-meeting-notes.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-reqwest.workspace = true
-serde.workspace = true
-serde_json = { workspace = true, features = ["raw_value"] }
 tokio.workspace = true
 tracing.workspace = true
 url.workspace = true
 
 [dev-dependencies]
-opentalk-roomserver-module-chat.workspace = true
-opentalk-roomserver-module-moderation.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
-opentalk-roomserver-types-chat.workspace = true
-opentalk-roomserver-types-moderation.workspace = true
-opentalk-types-signaling = { workspace = true, features = ["rand"] }
+pretty_assertions.workspace = true
+serde_json.workspace = true
 test-log.workspace = true
+testcontainers.workspace = true

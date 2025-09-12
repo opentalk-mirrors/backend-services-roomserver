@@ -35,7 +35,7 @@ use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{json, value::to_raw_value};
 use tokio::{
     sync::mpsc,
-    time::{error::Elapsed, timeout},
+    time::{self, error::Elapsed, timeout},
 };
 
 use super::{
@@ -535,7 +535,18 @@ impl<S> MockParticipant<S> {
         M: SignalingModule,
         M::Outgoing: DeserializeOwned,
     {
-        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv()).await? else {
+        self.receive_event_with_timeout::<M>(SOCKET_TIMEOUT).await
+    }
+
+    pub async fn receive_event_with_timeout<M>(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<SignalingEvent<M::Outgoing>, ReceiveError>
+    where
+        M: SignalingModule,
+        M::Outgoing: DeserializeOwned,
+    {
+        let Some(received) = time::timeout(timeout, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
         };
         match received {

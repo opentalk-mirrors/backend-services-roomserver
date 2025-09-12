@@ -8,6 +8,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_automod::{AUTOMOD_MODULE_ID, event::AutomodEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
 use opentalk_roomserver_types_echo::{ECHO_MODULE_ID, event::EchoEvent};
+use opentalk_roomserver_types_meeting_notes::{MEETING_NOTES_MODULE_ID, MeetingNotesEvent};
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID, event::MeetingReportEvent,
 };
@@ -69,6 +70,7 @@ pub enum SignalingModuleEvent {
     Moderation(ModerationEvent),
     RaiseHands(RaiseHandsEvent),
     SubroomAudio(SubroomAudioEvent),
+    MeetingNotes(MeetingNotesEvent),
 }
 
 impl SignalingModuleEvent {
@@ -88,6 +90,7 @@ impl SignalingModuleEvent {
             Self::Moderation(..) => MODERATION_MODULE_ID,
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
             Self::SubroomAudio(..) => SHARED_FOLDER_MODULE_ID,
+            Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
         }
     }
 }

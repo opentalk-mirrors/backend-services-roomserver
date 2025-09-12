@@ -420,7 +420,6 @@ pub struct LiveKitConnection {
     pub participant_id: ParticipantId,
     pub livekit_participant_id: String,
     pub livekit_room: String,
-    pub livekit_client: Arc<RoomClient>,
 }
 
 impl LiveKitConnection {
@@ -429,13 +428,11 @@ impl LiveKitConnection {
         connection_id: ConnectionId,
         room_id: RoomId,
         room_kind: RoomKind,
-        livekit_client: Arc<RoomClient>,
     ) -> LiveKitConnection {
         Self {
             participant_id,
             livekit_participant_id: build_livekit_participant_id(participant_id, connection_id),
             livekit_room: build_subroom_id(room_id, room_kind),
-            livekit_client,
         }
     }
 }
