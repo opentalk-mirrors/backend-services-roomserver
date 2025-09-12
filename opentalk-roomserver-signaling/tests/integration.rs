@@ -81,6 +81,17 @@ async fn waiting_participants_dont_receive_broadcasts() {
         )
         .await
         .unwrap();
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::ParticipantAccepted {
+            participant_id: charlie.id()
+        }
+    );
 
     let event = charlie
         .receive_event::<ModerationModule>()

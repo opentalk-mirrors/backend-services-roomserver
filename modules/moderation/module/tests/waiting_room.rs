@@ -69,6 +69,17 @@ async fn accept_participant(
         )
         .await
         .unwrap();
+    let event = moderator
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::ParticipantAccepted {
+            participant_id: joinee.id()
+        }
+    );
 
     let event = joinee
         .receive_event::<ModerationModule>()
@@ -144,6 +155,17 @@ async fn join_via_waiting_room() {
         )
         .await
         .unwrap();
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::ParticipantAccepted {
+            participant_id: bob_0.id()
+        }
+    );
 
     let event = bob_0
         .receive_event::<ModerationModule>()
