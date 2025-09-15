@@ -31,19 +31,19 @@ async fn generate_meeting_report() {
         .await
         .unwrap();
 
-    assert!(matches!(
-        alice
-            .receive_event::<MeetingReportModule>()
-            .await
-            .unwrap()
-            .payload,
-        MeetingReportEvent::PdfAsset(PdfAsset { .. })
-    ));
+    let event = alice
+        .receive_event::<MeetingReportModule>()
+        .await
+        .unwrap()
+        .payload;
+    let MeetingReportEvent::PdfAsset(PdfAsset { asset_id, .. }) = event else {
+        panic!("Expected PdfAsset event, got {event:#?}");
+    };
 
-    let path = &room.stored_files()[0];
+    let file = room.stored_file(asset_id).await.unwrap();
     // Title, details, start & end are missing because they do not exist in the
     // TestRoom
-    assert_snapshot!(pdf_extract::extract_text(path).unwrap(), @r"
+    assert_snapshot!(pdf_extract::extract_text_from_mem(&file).unwrap(), @r"
     Attendance Report
      Meeting :
 

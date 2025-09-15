@@ -16,8 +16,8 @@ use tokio::{
 use super::signaling::module_initializer::ModuleRegistry;
 use crate::task::{
     RoomTask,
-    fs_storage::FsStorage,
     handle::{RoomTaskHandle, RoomTaskHandleError},
+    memory_file_storage::MemoryFileStorage,
 };
 
 /// The room task registry
@@ -167,6 +167,5 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 // TODO: this function will be replaced once a real storage provider has been implemented
 fn create_storage_provider() -> Arc<dyn StorageProvider> {
     let quota = 5 * 1024u64.pow(3); // 5 GiB
-    let storage = FsStorage::new(quota, None).expect("Failed to create storage");
-    Arc::new(storage)
+    Arc::new(MemoryFileStorage::new(quota))
 }
