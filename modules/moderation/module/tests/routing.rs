@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_module_moderation::ModerationModule;
-use opentalk_roomserver_room::mocking::room::TestRoom;
+use opentalk_roomserver_room::mocking::{
+    mock_module::{MockCommand, MockEvent, MockModule},
+    room::TestRoom,
+};
 use opentalk_roomserver_types::{
     breakout::{
         breakout_config::{BreakoutConfig, BreakoutRoomConfig},
@@ -11,11 +13,6 @@ use opentalk_roomserver_types::{
         event::BreakoutEvent,
     },
     core::{CoreCommand, CoreEvent},
-};
-use opentalk_roomserver_types_chat::{
-    Scope,
-    command::{ChatCommand, SendMessage},
-    event::ChatEvent,
 };
 use opentalk_roomserver_types_moderation::{
     command::{Accept, ModerationCommand},
@@ -25,8 +22,7 @@ use opentalk_roomserver_types_moderation::{
 #[test_log::test(tokio::test)]
 async fn waiting_participants_dont_receive_messages() {
     let mut room = TestRoom::builder()
-        .register_module::<ChatModule>()
-        .register_module::<ModerationModule>()
+        .register_module::<MockModule>()
         .waiting_room(true)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
@@ -38,17 +34,11 @@ async fn waiting_participants_dont_receive_messages() {
     // Chat message is used as an arbitrary command that should not be sent to
     // waiting participants
     alice
-        .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
-                content: "Bob can not read this".into(),
-                scope: Scope::Global,
-            }),
-            None,
-        )
+        .send_command::<MockModule>(MockCommand::Valid, None)
         .await
         .unwrap();
-    let event = alice.receive_event::<ChatModule>().await.unwrap();
-    assert!(matches!(event.payload, ChatEvent::MessageSent(..)));
+    let event = alice.receive_event::<MockModule>().await.unwrap();
+    assert!(matches!(event.payload, MockEvent::Success));
 
     // Bob should not receive the event
     assert!(bob.received_nothing());
@@ -57,7 +47,7 @@ async fn waiting_participants_dont_receive_messages() {
 #[test_log::test(tokio::test)]
 async fn waiting_participants_dont_receive_broadcasts() {
     let mut room = TestRoom::builder()
-        .register_module::<ChatModule>()
+        .register_module::<MockModule>()
         .register_module::<ModerationModule>()
         .waiting_room(true)
         .spawn();
