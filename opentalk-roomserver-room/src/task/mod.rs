@@ -276,7 +276,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         tracing::debug!("Shutting down modules");
         for (_, module_handle) in self.modules.drain() {
-            module_handle.destroy(room_id);
+            module_handle.destroy(room_id, Arc::clone(&self.storage));
         }
 
         tracing::debug!("Closing room {room_id}");

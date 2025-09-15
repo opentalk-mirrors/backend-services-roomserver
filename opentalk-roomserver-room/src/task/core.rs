@@ -366,7 +366,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
-        module.destroy(self.info.room_id);
+        module.destroy(self.info.room_id, Arc::clone(&self.storage));
 
         // Remove the module from the room state
         self.info.room.tariff.modules.remove(&namespace);

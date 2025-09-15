@@ -16,7 +16,7 @@
 //! collection either, at least not when their generic type differs. This is where the
 //! [`ModuleHandle`] is used as an abstraction to remove any generic bounds. We achieve this with
 //! dynamic dispatch by storing them as a `Box<dyn ModuleDispatcher>`.
-use std::{any::Any, collections::BTreeMap, fmt::Display, time::Duration};
+use std::{any::Any, collections::BTreeMap, fmt::Display, sync::Arc, time::Duration};
 
 use anyhow::Context;
 use dyn_module_context::DynModuleContext;
@@ -24,6 +24,7 @@ use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
     module_context::ModuleContext,
     signaling_module::{CreateReplica, SignalingModule},
+    storage::StorageProvider,
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom,
@@ -57,7 +58,7 @@ pub trait ModuleHandle: Send + Sync {
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError>;
 
-    fn destroy(self: Box<Self>, room_id: RoomId);
+    fn destroy(self: Box<Self>, room_id: RoomId, storage: Arc<dyn StorageProvider>);
 }
 
 pub enum DynEvent {
@@ -480,7 +481,7 @@ where
         Ok(())
     }
 
-    fn destroy(self: Box<Self>, room_id: RoomId) {
-        self.module.destroy(room_id);
+    fn destroy(self: Box<Self>, room_id: RoomId, storage: Arc<dyn StorageProvider>) {
+        self.module.destroy(room_id, storage);
     }
 }
