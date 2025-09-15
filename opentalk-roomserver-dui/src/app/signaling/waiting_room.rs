@@ -210,7 +210,7 @@ impl WaitingRoomPlugin {
                 connection_id,
                 reason,
             }) => {
-                self.participant_disconnected(*participant_id, *connection_id, reason);
+                self.participant_disconnected(*participant_id, *connection_id, *reason);
             }
 
             SignalingModuleEvent::Core(CoreEvent::JoinedWaitingRoom {
@@ -262,7 +262,7 @@ impl WaitingRoomPlugin {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
-        reason: &DisconnectReason,
+        reason: DisconnectReason,
     ) {
         let Entry::Occupied(mut occ) = self.in_room.entry(participant_id) else {
             return;
@@ -273,7 +273,7 @@ impl WaitingRoomPlugin {
         if participant.connections.is_empty() {
             occ.remove();
         }
-        if reason == &DisconnectReason::SentToWaitingRoom {
+        if reason == DisconnectReason::SentToWaitingRoom {
             self.waiting.insert(
                 participant_id,
                 WaitingParticipant {
