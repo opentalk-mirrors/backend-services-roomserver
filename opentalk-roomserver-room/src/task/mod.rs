@@ -383,7 +383,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     fn handle_loopback(&mut self, msg: Option<LoopbackMessage>) -> Result<(), FatalError> {
         let Some(msg) = msg else {
-            tracing::error!("Signaling module channel was dropped");
+            tracing::debug!("Optional loopback future returned None");
             return Ok(());
         };
 

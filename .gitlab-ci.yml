@@ -245,10 +245,18 @@ test:cargo_test:
     # etherpad port and host used in the cargo tests
     TEST_ETHERPAD_PORT: 9001
     TEST_ROOMSERVER_ETHERPAD_HOST: etherpad
-  # etherpad container for meeting notes module tests
+    TEST_ROOMSERVER_LIVEKIT_HOST: livekit
+    TEST_ROOMSERVER_LIVEKIT_PORT: 7880
+    LIVEKIT_KEYS: >
+      devkey: devsecret
+    RUST_LOG: opentalk=trace
   services:
+    # etherpad container for meeting notes module tests
     - name: registry.opencode.de/opentalk/etherpad:latest
       alias: etherpad
+    - name: livekit/livekit-server:latest
+      alias: livekit
+      command: [--dev, --bind, 0.0.0.0]
 
 build:
   stage: build
