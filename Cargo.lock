@@ -6251,7 +6251,6 @@ dependencies = [
  "chrono",
  "derive_more",
  "insta",
- "opentalk-roomserver-signaling",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
