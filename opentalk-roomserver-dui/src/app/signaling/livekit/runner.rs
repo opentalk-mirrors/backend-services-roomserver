@@ -63,18 +63,27 @@ impl LiveKitRunner {
 
     async fn run(mut self) -> anyhow::Result<()> {
         loop {
+            log::trace!("next livekit event");
             tokio::select! {
                 msg = self.command_rx.recv() => {
                     if let Some(command) = msg {
                         self.handle_command(command).await?;
+                        log::trace!("request repaint: handled livekit command");
                         self.egui_ctx.request_repaint();
+                    } else {
+                        log::trace!("livekit command channel dropped, exiting runner");
+                        return Ok(());
                     }
                 }
 
                 msg = self.livekit.recv_livekit_event() => {
                     if let Some(event) = msg {
                         self.handle_event(event)?;
+                        log::trace!("request repaint: handled livekit event");
                         self.egui_ctx.request_repaint();
+                    } else {
+                        log::trace!("livekit signaling connection dropped, exiting runner");
+                        return Ok(());
                     }
                 }
             }

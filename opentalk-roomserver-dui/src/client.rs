@@ -159,6 +159,7 @@ impl RoomServerRunner {
                 }
             }
             // request a repaint of the UI each time something happened.
+            log::trace!("request repaint: RoomServerRunner event");
             self.egui_ctx.request_repaint();
         }
     }

@@ -45,6 +45,9 @@ pub enum ModerationEvent {
     /// Sent to a participant when they are accepted by the moderator from the waiting room
     Accepted,
 
+    /// Sent to moderators when a participant was accepted
+    ParticipantAccepted { participant_id: ParticipantId },
+
     /// Sent to all participants when a participants display name gets changed
     DisplayNameChanged(DisplayNameChanged),
 

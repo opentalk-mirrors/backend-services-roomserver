@@ -128,6 +128,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
             if *selected_index > index {
                 *selected_index = selected_index.saturating_sub(1);
             }
+            log::trace!("request repaint: delete in settings `{}`", self.heading);
             ui.ctx().request_repaint();
         }
     }

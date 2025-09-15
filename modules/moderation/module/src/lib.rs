@@ -444,6 +444,13 @@ impl ModerationModule {
         tracing::trace!("accept participant: {target}");
         ctx.send_ws_message_to_waiting_room([target], ModerationEvent::Accepted)?;
 
+        ctx.send_ws_message(
+            ctx.participants.connected().moderators().ids(),
+            ModerationEvent::ParticipantAccepted {
+                participant_id: target,
+            },
+        )?;
+
         Ok(())
     }
 

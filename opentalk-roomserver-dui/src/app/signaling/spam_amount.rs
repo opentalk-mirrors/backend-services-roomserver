@@ -7,6 +7,7 @@ use opentalk_roomserver_types_chat::{
     Scope,
     command::{ChatCommand, SendMessage},
 };
+use rand::RngCore as _;
 
 use super::plugin::Received;
 use crate::app::{
@@ -20,6 +21,7 @@ pub struct SpamAmountPlugin {
     message_count: usize,
     running: bool,
     message: String,
+    rng: rand::prelude::ThreadRng,
 }
 
 impl SignalingPlugin for SpamAmountPlugin {
@@ -59,12 +61,16 @@ impl SignalingPlugin for SpamAmountPlugin {
 impl SpamAmountPlugin {
     pub fn new() -> Self {
         let message_size = 1024;
-        Self {
+        let rng = rand::rng();
+        let mut this = Self {
             message_size,
             message_count: 10,
             running: false,
-            message: build_chat_message(message_size),
-        }
+            message: String::new(),
+            rng,
+        };
+        this.next_message();
+        this
     }
 
     fn message_count_ui(&mut self, ui: &mut egui::Ui) {
@@ -78,7 +84,7 @@ impl SpamAmountPlugin {
             .ui(ui)
             .changed()
         {
-            self.message = build_chat_message(self.message_size);
+            self.next_message();
         }
     }
 
@@ -90,6 +96,7 @@ impl SpamAmountPlugin {
                 self.running = false;
             } else if self.running {
                 self.message_count -= 1;
+                log::trace!("request repaint: message count decreased");
                 ui.ctx().request_repaint();
                 return Some(self.message.clone());
             }
@@ -97,15 +104,17 @@ impl SpamAmountPlugin {
         })
         .inner
     }
-}
 
-fn build_chat_message(message_size: usize) -> String {
-    let content: String = std::iter::repeat_n('~', message_size).collect();
-    serde_json::to_string(&SignalingCommand::from(SignalingModuleCommand::Chat(
-        ChatCommand::SendMessage(SendMessage {
-            content,
-            scope: Scope::Global,
-        }),
-    )))
-    .expect("ChatCommand must be serializable")
+    fn next_message(&mut self) {
+        let content: String = std::iter::repeat_n('~', self.message_size).collect();
+        let mut signaling_command = SignalingCommand::from(SignalingModuleCommand::Chat(
+            ChatCommand::SendMessage(SendMessage {
+                content,
+                scope: Scope::Global,
+            }),
+        ));
+        signaling_command.transaction_id = Some(self.rng.next_u64());
+        self.message =
+            serde_json::to_string(&signaling_command).expect("ChatCommand must be serializable");
+    }
 }
