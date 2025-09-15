@@ -107,6 +107,7 @@ mod tests {
     use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
     use opentalk_roomserver_types_echo::event::EchoEvent;
     use opentalk_roomserver_types_livekit::LiveKitEvent;
+    use opentalk_roomserver_types_meeting_notes::MeetingNotesEvent;
     use opentalk_roomserver_types_meeting_report::event::{MeetingReportEvent, PdfAsset};
     use opentalk_roomserver_types_moderation::event::ModerationEvent;
     use opentalk_roomserver_types_polls::{
@@ -461,6 +462,31 @@ mod tests {
                 "state": "invited"
               }
             ]
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_event_meeting_notes() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
+            payload: SignalingModuleEvent::MeetingNotes(MeetingNotesEvent::AccessChanged {
+                readers: Vec::new(),
+                writers: Vec::new(),
+            }),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "timestamp": "1970-01-01T00:00:00Z",
+          "namespace": "meeting_notes",
+          "payload": {
+            "message": "access_changed",
+            "readers": [],
+            "writers": []
           }
         }
         "#);

@@ -103,12 +103,15 @@ impl SignalingModuleCommand {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use insta::assert_snapshot;
     use opentalk_roomserver_types::{breakout::command::BreakoutCommand, core::CoreCommand};
     use opentalk_roomserver_types_automod::command::AutomodCommand;
     use opentalk_roomserver_types_chat::command::ChatCommand;
     use opentalk_roomserver_types_echo::command::EchoCommand;
     use opentalk_roomserver_types_livekit::LiveKitCommand;
+    use opentalk_roomserver_types_meeting_notes::MeetingNotesCommand;
     use opentalk_roomserver_types_meeting_report::command::MeetingReportCommand;
     use opentalk_roomserver_types_moderation::command::{Accept, ModerationCommand};
     use opentalk_roomserver_types_polls::{
@@ -369,6 +372,27 @@ mod tests {
           "namespace": "raise_hands",
           "payload": {
             "action": "raise_hand"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_command_meeting_notes() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            payload: SignalingModuleCommand::MeetingNotes(MeetingNotesCommand::GrantWriteAccess {
+                participant_ids: BTreeSet::new(),
+            }),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "meeting_notes",
+          "payload": {
+            "action": "grant_write_access",
+            "participant_ids": []
           }
         }
         "#);
