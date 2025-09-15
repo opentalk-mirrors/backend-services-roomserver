@@ -25,3 +25,9 @@ reqwest = { workspace = true, features = ["json", "stream"] }
 serde.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+pretty_assertions.workspace = true
+test-log.workspace = true
+testcontainers.workspace = true

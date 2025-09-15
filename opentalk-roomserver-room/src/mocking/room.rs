@@ -317,6 +317,10 @@ impl TestRoom {
     pub async fn stored_file(&self, id: AssetId) -> Option<Vec<u8>> {
         self.storage.file(id).await
     }
+
+    pub async fn file_count(&self) -> usize {
+        self.storage.file_count().await
+    }
 }
 
 pub async fn flush_connected_events(others: &mut [&mut MockParticipantJoined]) {

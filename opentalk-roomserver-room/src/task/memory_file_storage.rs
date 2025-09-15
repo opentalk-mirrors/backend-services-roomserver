@@ -38,6 +38,10 @@ impl MemoryFileStorage {
     pub async fn file(&self, id: AssetId) -> Option<Vec<u8>> {
         self.files.lock().await.get(&id).cloned()
     }
+
+    pub async fn file_count(&self) -> usize {
+        self.files.lock().await.len()
+    }
 }
 
 #[async_trait]
