@@ -3,10 +3,12 @@
 
 [package]
 authors.workspace = true
+description = "OpenTalk RoomServer timer module"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-module-timer"
+publish = false
 repository.workspace = true
 version.workspace = true
 

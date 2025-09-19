@@ -9,6 +9,7 @@ edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver"
+publish = false
 repository.workspace = true
 version.workspace = true
 

@@ -27,12 +27,3 @@ serde_json = { workspace = true, features = ["raw_value"] }
 tokio.workspace = true
 tracing.workspace = true
 url.workspace = true
-
-[dev-dependencies]
-opentalk-roomserver-module-chat.workspace = true
-opentalk-roomserver-module-moderation.workspace = true
-opentalk-roomserver-room = { workspace = true, features = ["mock"] }
-opentalk-roomserver-types-chat.workspace = true
-opentalk-roomserver-types-moderation.workspace = true
-opentalk-types-signaling = { workspace = true, features = ["rand"] }
-test-log.workspace = true

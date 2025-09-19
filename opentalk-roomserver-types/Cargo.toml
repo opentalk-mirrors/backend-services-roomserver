@@ -29,7 +29,6 @@ uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 insta.workspace = true
-opentalk-roomserver-signaling.workspace = true
 pretty_assertions.workspace = true
 
 [features]
