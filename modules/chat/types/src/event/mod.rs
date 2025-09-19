@@ -8,4 +8,4 @@ mod chat_event;
 mod error;
 
 pub use chat_event::ChatEvent;
-pub use error::Error;
+pub use error::ChatError;

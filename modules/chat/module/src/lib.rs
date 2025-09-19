@@ -20,7 +20,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_chat::{
     CHAT_MODULE_ID, MessageId, Scope,
     command::ChatCommand,
-    event::{ChatEvent, Error as ChatError},
+    event::{ChatError, ChatEvent},
     peer_state::ChatPeerState,
     state::{
         BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, GroupHistory, PrivateHistory,

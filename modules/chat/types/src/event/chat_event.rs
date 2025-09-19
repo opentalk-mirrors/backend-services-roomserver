@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     MessageId, Scope,
-    event::Error,
+    event::ChatError,
     state::{BreakoutHistory, ChatChunk, GroupHistory, PrivateHistory},
 };
 
@@ -86,12 +86,12 @@ pub enum ChatEvent {
         scope: Scope,
     },
 
-    /// Chat event which errored see [Error]
-    Error(Error),
+    /// Chat event which errored, see [`ChatError`]
+    Error(ChatError),
 }
 
-impl From<Error> for ChatEvent {
-    fn from(value: Error) -> Self {
+impl From<ChatError> for ChatEvent {
+    fn from(value: ChatError) -> Self {
         Self::Error(value)
     }
 }
@@ -410,7 +410,7 @@ mod serde_tests {
 
     #[test]
     fn serialize_error() {
-        let produced = serde_json::to_value(ChatEvent::Error(Error::ChatDisabled)).unwrap();
+        let produced = serde_json::to_value(ChatEvent::Error(ChatError::ChatDisabled)).unwrap();
 
         let expected = json!({
             "message": "error",
@@ -430,7 +430,7 @@ mod serde_tests {
 
         let deserialized: ChatEvent =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::Error(Error::InsufficientPermissions) = deserialized {
+        if let ChatEvent::Error(ChatError::InsufficientPermissions) = deserialized {
             // Success
         } else {
             panic!("Expected ChatEvent::Error(ChatError::InsufficientPermissions)");
