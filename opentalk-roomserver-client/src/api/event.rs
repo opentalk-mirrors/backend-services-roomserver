@@ -15,7 +15,7 @@ use opentalk_roomserver_types_meeting_report::{
 use opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, event::ModerationEvent};
 use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, event::RaiseHandsEvent};
-use opentalk_roomserver_types_subroom_audio::event::SubroomAudioEvent;
+use opentalk_roomserver_types_subroom_audio::{SUBROOM_AUDIO_MODULE_ID, event::SubroomAudioEvent};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
 use opentalk_types_common::{
     modules::{CORE_MODULE_ID, ModuleId},
@@ -89,7 +89,7 @@ impl SignalingModuleEvent {
             Self::MeetingReport(..) => MEETING_REPORT_MODULE_ID,
             Self::Moderation(..) => MODERATION_MODULE_ID,
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
-            Self::SubroomAudio(..) => SHARED_FOLDER_MODULE_ID,
+            Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
         }
     }
