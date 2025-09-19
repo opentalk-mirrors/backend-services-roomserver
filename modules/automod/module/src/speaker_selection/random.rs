@@ -8,7 +8,7 @@ use rand::{Rng, seq::IndexedRandom};
 use crate::{Session, speaker_selection::StateMachineOutput};
 
 /// Depending on the config will select a random participant to be speaker. This may be used when
-/// the selection_strategy ist `random` or a moderator issues a `Select::Random` command.
+/// the `selection_strategy` ist `random` or a moderator issues a `Select::Random` command.
 #[tracing::instrument(skip(rng), level = "debug")]
 pub fn select_random<R: Rng>(session: &mut Session, rng: &mut R) -> StateMachineOutput {
     let participant = match &session.parameter {
@@ -19,12 +19,12 @@ pub fn select_random<R: Rng>(session: &mut Session, rng: &mut R) -> StateMachine
             ..
         } => {
             if *allow_double_selection {
-                session.remaining.choose(rng).cloned()
+                session.remaining.choose(rng).copied()
             } else {
                 let participant_id = session.remaining.choose(rng).copied();
                 if let Some(participant_id) = participant_id {
                     session.remaining.retain(|id| *id != participant_id);
-                };
+                }
                 participant_id
             }
         }
@@ -35,7 +35,7 @@ pub fn select_random<R: Rng>(session: &mut Session, rng: &mut R) -> StateMachine
             if let Some(participant) = session.remaining.choose(rng).copied() {
                 if let Some(index) = session.remaining.iter().position(|id| *id == participant) {
                     session.remaining.remove(index);
-                };
+                }
 
                 Some(participant)
             } else {

@@ -197,7 +197,7 @@ impl SubroomAudioModule {
             whisper_participants
                 .keys()
                 .filter(|&&p| p != sender)
-                .cloned(),
+                .copied(),
             SubroomAudioEvent::WhisperInvite(WhisperInvite {
                 issuer: sender,
                 group: whisper_group.clone().into(),
@@ -244,7 +244,7 @@ impl SubroomAudioModule {
                 .participants
                 .keys()
                 .filter(|&&p| p != sender)
-                .cloned(),
+                .copied(),
             SubroomAudioEvent::WhisperInviteAccepted(WhisperAccepted {
                 whisper_id,
                 participant_id: sender,
@@ -269,7 +269,7 @@ impl SubroomAudioModule {
                 .participants
                 .keys()
                 .filter(|&&p| p != sender)
-                .cloned(),
+                .copied(),
             SubroomAudioEvent::WhisperInviteDeclined(WhisperParticipantInfo {
                 whisper_id,
                 participant_id: sender,
@@ -312,7 +312,7 @@ impl SubroomAudioModule {
                     .participants
                     .keys()
                     .filter(|&&p| p != sender)
-                    .cloned(),
+                    .copied(),
                 SubroomAudioEvent::LeftWhisperGroup(WhisperParticipantInfo {
                     whisper_id,
                     participant_id: sender,
@@ -328,7 +328,7 @@ impl SubroomAudioModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
     ) -> Result<(), SignalingModuleError<SubroomAudioError>> {
-        for whisper_id in self.whisper_rooms.keys().cloned().collect::<Vec<_>>() {
+        for whisper_id in self.whisper_rooms.keys().copied().collect::<Vec<_>>() {
             let Ok(whisper_group) = self.get_whisper_group(sender, whisper_id) else {
                 continue;
             };

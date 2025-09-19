@@ -34,7 +34,7 @@ pub const ENV_LIVEKIT_KEYS: &str = "LIVEKIT_KEYS";
 
 fn livekit_config(port: u16, key: &str, secret: &str) -> Vec<u8> {
     let config_str = format!(
-        r#"
+        r"
 ---
 port: {port}
 rtc:
@@ -48,7 +48,7 @@ keys:
 logging:
     json: false
     level: info
-"#,
+",
     );
     config_str.into_bytes()
 }
@@ -112,7 +112,7 @@ fn livekit_port_from_env() -> Option<u16> {
 
 fn livekit_key_from_env() -> Option<(String, String)> {
     let keys = std::env::var(ENV_LIVEKIT_KEYS).ok()?;
-    let keys = keys.split("\n").next()?;
+    let keys = keys.split('\n').next()?;
     let (key, secret) = keys.split_once(':')?;
     Some((key.trim().to_string(), secret.trim().to_string()))
 }
@@ -151,10 +151,11 @@ pub async fn publish_audio(
     room: &livekit::Room,
     room_events: &mut UnboundedReceiver<RoomEvent>,
 ) -> anyhow::Result<LocalAudioTrack> {
-    tracing::info!("Try publishing audio");
     const SAMPLE_RATE: u32 = 48000;
     const NUM_CHANNELS: u32 = 2;
     const SAMPLES_PER_CHANNEL: u32 = 480;
+
+    tracing::info!("Try publishing audio");
 
     let source =
         NativeAudioSource::new(AudioSourceOptions::default(), SAMPLE_RATE, NUM_CHANNELS, 10);

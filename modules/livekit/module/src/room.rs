@@ -127,7 +127,7 @@ impl LiveKitSubroom {
         if !self.default_screenshare_permission && !ctx.is_moderator(participant) {
             available_sources
                 .retain(|s| s != &TrackSource::ScreenShare && s != &TrackSource::ScreenShareAudio);
-        };
+        }
 
         let can_publish_sources = available_sources
             .into_iter()
@@ -209,7 +209,7 @@ impl LiveKitSubroom {
             build_livekit_participant_id(participant_id, connection_id),
             self.token_identities
                 .get(&(participant_id, connection_id))
-                .map(|s| s.len())
+                .map(BTreeSet::len)
                 .unwrap_or_default()
         );
 

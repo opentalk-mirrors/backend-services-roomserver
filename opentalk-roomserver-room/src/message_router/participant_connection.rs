@@ -86,11 +86,9 @@ enum ExitReason {
 
 impl ExitReason {
     /// Create a close frame appropriate for the exit reason
-    fn close_frame(&self) -> Option<CloseFrame> {
+    fn close_frame(self) -> Option<CloseFrame> {
         match self {
-            ExitReason::ClosedByClient => None,
-            ExitReason::UnexpectedDisconnection => None,
-
+            ExitReason::ClosedByClient | ExitReason::UnexpectedDisconnection => None,
             ExitReason::ClosedByRoomTask => Some(CloseFrame {
                 code: 1000,
                 reason: "closed by server".into(),
@@ -154,9 +152,9 @@ fn spawn<Socket: SignalingSocket + 'static>(
         participant_id,
         connection_id,
         room_task_command_sender,
-        room_task_event_receiver,
         stream,
         sink,
+        room_task_event_receiver,
         app_state,
     };
 
@@ -330,7 +328,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
 
     /// Tries to parse only the transaction id of a serialized message
     ///
-    /// Returns `None` when the transaction_id is missing or the message could
+    /// Returns `None` when the `transaction_id` is missing or the message could
     /// not be parsed at all.
     fn parse_transaction_id(message: &str) -> Option<u64> {
         // Try to parse only the transaction id from the command
@@ -433,7 +431,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                 tracing::info!(
                     "Waiting for close frame timed out, client failed to respond in time.",
                 );
-            };
+            }
         }
     }
 }

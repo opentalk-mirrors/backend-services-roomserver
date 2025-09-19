@@ -117,7 +117,7 @@ impl<T: Clone + Serialize + DeserializeOwned> ParameterWidget<T> {
                         *selected_index = row_index;
                         if let Some((_, item)) = collection.get(row_index) {
                             self.parsed = serde_json::from_str(item);
-                            self.edit = item.clone();
+                            self.edit.clone_from(item);
                         }
                     }
                 });

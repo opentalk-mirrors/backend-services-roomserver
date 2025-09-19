@@ -169,7 +169,7 @@ where
             } => self.handle_waiting_room_ws_event(ctx, sender, connection_id, &command),
             DynEvent::LoopbackEvent(result) => self.handle_loopback_event(ctx, result),
             DynEvent::InternalCommand { sender, command } => {
-                self.handle_internal_command(ctx, sender, command)
+                self.handle_internal_command(ctx, &sender, command)
             }
         }
     }
@@ -397,7 +397,7 @@ where
     fn handle_internal_command(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
-        sender: ModuleId,
+        sender: &ModuleId,
         command: Box<dyn Any + Send + 'static>,
     ) -> Result<(), SignalingModuleError<M::Error>> {
         let command = command.downcast().ok().with_context(|| {
@@ -414,7 +414,6 @@ where
 
     #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
     fn handle_error(
-        &mut self,
         ctx: &mut ModuleContext<'_, M>,
         err: SignalingModuleError<M::Error>,
     ) -> Result<(), FatalError> {
@@ -461,7 +460,7 @@ where
         let mut module_context = ctx.reborrow().into_typed_context();
 
         if let Err(err) = self.handle_event(&mut module_context, event) {
-            self.handle_error(&mut module_context, err)?;
+            Self::handle_error(&mut module_context, err)?;
         }
 
         Ok(())
@@ -475,13 +474,13 @@ where
         let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into_typed_context();
 
         if let Err(err) = self.handle_broadcast_event(&mut module_context, event) {
-            return self.handle_error(&mut module_context, err);
+            return Self::handle_error(&mut module_context, err);
         }
 
         Ok(())
     }
 
     fn destroy(self: Box<Self>, room_id: RoomId) {
-        self.module.destroy(room_id)
+        self.module.destroy(room_id);
     }
 }

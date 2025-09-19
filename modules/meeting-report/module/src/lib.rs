@@ -88,8 +88,8 @@ impl SignalingModule for MeetingReportModule {
         match content {
             MeetingReportCommand::GenerateAttendanceReport {
                 include_email_addresses,
-            } => self.generate_attendance_report(ctx, sender, include_email_addresses)?,
-        };
+            } => Self::generate_attendance_report(ctx, sender, include_email_addresses)?,
+        }
         Ok(())
     }
 
@@ -121,7 +121,6 @@ impl SignalingModule for MeetingReportModule {
 
 impl MeetingReportModule {
     fn generate_attendance_report(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         include_email_addresses: bool,
@@ -185,6 +184,8 @@ impl MeetingReportModule {
         participants: Vec<ReportParticipant>,
         event: Option<EventContext>,
     ) -> Result<AssetUploaded, SignalingModuleError<MeetingReportError>> {
+        const ASSET_FILE_KIND: AssetFileKind = asset_file_kind!("meeting_report");
+
         let quota = storage.remaining_quota().await;
         if quota == 0 {
             return Err(MeetingReportError::StorageExceeded.into());
@@ -197,12 +198,14 @@ impl MeetingReportModule {
         let ends_at = event
             .and_then(|event| event.ends_at)
             .to_report_date_time(&tz);
-        let title = event
-            .map(|event| event.title.clone())
-            .unwrap_or_else(|| EventTitle::from_str_lossy(""));
-        let description = event
-            .map(|event| event.description.clone())
-            .unwrap_or_else(|| EventDescription::from_str_lossy(""));
+        let title = event.map_or_else(
+            || EventTitle::from_str_lossy(""),
+            |event| event.title.clone(),
+        );
+        let description = event.map_or_else(
+            || EventDescription::from_str_lossy(""),
+            |event| event.description.clone(),
+        );
         let report = Self::generate_pdf_report_from_template(
             DEFAULT_TEMPLATE.to_string(),
             &ReportTemplateParameter {
@@ -215,7 +218,6 @@ impl MeetingReportModule {
             },
         )?;
 
-        const ASSET_FILE_KIND: AssetFileKind = asset_file_kind!("meeting_report");
         let upload = storage
             .upload_file(
                 report,

@@ -31,7 +31,7 @@ impl TokenExpiry {
 
 /// Manages the active signaling tokens of the RoomServer
 ///
-/// Expired tokens get cleaned up when the TokenStore is accessed
+/// Expired tokens get cleaned up when the [`TokenStore`] is accessed
 pub(crate) struct TokenStore {
     /// The active tokens
     tokens: HashMap<Token, SignalingClientContext>,
@@ -62,7 +62,7 @@ impl TokenStore {
             let token = Token::generate();
 
             match self.tokens.entry(token) {
-                Entry::Occupied(_) => continue,
+                Entry::Occupied(_) => {}
                 Entry::Vacant(vacant_entry) => {
                     vacant_entry.insert(signaling_context);
                     break token;

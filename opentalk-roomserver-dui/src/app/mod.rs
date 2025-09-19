@@ -180,8 +180,8 @@ impl RoomServerApp {
                             &self.settings,
                         )
                         .expect("Fatal Error"),
-                    CentralAppView::ConnectionConfig(view) => {
-                        view.menu_ui(&mut self.settings, ui);
+                    CentralAppView::ConnectionConfig(..) => {
+                        ConnectionConfigView::menu_ui(&mut self.settings, ui);
                         None
                     }
                     _ => None,
@@ -207,7 +207,7 @@ impl RoomServerApp {
             TransitionToView::ConnectionConfig => {
                 self.view = CentralAppView::ConnectionConfig(Box::new(ConnectionConfigView::new(
                     &self.settings,
-                )))
+                )));
             }
             TransitionToView::Connecting {
                 room_id,
@@ -218,17 +218,17 @@ impl RoomServerApp {
                     room_id,
                     *client_parameters,
                     *room_parameters,
-                )))
+                )));
             }
             TransitionToView::Signaling => {
                 self.view = CentralAppView::Signaling(SignalingView::new(
                     &self.runtime,
                     ctx.clone(),
                     &self.settings,
-                ))
+                ));
             }
             TransitionToView::Error { message } => {
-                self.view = CentralAppView::Error(ErrorView::new(message))
+                self.view = CentralAppView::Error(ErrorView::new(message));
             }
         }
     }
@@ -252,7 +252,7 @@ impl RoomServerApp {
                 }
             }
             _ => (),
-        };
+        }
     }
 }
 impl eframe::App for RoomServerApp {

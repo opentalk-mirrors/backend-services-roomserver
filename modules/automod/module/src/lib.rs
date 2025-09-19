@@ -10,7 +10,7 @@
 //! Selecting the options for the automod is managed by the frontend and this module does not
 //! provide templates or anything else
 //!
-//! Following selection_strategies are defined:
+//! Following `selection_strategies` are defined:
 //!
 //! - `None`: No automatic reselection happens after the current speaker yields. The next one must
 //!   always be selected by the moderator. The moderator may choose a participant directly or let
@@ -198,7 +198,7 @@ impl SignalingModule for AutomodModule {
 
         match event {
             AutomodLoopback::SpeakerTimeLimitReached { speaker } => {
-                self.on_speaker_time_limit_reached(ctx, speaker)?
+                self.on_speaker_time_limit_reached(ctx, speaker)?;
             }
             AutomodLoopback::ParticipantsMuted(ParticipantsMuted { participants, .. }) => {
                 tracing::debug!(
@@ -328,7 +328,7 @@ impl AutomodModule {
             playlist,
         )
         .ok_or(SignalingModuleError::Module(AutomodError::InvalidEdit))?;
-        session.remaining = remaining.clone();
+        session.remaining.clone_from(&remaining);
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
@@ -612,7 +612,7 @@ impl AutomodModule {
                     .in_room(room)
                     .connected()
                     .iter()
-                    .flat_map(
+                    .filter_map(
                         |(&id, _)| {
                             if id == participant_id { None } else { Some(id) }
                         },
@@ -621,7 +621,7 @@ impl AutomodModule {
                     remaining: session.remaining.clone(),
                 },
             )?;
-        };
+        }
 
         Ok(Some(AutomodState {
             config: FrontendConfig {
@@ -683,14 +683,14 @@ impl AutomodModule {
         if session.speaker != speaker {
             // The speaker has changed in the meantime
             return Ok(());
-        };
+        }
 
         match session.parameter.selection_strategy {
             // Selection strategies `None` and `Nomination` do not have a concept of
             // a "next" speaker. Select no speaker.
             SelectionStrategy::None | SelectionStrategy::Nomination => self.select_none(ctx)?,
             _ => self.select_next(ctx)?,
-        };
+        }
 
         Ok(())
     }

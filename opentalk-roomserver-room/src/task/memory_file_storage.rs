@@ -54,7 +54,7 @@ impl StorageProvider for MemoryFileStorage {
             id,
             filename: metadata.to_string(),
             remaining_quota: self.remaining_quota().await,
-            url: self.file_url(id, &metadata),
+            url: Self::file_url(id, &metadata),
         })
     }
 
@@ -83,7 +83,7 @@ impl StorageProvider for MemoryFileStorage {
             id,
             filename: metadata.to_string(),
             remaining_quota: self.remaining_quota().await,
-            url: self.file_url(id, &metadata),
+            url: Self::file_url(id, &metadata),
         })
     }
 
@@ -94,7 +94,7 @@ impl StorageProvider for MemoryFileStorage {
 }
 
 impl MemoryFileStorage {
-    fn file_url(&self, id: AssetId, metadata: &AssetMetaData) -> Url {
+    fn file_url(id: AssetId, metadata: &AssetMetaData) -> Url {
         let file_name = format!("{id}_{metadata}");
         let url = format!("file://{file_name}");
         Url::parse(&url).expect("Parsing url failed")

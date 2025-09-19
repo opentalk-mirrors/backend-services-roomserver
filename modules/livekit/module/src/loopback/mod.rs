@@ -74,17 +74,17 @@ async fn update_single_participant_permission(
     grant: bool,
     room: &str,
 ) {
-    let mut can_publish_sources = participant
-        .permission
-        .map(|p| p.can_publish_sources)
-        .unwrap_or_else(|| {
+    let mut can_publish_sources = participant.permission.map_or_else(
+        || {
             LIVEKIT_MEDIA_SOURCES
                 .map(|s: TrackSource| s as i32)
                 .to_vec()
-        });
+        },
+        |p| p.can_publish_sources,
+    );
 
-    for source_number in source_numbers.iter() {
-        update_publish_sources(&mut can_publish_sources, *source_number, grant)
+    for source_number in source_numbers {
+        update_publish_sources(&mut can_publish_sources, *source_number, grant);
     }
 
     if let Err(e) = livekit_client

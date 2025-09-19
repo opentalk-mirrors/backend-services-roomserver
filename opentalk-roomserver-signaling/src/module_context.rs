@@ -386,7 +386,7 @@ where
                 M::NAMESPACE,
                 participant_id,
             );
-        };
+        }
     }
 
     /// Spawns a new task that completes the given `future` and sends the result
@@ -495,8 +495,7 @@ where
 
     pub fn is_moderator(&self, participant_id: ParticipantId) -> bool {
         self.participant_role(participant_id)
-            .map(|r| r == Role::Moderator)
-            .unwrap_or(false)
+            .is_some_and(|r| r == Role::Moderator)
     }
 
     pub fn is_room_owner(&self, participant_id: ParticipantId) -> bool {

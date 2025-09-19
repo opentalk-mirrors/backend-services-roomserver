@@ -87,7 +87,7 @@ pub fn default_room_parameters() -> RoomParameters {
         tariff: TariffResource {
             id: TariffId::from_u128(0x2da2b825_6db9_4dc4_b9e6_b4fd64e66a16),
             name: "Starter tariff".to_string(),
-            quotas: Default::default(),
+            quotas: BTreeMap::default(),
             modules: BTreeMap::from([
                 (AUTOMOD_MODULE_ID, TariffModuleResource::default()),
                 (ECHO_MODULE_ID, TariffModuleResource::default()),

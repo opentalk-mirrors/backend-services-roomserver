@@ -47,7 +47,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(base_url: Url, api_token: String) -> Result<Client, InvalidApiTokenError> {
+    pub fn new(base_url: Url, api_token: &str) -> Result<Client, InvalidApiTokenError> {
         let reqwest_client = ReqwestClient::new(base_url.clone());
 
         let api_token = format!("bearer {api_token}").parse()?;

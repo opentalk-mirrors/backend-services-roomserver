@@ -132,7 +132,7 @@ impl SignalingModule for PollsModule {
             StopKind::ByModerator => {}
             StopKind::Expired => {
                 if let Some(poll) = self.polls.remove(&ctx.room) {
-                    self.send_results(ctx, &poll)?;
+                    Self::send_results(ctx, &poll)?;
                 }
             }
         }
@@ -346,7 +346,7 @@ impl PollsModule {
         }
 
         let poll = occupied.remove();
-        self.send_results(ctx, &poll)?;
+        Self::send_results(ctx, &poll)?;
 
         // Cancel the running poll
         if poll.tx_cancel.send(StopKind::ByModerator).is_err() {
@@ -357,11 +357,7 @@ impl PollsModule {
     }
 
     /// Sends the results of a poll to all participants in the room
-    fn send_results(
-        &mut self,
-        ctx: &ModuleContext<'_, Self>,
-        poll: &Poll,
-    ) -> Result<(), FatalError> {
+    fn send_results(ctx: &ModuleContext<'_, Self>, poll: &Poll) -> Result<(), FatalError> {
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
             PollsEvent::Done(Results {

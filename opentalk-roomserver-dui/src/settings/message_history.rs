@@ -16,7 +16,7 @@ pub struct MessageHistory {
 
     /// Message history.
     ///
-    /// A [VecDeque] was chosen since we remove messages incase the limit is reached and append
+    /// A [`VecDeque`] was chosen since we remove messages incase the limit is reached and append
     /// messages on the other end.
     messages: VecDeque<HistoryEntry>,
 }
@@ -53,12 +53,7 @@ impl MessageHistory {
             self.messages.truncate(self.limit);
         }
         // don't push duplicates
-        if self
-            .messages
-            .front()
-            .map(|f| f.text != message)
-            .unwrap_or(true)
-        {
+        if self.messages.front().is_none_or(|f| f.text != message) {
             self.messages.push_front(HistoryEntry::new(message));
         }
     }
@@ -82,7 +77,7 @@ impl Default for MessageHistory {
 pub struct HistoryEntry {
     text: String,
 
-    /// cached serialization (if the [Self::text] is valid json)
+    /// cached serialization (if the [`Self::text`] is valid json)
     json_cache: Option<serde_json::Value>,
 }
 

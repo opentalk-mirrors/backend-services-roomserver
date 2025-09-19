@@ -119,7 +119,7 @@ impl ConnectingView {
 
         if let Some(transition) = transition {
             Some(transition)
-        } else if let SetupProgress::Done(_) = self.progress.signaling_connection {
+        } else if let SetupProgress::Done(()) = self.progress.signaling_connection {
             Some(TransitionToView::Signaling)
         } else {
             None
@@ -177,30 +177,25 @@ impl ConnectingView {
                     );
                 }
             }
-            SetupProgress::Ongoing(rx) => {
-                match rx.try_recv() {
-                    Ok(Ok(res)) => {
-                        self.progress.request_token = SetupProgress::Done(res);
-                    }
-                    Ok(Err(err)) => {
-                        self.progress.request_token = SetupProgress::Failed(format!("{err:?}"));
-                    }
-                    Err(_) => {}
-                };
-            }
+            SetupProgress::Ongoing(rx) => match rx.try_recv() {
+                Ok(Ok(res)) => {
+                    self.progress.request_token = SetupProgress::Done(res);
+                }
+                Ok(Err(err)) => {
+                    self.progress.request_token = SetupProgress::Failed(format!("{err:?}"));
+                }
+                Err(_) => {}
+            },
 
             SetupProgress::Failed(_) | SetupProgress::Done(_) => {}
         }
     }
 
     fn do_signaling_connection(&mut self, command_tx: &UnboundedSender<RunnerCommand>) {
-        let token = match self.progress.request_token {
-            SetupProgress::Done(token) => token,
-            _ => {
-                self.progress.signaling_connection =
-                    SetupProgress::Failed("Internal Error: invalid state".to_string());
-                return;
-            }
+        let SetupProgress::Done(token) = self.progress.request_token else {
+            self.progress.signaling_connection =
+                SetupProgress::Failed("Internal Error: invalid state".to_string());
+            return;
         };
 
         match &mut self.progress.signaling_connection {
@@ -218,20 +213,17 @@ impl ConnectingView {
                     );
                 }
             }
-            SetupProgress::Ongoing(rx) => {
-                match rx.try_recv() {
-                    Ok(Ok(())) => {
-                        self.progress.signaling_connection = SetupProgress::Done(());
-                    }
-                    Ok(Err(err)) => {
-                        self.progress.signaling_connection =
-                            SetupProgress::Failed(format!("{err:?}"));
-                    }
-                    Err(_) => {}
-                };
-            }
+            SetupProgress::Ongoing(rx) => match rx.try_recv() {
+                Ok(Ok(())) => {
+                    self.progress.signaling_connection = SetupProgress::Done(());
+                }
+                Ok(Err(err)) => {
+                    self.progress.signaling_connection = SetupProgress::Failed(format!("{err:?}"));
+                }
+                Err(_) => {}
+            },
 
-            SetupProgress::Failed(_) | SetupProgress::Done(_) => {}
+            SetupProgress::Failed(_) | SetupProgress::Done(()) => {}
         }
     }
 

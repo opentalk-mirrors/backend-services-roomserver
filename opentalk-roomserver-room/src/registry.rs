@@ -42,7 +42,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     /// Creates a new [`RoomTaskRegistry`] wi th default values
     pub fn new() -> Self {
         Self {
-            inner: Default::default(),
+            inner: Arc::default(),
         }
     }
 
@@ -139,7 +139,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         };
 
         match handle.refresh_idle_timeout().await {
-            Ok(_) => true,
+            Ok(()) => true,
             Err(RoomTaskHandleError::Gone { .. }) => false,
             Err(e) => {
                 tracing::error!("Unexpected error while refreshing idle timeout: {e}");

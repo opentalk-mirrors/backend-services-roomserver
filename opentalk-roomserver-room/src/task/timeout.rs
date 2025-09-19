@@ -60,9 +60,9 @@ impl Timeout {
     /// Returns only when the timeout is reached
     pub(super) async fn wait_for_completion(&mut self) {
         if let Some(timeout) = &mut self.timeout {
-            timeout.await
+            timeout.await;
         } else {
-            std::future::pending().await
+            std::future::pending::<()>().await;
         }
     }
 }

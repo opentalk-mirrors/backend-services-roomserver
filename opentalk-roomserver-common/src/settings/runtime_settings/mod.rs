@@ -38,7 +38,7 @@ impl Settings {
     pub fn test_settings(api_token: String) -> Settings {
         Settings {
             http: Http {
-                address: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+                address: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
                 port: 11333,
                 api_token,
                 disable_openapi: false,

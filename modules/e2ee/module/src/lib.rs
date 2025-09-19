@@ -74,7 +74,7 @@ impl SignalingModule for E2eeModule {
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match payload {
             E2eeCommand::Invite(invite) => self.publish_invite(ctx, connection_id, invite),
-            E2eeCommand::Message(message) => self.forward_message(ctx, connection_id, message),
+            E2eeCommand::Message(message) => Self::forward_message(ctx, connection_id, message),
         }
     }
 }
@@ -86,7 +86,7 @@ impl E2eeModule {
         sender: ConnectionId,
         invite: Invite,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
-        self.ensure_valid_invite(ctx, &invite)?;
+        Self::ensure_valid_invite(ctx, &invite)?;
 
         // send MLS message to all but the invitee and sender
         ctx.send_ws_message_to_connections(
@@ -107,18 +107,16 @@ impl E2eeModule {
     }
 
     fn ensure_valid_invite(
-        &self,
         ctx: &mut ModuleContext<'_, Self>,
         invite: &Invite,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
         if !invite.welcome_message.is_valid() || !invite.mls_messages.is_valid() {
             return Err(E2eeError::InvalidInvite.into());
         }
-        self.ensure_valid_connection(ctx, &invite.invitee)
+        Self::ensure_valid_connection(ctx, &invite.invitee)
     }
 
     fn ensure_valid_connection(
-        &self,
         ctx: &mut ModuleContext<'_, Self>,
         connection: &ConnectionId,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
@@ -136,7 +134,6 @@ impl E2eeModule {
     }
 
     fn forward_message(
-        &self,
         ctx: &mut ModuleContext<'_, E2eeModule>,
         connection_id: ConnectionId,
         message: MlsMessages,

@@ -26,7 +26,7 @@ pub struct Http {
 }
 
 pub(crate) fn default_bind_address() -> IpAddr {
-    IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
+    IpAddr::V4(Ipv4Addr::UNSPECIFIED)
 }
 
 const fn default_port() -> u16 {
