@@ -201,7 +201,7 @@ pub enum Request<Socket: SignalingSocket> {
         parameters: Box<RoomParameters>,
     },
 
-    /// Check if a user with the given UserId is banned
+    /// Check if a user with the given [`UserId`] is banned
     IsBanned {
         response: ResponseSender<bool>,
         user_id: UserId,

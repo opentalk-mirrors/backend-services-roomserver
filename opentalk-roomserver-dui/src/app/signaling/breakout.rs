@@ -38,7 +38,7 @@ pub struct BreakoutPlugin {
 }
 
 impl SignalingPlugin for BreakoutPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "Breakout"
     }
 
@@ -121,7 +121,7 @@ impl BreakoutPlugin {
                 cmd.transaction_id = Some(self.rng.next_u64());
                 messages.push(
                     serde_json::to_string(&cmd).expect("SignalingCommand must be serializable"),
-                )
+                );
             }
         });
     }
@@ -238,7 +238,7 @@ impl BreakoutPlugin {
                 self.errors
                     .push(format!("ERROR: received invalid module data: {e}"));
             }
-        };
+        }
     }
 }
 

@@ -446,7 +446,7 @@ impl ChatModule {
                 .contains_key(&participant_id)
         {
             return Err(ChatError::UnknownParticipant.into());
-        };
+        }
 
         let out_message = MessageSent {
             id: MessageId::generate(),

@@ -116,37 +116,42 @@ impl SignalingModule for ModerationModule {
         content: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match content {
-            ModerationCommand::Kick { target } => self.kick_participant(ctx, sender, target),
-            ModerationCommand::Ban { target } => self.ban_participant(ctx, sender, target),
-            ModerationCommand::Unban { target } => self.unban_participant(ctx, sender, target),
+            ModerationCommand::Kick { target } => Self::kick_participant(ctx, sender, target),
+            ModerationCommand::Ban { target } => Self::ban_participant(ctx, sender, target),
+            ModerationCommand::Unban { target } => Self::unban_participant(ctx, sender, target),
             ModerationCommand::UpdateRole(RoleUpdate {
                 participant_id,
                 new_role,
-            }) => self.update_participant_role(ctx, sender, participant_id, new_role),
-            ModerationCommand::Debrief(kick_scope) => self.debrief(ctx, sender, kick_scope),
-            ModerationCommand::EnableWaitingRoom => self.enable_waiting_room(ctx, sender, true),
+            }) => Self::update_participant_role(ctx, sender, participant_id, new_role),
+            ModerationCommand::Debrief(kick_scope) => Self::debrief(ctx, sender, kick_scope),
+            ModerationCommand::EnableWaitingRoom => Self::enable_waiting_room(ctx, sender, true),
             ModerationCommand::Accept(Accept { target }) => {
                 Self::accept_waiting_room_participant(ctx, sender, target)
             }
-            ModerationCommand::DisableWaitingRoom => self.enable_waiting_room(ctx, sender, false),
+            ModerationCommand::DisableWaitingRoom => Self::enable_waiting_room(ctx, sender, false),
             ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target }) => {
-                self.send_to_waiting_room(ctx, sender, target)
+                Self::send_to_waiting_room(ctx, sender, target)
             }
             ModerationCommand::ChangeDisplayName(ChangeDisplayName { new_name, target }) => {
-                self.change_display_name(ctx, sender, new_name, target)
+                Self::change_display_name(ctx, sender, new_name, target)
             }
-            ModerationCommand::Mute { participants } => self.mute(ctx, sender, participants),
+            ModerationCommand::Mute { participants } => Self::mute(ctx, sender, participants),
             ModerationCommand::EnableMicrophoneRestrictions {
                 unrestricted_participants,
-            } => self.update_microphone_restrictions(
+            } => Self::update_microphone_restrictions(
                 ctx,
                 sender,
                 MicrophoneRestrictionState::Enabled {
                     unrestricted_participants,
                 },
             ),
-            ModerationCommand::DisableMicrophoneRestrictions => self
-                .update_microphone_restrictions(ctx, sender, MicrophoneRestrictionState::Disabled),
+            ModerationCommand::DisableMicrophoneRestrictions => {
+                Self::update_microphone_restrictions(
+                    ctx,
+                    sender,
+                    MicrophoneRestrictionState::Disabled,
+                )
+            }
         }
     }
 
@@ -192,7 +197,6 @@ impl SignalingModule for ModerationModule {
 
 impl ModerationModule {
     fn kick_participant(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         target: ParticipantId,
@@ -210,7 +214,7 @@ impl ModerationModule {
         }
 
         if !ctx.room_task_info.room.waiting_room {
-            self.set_waiting_room_enabled(ctx, true)?;
+            Self::set_waiting_room_enabled(ctx, true)?;
         }
 
         ctx.send_ws_message([target], ModerationEvent::Kicked)?;
@@ -220,7 +224,6 @@ impl ModerationModule {
     }
 
     fn ban_participant(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         target: ParticipantId,
@@ -297,7 +300,6 @@ impl ModerationModule {
     }
 
     fn unban_participant(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         target: ParticipantId,
@@ -322,7 +324,6 @@ impl ModerationModule {
     }
 
     fn update_participant_role(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         target: ParticipantId,
@@ -362,7 +363,6 @@ impl ModerationModule {
     }
 
     fn debrief(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         scope: KickScope,
@@ -380,7 +380,7 @@ impl ModerationModule {
         )?;
 
         if !ctx.room_task_info.room.waiting_room {
-            self.set_waiting_room_enabled(ctx, true)?;
+            Self::set_waiting_room_enabled(ctx, true)?;
         }
 
         ctx.send_ws_message(kicked.clone(), ModerationEvent::Kicked)?;
@@ -390,7 +390,6 @@ impl ModerationModule {
     }
 
     fn enable_waiting_room(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         enabled: bool,
@@ -399,7 +398,7 @@ impl ModerationModule {
             return Err(ModerationError::InsufficientPermissions.into());
         }
 
-        self.set_waiting_room_enabled(ctx, enabled)?;
+        Self::set_waiting_room_enabled(ctx, enabled)?;
 
         Ok(())
     }
@@ -455,7 +454,6 @@ impl ModerationModule {
     }
 
     fn set_waiting_room_enabled(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         enabled: bool,
     ) -> Result<(), FatalError> {
@@ -469,7 +467,6 @@ impl ModerationModule {
     }
 
     fn send_to_waiting_room(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         target: ParticipantId,
@@ -483,7 +480,7 @@ impl ModerationModule {
         }
 
         if !ctx.room_task_info.room.waiting_room {
-            self.set_waiting_room_enabled(ctx, true)?;
+            Self::set_waiting_room_enabled(ctx, true)?;
         }
 
         ctx.send_ws_message([target], ModerationEvent::SentToWaitingRoom)?;
@@ -493,7 +490,6 @@ impl ModerationModule {
     }
 
     fn change_display_name(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         mut new_name: DisplayName,
@@ -533,7 +529,6 @@ impl ModerationModule {
     }
 
     fn mute(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         participants: BTreeSet<ParticipantId>,
@@ -581,7 +576,6 @@ impl ModerationModule {
     }
 
     fn update_microphone_restrictions(
-        &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         new_state: MicrophoneRestrictionState,

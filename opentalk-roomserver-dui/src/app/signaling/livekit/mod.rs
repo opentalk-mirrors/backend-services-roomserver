@@ -201,10 +201,10 @@ impl LiveKitPlugin {
             };
             match &event.payload {
                 SignalingModuleEvent::Core(CoreEvent::JoinSuccess(join)) => {
-                    self.handle_join_success(join)
+                    self.handle_join_success(join);
                 }
                 SignalingModuleEvent::LiveKit(LiveKitEvent::Error(e)) => {
-                    self.handle_livekit_error(e)
+                    self.handle_livekit_error(e);
                 }
                 SignalingModuleEvent::LiveKit(LiveKitEvent::Credentials(credentials)) => {
                     self.handle_credentials(credentials.clone(), "Credentials event");
@@ -213,7 +213,7 @@ impl LiveKitPlugin {
                     self.handle_breakout(event);
                 }
                 _ => {}
-            };
+            }
         }
     }
 }
@@ -257,7 +257,7 @@ impl SignalingPlugin for LiveKitPlugin {
         messages
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "LiveKit"
     }
 

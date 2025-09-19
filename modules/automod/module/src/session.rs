@@ -33,7 +33,7 @@ impl Session {
 
     /// Returns all participants that have started speaking in this session.
     pub fn participant_history(&self) -> impl Iterator<Item = ParticipantId> {
-        self.history.iter().flat_map(|entry| {
+        self.history.iter().filter_map(|entry| {
             if entry.kind == HistoryEntryKind::Start {
                 Some(entry.participant)
             } else {

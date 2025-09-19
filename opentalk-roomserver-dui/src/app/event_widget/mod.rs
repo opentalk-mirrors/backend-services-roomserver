@@ -146,14 +146,10 @@ impl From<RunnerEvent> for EventWidget {
 impl Filterable for EventWidget {
     fn apply(&self, filter: &mut Filter) -> bool {
         match &self.event.event_type {
-            RunnerEventType::Disconnected => true,
-            RunnerEventType::Connected => true,
-            RunnerEventType::ReceiveError { .. } => true,
-            RunnerEventType::SendError { .. } => true,
-
             RunnerEventType::SendSuccess { message } | RunnerEventType::Received { message } => {
                 filter.apply(message)
             }
+            _ => true,
         }
     }
 }

@@ -57,7 +57,7 @@ pub fn select_unchecked(
     let history: Vec<ParticipantId> = session
         .history
         .iter()
-        .flat_map(|entry| {
+        .filter_map(|entry| {
             if entry.kind == HistoryEntryKind::Start {
                 Some(entry.participant)
             } else {

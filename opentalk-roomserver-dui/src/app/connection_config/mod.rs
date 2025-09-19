@@ -53,7 +53,7 @@ impl ConnectionConfigView {
         }
     }
 
-    pub fn menu_ui(&mut self, settings: &mut DuiSettings, ui: &mut egui::Ui) {
+    pub fn menu_ui(settings: &mut DuiSettings, ui: &mut egui::Ui) {
         delete_mode_btn(ui, &mut settings.delete_mode);
     }
 
@@ -136,7 +136,7 @@ impl ConnectionConfigView {
                         .horizontal(|mut strip| {
                             strip.cell(|ui| {
                                 ui.vertical(|ui| {
-                                    self.room_id_select_table_ui(settings, ui);
+                                    Self::room_id_select_table_ui(settings, ui);
                                 });
                             });
 
@@ -177,7 +177,7 @@ impl ConnectionConfigView {
             });
     }
 
-    fn room_id_select_table_ui(&mut self, settings: &mut DuiSettings, ui: &mut egui::Ui) {
+    fn room_id_select_table_ui(settings: &mut DuiSettings, ui: &mut egui::Ui) {
         let available_height = ui.available_height();
 
         let text_height = egui::TextStyle::Body

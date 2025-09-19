@@ -118,7 +118,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         SignalingError::NotSupported,
                     );
                 }
-            };
+            }
         }
     }
 
@@ -316,7 +316,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let mut errors = Vec::new();
         let mut messages = RefCell::new(Vec::new());
         let timestamp = Timestamp::now();
-        for (namespace, module) in self.modules.iter_mut() {
+        for (namespace, module) in &mut self.modules {
             if let Err(err) = module.on_broadcast_event(
                 &mut DynModuleContext::new(
                     self.info.room_id,
@@ -404,7 +404,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .collect();
 
                 let mut module_peer_data = participants_module_data.remove(id).unwrap_or_default();
-                self.join_success_breakout_peer_data(&mut module_peer_data, state)?;
+                Self::join_success_breakout_peer_data(&mut module_peer_data, state)?;
                 self.join_success_core_peer_data(participant_id, state, &mut module_peer_data)?;
 
                 Ok(Participant {
@@ -422,9 +422,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 Some(profile.user_info.avatar_url),
                 self.info.room.created_by.id == profile.id,
             ),
-            ClientKind::Guest { .. } => (Role::Guest, None, false),
-            ClientKind::Recorder => (Role::Guest, None, false),
-            ClientKind::CallIn { .. } => (Role::Guest, None, false),
+            ClientKind::Guest { .. } | ClientKind::Recorder | ClientKind::CallIn { .. } => {
+                (Role::Guest, None, false)
+            }
         };
 
         let event_info = self

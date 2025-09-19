@@ -37,13 +37,13 @@ impl SettingsView {
         self.server(ui, settings, valid_url);
 
         ui.add_space(SECTION_SPACE_HIGHT);
-        self.theme(ui, settings);
+        Self::theme(ui, settings);
 
         ui.add_space(SECTION_SPACE_HIGHT);
-        self.event_widget_layout(ui, settings);
+        Self::event_widget_layout(ui, settings);
 
         ui.add_space(SECTION_SPACE_HIGHT);
-        self.message_history(ui, &mut settings.history);
+        Self::message_history(ui, &mut settings.history);
     }
 
     fn server(&mut self, ui: &mut egui::Ui, settings: &mut DuiSettings, valid_url: bool) {
@@ -65,7 +65,7 @@ impl SettingsView {
         });
     }
 
-    fn theme(&self, ui: &mut egui::Ui, settings: &mut DuiSettings) {
+    fn theme(ui: &mut egui::Ui, settings: &mut DuiSettings) {
         let mut theme =
             egui_extras::syntax_highlighting::CodeTheme::from_memory(ui.ctx(), ui.style());
         ui.heading("Theme");
@@ -75,7 +75,7 @@ impl SettingsView {
             .options(|options| settings.theme = options.theme_preference.into());
     }
 
-    fn event_widget_layout(&self, ui: &mut egui::Ui, settings: &mut DuiSettings) {
+    fn event_widget_layout(ui: &mut egui::Ui, settings: &mut DuiSettings) {
         ui.heading("Event Widget");
 
         ui.label("JSON Tree Expansion");
@@ -112,7 +112,7 @@ impl SettingsView {
         });
     }
 
-    fn message_history(&self, ui: &mut egui::Ui, history: &mut crate::settings::MessageHistory) {
+    fn message_history(ui: &mut egui::Ui, history: &mut crate::settings::MessageHistory) {
         ui.heading("Message History");
         ui.horizontal(|ui| {
             let label = ui.label("Number of stored messages");

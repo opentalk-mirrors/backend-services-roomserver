@@ -123,7 +123,7 @@ impl RoomServerRunner {
         mpsc::UnboundedSender<RunnerCommand>,
         watch::Receiver<SignalingState>,
     )> {
-        let client = Client::new(roomserver_url, api_token)?;
+        let client = Client::new(roomserver_url, &api_token)?;
 
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         let (command_tx, command_rx) = mpsc::unbounded_channel();
@@ -237,7 +237,7 @@ impl RoomServerRunner {
                 secret,
             } => {
                 self.disconnect().await?;
-                let Ok(client) = Client::new(url, secret) else {
+                let Ok(client) = Client::new(url, &secret) else {
                     log::info!("Invalid roomserver secret");
                     let _ = response_tx.send(Err(anyhow::anyhow!("Invalid roomserver secret")));
                     return Ok(());

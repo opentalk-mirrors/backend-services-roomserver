@@ -47,9 +47,9 @@ impl BreakoutState {
     /// Returns when the breakout rooms have expired
     pub(crate) async fn wait_for_expiry(&mut self) {
         if let Some(timeout) = &mut self.timeout {
-            timeout.await
+            timeout.await;
         } else {
-            std::future::pending().await
+            std::future::pending::<()>().await;
         }
     }
 }

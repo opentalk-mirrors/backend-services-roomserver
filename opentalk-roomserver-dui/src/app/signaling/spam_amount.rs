@@ -25,7 +25,7 @@ pub struct SpamAmountPlugin {
 }
 
 impl SignalingPlugin for SpamAmountPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "Spam Amount"
     }
 

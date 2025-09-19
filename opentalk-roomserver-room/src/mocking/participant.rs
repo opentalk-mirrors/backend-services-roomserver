@@ -281,8 +281,8 @@ impl MockParticipantJoined {
 }
 
 impl MockParticipantWaiting {
-    /// 1. Receive ModerationEvent::Accepted
-    /// 2. Receive JoinSuccess
+    /// 1. Receive `ModerationEvent::Accepted`
+    /// 2. Receive [`JoinSuccess`]
     pub async fn wait_accept(&mut self) -> Result<(), ReceiveError> {
         let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv()).await? else {
             return Err(ReceiveError::Closed);
@@ -498,7 +498,7 @@ impl<S> MockParticipant<S> {
 
         if rx.await.is_err() {
             return Err(SendError::Canceled);
-        };
+        }
         Ok(())
     }
 
@@ -626,7 +626,7 @@ impl<S> MockParticipant<S> {
         tracing::debug!("Close frame sent");
         loop {
             match timeout(SOCKET_TIMEOUT, self.receiver.recv()).await {
-                Ok(None) | Ok(Some(SignalingSocketMessage::Close(..))) => {
+                Ok(None | Some(SignalingSocketMessage::Close(..))) => {
                     // We won't receive a close frame since the close frame is normally sent by the
                     // websocket implementation and not by the
                     // `ParticipantConnectionTask`. The mocking setup is missing the websocket and

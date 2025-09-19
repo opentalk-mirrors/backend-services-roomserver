@@ -11,7 +11,7 @@ use rand::Rng;
 
 use crate::{Session, speaker_selection::StateMachineOutput};
 
-/// Depending on the session parameters, inspect/change the state_machine's state to select the next
+/// Depending on the session parameters, inspect/change the `session`s state to select the next
 /// user to be speaker.
 #[tracing::instrument(skip(rng), level = "debug")]
 pub fn select_next<R: Rng>(

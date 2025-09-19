@@ -178,9 +178,7 @@ impl SignalingModule for LiveKitModule {
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match event? {
-            LiveKitLoopback::RoomCreated => Ok(()),
-            LiveKitLoopback::RoomRemoved => Ok(()),
-
+            LiveKitLoopback::RoomCreated | LiveKitLoopback::RoomRemoved => Ok(()),
             LiveKitLoopback::NoteRevokedTokens {
                 token_identities,
                 participant_id,
@@ -190,7 +188,7 @@ impl SignalingModule for LiveKitModule {
                 sender,
                 participants,
                 grant,
-            } => self.notify_screen_share_permission_update(ctx, sender, participants, grant),
+            } => Self::notify_screen_share_permission_update(ctx, sender, participants, grant),
         }
     }
 
@@ -390,7 +388,6 @@ impl LiveKitModule {
     }
 
     fn notify_screen_share_permission_update(
-        &self,
         ctx: &mut ModuleContext<'_, LiveKitModule>,
         sender: ParticipantId,
         participants: BTreeSet<ParticipantId>,

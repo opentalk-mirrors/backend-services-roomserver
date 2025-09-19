@@ -215,8 +215,7 @@ impl SignalingView {
         for (open, plugin) in &mut self.plugins {
             if plugin
                 .shortcut()
-                .map(|shortcut| ctx.input_mut(|i| i.consume_shortcut(shortcut)))
-                .unwrap_or(false)
+                .is_some_and(|shortcut| ctx.input_mut(|i| i.consume_shortcut(shortcut)))
             {
                 *open = !*open;
             }
@@ -412,8 +411,7 @@ impl SignalingView {
         let highlight = self
             .historic_message_state
             .as_ref()
-            .map(|state| state.history_index == index)
-            .unwrap_or_default();
+            .is_some_and(|state| state.history_index == index);
         let mut res = ui.label(text);
         if highlight || res.hovered() {
             res = res.highlight();
@@ -469,7 +467,7 @@ impl SignalingView {
         Ok(())
     }
 
-    /// Record the current [Self::edit_message] in history and leave the history-select-state
+    /// Record the current [`Self::edit_message`] in history and leave the history-select-state
     /// if necessary.
     fn record_sent_message(&mut self, history: &mut MessageHistory) {
         if let Some(historic) = self.historic_message_state.take() {
@@ -487,8 +485,7 @@ impl SignalingView {
         let new_previous_index = self
             .historic_message_state
             .as_ref()
-            .map(|history_state| history_state.history_index + 1)
-            .unwrap_or(0);
+            .map_or(0, |history_state| history_state.history_index + 1);
 
         self.set_historic_state(history, new_previous_index);
     }

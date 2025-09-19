@@ -18,10 +18,9 @@ impl AboutView {
         ui.label(&self.app_id);
 
         ui.heading("Settings file");
-        ui.label(
-            storage_dir(&self.app_id)
-                .map(|path| path.to_string_lossy().to_string())
-                .unwrap_or_else(|| "Empty".into()),
-        );
+        ui.label(storage_dir(&self.app_id).map_or_else(
+            || "Empty".to_owned(),
+            |path| path.to_string_lossy().to_string(),
+        ));
     }
 }

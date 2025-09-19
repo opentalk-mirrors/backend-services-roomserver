@@ -50,7 +50,7 @@ impl ProgramFlow {
     ///
     /// [`Exit`]: ProgramFlow::Exit
     #[must_use]
-    pub(crate) fn should_exit(&self) -> bool {
+    pub(crate) fn should_exit(self) -> bool {
         matches!(self, Self::Exit)
     }
 }

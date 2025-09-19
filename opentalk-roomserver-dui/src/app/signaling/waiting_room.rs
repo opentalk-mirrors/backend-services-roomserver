@@ -43,7 +43,7 @@ pub struct WaitingRoomPlugin {
 }
 
 impl SignalingPlugin for WaitingRoomPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "Waiting Room"
     }
 
@@ -97,7 +97,7 @@ impl WaitingRoomPlugin {
             messages.push(
                 serde_json::to_string(&signaling_command)
                     .expect("SignalingCommand must be serializable"),
-            )
+            );
         }
     }
 
@@ -134,7 +134,9 @@ impl WaitingRoomPlugin {
     }
 
     fn send_to_waiting_room_ui(&mut self, ui: &mut egui::Ui) -> Option<ModerationCommand> {
-        if !self.in_room.is_empty() {
+        if self.in_room.is_empty() {
+            None
+        } else {
             ui.menu_button("Sent To waiting Room", |ui| {
                 for (participant, state) in &self.in_room {
                     if ui.button(state.display_name.to_string()).clicked() {
@@ -147,8 +149,6 @@ impl WaitingRoomPlugin {
             })
             .inner
             .flatten()
-        } else {
-            None
         }
     }
 

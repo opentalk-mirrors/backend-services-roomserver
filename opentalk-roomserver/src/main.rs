@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 // SPDX-FileCopyrightText: Wolfgang Silbermayr <w.silbermayr@opentalk.eu>
 
-//! This crate builds an executable that runs the RoomServer. It implements the [_OpenTalk
-//! RoomServer Web API_][opentalk_roomserver_web_api].
+//! This crate builds an executable that runs the RoomServer. It implements the
+//! [_OpenTalk RoomServer Web API_](opentalk_roomserver_web_api).
 
 use std::{path::Path, result, sync::Arc, time::Duration};
 
@@ -65,7 +65,7 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
             start_service_probe(monitoring.clone(), app_state.subscribe())
                 .map_err(decorate_error("Service prove exited with error")),
         );
-    };
+    }
 
     let mut metric_layer = None;
     if let Some(metric) = &settings.metrics {
@@ -96,7 +96,7 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
         Some(Ok(Ok(()))) => {}
         // Task returned an error
         Some(Ok(Err(e))) => tracing::error!("{e:?}"),
-    };
+    }
     let result = graceful_shutdown(app_state, &mut set).await;
     if result.is_err() {
         set.abort_all();
@@ -157,7 +157,7 @@ async fn graceful_shutdown(
             Ok(Some(Ok(Err(e)))) => tracing::error!("Task error: {e:?}"),
             // Task panicked
             Ok(Some(Err(e))) => tracing::error!("Task Panic: {e:?}"),
-        };
+        }
     }
 }
 
@@ -180,9 +180,9 @@ async fn shutdown_signal(app_state: Receiver<ApplicationState>) -> anyhow::Resul
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
-        _ = wait_shutdown(app_state) => {},
+        () = ctrl_c => {},
+        () = terminate => {},
+        () = wait_shutdown(app_state) => {},
     }
 
     Ok(())

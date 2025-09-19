@@ -17,7 +17,7 @@ pub struct TimerPlugin {
 }
 
 impl SignalingPlugin for TimerPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "Timer"
     }
 
@@ -65,7 +65,7 @@ impl TimerPlugin {
             messages.push(
                 serde_json::to_string(&signaling_command)
                     .expect("SignalingCommand must be serializable"),
-            )
+            );
         }
     }
 

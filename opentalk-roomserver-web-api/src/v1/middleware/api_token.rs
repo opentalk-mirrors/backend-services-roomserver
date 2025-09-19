@@ -68,8 +68,7 @@ where
         };
 
         let token = match auth_header.trim().split_once(' ') {
-            Some(("bearer", token)) => token.trim(),
-            Some(("Bearer", token)) => token.trim(),
+            Some(("Bearer" | "bearer", token)) => token.trim(),
             _ => {
                 return Either::Right(ready(Ok(ApiError::bad_request()
                     .with_code("invalid_authorization_header")

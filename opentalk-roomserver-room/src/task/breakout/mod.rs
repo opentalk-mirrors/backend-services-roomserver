@@ -132,7 +132,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         SignalingError::NotSupported,
                     );
                 }
-            };
+            }
         }
     }
 
@@ -174,7 +174,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         participant_id: *participant_id,
                     }
                     .into());
-                };
+                }
 
                 if assignments.insert(*participant_id, breakout_id).is_some() {
                     return Err(BreakoutError::InvalidSelection.into());
@@ -244,7 +244,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         if self.breakout_config.is_none() {
             return Err(BreakoutError::BreakoutInactive.into());
-        };
+        }
 
         let mut delay = match delay {
             Some(Duration::ZERO) | None => {
@@ -463,7 +463,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             rooms.push(BreakoutRoom {
                 id: BreakoutId::from(id as u64),
                 name: room.name.clone(),
-            })
+            });
         }
 
         if let Err(e) = module_data.insert(&BreakoutModuleData {
@@ -471,7 +471,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             rooms,
             expires: breakout_config.expires_at,
         }) {
-            tracing::error!("Failed to add breakout module data to join success: {e:?}")
+            tracing::error!("Failed to add breakout module data to join success: {e:?}");
         }
     }
 
@@ -479,7 +479,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ///
     /// This will be sent to the joining participant.
     pub(crate) fn join_success_breakout_peer_data(
-        &self,
         peer_data: &mut BTreeMap<ModuleId, SharedJson>,
         state: &ParticipantState,
     ) -> Result<(), FatalError> {

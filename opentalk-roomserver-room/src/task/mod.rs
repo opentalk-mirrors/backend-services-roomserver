@@ -34,7 +34,7 @@
 //!                   └─────────────────┘
 //! ```
 //!
-//! # ConnectionId and ParticipantId
+//! # [`ConnectionId`] and [`ParticipantId`]
 //!
 //! Every connection to a Room is identified by the [`ConnectionId`]. The connection ID is generated
 //! by [`ScopedRouter::add_connection`](crate::message_router::ScopedRouter::add_connection).
@@ -101,7 +101,7 @@ use tokio::{
 use uuid::Uuid;
 
 use super::{
-    message_router::{AlreadyConnectedError, CloseReason},
+    message_router::CloseReason,
     signaling::module_initializer::{ModuleRegistry, Modules},
 };
 use crate::{
@@ -293,7 +293,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     };
 
                     if let Err(e) = self.handle_api_request(msg).await {
-                        tracing::error!("Failed to handle room task api request: {e:?}")
+                        tracing::error!("Failed to handle room task api request: {e:?}");
                     }
                 },
                 msg = self.message_router.recv() => {
@@ -376,7 +376,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .ok()
                     .context("Failed to respond to WsJoin, response channel dropped")?;
             }
-        };
+        }
 
         Ok(())
     }
@@ -603,7 +603,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         let connections: Vec<ConnectionId> =
-            waiting_participant.connections.keys().cloned().collect();
+            waiting_participant.connections.keys().copied().collect();
 
         for connection_id in connections {
             self.disconnect_waiting_participant(participant_id, connection_id);
@@ -784,7 +784,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         {
             tracing::error!("ParticipantId collision, dropping new participant ({participant_id})");
             return Ok(());
-        };
+        }
 
         let join_waiting_room = self.info.room.waiting_room
             && !role.is_moderator()
@@ -792,20 +792,16 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .participants
                 .all_unfiltered
                 .get(&participant_id)
-                .map(|participant| participant.in_waiting_room)
-                .unwrap_or(true);
+                .is_none_or(|participant| participant.in_waiting_room);
 
         let scoped_router = if join_waiting_room {
             &mut self.message_router.waiting_room
         } else {
             &mut self.message_router.conference
         };
-        let connection_id = match scoped_router.add_connection(participant_id, socket) {
-            Ok(conn_id) => conn_id,
-            Err(AlreadyConnectedError) => {
-                tracing::debug!("rejecting participant connection: already connected");
-                return Ok(());
-            }
+        let Ok(connection_id) = scoped_router.add_connection(participant_id, socket) else {
+            tracing::debug!("rejecting participant connection: already connected");
+            return Ok(());
         };
 
         if join_waiting_room {
@@ -857,7 +853,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .connections
                     .insert(connection_id, device_id);
             }
-        };
+        }
 
         if let Err(err) =
             self.participant_joined(participant_id, connection_id, device_id, client_kind, role)
@@ -929,7 +925,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .participants
             .all_unfiltered
             .values()
-            .any(|s| s.is_connected())
+            .any(ParticipantState::is_connected)
         {
             self.idle_timeout.restart();
         }
