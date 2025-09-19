@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.7] - 2025-09-19
+
+[0.0.7]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.6...v0.0.7
+
+### 🐛 Bug fixes
+
+- (types) Remove unnecessary dependency ([!571](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/571))
+- Remove self referencing dependency ([!571](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/571))
+
+### 🔨 Refactor
+
+- (test) Move tests to moderation module ([!571](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/571))
+
+### 📦 Dependencies
+
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.18.3 ([!572](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/572))
+- (deps) Update rust crate config to v0.15.16 ([!565](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/565))
+- (deps) Update rust crate serde to v1.0.224 ([!568](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/568))
+- (deps) Update rust crate serde to v1.0.225 ([!573](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/573))
+- (deps) Update rust crate serde_path_to_error to v0.1.20 ([!566](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/566))
+
+### ⚙ Miscellaneous
+
+- (logging) Optional loopbacks are no errors ([!548](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/548))
+- Use glob pattern for modules ([!571](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/571))
+- Mark unpublished crates with `publish = false` ([!571](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/571))
+
+### Ci
+
+- Run livekit test in ci ([!548](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/548), [#88](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/88))
+
+### Test
+
+- Optionally use provided livekit server ([!548](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/548))
+- (client) Add serialization tests for meeting notes command & event ([!570](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/570))
+
 ## [0.0.6] - 2025-09-15
 
 [0.0.6]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.5...v0.0.6
