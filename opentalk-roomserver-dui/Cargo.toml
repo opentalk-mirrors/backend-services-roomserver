@@ -3,10 +3,12 @@
 
 [package]
 authors.workspace = true
+description = "Graphical interface for for the RoomServer signaling, used for testing and development."
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-dui"
+publish = false
 repository.workspace = true
 version.workspace = true
 
