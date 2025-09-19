@@ -3,12 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
+use opentalk_types_common::time::Timestamp;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    command::{GetHistoryChunk, SearchHistory, SendMessage, SetLastSeenTimestamp},
-    event::ChatEvent,
-};
+use crate::{Scope, event::ChatEvent};
 
 /// Commands for the `chat` namespace
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -21,19 +19,51 @@ pub enum ChatCommand {
     DisableChat,
 
     /// Send chat message
-    SendMessage(SendMessage),
+    SendMessage {
+        /// The content of the message
+        content: String,
+
+        /// The scope of the message
+        #[serde(flatten)]
+        scope: Scope,
+    },
 
     /// Get a chunk of the chat history
-    GetHistoryChunk(GetHistoryChunk),
+    GetHistoryChunk {
+        /// Determines which [`ChatChunk`](crate::state::ChatChunk) is requested.
+        /// This is always the newest message of the chunk.
+        message_index: u64,
+
+        /// The scope of the chat history
+        #[serde(flatten)]
+        scope: Scope,
+    },
 
     /// Clear chat history
     ClearHistory,
 
     /// Set last seen timestamp
-    SetLastSeenTimestamp(SetLastSeenTimestamp),
+    SetLastSeenTimestamp {
+        /// Scope of the timestamp
+        #[serde(flatten)]
+        scope: Scope,
+
+        /// Last seen timestamp
+        timestamp: Timestamp,
+    },
 
     /// Search in the history
-    SearchHistory(SearchHistory),
+    SearchHistory {
+        /// The scope to search in
+        #[serde(flatten)]
+        scope: Scope,
+        /// The search term
+        term: String,
+        /// The message index of the [`ChatChunk`](crate::state::ChatChunk) in the
+        /// search history. Retrieves the latest [`ChatChunk`](crate::state::ChatChunk)
+        /// when [`None`].
+        message_index: Option<u64>,
+    },
 }
 
 impl CreateReplica<ChatEvent> for ChatCommand {
@@ -81,12 +111,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_set_last_seen_timestamp() {
-        let set_last_seen = SetLastSeenTimestamp {
+        let command = ChatCommand::SetLastSeenTimestamp {
             scope: Scope::Global,
             timestamp: Timestamp::unix_epoch(),
         };
-
-        let command = ChatCommand::SetLastSeenTimestamp(set_last_seen.clone());
         let serialized = serde_json::to_value(&command).expect("Serialization failed");
         let expected = json!(
             {
@@ -109,8 +137,8 @@ mod serde_tests {
         );
         let deserialized: ChatCommand =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatCommand::SetLastSeenTimestamp(set_last_seen) = deserialized {
-            assert_eq!(set_last_seen.scope, Scope::Global);
+        if let ChatCommand::SetLastSeenTimestamp { scope, .. } = deserialized {
+            assert_eq!(scope, Scope::Global);
         } else {
             panic!("Expected ChatCommand::SetLastSeenTimestamp");
         }
@@ -118,11 +146,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_global_message() {
-        let send_message = SendMessage {
+        let command = ChatCommand::SendMessage {
             content: "test message".to_string(),
             scope: Scope::Global,
         };
-        let command = ChatCommand::SendMessage(send_message.clone());
         let serialized = serde_json::to_value(&command).expect("Serialization failed");
         let expected = json!(
             {
@@ -146,9 +173,9 @@ mod serde_tests {
 
         let deserialized: ChatCommand =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatCommand::SendMessage(send_message) = deserialized {
-            assert_eq!(send_message.content, "Hello!");
-            assert_eq!(send_message.scope, Scope::Global);
+        if let ChatCommand::SendMessage { content, scope } = deserialized {
+            assert_eq!(content, "Hello!");
+            assert_eq!(scope, Scope::Global);
         } else {
             panic!("Expected ChatCommand::SendMessage");
         }
@@ -156,11 +183,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_group_message() {
-        let send_message = SendMessage {
+        let command = ChatCommand::SendMessage {
             content: "test message".to_string(),
             scope: Scope::Group("test".parse().expect("Valid group name")),
         };
-        let command = ChatCommand::SendMessage(send_message.clone());
         let serialized = serde_json::to_value(&command).expect("Serialization failed");
         let expected = json!(
             {
@@ -184,7 +210,7 @@ mod serde_tests {
 
         let msg: ChatCommand = serde_json::from_value(json).unwrap();
 
-        if let ChatCommand::SendMessage(SendMessage { content, scope }) = msg {
+        if let ChatCommand::SendMessage { content, scope } = msg {
             assert_eq!(
                 scope,
                 Scope::Group(GroupName::from("management".to_owned()))
@@ -197,12 +223,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_private_message() {
-        let send_message = SendMessage {
+        let command = ChatCommand::SendMessage {
             content: "test message".to_string(),
             scope: Scope::Private(ParticipantId::from_u128(1)),
         };
-
-        let command = ChatCommand::SendMessage(send_message.clone());
         let serialized = serde_json::to_value(&command).expect("Serialization failed");
 
         let expected = json!(
@@ -227,7 +251,7 @@ mod serde_tests {
 
         let msg: ChatCommand = serde_json::from_value(json).unwrap();
 
-        if let ChatCommand::SendMessage(SendMessage { content, scope }) = msg {
+        if let ChatCommand::SendMessage { content, scope } = msg {
             assert_eq!(scope, Scope::Private(ParticipantId::nil()));
             assert_eq!(content, "Hello Bob!");
         } else {
@@ -237,10 +261,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_get_history_chunk() {
-        let command = ChatCommand::GetHistoryChunk(GetHistoryChunk {
+        let command = ChatCommand::GetHistoryChunk {
             message_index: 1,
             scope: Scope::Global,
-        });
+        };
         let produced = serde_json::to_string_pretty(&command).expect("Serialization failed");
 
         assert_snapshot!(produced, @r#"
@@ -264,20 +288,20 @@ mod serde_tests {
 
         assert_eq!(
             msg,
-            ChatCommand::GetHistoryChunk(GetHistoryChunk {
+            ChatCommand::GetHistoryChunk {
                 message_index: 1,
                 scope: Scope::Global
-            })
+            }
         )
     }
 
     #[test]
     fn serialize_search_history() {
-        let command = ChatCommand::SearchHistory(SearchHistory {
+        let command = ChatCommand::SearchHistory {
             scope: Scope::Global,
             term: "hello".into(),
             message_index: None,
-        });
+        };
 
         let produced = serde_json::to_value(&command).unwrap();
         let expected = json!({
@@ -303,11 +327,11 @@ mod serde_tests {
 
         assert_eq!(
             msg,
-            ChatCommand::SearchHistory(SearchHistory {
+            ChatCommand::SearchHistory {
                 scope: Scope::Global,
                 term: "hello".into(),
                 message_index: None,
-            })
+            }
         );
     }
 }

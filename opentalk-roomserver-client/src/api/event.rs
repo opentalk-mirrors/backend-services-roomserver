@@ -107,7 +107,7 @@ mod tests {
         breakout::event::BreakoutEvent, connection_id::ConnectionId, core::CoreEvent,
     };
     use opentalk_roomserver_types_automod::event::{AutomodEvent, StoppedReason};
-    use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
+    use opentalk_roomserver_types_chat::event::ChatEvent;
     use opentalk_roomserver_types_echo::event::EchoEvent;
     use opentalk_roomserver_types_livekit::LiveKitEvent;
     use opentalk_roomserver_types_meeting_notes::MeetingNotesEvent;
@@ -224,9 +224,9 @@ mod tests {
         let event = SignalingEvent {
             transaction_id: None,
             timestamp: Timestamp::unix_epoch(),
-            payload: SignalingModuleEvent::Chat(ChatEvent::ChatDisabled(ChatDisabled {
+            payload: SignalingModuleEvent::Chat(ChatEvent::ChatDisabled {
                 issued_by: ParticipantId::from_u128(0x01),
-            })),
+            }),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
