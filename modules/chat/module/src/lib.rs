@@ -18,7 +18,7 @@ use opentalk_roomserver_types::{
     signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_chat::{
-    CHAT_MODULE_ID, MessageId, Scope,
+    CHAT_MODULE_ID, ChatSettings, MessageId, Scope,
     command::ChatCommand,
     event::{ChatError, ChatEvent},
     peer_state::ChatPeerState,
@@ -30,7 +30,10 @@ use opentalk_roomserver_types_chat::{
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 
+use crate::rate_limit::{RateLimit, RateLimitState};
+
 pub mod chat_id;
+mod rate_limit;
 
 const MIN_SEARCH_TERM_LENGTH: usize = 2;
 
@@ -43,7 +46,11 @@ pub struct ChatModule {
     /// Records for each participant in which chat they are participating and up
     /// until which time they read messages.
     chat_state: HashMap<ParticipantId, HashMap<ChatId, Option<Timestamp>>>,
+    rate_limit: Option<RateLimit>,
 }
+
+#[derive(Debug)]
+pub struct RefillBuckets;
 
 impl SignalingModule for ChatModule {
     const NAMESPACE: ModuleId = CHAT_MODULE_ID;
@@ -62,11 +69,21 @@ impl SignalingModule for ChatModule {
 
     type Error = ChatError;
 
-    fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
+    fn init(init_data: SignalingModuleInitData) -> Option<Self> {
+        let rate_limit = init_data
+            .room_parameters
+            .module_settings
+            .get::<ChatSettings>()
+            .ok()
+            .flatten()
+            .and_then(|settings| settings.rate_limit)
+            .map(RateLimit::new);
+
         Some(Self {
             enabled: true,
             history: HashMap::default(),
             chat_state: HashMap::default(),
+            rate_limit,
         })
     }
 
@@ -74,7 +91,7 @@ impl SignalingModule for ChatModule {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         p_joined: ParticipantId,
-        _connection_id: ConnectionId,
+        connection_id: ConnectionId,
         _is_first_connection: bool,
     ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
         let mut join_info = ModuleJoinData {
@@ -86,6 +103,10 @@ impl SignalingModule for ChatModule {
             .peer_events
             .insert_for_all(ctx, ChatPeerState { groups: Vec::new() })?;
 
+        if let Some(rate_limit) = &mut self.rate_limit {
+            rate_limit.insert_connection(connection_id);
+        }
+
         Ok(join_info)
     }
 
@@ -93,8 +114,11 @@ impl SignalingModule for ChatModule {
         &mut self,
         _ctx: &mut ModuleContext<'_, Self>,
         _participant_id: ParticipantId,
-        _connection_id: ConnectionId,
+        connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
+        if let Some(rate_limit) = &mut self.rate_limit {
+            rate_limit.remove_connection(connection_id);
+        }
         Ok(())
     }
 
@@ -102,7 +126,7 @@ impl SignalingModule for ChatModule {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
-        _connection_id: ConnectionId,
+        connection_id: ConnectionId,
         command: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match command {
@@ -119,7 +143,7 @@ impl SignalingModule for ChatModule {
                 tracing::warn!("Ignoring chat message to group");
             }
             ChatCommand::SendMessage { content, scope } => {
-                self.send_message(ctx, participant_id, content, scope)?;
+                self.send_message(ctx, participant_id, connection_id, content, scope)?;
             }
             ChatCommand::GetHistoryChunk {
                 message_index,
@@ -410,9 +434,22 @@ impl ChatModule {
         &mut self,
         ctx: &mut ModuleContext<'_, ChatModule>,
         participant: ParticipantId,
+        connection_id: ConnectionId,
         content: String,
         scope: Scope,
     ) -> Result<(), SignalingModuleError<<ChatModule as SignalingModule>::Error>> {
+        if let Some(rate_limit) = &mut self.rate_limit {
+            match rate_limit.consume_token(connection_id) {
+                RateLimitState::TooManyRequests => {
+                    return Err(ChatError::TooManyRequests.into());
+                }
+                RateLimitState::SlowDown => {
+                    ctx.send_ws_message_to_connections([connection_id], ChatEvent::SlowDown)?;
+                }
+                RateLimitState::Ok => {}
+            }
+        }
+
         if !self.enabled {
             return Err(ChatError::ChatDisabled.into());
         }
