@@ -6,7 +6,10 @@
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use anyhow::Context;
-use futures::SinkExt;
+use futures::{
+    SinkExt, Stream,
+    stream::{self, SelectAll},
+};
 pub use message::{CloseReason, MessageEnvelope, SignalingMessage};
 use opentalk_roomserver_common::application_state::ApplicationState;
 use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
@@ -23,7 +26,8 @@ use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use serde::Serialize;
 use serde_json::value::RawValue;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::watch;
+use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 
 use crate::message_router::participant_connection::ConnectionHandle;
 
@@ -31,12 +35,16 @@ mod message;
 mod participant_connection;
 
 const WS_CLOSE_ABNORMAL: u16 = 1006;
+/// The size of the command channel buffer for each participant connection
+const COMMAND_CHANNEL_BUFFER_SIZE: usize = 32;
 
 /// Error that is returned when a new participant is registered with the [`MessageRouter`], but the
 /// participant ID already has a connection.
 #[derive(Debug, Clone, Copy, thiserror::Error, PartialEq, Eq)]
 #[error("The participant already has an active connection")]
 pub struct AlreadyConnectedError;
+
+type CommandStream = Box<dyn Stream<Item = MessageEnvelope<SignalingMessage>> + Send + Unpin>;
 
 /// The message router for managing signaling connections
 ///
@@ -46,24 +54,39 @@ pub struct MessageRouter {
 
     pub conference: ScopedRouter,
 
-    /// The internal receiver for
-    /// [`room_task_command_sender`](MessageRouter::room_task_command_sender) that contains
-    /// messages for the room task. Can be read through the [`recv`](MessageRouter::recv) method.
-    room_task_command_receiver: mpsc::Receiver<MessageEnvelope<SignalingMessage>>,
+    /// A stream over the command channels of all active connections
+    commands: SelectAll<CommandStream>,
 }
 
 impl MessageRouter {
-    const COMMAND_CHANNEL_BUFFER_SIZE: usize = 128;
-
     /// Create a new [`MessageRouter`]
     pub fn new(app_state: watch::Receiver<ApplicationState>) -> Self {
-        let (command_channel, command_egress) = mpsc::channel(Self::COMMAND_CHANNEL_BUFFER_SIZE);
+        let mut commands: SelectAll<CommandStream> = SelectAll::new();
+        commands.push(Box::new(stream::pending()));
 
         Self {
-            waiting_room: ScopedRouter::new(command_channel.clone(), app_state.clone()),
-            conference: ScopedRouter::new(command_channel, app_state),
-            room_task_command_receiver: command_egress,
+            waiting_room: ScopedRouter::new(app_state.clone()),
+            conference: ScopedRouter::new(app_state),
+            commands,
         }
+    }
+
+    pub fn add_conference_connection<S: SignalingSocket + 'static>(
+        &mut self,
+        participant_id: ParticipantId,
+        websocket: S,
+    ) -> Result<ConnectionId, AlreadyConnectedError> {
+        self.conference
+            .add_connection(participant_id, websocket, &mut self.commands)
+    }
+
+    pub fn add_waiting_room_connection<S: SignalingSocket + 'static>(
+        &mut self,
+        participant_id: ParticipantId,
+        websocket: S,
+    ) -> Result<ConnectionId, AlreadyConnectedError> {
+        self.waiting_room
+            .add_connection(participant_id, websocket, &mut self.commands)
     }
 
     /// Upgrade the specified connections from the waiting room to the conference
@@ -94,14 +117,10 @@ impl MessageRouter {
 
     /// Receive the next message from any connected participant
     pub async fn recv(&mut self) -> MessageEnvelope<SignalingMessage> {
-        // This should never return `None`, the message router holds the sender for this receiver
-        let msg = self
-            .room_task_command_receiver
-            .recv()
-            .await
-            .expect("internal room_task_channel was closed");
+        // This should never return `None`, because we push a pending stream into the commands
+        let msg = self.commands.next().await.expect("Command stream ended");
 
-        if matches!(msg.message, SignalingMessage::Closed(_)) {
+        if matches!(msg.message, SignalingMessage::Closed(..)) {
             tracing::debug!(
                 "Remove connection {} for participant {}",
                 msg.connection_id,
@@ -129,34 +148,25 @@ pub struct ScopedRouter {
 
     disconnects: HashMap<ConnectionId, ParticipantId>,
 
-    /// An internal sender that is given to each [`ParticipantConnectionTask`] to communicate with
-    /// the [`RoomTask`](super::task::RoomTask)
-    ///
-    /// [`ParticipantConnectionTask`]: participant_connection::ParticipantConnectionTask
-    room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
-
     /// The global application state
     app_state: watch::Receiver<ApplicationState>,
 }
 
 impl ScopedRouter {
     /// Create a new [`ScopedRouter`]
-    pub fn new(
-        room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
-        app_state: watch::Receiver<ApplicationState>,
-    ) -> Self {
+    pub fn new(app_state: watch::Receiver<ApplicationState>) -> Self {
         Self {
             connections: HashMap::new(),
             disconnects: HashMap::new(),
-            room_task_command_sender,
             app_state,
         }
     }
 
-    pub fn add_connection<S: SignalingSocket + 'static>(
+    fn add_connection<S: SignalingSocket + 'static>(
         &mut self,
         participant_id: ParticipantId,
         mut websocket: S,
+        commands: &mut SelectAll<CommandStream>,
     ) -> Result<ConnectionId, AlreadyConnectedError> {
         let connection_id = ConnectionId::generate();
 
@@ -173,12 +183,15 @@ impl ScopedRouter {
 
             return Err(AlreadyConnectedError);
         };
+        let (room_task_command_sender, room_task_command_receiver) =
+            tokio::sync::mpsc::channel(COMMAND_CHANNEL_BUFFER_SIZE);
+        commands.push(Box::new(ReceiverStream::new(room_task_command_receiver)));
 
         let task_handle = participant_connection::create(
             participant_id,
             connection_id,
             websocket,
-            self.room_task_command_sender.clone(),
+            room_task_command_sender,
             self.app_state.clone(),
         );
 
@@ -382,7 +395,7 @@ mod tests {
         let (p1_socket, p1) = create_participant_connection();
         let p1_id = ParticipantId::from_u128(1);
 
-        let connection = router.conference.add_connection(p1_id, p1_socket).unwrap();
+        let connection = router.add_conference_connection(p1_id, p1_socket).unwrap();
 
         p1.sender
             .send(Ok(SignalingSocketItem {
