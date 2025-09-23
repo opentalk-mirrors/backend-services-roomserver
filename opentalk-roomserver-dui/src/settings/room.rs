@@ -13,6 +13,7 @@ use opentalk_roomserver_client::api::{
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
+    module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
     room_parameters::{EventContext, RoomParameters},
 };
@@ -25,7 +26,6 @@ use opentalk_types_common::{
     users::{UserId, UserInfo},
     utils::ExampleData,
 };
-use opentalk_types_signaling::ModuleData;
 
 pub fn alice_profile() -> PublicUserProfile {
     PublicUserProfile {
@@ -107,7 +107,7 @@ pub fn default_room_parameters() -> RoomParameters {
         },
         streaming_links: vec![],
         e2e_encryption: false,
-        module_data: ModuleData::example_data(),
+        module_settings: ModuleSettings::example_data(),
     }
 }
 

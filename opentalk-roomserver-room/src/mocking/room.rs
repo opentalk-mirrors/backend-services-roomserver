@@ -16,6 +16,7 @@ use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
     core::CoreEvent,
+    module_settings::{ModuleSettings, SignalingModuleSettings},
     room_parameters::{EventContext, RoomParameters},
 };
 use opentalk_types_common::{
@@ -23,7 +24,6 @@ use opentalk_types_common::{
     rooms::RoomId,
     tariffs::{TariffId, TariffModuleResource, TariffResource},
 };
-use opentalk_types_signaling::{ModuleData, SignalingModuleFrontendData};
 use tokio::sync::watch;
 
 use super::participant::{MockParticipantJoined, MockParticipantJoining, ReceiveError};
@@ -100,7 +100,7 @@ impl TestRoomBuilder {
                 },
                 streaming_links: Vec::new(),
                 e2e_encryption: false,
-                module_data: ModuleData::new(),
+                module_settings: ModuleSettings::new(),
             },
             module_registry: ModuleRegistry::new(),
             storage_quota: 5 * 1024u64.pow(3), // 5GiB
@@ -123,11 +123,11 @@ impl TestRoomBuilder {
         self
     }
 
-    pub fn add_init_module_data<T: SignalingModuleFrontendData>(
+    pub fn add_init_module_data<T: SignalingModuleSettings>(
         mut self,
         data: &T,
     ) -> Result<Self, serde_json::Error> {
-        self.room_parameters.module_data.insert(data)?;
+        self.room_parameters.module_settings.insert(data)?;
         Ok(self)
     }
 

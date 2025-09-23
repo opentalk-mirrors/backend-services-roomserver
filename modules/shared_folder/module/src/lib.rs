@@ -9,10 +9,10 @@
 //! read-write URL while other users receive a read-only URL.
 //!
 //! This module requires that the [`SharedFolder`] is available in the
-//! [`RoomParameters::module_data`]. If these are not present, the module won't initialize and stays
-//! disabled.
+//! [`RoomParameters::module_settings`]. If these are not present, the module won't initialize and
+//! stays disabled.
 //!
-//! [`RoomParameters::module_data`]: opentalk_roomserver_types::room_parameters::RoomParameters::module_data
+//! [`RoomParameters::module_settings`]: opentalk_roomserver_types::room_parameters::RoomParameters::module_settings
 
 pub use internal::UpdateSharedFolder;
 use opentalk_roomserver_signaling::{

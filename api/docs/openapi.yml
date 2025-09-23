@@ -319,11 +319,11 @@ components:
       format: uuid
       description: An invite code
       example: 00000000-0000-0000-0000-0000deadbeef
-    ModuleData:
+    ModuleSettings:
       type: object
       description: |-
-        A struct containing data for multiple signaling modules, each associated
-        with the module's namespace.
+        A struct containing settings for multiple signaling modules, each associated with the module's
+        namespace.
       additionalProperties: {}
       propertyNames:
         anyOf:
@@ -412,8 +412,8 @@ components:
           $ref: "#/components/schemas/EventContext"
         invite_code:
           $ref: "#/components/schemas/InviteCode"
-        module_data:
-          $ref: "#/components/schemas/ModuleData"
+        module_settings:
+          $ref: "#/components/schemas/ModuleSettings"
           description: Additional configuration options that are used by modules during initialization.
         password:
           $ref: "#/components/schemas/RoomPassword"
@@ -452,7 +452,7 @@ components:
           starts_at: "1970-01-01T00:00:00Z"
           title: Team Event
         invite_code: 00000000-0000-0000-0000-0000deadbeef
-        module_data:
+        module_settings:
           livekit:
             api_key: devkey
             api_secret: secret
@@ -683,7 +683,7 @@ components:
             starts_at: "1970-01-01T00:00:00Z"
             title: Team Event
           invite_code: 00000000-0000-0000-0000-0000deadbeef
-          module_data:
+          module_settings:
             livekit:
               api_key: devkey
               api_secret: secret

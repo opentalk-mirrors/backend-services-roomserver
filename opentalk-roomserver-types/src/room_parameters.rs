@@ -14,10 +14,9 @@ use opentalk_types_common::{
     time::Timestamp,
     utils::ExampleData,
 };
-use opentalk_types_signaling::ModuleData;
 use serde::{Deserialize, Serialize};
 
-use crate::public_user_profile::PublicUserProfile;
+use crate::{module_settings::ModuleSettings, public_user_profile::PublicUserProfile};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(RoomParameters::example_data())))]
@@ -59,7 +58,7 @@ pub struct RoomParameters {
 
     #[serde(default)]
     /// Additional configuration options that are used by modules during initialization.
-    pub module_data: ModuleData,
+    pub module_settings: ModuleSettings,
 }
 
 impl RoomParameters {
@@ -88,7 +87,7 @@ impl Debug for RoomParameters {
             .field("tariff", &self.tariff)
             .field("streaming_links", &self.streaming_links)
             .field("e2e_encryption", &self.e2e_encryption)
-            .field("module_data", &self.module_data)
+            .field("module_data", &self.module_settings)
             .finish()
     }
 }
@@ -105,7 +104,7 @@ impl ExampleData for RoomParameters {
             tariff: TariffResource::example_data(),
             streaming_links: vec![StreamingLink::example_data()],
             e2e_encryption: false,
-            module_data: ModuleData::example_data(),
+            module_settings: ModuleSettings::example_data(),
         }
     }
 }
@@ -216,7 +215,7 @@ mod tests {
             },
             "streaming_links": [{"name": "My OwnCast Stream", "url": "https://owncast.example.com/mystream"}],
             "e2e_encryption": false,
-            "module_data": {
+            "module_settings": {
                 "livekit":  {
                     "api_key": "devkey",
                     "api_secret": "secret",

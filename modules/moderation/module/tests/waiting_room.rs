@@ -12,6 +12,7 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     core::{CoreCommand, CoreEvent, LeftWaitingRoom},
     disconnect_reason::DisconnectReason,
+    module_settings::ModuleSettings,
     room_parameters::RoomParameters,
 };
 use opentalk_roomserver_types_moderation::{
@@ -20,7 +21,7 @@ use opentalk_roomserver_types_moderation::{
     state::{ModerationState, WaitingParticipantPeerData},
 };
 use opentalk_types_common::{tariffs::TariffResource, utils::ExampleData};
-use opentalk_types_signaling::{ModuleData, ParticipantId};
+use opentalk_types_signaling::ParticipantId;
 
 #[test_log::test(tokio::test)]
 async fn join_info() {
@@ -545,7 +546,7 @@ async fn cannot_send_owner_to_waiting_room() {
             tariff: TariffResource::example_data(),
             streaming_links: Vec::new(),
             e2e_encryption: false,
-            module_data: ModuleData::new(),
+            module_settings: ModuleSettings::new(),
         })
         .register_module::<ModerationModule>()
         .spawn();
