@@ -5803,6 +5803,7 @@ dependencies = [
  "opentalk-roomserver-module-shared-folder",
  "opentalk-roomserver-module-subroom-audio",
  "opentalk-roomserver-module-timer",
+ "opentalk-roomserver-module-whiteboard",
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
@@ -5856,6 +5857,7 @@ dependencies = [
  "opentalk-roomserver-types-shared-folder",
  "opentalk-roomserver-types-subroom-audio",
  "opentalk-roomserver-types-timer",
+ "opentalk-roomserver-types-whiteboard",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "reqwest 0.12.23",
@@ -6178,6 +6180,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-module-whiteboard"
+version = "0.0.8-dev"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "futures",
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-whiteboard",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "reqwest 0.12.23",
+ "serde",
+ "test-log",
+ "testcontainers",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "opentalk-roomserver-report-generation"
 version = "0.0.8-dev"
 dependencies = [
@@ -6437,6 +6461,21 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-whiteboard"
+version = "0.0.8-dev"
+dependencies = [
+ "insta",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "url",
 ]
 
 [[package]]

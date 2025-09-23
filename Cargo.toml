@@ -46,6 +46,7 @@ opentalk-roomserver-module-raise-hands = { path = "modules/raise-hands/module", 
 opentalk-roomserver-module-shared-folder = { path = "modules/shared_folder/module", version = "0.0.8-dev" }
 opentalk-roomserver-module-subroom-audio = { path = "modules/subroom-audio/module", version = "0.0.8-dev" }
 opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.8-dev" }
+opentalk-roomserver-module-whiteboard = { path = "modules/whiteboard/module", version = "0.0.8-dev" }
 opentalk-roomserver-report-generation = { path = "opentalk-roomserver-report-generation", version = "0.0.8-dev" }
 opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.8-dev" }
 opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.8-dev" }
@@ -65,6 +66,7 @@ opentalk-roomserver-types-raise-hands = { path = "modules/raise-hands/types", ve
 opentalk-roomserver-types-shared-folder = { path = "modules/shared_folder/types", version = "0.0.8-dev" }
 opentalk-roomserver-types-subroom-audio = { path = "modules/subroom-audio/types", version = "0.0.8-dev" }
 opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.8-dev" }
+opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.0.8-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.8-dev" }
 opentalk-types-api-v1 = { version = "0.40.0", features = ["axum"] }
 opentalk-types-common = { version = "0.36.0", features = ["serde", "utoipa"] }

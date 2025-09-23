@@ -17,6 +17,7 @@ use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, event::RaiseHandsEvent};
 use opentalk_roomserver_types_subroom_audio::{SUBROOM_AUDIO_MODULE_ID, event::SubroomAudioEvent};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
+use opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardEvent};
 use opentalk_types_common::{
     modules::{CORE_MODULE_ID, ModuleId},
     time::Timestamp,
@@ -71,6 +72,7 @@ pub enum SignalingModuleEvent {
     RaiseHands(RaiseHandsEvent),
     SubroomAudio(SubroomAudioEvent),
     MeetingNotes(MeetingNotesEvent),
+    Whiteboard(WhiteboardEvent),
 }
 
 impl SignalingModuleEvent {
@@ -91,6 +93,7 @@ impl SignalingModuleEvent {
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
             Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
+            Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
         }
     }
 }
@@ -124,9 +127,11 @@ mod tests {
     use opentalk_roomserver_types_timer::{
         TimerEvent, event::updated_ready_status::UpdatedReadyStatus,
     };
+    use opentalk_roomserver_types_whiteboard::WhiteboardEvent;
     use opentalk_types_common::{assets::AssetId, modules::ModuleId, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
     use serde::Deserialize;
+    use url::Url;
 
     use super::SignalingModuleEvent;
     use crate::api::event::SignalingEvent;
@@ -487,6 +492,29 @@ mod tests {
             "message": "access_changed",
             "readers": [],
             "writers": []
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_event_whiteboard() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
+            payload: SignalingModuleEvent::Whiteboard(WhiteboardEvent::Initialized {
+                url: Url::parse("https://example.com").unwrap(),
+            }),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "timestamp": "1970-01-01T00:00:00Z",
+          "namespace": "whiteboard",
+          "payload": {
+            "message": "initialized",
+            "url": "https://example.com/"
           }
         }
         "#);
