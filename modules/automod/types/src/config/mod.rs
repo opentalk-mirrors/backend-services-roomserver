@@ -19,10 +19,10 @@ pub struct FrontendConfig {
     #[serde(flatten)]
     pub parameter: Parameter,
 
-    /// See documentation of [`super::event::SpeakerUpdated`]
+    /// See documentation of [`super::event::AutomodEvent::SpeakerUpdated`]
     pub history: Vec<ParticipantId>,
 
-    /// See documentation of [`super::event::SpeakerUpdated`]
+    /// See documentation of [`super::event::AutomodEvent::SpeakerUpdated`]
     pub remaining: Vec<ParticipantId>,
 
     /// The ID of the participant who started the automoderation session
