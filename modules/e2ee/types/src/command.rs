@@ -2,14 +2,20 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
+use opentalk_roomserver_types::connection_id::ConnectionId;
 use serde::{Deserialize, Serialize};
 
-use crate::{E2eeEvent, Invite, MlsMessages};
+use crate::{E2eeEvent, MlsMessages, WelcomeMessage};
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum E2eeCommand {
-    Invite(Invite),
+    Invite {
+        invitee: ConnectionId,
+        welcome_message: WelcomeMessage,
+        /// Proposal and commit sent to the existing members of the group
+        mls_messages: MlsMessages,
+    },
     Message(MlsMessages),
 }
 
@@ -35,8 +41,8 @@ mod tests {
 
     const SAMPLE_UUID: &str = "6650b3e2-5f1c-4073-951e-cc4bcd6ddfef";
 
-    fn sample_invite() -> Invite {
-        Invite {
+    fn sample_invite_command() -> E2eeCommand {
+        E2eeCommand::Invite {
             invitee: ConnectionId::from_str(SAMPLE_UUID).expect("SAMPLE_UUID must be a valid UUID"),
             welcome_message: WelcomeMessage {
                 welcome: Bytes::from_static(b"welcome-bytes"),
@@ -56,8 +62,7 @@ mod tests {
 
     #[test]
     fn serialize_invite_command() {
-        let invite = sample_invite();
-        let cmd = E2eeCommand::Invite(invite.clone());
+        let cmd = sample_invite_command();
         let serialized = serde_json::to_value(&cmd).unwrap();
 
         let expected = json!({
@@ -103,7 +108,7 @@ mod tests {
 
     #[test]
     fn deserialize_invite_command() {
-        let expected = sample_invite();
+        let expected = sample_invite_command();
         let value = json!({
             "action": "invite",
             "invitee": SAMPLE_UUID,
@@ -120,7 +125,7 @@ mod tests {
         });
 
         let cmd: E2eeCommand = serde_json::from_value(value).unwrap();
-        assert_eq!(cmd, E2eeCommand::Invite(expected),);
+        assert_eq!(cmd, expected);
     }
 
     #[test]

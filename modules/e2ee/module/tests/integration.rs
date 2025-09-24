@@ -11,7 +11,7 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_e2ee::{
-    E2eeCommand, E2eeError, E2eeEvent, Invite, MlsMessages, WelcomeMessage,
+    E2eeCommand, E2eeError, E2eeEvent, MlsMessages, WelcomeMessage,
 };
 use pretty_assertions::assert_eq;
 
@@ -71,36 +71,32 @@ async fn invite() {
     .await;
 
     // Alice sends an invite to Bob
-    let invite = Invite {
-        invitee: bob.connection_id(),
-        welcome_message: sample_welcome_message(),
-        mls_messages: sample_mls_messages(),
-    };
+    let invitee = bob.connection_id();
+    let welcome_message = sample_welcome_message();
+    let mls_messages = sample_mls_messages();
     alice1
-        .send_command::<E2eeModule>(E2eeCommand::Invite(invite.clone()), None)
+        .send_command::<E2eeModule>(
+            E2eeCommand::Invite {
+                invitee,
+                welcome_message: welcome_message.clone(),
+                mls_messages: mls_messages.clone(),
+            },
+            None,
+        )
         .await
         .unwrap();
 
     // Alice2 should receive the replicated invite event
     let replica_event = alice2.receive_event::<E2eeModule>().await.unwrap().payload;
-    assert_eq!(
-        replica_event,
-        E2eeEvent::MlsMessages(invite.mls_messages.clone())
-    );
+    assert_eq!(replica_event, E2eeEvent::MlsMessages(mls_messages.clone()));
 
     // Bob should receive the welcome message
     let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().payload;
-    assert_eq!(
-        bob_event,
-        E2eeEvent::Welcome(invite.welcome_message.clone())
-    );
+    assert_eq!(bob_event, E2eeEvent::Welcome(welcome_message.clone()));
 
     // Charlie should receive the MLS message
     let charlie_event = charlie.receive_event::<E2eeModule>().await.unwrap().payload;
-    assert_eq!(
-        charlie_event,
-        E2eeEvent::MlsMessages(invite.mls_messages.clone())
-    );
+    assert_eq!(charlie_event, E2eeEvent::MlsMessages(mls_messages.clone()));
 
     // No additional messages should be sent
     assert!(alice1.received_nothing());
@@ -127,29 +123,28 @@ async fn invite_self() {
     flush_connected_events(&mut [&mut alice1, &mut alice2]).await;
 
     // alice-1 sends invite to alice-2
-    let invite = Invite {
-        invitee: alice2.connection_id(),
-        welcome_message: sample_welcome_message(),
-        mls_messages: sample_mls_messages(),
-    };
+    let invitee = alice2.connection_id();
+    let welcome_message = sample_welcome_message();
+    let mls_messages = sample_mls_messages();
     alice1
-        .send_command::<E2eeModule>(E2eeCommand::Invite(invite.clone()), None)
+        .send_command::<E2eeModule>(
+            E2eeCommand::Invite {
+                invitee,
+                welcome_message: welcome_message.clone(),
+                mls_messages: mls_messages.clone(),
+            },
+            None,
+        )
         .await
         .unwrap();
 
     // Alice2 should receive the invite event
     let invite_event = alice2.receive_event::<E2eeModule>().await.unwrap().payload;
-    assert_eq!(
-        invite_event,
-        E2eeEvent::Welcome(invite.welcome_message.clone())
-    );
+    assert_eq!(invite_event, E2eeEvent::Welcome(welcome_message.clone()));
 
     // Bob should receive a MLS message
     let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().payload;
-    assert_eq!(
-        bob_event,
-        E2eeEvent::MlsMessages(invite.mls_messages.clone())
-    );
+    assert_eq!(bob_event, E2eeEvent::MlsMessages(mls_messages.clone()));
 
     // No additional messages should be sent
     assert!(alice1.received_nothing());
@@ -167,13 +162,15 @@ async fn invitee_unknown() {
     flush_connected_events(&mut [&mut alice]).await;
 
     // Alice sends an invalid invite (e.g., to a non-existent participant)
-    let invalid_invite = Invite {
-        invitee: ConnectionId::from_u128(0xdeadbeef),
-        welcome_message: sample_welcome_message(),
-        mls_messages: sample_mls_messages(),
-    };
     alice
-        .send_command::<E2eeModule>(E2eeCommand::Invite(invalid_invite), None)
+        .send_command::<E2eeModule>(
+            E2eeCommand::Invite {
+                invitee: ConnectionId::from_u128(0xdeadbeef),
+                welcome_message: sample_welcome_message(),
+                mls_messages: sample_mls_messages(),
+            },
+            None,
+        )
         .await
         .unwrap();
 
