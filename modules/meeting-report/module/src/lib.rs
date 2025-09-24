@@ -190,7 +190,7 @@ impl MeetingReportModule {
         const ASSET_FILE_KIND: AssetFileKind = asset_file_kind!("meeting_report");
 
         let quota = storage.remaining_quota().await;
-        if quota == 0 {
+        if quota.map(|q| q == 0).unwrap_or(false) {
             return Err(MeetingReportError::StorageExceeded.into());
         }
 

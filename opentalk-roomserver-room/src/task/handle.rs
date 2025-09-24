@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::sync::Arc;
+
+use opentalk_roomserver_signaling::storage::StorageProvider;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
@@ -65,6 +68,7 @@ impl<Socket: SignalingSocket> RoomTaskHandleError<Socket> {
 /// Is used for communication between the room task and the web server API
 #[derive(Debug)]
 pub struct RoomTaskHandle<Socket: SignalingSocket> {
+    pub(super) storage: Arc<dyn StorageProvider + Send + Sync>,
     pub(super) sender: mpsc::Sender<TaskMessage<Socket>>,
 }
 
@@ -74,6 +78,7 @@ impl<Socket: SignalingSocket> Clone for RoomTaskHandle<Socket> {
     fn clone(&self) -> Self {
         Self {
             sender: self.sender.clone(),
+            storage: Arc::clone(&self.storage),
         }
     }
 }
@@ -167,6 +172,10 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         let response = Self::receive_response(rx).await?;
 
         Ok(response)
+    }
+
+    pub fn storage(&self) -> Arc<dyn StorageProvider + Send + Sync> {
+        Arc::clone(&self.storage)
     }
 }
 

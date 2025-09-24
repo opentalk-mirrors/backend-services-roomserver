@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -17,8 +20,9 @@ use url::Url;
 /// This implementation is for testing purposes only. It will be moved to the
 /// mocking module and only be used for tests once a real storage provider has
 /// been implemented.
+#[derive(Debug)]
 pub struct MemoryFileStorage {
-    quota: u64,
+    quota: Option<u64>,
     files: Mutex<HashMap<AssetId, Vec<u8>>>,
     running_uploads: Mutex<HashSet<AssetId>>,
 }
@@ -27,7 +31,7 @@ impl MemoryFileStorage {
     /// Creates a new [`MemoryFileStorage`]
     ///
     /// * `quota` - The total size of files the user is allowed to upload (in bytes)
-    pub fn new(quota: u64) -> Self {
+    pub fn new(quota: Option<u64>) -> Self {
         Self {
             quota,
             files: Mutex::new(HashMap::new()),
@@ -47,7 +51,12 @@ impl MemoryFileStorage {
 #[async_trait]
 impl StorageProvider for MemoryFileStorage {
     async fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) -> UploadResult {
-        if self.remaining_quota().await == 0 {
+        if self
+            .remaining_quota()
+            .await
+            .map(|q| q == 0)
+            .unwrap_or(false)
+        {
             return Err(StorageError::QuotaReached);
         }
 
@@ -65,7 +74,12 @@ impl StorageProvider for MemoryFileStorage {
     async fn upload_chunk(&self, id: AssetId, chunk: &[u8]) -> Result<(), StorageError> {
         let mut running_uploads = self.running_uploads.lock().await;
         if !running_uploads.contains(&id) {
-            if self.remaining_quota().await == 0 {
+            if self
+                .remaining_quota()
+                .await
+                .map(|q| q == 0)
+                .unwrap_or(false)
+            {
                 return Err(StorageError::QuotaReached);
             }
             running_uploads.insert(id);
@@ -91,9 +105,17 @@ impl StorageProvider for MemoryFileStorage {
         })
     }
 
-    async fn remaining_quota(&self) -> u64 {
-        let used: usize = self.files.lock().await.values().map(Vec::len).sum();
-        self.quota.saturating_sub(used as u64)
+    async fn remaining_quota(&self) -> Option<u64> {
+        if let Some(q) = self.quota {
+            let used: usize = self.files.lock().await.values().map(Vec::len).sum();
+            Some(q.saturating_sub(used as u64))
+        } else {
+            None
+        }
+    }
+
+    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync> {
+        self
     }
 }
 
@@ -118,7 +140,7 @@ mod test {
     #[tokio::test]
     async fn upload_file() {
         let quota = 5 * 1024u64.pow(3);
-        let storage = MemoryFileStorage::new(quota);
+        let storage = MemoryFileStorage::new(Some(quota));
 
         let file = b"test".to_vec();
         let name = AssetMetaData {
@@ -137,7 +159,7 @@ mod test {
     #[tokio::test]
     async fn exceed_quota() {
         let quota = 1;
-        let storage = MemoryFileStorage::new(quota);
+        let storage = MemoryFileStorage::new(Some(quota));
 
         let file = b"file that exceeds the quota".to_vec();
         let name = AssetMetaData {

@@ -48,7 +48,7 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{participant::create_participant_connection, socket::MockSocket},
-        task::{RoomTask, memory_file_storage::MemoryFileStorage},
+        task::RoomTask,
     };
 
     const TIMEOUT: Duration = Duration::from_millis(500);
@@ -59,18 +59,8 @@ mod tests {
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
-        let storage = Arc::new(MemoryFileStorage::new(1024));
         (
-            RoomTask::spawn_with_timeout(
-                id,
-                params,
-                state,
-                module_registry,
-                storage,
-                settings,
-                TIMEOUT,
-            )
-            .0,
+            RoomTask::spawn_with_timeout(id, params, state, module_registry, settings, TIMEOUT).0,
             sender,
         )
     }

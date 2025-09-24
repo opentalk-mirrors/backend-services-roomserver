@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{fmt::Display, pin::Pin, sync::Arc};
+use std::{
+    fmt::{Debug, Display},
+    pin::Pin,
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -16,7 +20,7 @@ pub type UploadFuture<'a> = Pin<Box<dyn Future<Output = UploadResult> + Send + '
 pub type UploadResult = Result<AssetUploaded, StorageError>;
 
 #[async_trait]
-pub trait StorageProvider: Send + Sync {
+pub trait StorageProvider: Send + Sync + Debug {
     /// Uploads a file to the storage backend
     async fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) -> UploadResult;
 
@@ -26,7 +30,9 @@ pub trait StorageProvider: Send + Sync {
     /// Finalizes an upload of one or multiple chunks
     async fn finalize_upload(&self, id: AssetId, metadata: AssetMetaData) -> UploadResult;
 
-    async fn remaining_quota(&self) -> u64;
+    async fn remaining_quota(&self) -> Option<u64>;
+
+    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync>;
 }
 
 pub async fn upload_stream<E>(
@@ -91,6 +97,6 @@ impl Display for AssetMetaData {
 pub struct AssetUploaded {
     pub id: AssetId,
     pub filename: String,
-    pub remaining_quota: u64,
+    pub remaining_quota: Option<u64>,
     pub url: Url,
 }

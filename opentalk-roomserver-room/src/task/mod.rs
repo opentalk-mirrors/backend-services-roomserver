@@ -86,7 +86,7 @@ use opentalk_roomserver_types::{
     device_id::DeviceId,
     error::SignalingError,
     room_kind::RoomKind,
-    room_parameters::RoomParameters,
+    room_parameters::{AssetStorageConfig, RoomParameters},
     signaling::{SignalingCommand, module_error::FatalError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
@@ -109,6 +109,7 @@ use crate::{
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
+        memory_file_storage::MemoryFileStorage,
         timeout::Timeout,
     },
 };
@@ -180,7 +181,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         room_id: RoomId,
         room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
-        storage: Arc<dyn StorageProvider>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
@@ -189,7 +189,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             room_parameters,
             app_state,
             module_registry,
-            storage,
             settings,
             IDLE_TIMEOUT,
         )
@@ -202,13 +201,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         mut room_parameters: Arc<RoomParameters>,
         app_state: watch::Receiver<ApplicationState>,
         module_registry: Arc<ModuleRegistry>,
-        storage: Arc<dyn StorageProvider>,
         settings: Arc<Settings>,
         timeout: Duration,
     ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
         let (tx, rx) = mpsc::channel(20);
 
         let message_router = MessageRouter::new(app_state.clone());
+        let storage = create_storage_provider(
+            &room_parameters.asset_storage,
+            room_parameters.tariff.quota(&QuotaType::MaxStorage),
+        );
+        let room_handle = RoomTaskHandle {
+            sender: tx,
+            storage: Arc::clone(&storage),
+        };
 
         let join_handle = tokio::task::spawn(async move {
             let (modules, uninitialized) = module_registry
@@ -263,7 +269,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             room_task.run().await;
         });
 
-        (RoomTaskHandle { sender: tx }, join_handle)
+        (room_handle, join_handle)
     }
 
     async fn run(mut self) {
@@ -1036,4 +1042,13 @@ fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId
 /// This should either be the [`DeviceId`] for guests or a [`UserId`] in case of registered users.
 fn participant_id_from_uuid(user_id: impl Into<Uuid>) -> ParticipantId {
     ParticipantId::from(user_id.into())
+}
+
+fn create_storage_provider(
+    config: &AssetStorageConfig,
+    quota: Option<u64>,
+) -> Arc<dyn StorageProvider> {
+    match config {
+        AssetStorageConfig::InMemory => Arc::new(MemoryFileStorage::new(quota)),
+    }
 }
