@@ -4,12 +4,12 @@
 
 use std::collections::BTreeSet;
 
+use opentalk_roomserver_types::client_parameters::Role;
+use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::event::{
-    BannedParticipantInfo, DebriefingStarted, DisplayNameChanged, ModerationError, RoleUpdate,
-};
+use crate::event::{BannedParticipantInfo, ModerationError};
 
 /// Events sent out by the `moderation` module
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -28,10 +28,18 @@ pub enum ModerationEvent {
     ParticipantUnbanned { participant_id: ParticipantId },
 
     /// A participants role has been updated
-    RoleUpdated(RoleUpdate),
+    RoleUpdated {
+        /// The affected participant
+        participant_id: ParticipantId,
+        /// The participants new role
+        new_role: Role,
+    },
 
     /// Sent out when debriefing of a session started
-    DebriefingStarted(DebriefingStarted),
+    DebriefingStarted {
+        /// The moderator who started the debriefing
+        issued_by: ParticipantId,
+    },
 
     /// Sent out when the waiting room is enabled
     WaitingRoomEnabled,
@@ -49,7 +57,16 @@ pub enum ModerationEvent {
     ParticipantAccepted { participant_id: ParticipantId },
 
     /// Sent to all participants when a participants display name gets changed
-    DisplayNameChanged(DisplayNameChanged),
+    DisplayNameChanged {
+        /// The participant that got their display name changed
+        target: ParticipantId,
+        /// The issuer of the display name change
+        issued_by: ParticipantId,
+        /// The old display name
+        old_name: DisplayName,
+        /// The new display name
+        new_name: DisplayName,
+    },
 
     /// The recipient was muted by a moderator
     Muted {
@@ -70,18 +87,6 @@ pub enum ModerationEvent {
 
     /// An error happened when executing a `moderation` command
     Error(ModerationError),
-}
-
-impl From<DebriefingStarted> for ModerationEvent {
-    fn from(value: DebriefingStarted) -> Self {
-        Self::DebriefingStarted(value)
-    }
-}
-
-impl From<DisplayNameChanged> for ModerationEvent {
-    fn from(value: DisplayNameChanged) -> Self {
-        Self::DisplayNameChanged(value)
-    }
 }
 
 impl From<ModerationError> for ModerationEvent {
@@ -122,10 +127,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_role_updated_moderator() {
-        let cmd = ModerationEvent::RoleUpdated(RoleUpdate {
+        let cmd = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::Moderator,
-        });
+        };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
         {
@@ -145,10 +150,10 @@ mod serde_tests {
           "new_role": "moderator"
         });
 
-        let event = ModerationEvent::RoleUpdated(RoleUpdate {
+        let event = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::Moderator,
-        });
+        };
 
         let produced = serde_json::to_value(event).unwrap();
 
@@ -157,10 +162,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_role_updated_user() {
-        let cmd = ModerationEvent::RoleUpdated(RoleUpdate {
+        let cmd = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::User,
-        });
+        };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
         {
@@ -180,10 +185,10 @@ mod serde_tests {
           "new_role": "user"
         });
 
-        let event = ModerationEvent::RoleUpdated(RoleUpdate {
+        let event = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::User,
-        });
+        };
 
         let produced = serde_json::to_value(event).unwrap();
 
@@ -197,20 +202,19 @@ mod serde_tests {
             "issued_by": "00000000-0000-0000-0000-000000000000"
         });
 
-        let produced =
-            serde_json::to_value(ModerationEvent::DebriefingStarted(DebriefingStarted {
-                issued_by: ParticipantId::nil(),
-            }))
-            .unwrap();
+        let produced = serde_json::to_value(ModerationEvent::DebriefingStarted {
+            issued_by: ParticipantId::nil(),
+        })
+        .unwrap();
 
         assert_eq!(expected, produced);
     }
 
     #[test]
     fn deserialize_debriefing_started() {
-        let event = ModerationEvent::DebriefingStarted(DebriefingStarted {
+        let event = ModerationEvent::DebriefingStarted {
             issued_by: ParticipantId::nil(),
-        });
+        };
 
         assert_snapshot!(serde_json::to_string_pretty(&event).unwrap(), @r#"
         {
@@ -273,14 +277,12 @@ mod serde_tests {
 
     #[test]
     fn serialize_display_name_changed() {
-        let produced = serde_json::to_string_pretty(&ModerationEvent::DisplayNameChanged(
-            DisplayNameChanged {
-                target: ParticipantId::nil(),
-                issued_by: ParticipantId::nil(),
-                old_name: "Alice".parse().expect("valid display name"),
-                new_name: "Bob".parse().expect("valid display name"),
-            },
-        ))
+        let produced = serde_json::to_string_pretty(&ModerationEvent::DisplayNameChanged {
+            target: ParticipantId::nil(),
+            issued_by: ParticipantId::nil(),
+            old_name: "Alice".parse().expect("valid display name"),
+            new_name: "Bob".parse().expect("valid display name"),
+        })
         .unwrap();
 
         assert_snapshot!(produced, @r#"
@@ -304,12 +306,12 @@ mod serde_tests {
             "new_name": "Bob"
         }))
         .unwrap();
-        let expected = ModerationEvent::DisplayNameChanged(DisplayNameChanged {
+        let expected = ModerationEvent::DisplayNameChanged {
             target: ParticipantId::nil(),
             issued_by: ParticipantId::nil(),
             old_name: "Alice".parse().expect("valid display name"),
             new_name: "Bob".parse().expect("valid display name"),
-        });
+        };
 
         assert_eq!(produced, expected);
     }

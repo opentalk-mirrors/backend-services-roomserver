@@ -116,7 +116,7 @@ mod tests {
     use opentalk_roomserver_types_livekit::LiveKitCommand;
     use opentalk_roomserver_types_meeting_notes::MeetingNotesCommand;
     use opentalk_roomserver_types_meeting_report::command::MeetingReportCommand;
-    use opentalk_roomserver_types_moderation::command::{Accept, ModerationCommand};
+    use opentalk_roomserver_types_moderation::command::ModerationCommand;
     use opentalk_roomserver_types_polls::{
         ChoiceId, PollId,
         command::{Choices, PollsCommand, Vote},
@@ -346,9 +346,9 @@ mod tests {
     fn serialize_command_moderation() {
         let command = SignalingCommand {
             transaction_id: None,
-            payload: SignalingModuleCommand::Moderation(ModerationCommand::Accept(Accept {
+            payload: SignalingModuleCommand::Moderation(ModerationCommand::Accept {
                 target: ParticipantId::nil(),
-            })),
+            }),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
 

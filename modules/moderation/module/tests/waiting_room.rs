@@ -16,7 +16,7 @@ use opentalk_roomserver_types::{
     room_parameters::RoomParameters,
 };
 use opentalk_roomserver_types_moderation::{
-    command::{Accept, ModerationCommand, SendToWaitingRoom},
+    command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
     state::{ModerationState, WaitingParticipantPeerData},
 };
@@ -63,9 +63,9 @@ async fn accept_participant(
 
     moderator
         .send_command::<ModerationModule>(
-            ModerationCommand::Accept(Accept {
+            ModerationCommand::Accept {
                 target: joinee.id(),
-            }),
+            },
             None,
         )
         .await
@@ -150,10 +150,7 @@ async fn join_via_waiting_room() {
     assert!(bob_0.received_nothing());
     assert!(bob_1.received_nothing());
     alice
-        .send_command::<ModerationModule>(
-            ModerationCommand::Accept(Accept { target: bob_0.id() }),
-            None,
-        )
+        .send_command::<ModerationModule>(ModerationCommand::Accept { target: bob_0.id() }, None)
         .await
         .unwrap();
     let event = alice
@@ -255,9 +252,9 @@ async fn accept_unknown_participant() {
 
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::Accept(Accept {
+            ModerationCommand::Accept {
                 target: ParticipantId::from_u128(12),
-            }),
+            },
             None,
         )
         .await
@@ -516,7 +513,7 @@ async fn send_to_waiting_room_insufficient_permissions() {
     assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
 
     bob.send_command::<ModerationModule>(
-        ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target: alice.id() }),
+        ModerationCommand::SendToWaitingRoom { target: alice.id() },
         None,
     )
     .await
@@ -556,7 +553,7 @@ async fn cannot_send_owner_to_waiting_room() {
 
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target: bob.id() }),
+            ModerationCommand::SendToWaitingRoom { target: bob.id() },
             None,
         )
         .await
@@ -585,7 +582,7 @@ async fn send_to_waiting_room() {
 
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target: bob.id() }),
+            ModerationCommand::SendToWaitingRoom { target: bob.id() },
             None,
         )
         .await

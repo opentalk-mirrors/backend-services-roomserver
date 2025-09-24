@@ -25,11 +25,8 @@ use opentalk_roomserver_types_livekit::{
 };
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
-    command::{Accept, ChangeDisplayName, ModerationCommand, SendToWaitingRoom},
-    event::{
-        BannedParticipantInfo, DebriefingStarted, DisplayNameChanged, ModerationError,
-        ModerationEvent, RoleUpdate,
-    },
+    command::ModerationCommand,
+    event::{BannedParticipantInfo, ModerationError, ModerationEvent},
     state::{ModerationState, ModeratorJoinInfo, WaitingParticipantPeerData},
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
@@ -119,20 +116,20 @@ impl SignalingModule for ModerationModule {
             ModerationCommand::Kick { target } => Self::kick_participant(ctx, sender, target),
             ModerationCommand::Ban { target } => Self::ban_participant(ctx, sender, target),
             ModerationCommand::Unban { target } => Self::unban_participant(ctx, sender, target),
-            ModerationCommand::UpdateRole(RoleUpdate {
+            ModerationCommand::UpdateRole {
                 participant_id,
                 new_role,
-            }) => Self::update_participant_role(ctx, sender, participant_id, new_role),
+            } => Self::update_participant_role(ctx, sender, participant_id, new_role),
             ModerationCommand::Debrief(kick_scope) => Self::debrief(ctx, sender, kick_scope),
             ModerationCommand::EnableWaitingRoom => Self::enable_waiting_room(ctx, sender, true),
-            ModerationCommand::Accept(Accept { target }) => {
+            ModerationCommand::Accept { target } => {
                 Self::accept_waiting_room_participant(ctx, sender, target)
             }
             ModerationCommand::DisableWaitingRoom => Self::enable_waiting_room(ctx, sender, false),
-            ModerationCommand::SendToWaitingRoom(SendToWaitingRoom { target }) => {
+            ModerationCommand::SendToWaitingRoom { target } => {
                 Self::send_to_waiting_room(ctx, sender, target)
             }
-            ModerationCommand::ChangeDisplayName(ChangeDisplayName { new_name, target }) => {
+            ModerationCommand::ChangeDisplayName { new_name, target } => {
                 Self::change_display_name(ctx, sender, new_name, target)
             }
             ModerationCommand::Mute { participants } => Self::mute(ctx, sender, participants),
@@ -349,10 +346,10 @@ impl ModerationModule {
 
         ctx.send_ws_message(
             ctx.participants.connected().ids(),
-            ModerationEvent::RoleUpdated(RoleUpdate {
+            ModerationEvent::RoleUpdated {
                 participant_id: target,
                 new_role,
-            }),
+            },
         )?;
 
         ctx.send_internal_command::<SharedFolderModule>(UpdateSharedFolder {
@@ -376,7 +373,7 @@ impl ModerationModule {
 
         ctx.send_ws_message(
             not_kicked,
-            ModerationEvent::DebriefingStarted(DebriefingStarted { issued_by: sender }),
+            ModerationEvent::DebriefingStarted { issued_by: sender },
         )?;
 
         if !ctx.room_task_info.room.waiting_room {
@@ -517,12 +514,12 @@ impl ModerationModule {
 
         ctx.send_ws_message(
             ctx.participants.connected().ids(),
-            ModerationEvent::DisplayNameChanged(DisplayNameChanged {
+            ModerationEvent::DisplayNameChanged {
                 target,
                 issued_by: sender,
                 old_name,
                 new_name,
-            }),
+            },
         )?;
 
         Ok(())

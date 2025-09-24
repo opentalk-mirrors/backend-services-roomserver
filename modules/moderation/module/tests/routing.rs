@@ -14,10 +14,7 @@ use opentalk_roomserver_types::{
     },
     core::{CoreCommand, CoreEvent},
 };
-use opentalk_roomserver_types_moderation::{
-    command::{Accept, ModerationCommand},
-    event::ModerationEvent,
-};
+use opentalk_roomserver_types_moderation::{command::ModerationCommand, event::ModerationEvent};
 
 #[test_log::test(tokio::test)]
 async fn waiting_participants_dont_receive_messages() {
@@ -64,9 +61,9 @@ async fn waiting_participants_dont_receive_broadcasts() {
 
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::Accept(Accept {
+            ModerationCommand::Accept {
                 target: charlie.id(),
-            }),
+            },
             None,
         )
         .await

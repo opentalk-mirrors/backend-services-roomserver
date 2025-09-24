@@ -16,7 +16,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_moderation::{
     KickScope,
     command::ModerationCommand,
-    event::{DebriefingStarted, ModerationError, ModerationEvent},
+    event::{ModerationError, ModerationEvent},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::{CloseFrame, SignalingSocketMessage};
 use opentalk_types_signaling::ParticipantId;
@@ -109,9 +109,9 @@ async fn debrief_users_and_guests() {
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         event.payload,
-        ModerationEvent::DebriefingStarted(DebriefingStarted {
+        ModerationEvent::DebriefingStarted {
             issued_by: alice.id()
-        })
+        }
     );
 
     // Everyone receives the waiting room enabled event
@@ -160,18 +160,18 @@ async fn debrief_guests() {
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         event.payload,
-        ModerationEvent::DebriefingStarted(DebriefingStarted {
+        ModerationEvent::DebriefingStarted {
             issued_by: alice.id()
-        })
+        }
     );
 
     // Bob receives the debriefing started event
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         event.payload,
-        ModerationEvent::DebriefingStarted(DebriefingStarted {
+        ModerationEvent::DebriefingStarted {
             issued_by: alice.id()
-        })
+        }
     );
 
     // Everyone receives the waiting room enabled event

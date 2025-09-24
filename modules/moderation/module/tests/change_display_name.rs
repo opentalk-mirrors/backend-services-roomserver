@@ -4,8 +4,8 @@
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types_moderation::{
-    command::{ChangeDisplayName, ModerationCommand},
-    event::{DisplayNameChanged, ModerationError, ModerationEvent},
+    command::ModerationCommand,
+    event::{ModerationError, ModerationEvent},
 };
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
@@ -21,10 +21,10 @@ async fn insufficient_permissions() {
 
     // Bob can't change Alice's display name
     bob.send_command::<ModerationModule>(
-        ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+        ModerationCommand::ChangeDisplayName {
             new_name: DisplayName::from_str_lossy("Charlie"),
             target: gustav.id(),
-        }),
+        },
         None,
     )
     .await
@@ -54,10 +54,10 @@ async fn display_name_too_short() {
 
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+            ModerationCommand::ChangeDisplayName {
                 new_name: DisplayName::from_str_lossy(""),
                 target: gustav.id(),
-            }),
+            },
             None,
         )
         .await
@@ -87,10 +87,10 @@ async fn display_name_too_long() {
 
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+            ModerationCommand::ChangeDisplayName {
                 new_name: DisplayName::from_str_lossy(&str::repeat("x", 256)),
                 target: gustav.id(),
-            }),
+            },
             None,
         )
         .await
@@ -118,10 +118,10 @@ async fn unknown_participant() {
 
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+            ModerationCommand::ChangeDisplayName {
                 new_name: DisplayName::from_str_lossy("Bob"),
                 target: ParticipantId::nil(),
-            }),
+            },
             None,
         )
         .await
@@ -150,10 +150,10 @@ async fn cannot_change_name_of_registered_users() {
     // Bob can't change Alice's display name
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+            ModerationCommand::ChangeDisplayName {
                 new_name: DisplayName::from_str_lossy("Charlie"),
                 target: bob.id(),
-            }),
+            },
             None,
         )
         .await
@@ -184,21 +184,21 @@ async fn change_display_name() {
     // Bob can't change Alice's display name
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+            ModerationCommand::ChangeDisplayName {
                 new_name: DisplayName::from_str_lossy("Bob"),
                 target: gustav.id(),
-            }),
+            },
             None,
         )
         .await
         .unwrap();
 
-    let expected = ModerationEvent::DisplayNameChanged(DisplayNameChanged {
+    let expected = ModerationEvent::DisplayNameChanged {
         target: gustav.id(),
         issued_by: alice.id(),
         old_name: DisplayName::from_str_lossy("Gustav the great"),
         new_name: DisplayName::from_str_lossy("Bob"),
-    });
+    };
     let event = alice
         .receive_event::<ModerationModule>()
         .await
