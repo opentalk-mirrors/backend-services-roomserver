@@ -5809,7 +5809,6 @@ dependencies = [
  "opentalk-roomserver-web-api",
  "opentalk-types-api-v1",
  "opentalk-types-common",
- "opentalk-types-signaling",
  "opentalk-version",
  "opentelemetry",
  "opentelemetry-otlp",

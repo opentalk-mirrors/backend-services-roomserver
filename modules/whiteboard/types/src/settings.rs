@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_types_signaling::SignalingModuleFrontendData;
+use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
+use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -16,6 +17,6 @@ pub struct WhiteboardSettings {
     pub api_key: String,
 }
 
-impl SignalingModuleFrontendData for WhiteboardSettings {
-    const NAMESPACE: Option<opentalk_types_common::modules::ModuleId> = Some(WHITEBOARD_MODULE_ID);
+impl SignalingModuleSettings for WhiteboardSettings {
+    const NAMESPACE: ModuleId = WHITEBOARD_MODULE_ID;
 }

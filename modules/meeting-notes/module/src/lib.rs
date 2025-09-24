@@ -92,7 +92,7 @@ impl SignalingModule for MeetingNotesModule {
     fn init(init_data: SignalingModuleInitData) -> Option<Self> {
         let settings = init_data
             .room_parameters
-            .module_data
+            .module_settings
             .get::<MeetingNotesSettings>()
             .ok()??;
         let etherpad = EtherpadClient::new(settings.base_url, settings.api_key);

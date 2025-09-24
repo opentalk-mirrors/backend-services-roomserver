@@ -75,7 +75,7 @@ impl SignalingModule for WhiteboardModule {
     fn init(init_data: SignalingModuleInitData) -> Option<Self> {
         let settings = init_data
             .room_parameters
-            .module_data
+            .module_settings
             .get::<WhiteboardSettings>()
             .inspect_err(|err| {
                 tracing::error!("Failed to deserialize whiteboard settings: {err:?}")

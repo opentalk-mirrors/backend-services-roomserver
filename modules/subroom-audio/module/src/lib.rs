@@ -65,7 +65,7 @@ impl SignalingModule for SubroomAudioModule {
     fn init(init_data: SignalingModuleInitData) -> Option<Self> {
         let livekit_settings = (init_data
             .room_parameters
-            .module_data
+            .module_settings
             .get::<LiveKitSettings>()
             .ok()?)?;
 

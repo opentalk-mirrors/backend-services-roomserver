@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
 use opentalk_types_common::modules::ModuleId;
-use opentalk_types_signaling::SignalingModuleFrontendData;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -17,6 +17,6 @@ pub struct MeetingNotesSettings {
     pub api_key: String,
 }
 
-impl SignalingModuleFrontendData for MeetingNotesSettings {
-    const NAMESPACE: Option<ModuleId> = Some(MEETING_NOTES_MODULE_ID);
+impl SignalingModuleSettings for MeetingNotesSettings {
+    const NAMESPACE: ModuleId = MEETING_NOTES_MODULE_ID;
 }

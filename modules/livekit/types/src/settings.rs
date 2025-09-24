@@ -2,6 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
+use opentalk_types_common::modules::ModuleId;
+
+use crate::LIVEKIT_MODULE_ID;
+
 /// LiveKit settings.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LiveKitSettings {
@@ -18,7 +23,6 @@ pub struct LiveKitSettings {
     pub service_url: String,
 }
 
-impl opentalk_types_signaling::SignalingModuleFrontendData for LiveKitSettings {
-    const NAMESPACE: Option<opentalk_types_common::modules::ModuleId> =
-        Some(crate::LIVEKIT_MODULE_ID);
+impl SignalingModuleSettings for LiveKitSettings {
+    const NAMESPACE: ModuleId = LIVEKIT_MODULE_ID;
 }

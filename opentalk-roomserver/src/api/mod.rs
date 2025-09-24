@@ -353,6 +353,7 @@ mod test {
 
     use opentalk_roomserver_types::{
         client_parameters::{ClientKind, Role},
+        module_settings::ModuleSettings,
         public_user_profile::PublicUserProfile,
     };
     use opentalk_types_common::{
@@ -362,7 +363,6 @@ mod test {
         users::{DisplayName, UserId, UserInfo, UserTitle},
         utils::ExampleData,
     };
-    use opentalk_types_signaling::ModuleData;
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -422,7 +422,7 @@ mod test {
             tariff: TariffResource::example_data(),
             streaming_links: vec![],
             e2e_encryption: false,
-            module_data: ModuleData::example_data(),
+            module_settings: ModuleSettings::example_data(),
         }
     }
 
