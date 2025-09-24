@@ -17,6 +17,7 @@ use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
     core::CoreEvent,
     module_settings::{ModuleSettings, SignalingModuleSettings},
+    public_user_profile::PublicUserProfile,
     room_parameters::{EventContext, RoomParameters},
 };
 use opentalk_types_common::{
@@ -150,13 +151,13 @@ impl TestRoomBuilder {
         self
     }
 
-    pub fn room_parameters(mut self, room_parameters: RoomParameters) -> Self {
-        self.room_parameters = room_parameters;
+    pub fn storage_quota(mut self, quota: u64) -> Self {
+        self.storage_quota = quota;
         self
     }
 
-    pub fn storage_quota(mut self, quota: u64) -> Self {
-        self.storage_quota = quota;
+    pub fn owner(mut self, created_by: PublicUserProfile) -> Self {
+        self.room_parameters.created_by = created_by;
         self
     }
 

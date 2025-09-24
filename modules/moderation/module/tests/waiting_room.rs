@@ -12,15 +12,12 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     core::{CoreCommand, CoreEvent, LeftWaitingRoom},
     disconnect_reason::DisconnectReason,
-    module_settings::ModuleSettings,
-    room_parameters::RoomParameters,
 };
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
     state::{ModerationState, WaitingParticipantPeerData},
 };
-use opentalk_types_common::{tariffs::TariffResource, utils::ExampleData};
 use opentalk_types_signaling::ParticipantId;
 
 #[test_log::test(tokio::test)]
@@ -533,18 +530,7 @@ async fn send_to_waiting_room_insufficient_permissions() {
 #[test_log::test(tokio::test)]
 async fn cannot_send_owner_to_waiting_room() {
     let mut room = TestRoom::builder()
-        .room_parameters(RoomParameters {
-            created_by: bob_public_user_profile(),
-            password: None,
-            waiting_room: false,
-            call_in: None,
-            event: None,
-            invite_code: None,
-            tariff: TariffResource::example_data(),
-            streaming_links: Vec::new(),
-            e2e_encryption: false,
-            module_settings: ModuleSettings::new(),
-        })
+        .owner(bob_public_user_profile())
         .register_module::<ModerationModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
