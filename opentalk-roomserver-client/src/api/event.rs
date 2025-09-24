@@ -111,7 +111,7 @@ mod tests {
     use opentalk_roomserver_types_echo::event::EchoEvent;
     use opentalk_roomserver_types_livekit::LiveKitEvent;
     use opentalk_roomserver_types_meeting_notes::MeetingNotesEvent;
-    use opentalk_roomserver_types_meeting_report::event::{MeetingReportEvent, PdfAsset};
+    use opentalk_roomserver_types_meeting_report::event::MeetingReportEvent;
     use opentalk_roomserver_types_moderation::event::ModerationEvent;
     use opentalk_roomserver_types_polls::{
         ChoiceId, PollId,
@@ -366,10 +366,10 @@ mod tests {
         let event = SignalingEvent {
             transaction_id: None,
             timestamp: Timestamp::unix_epoch(),
-            payload: SignalingModuleEvent::MeetingReport(MeetingReportEvent::PdfAsset(PdfAsset {
+            payload: SignalingModuleEvent::MeetingReport(MeetingReportEvent::PdfAsset {
                 filename: "name".into(),
                 asset_id: AssetId::nil(),
-            })),
+            }),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 

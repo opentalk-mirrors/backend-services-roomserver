@@ -4,16 +4,23 @@
 
 //! Signaling events for the `meeting_report` namespace
 
+use opentalk_types_common::assets::AssetId;
 use serde::{Deserialize, Serialize};
 
-use super::{MeetingReportError, PdfAsset};
+use super::MeetingReportError;
 
 /// Events sent out by the `meeting_report` module
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "message")]
 pub enum MeetingReportEvent {
     /// A PDF asset has been created
-    PdfAsset(PdfAsset),
+    PdfAsset {
+        /// The file name of the PDF asset
+        filename: String,
+
+        /// The asset id for the PDF asset
+        asset_id: AssetId,
+    },
 
     ReportGenerationStarted {
         /// Wether or not to the e-mail addresses of the participants were requested
@@ -23,12 +30,6 @@ pub enum MeetingReportEvent {
 
     /// An error happened when executing a `meeting_report` command
     Error(MeetingReportError),
-}
-
-impl From<PdfAsset> for MeetingReportEvent {
-    fn from(value: PdfAsset) -> Self {
-        Self::PdfAsset(value)
-    }
 }
 
 impl From<MeetingReportError> for MeetingReportEvent {
@@ -42,14 +43,14 @@ mod serde_tests {
     use opentalk_types_common::assets::AssetId;
     use serde_json::json;
 
-    use super::{MeetingReportError, MeetingReportEvent, PdfAsset};
+    use super::{MeetingReportError, MeetingReportEvent};
 
     #[test]
     fn serialize_meeting_report_event_pdf_asset() {
-        let pdf_event = MeetingReportEvent::PdfAsset(PdfAsset {
+        let pdf_event = MeetingReportEvent::PdfAsset {
             filename: "pdf-file.pdf".to_owned(),
             asset_id: AssetId::from_u128(0x735fcdaa_56dd_4ddb_9eb0_7d083a4a9d9b),
-        });
+        };
         let value = serde_json::to_value(pdf_event).expect("Must be serializable");
         assert_eq!(
             value,

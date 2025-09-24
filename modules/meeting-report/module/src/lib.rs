@@ -18,7 +18,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID,
     command::MeetingReportCommand,
-    event::{MeetingReportError, MeetingReportEvent, PdfAsset},
+    event::{MeetingReportError, MeetingReportEvent},
 };
 use opentalk_types_common::{
     assets::{AssetFileKind, FileExtension, asset_file_kind},
@@ -100,14 +100,17 @@ impl SignalingModule for MeetingReportModule {
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match event {
             Ok(uploaded) => {
-                let pdf_asset = PdfAsset {
-                    filename: uploaded.filename,
-                    asset_id: uploaded.id,
-                };
-                tracing::debug!("Generated meeting attendance report: {pdf_asset:?}");
+                tracing::debug!(
+                    "Generated meeting attendance report: {}({})",
+                    uploaded.filename,
+                    uploaded.id
+                );
                 ctx.send_ws_message(
                     ctx.participants.connected().ids(),
-                    MeetingReportEvent::PdfAsset(pdf_asset),
+                    MeetingReportEvent::PdfAsset {
+                        filename: uploaded.filename,
+                        asset_id: uploaded.id,
+                    },
                 )?;
                 Ok(())
             }
