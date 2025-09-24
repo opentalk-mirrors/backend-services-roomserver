@@ -91,7 +91,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{
-    rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType, time::Timestamp,
+    modules::ModuleId, rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType, time::Timestamp,
 };
 use opentalk_types_signaling::ParticipantId;
 use tokio::{
@@ -297,9 +297,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     }
                 },
                 msg = self.message_router.recv() => {
-                    tracing::trace!("received {msg:?}");
                     self.handle_message(msg)?;
-
                 }
                 Some(msg) = self.loopback_futures.next() => {
                     self.handle_loopback(msg)?;
@@ -316,7 +314,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         tracing::debug!("Room task {} received shutdown signal, exiting", self.info.room_id);
                         return Ok(())
                     }
-
                 }
                 () = self.quota_timeout.wait_for_completion() => {
                     tracing::debug!("Room task {} reached its time limit, exiting", self.info.room_id);
@@ -632,8 +629,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip_all, parent = &span, fields(participant_id = %participant_id))]
     fn handle_message(
+        &mut self,
+        message_envelope: MessageEnvelope<SignalingMessage>,
+    ) -> Result<(), FatalError> {
+        if self
+            .waiting_participants
+            .contains_key(&message_envelope.participant_id)
+        {
+            self.handle_waiting_room_message(message_envelope)
+        } else {
+            self.handle_conference_message(message_envelope)
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip_all, parent = &span, fields(participant_id = %participant_id))]
+    fn handle_conference_message(
         &mut self,
         MessageEnvelope {
             participant_id,
@@ -647,31 +658,94 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 tracing::trace!(
                     "Websocket closed for participant {participant_id}: {close_reason:?}"
                 );
-                self.handle_disconnect(
-                    EventOrigin::Participant(ParticipantOrigin {
-                        id: participant_id,
-                        connection_id,
-                        transaction_id: None,
-                    }),
-                    participant_id,
+                let origin = EventOrigin::Participant(ParticipantOrigin {
+                    id: participant_id,
                     connection_id,
-                    close_reason,
-                )
+                    transaction_id: None,
+                });
+                self.disconnect_participant(origin, participant_id, connection_id, close_reason)
             }
 
             SignalingMessage::Command(signaling_command) => {
-                self.handle_command(signaling_command, participant_id, connection_id)
+                self.handle_conference_command(signaling_command, participant_id, connection_id)
             }
         }
     }
 
-    fn handle_command(
+    #[tracing::instrument(level = "info", skip_all, parent = &span, fields(participant_id = %participant_id))]
+    fn handle_waiting_room_message(
+        &mut self,
+        MessageEnvelope {
+            participant_id,
+            connection_id,
+            message,
+            span,
+        }: MessageEnvelope<SignalingMessage>,
+    ) -> Result<(), FatalError> {
+        match message {
+            SignalingMessage::Closed(close_reason) => {
+                tracing::trace!(
+                    "Websocket closed for participant {participant_id}: {close_reason:?}"
+                );
+                self.disconnect_waiting_participant(participant_id, connection_id);
+                Ok(())
+            }
+            SignalingMessage::Command(signaling_command) => {
+                self.handle_waiting_room_command(signaling_command, participant_id, connection_id)
+            }
+        }
+    }
+
+    fn handle_conference_command(
         &mut self,
         signaling_command: SignalingCommand,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
     ) -> Result<(), FatalError> {
-        tracing::trace!("received signaling command: {signaling_command:?}");
+        tracing::trace!("received signaling command from conference: {signaling_command:?}");
+
+        let participant_origin = ParticipantOrigin {
+            id: participant_id,
+            connection_id,
+            transaction_id: signaling_command.transaction_id,
+        };
+
+        // We currently do not handle the core namespace here because `EnterRoom` as the only core
+        // command is only useful in the waiting room.
+        match &signaling_command.namespace {
+            m if *m == BREAKOUT_MODULE_ID => {
+                self.handle_breakout_command(participant_origin, signaling_command);
+                Ok(())
+            }
+            _ => {
+                let event = DynEvent::WebsocketMessage {
+                    participant_id,
+                    connection_id,
+                    command: signaling_command.payload,
+                };
+                let Some(state) = self.participants.connected().get(&participant_id) else {
+                    tracing::error!(
+                        "failed to get participant state for participant '{participant_id}'"
+                    );
+                    return Ok(());
+                };
+                self.execute_signaling_module_command(
+                    participant_origin,
+                    state.room,
+                    signaling_command.namespace,
+                    event,
+                )
+            }
+        }
+    }
+
+    fn handle_waiting_room_command(
+        &mut self,
+        signaling_command: SignalingCommand,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+    ) -> Result<(), FatalError> {
+        tracing::trace!("received signaling command from waiting room: {signaling_command:?}");
 
         let participant_origin = ParticipantOrigin {
             id: participant_id,
@@ -684,64 +758,42 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 self.handle_core_command(participant_origin, signaling_command);
                 Ok(())
             }
-            m if *m == BREAKOUT_MODULE_ID => {
-                self.handle_breakout_command(participant_origin, signaling_command);
-                Ok(())
+            _ => {
+                let event = DynEvent::WaitingRoomWebsocketMessage {
+                    participant_id,
+                    connection_id,
+                    command: signaling_command.payload,
+                };
+                self.execute_signaling_module_command(
+                    participant_origin,
+                    RoomKind::Main,
+                    signaling_command.namespace,
+                    event,
+                )
             }
-            _ => self.execute_signaling_module_command(
-                signaling_command,
-                participant_id,
-                connection_id,
-                participant_origin,
-            ),
         }
     }
 
     fn execute_signaling_module_command(
         &mut self,
-        signaling_command: SignalingCommand,
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
         participant_origin: ParticipantOrigin,
+        room: RoomKind,
+        namespace: ModuleId,
+        event: DynEvent,
     ) -> Result<(), FatalError> {
-        let room;
+        let Some(module) = self.modules.get_mut(&namespace) else {
+            self.handle_unknown_namespace(
+                participant_origin.id,
+                participant_origin.connection_id,
+                participant_origin.transaction_id,
+                namespace.to_string(),
+            );
+            return Ok(());
+        };
+
         let timestamp = Timestamp::now();
         let mut messages = RefCell::new(Vec::new());
         let origin = participant_origin.into();
-
-        let event = if self.waiting_participants.contains_key(&participant_id) {
-            room = RoomKind::Main;
-            DynEvent::WaitingRoomWebsocketMessage {
-                participant_id,
-                connection_id,
-                command: signaling_command.payload,
-            }
-        } else if let Some(participant_state) = self.participants.connected().get(&participant_id) {
-            room = participant_state.room;
-            DynEvent::WebsocketMessage {
-                participant_id,
-                connection_id,
-                command: signaling_command.payload,
-            }
-        } else {
-            tracing::error!(
-                "failed to get participant state for participant `{}`",
-                participant_origin.id
-            );
-            return Ok(());
-        };
-
-        let Some(module) = self.modules.get_mut(&signaling_command.namespace) else {
-            self.handle_unknown_namespace(
-                participant_id,
-                connection_id,
-                signaling_command.transaction_id,
-                signaling_command.namespace.to_string(),
-            );
-
-            return Ok(());
-        };
-
         let mut ctx = DynModuleContext::new(
             self.info.room_id,
             room,
@@ -756,11 +808,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.loopback_futures,
         );
         if let Err(err) = module.on_event(&mut ctx, event) {
-            self.handle_fatal_module_error(
-                signaling_command.namespace,
-                signaling_command.transaction_id,
-                err,
-            );
+            self.handle_fatal_module_error(namespace, participant_origin.transaction_id, err);
         }
 
         self.handle_module_messages(messages, room, origin, timestamp)
@@ -868,24 +916,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 connection_id,
                 CloseReason::InternalError,
             )?;
-        }
-        Ok(())
-    }
-
-    /// This method either disconnects a waiting room participant or a participant that already
-    /// joined the room. For that it either calls [`Self::disconnect_participant`] or
-    /// [`Self::disconnect_waiting_participant`].
-    fn handle_disconnect(
-        &mut self,
-        origin: EventOrigin,
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
-        reason: CloseReason,
-    ) -> Result<(), FatalError> {
-        if self.waiting_participants.contains_key(&participant_id) {
-            self.disconnect_waiting_participant(participant_id, connection_id);
-        } else {
-            self.disconnect_participant(origin, participant_id, connection_id, reason)?;
         }
         Ok(())
     }
