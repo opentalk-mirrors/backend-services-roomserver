@@ -7,7 +7,7 @@ use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types_subroom_audio::{
     WhisperId,
     command::{ParticipantTargets, SubroomAudioCommand},
-    event::{SubroomAudioError, SubroomAudioEvent, WhisperInvite},
+    event::{SubroomAudioError, SubroomAudioEvent},
 };
 use opentalk_types_signaling::ParticipantId;
 
@@ -40,7 +40,7 @@ async fn livekit_create_whisper_group_and_invite() {
         .payload;
 
     match event {
-        SubroomAudioEvent::WhisperInvite(WhisperInvite { issuer, .. }) => {
+        SubroomAudioEvent::WhisperInvite { issuer, .. } => {
             assert_eq!(issuer, alice.id());
         }
         _ => panic!("Expected WhisperInvite event"),
@@ -73,7 +73,7 @@ async fn livekit_accept_and_leave_whisper_group() {
         .unwrap()
         .payload
     {
-        SubroomAudioEvent::WhisperInvite(invite) => invite.group.whisper_id,
+        SubroomAudioEvent::WhisperInvite { group, .. } => group.whisper_id,
         _ => panic!("Expected WhisperInvite event"),
     };
 
@@ -92,9 +92,12 @@ async fn livekit_accept_and_leave_whisper_group() {
         .unwrap()
         .payload;
     match token_event {
-        SubroomAudioEvent::WhisperToken(token) => {
-            assert_eq!(token.whisper_id, whisper_id);
-            assert!(!token.token.is_empty());
+        SubroomAudioEvent::WhisperToken {
+            whisper_id: received_whisper_id,
+            token,
+        } => {
+            assert_eq!(received_whisper_id, whisper_id);
+            assert!(!token.is_empty());
         }
         _ => panic!("Expected WhisperToken event, got {:?}", token_event),
     }
@@ -226,7 +229,7 @@ async fn livekit_cannot_kick_without_permission() {
         .unwrap()
         .payload
     {
-        SubroomAudioEvent::WhisperInvite(WhisperInvite { group, .. }) => group.whisper_id,
+        SubroomAudioEvent::WhisperInvite { group, .. } => group.whisper_id,
         _ => panic!("Expected WhisperInvite event"),
     };
 
@@ -310,7 +313,7 @@ async fn livekit_cannot_accept_whisper_invite_twice() {
         .unwrap()
         .payload
     {
-        SubroomAudioEvent::WhisperInvite(WhisperInvite { group, .. }) => group.whisper_id,
+        SubroomAudioEvent::WhisperInvite { group, .. } => group.whisper_id,
         _ => panic!("Expected WhisperInvite event"),
     };
 
@@ -379,7 +382,7 @@ async fn livekit_cannot_accept_invite_when_not_invited() {
         .unwrap()
         .payload
     {
-        SubroomAudioEvent::WhisperInvite(invite) => invite.group.whisper_id,
+        SubroomAudioEvent::WhisperInvite { group, .. } => group.whisper_id,
         _ => panic!("Expected WhisperInvite event"),
     };
 

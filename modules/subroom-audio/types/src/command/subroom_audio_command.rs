@@ -9,10 +9,7 @@ use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use super::participant_targets::ParticipantTargets;
-use crate::{
-    event::{ParticipantsInvited, SubroomAudioEvent},
-    whisper_id::WhisperId,
-};
+use crate::{event::SubroomAudioEvent, whisper_id::WhisperId};
 
 /// Commands for the subroom audio whisper functionality
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,9 +49,12 @@ pub enum SubroomAudioCommand {
 impl CreateReplica<SubroomAudioEvent> for SubroomAudioCommand {
     fn replicate(&self) -> Option<SubroomAudioEvent> {
         match self {
-            SubroomAudioCommand::InviteToWhisperGroup(targets) => Some(
-                SubroomAudioEvent::ParticipantsInvited(ParticipantsInvited::from(targets.clone())),
-            ),
+            SubroomAudioCommand::InviteToWhisperGroup(targets) => {
+                Some(SubroomAudioEvent::ParticipantsInvited {
+                    whisper_id: targets.whisper_id,
+                    participant_ids: targets.participant_ids.iter().copied().collect(),
+                })
+            }
             _ => None,
         }
     }
