@@ -5,14 +5,25 @@
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use serde::{Deserialize, Serialize};
 
-use crate::{Start, event::TimerEvent};
+use crate::{command::Kind, event::TimerEvent};
 
 /// Incoming websocket messages
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum TimerCommand {
     /// Start a new timer
-    Start(Start),
+    Start {
+        /// The timer kind
+        #[serde(flatten)]
+        kind: Kind,
+        /// An optional string tag to flag this timer with a custom style
+        style: Option<String>,
+        /// An optional title for the timer
+        title: Option<String>,
+        /// Flag to allow/disallow participants to mark themselves as ready
+        #[serde(default)]
+        enable_ready_check: bool,
+    },
     /// Stop a running timer
     Stop { reason: Option<String> },
     /// Update the ready status
@@ -22,12 +33,6 @@ pub enum TimerCommand {
 impl CreateReplica<TimerEvent> for TimerCommand {
     fn replicate(&self) -> Option<TimerEvent> {
         None
-    }
-}
-
-impl From<Start> for TimerCommand {
-    fn from(value: Start) -> Self {
-        Self::Start(value)
     }
 }
 
@@ -52,12 +57,12 @@ mod serde_tests {
 
         assert_eq!(
             json,
-            serde_json::to_value(TimerCommand::Start(Start {
+            serde_json::to_value(TimerCommand::Start {
                 kind: Kind::Countdown { duration: 5 },
                 style: Some("coffee_break".into()),
                 title: None,
                 enable_ready_check: false
-            }))
+            })
             .unwrap()
         );
     }
@@ -74,12 +79,12 @@ mod serde_tests {
 
         assert_eq!(
             json,
-            serde_json::to_value(TimerCommand::Start(Start {
+            serde_json::to_value(TimerCommand::Start {
                 kind: Kind::Stopwatch,
                 style: None,
                 title: Some("Testing the timer!".into()),
                 enable_ready_check: false
-            }))
+            })
             .unwrap()
         );
     }

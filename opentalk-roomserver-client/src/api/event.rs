@@ -124,9 +124,7 @@ mod tests {
         event::SubroomAudioEvent,
         state::{WhisperGroup, WhisperState},
     };
-    use opentalk_roomserver_types_timer::{
-        TimerEvent, event::updated_ready_status::UpdatedReadyStatus,
-    };
+    use opentalk_roomserver_types_timer::TimerEvent;
     use opentalk_roomserver_types_whiteboard::WhiteboardEvent;
     use opentalk_types_common::{assets::AssetId, modules::ModuleId, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
@@ -304,12 +302,10 @@ mod tests {
         let event = SignalingEvent {
             transaction_id: None,
             timestamp: Timestamp::unix_epoch(),
-            payload: SignalingModuleEvent::Timer(TimerEvent::UpdatedReadyStatus(
-                UpdatedReadyStatus {
-                    participant_id: ParticipantId::nil(),
-                    status: true,
-                },
-            )),
+            payload: SignalingModuleEvent::Timer(TimerEvent::UpdatedReadyStatus {
+                participant_id: ParticipantId::nil(),
+                status: true,
+            }),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 

@@ -2,21 +2,31 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use super::error::TimerError;
-use crate::event::{Started, Stopped, updated_ready_status::UpdatedReadyStatus};
+use crate::{TimerConfig, event::Stopped};
 
 /// Outgoing websocket messages
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "message")]
 pub enum TimerEvent {
     /// A timer has been started
-    Started(Started),
+    Started {
+        /// Config of the started timer
+        #[serde(flatten)]
+        config: TimerConfig,
+    },
     /// The current timer has been stopped
     Stopped(Stopped),
     /// A participant updated its ready status
-    UpdatedReadyStatus(UpdatedReadyStatus),
+    UpdatedReadyStatus {
+        /// The participant that updated its status
+        participant_id: ParticipantId,
+        /// The new status
+        status: bool,
+    },
     /// An error occurred
     Error(TimerError),
 }
@@ -24,12 +34,6 @@ pub enum TimerEvent {
 impl From<Stopped> for TimerEvent {
     fn from(value: Stopped) -> Self {
         Self::Stopped(value)
-    }
-}
-
-impl From<UpdatedReadyStatus> for TimerEvent {
-    fn from(value: UpdatedReadyStatus) -> Self {
-        Self::UpdatedReadyStatus(value)
     }
 }
 
@@ -59,7 +63,7 @@ mod tests {
             .map(Timestamp::from)
             .unwrap();
 
-        let started = TimerEvent::Started(Started {
+        let started = TimerEvent::Started {
             config: TimerConfig {
                 started_at,
                 kind: Kind::Countdown { ends_at },
@@ -67,7 +71,7 @@ mod tests {
                 title: None,
                 ready_check_enabled: true,
             },
-        });
+        };
 
         assert_eq!(
             serde_json::to_value(started).unwrap(),
@@ -86,7 +90,7 @@ mod tests {
     fn stopwatch_started() {
         let started_at: Timestamp = DateTime::from(SystemTime::UNIX_EPOCH).into();
 
-        let started = TimerEvent::Started(Started {
+        let started = TimerEvent::Started {
             config: TimerConfig {
                 started_at,
                 kind: Kind::Stopwatch,
@@ -94,7 +98,7 @@ mod tests {
                 title: Some("Testing the timer!".into()),
                 ready_check_enabled: false,
             },
-        });
+        };
 
         assert_eq!(
             serde_json::to_value(started).unwrap(),

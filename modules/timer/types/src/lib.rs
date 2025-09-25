@@ -13,8 +13,6 @@ pub mod kind;
 pub mod peer_state;
 pub mod state;
 
-pub use command::{
-    start::Start, stop::Stop, timer_command::TimerCommand, timer_config::TimerConfig,
-};
+pub use command::{timer_command::TimerCommand, timer_config::TimerConfig};
 pub use event::{TimerEvent, error::TimerError, stop_kind::StopKind};
 pub use kind::Kind;

@@ -122,7 +122,7 @@ mod tests {
         command::{Choices, PollsCommand, Vote},
     };
     use opentalk_roomserver_types_raise_hands::command::RaiseHandsCommand;
-    use opentalk_roomserver_types_timer::{Start, TimerCommand, command::Kind};
+    use opentalk_roomserver_types_timer::{TimerCommand, command::Kind};
     use opentalk_roomserver_types_whiteboard::WhiteboardCommand;
     use opentalk_types_common::modules::ModuleId;
     use opentalk_types_signaling::ParticipantId;
@@ -263,12 +263,12 @@ mod tests {
     fn serialize_command_timer() {
         let command = SignalingCommand {
             transaction_id: None,
-            payload: SignalingModuleCommand::Timer(TimerCommand::Start(Start {
+            payload: SignalingModuleCommand::Timer(TimerCommand::Start {
                 kind: Kind::Stopwatch,
                 style: None,
                 title: None,
                 enable_ready_check: false,
-            })),
+            }),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
 
