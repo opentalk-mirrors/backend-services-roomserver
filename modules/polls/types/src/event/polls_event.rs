@@ -2,20 +2,37 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Results,
-    command::Vote,
-    event::{Error, Started},
-};
+use crate::{Choice, PollId, Results, command::Vote, event::Error};
 
 /// Events sent out by the `polls` module
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "message")]
 pub enum PollsEvent {
     /// The poll has started
-    Started(Started),
+    Started {
+        /// The id of the poll
+        id: PollId,
+
+        /// The description of the poll topic
+        topic: String,
+
+        /// True if the poll is live
+        live: bool,
+
+        /// True if the poll accepts multiple choices
+        multiple_choice: bool,
+
+        /// Choices of the poll
+        choices: Vec<Choice>,
+
+        /// Duration of the poll
+        #[serde(with = "opentalk_types_common::utils::duration_seconds")]
+        duration: Duration,
+    },
 
     /// Live update of the poll results
     LiveUpdate(Results),
@@ -28,12 +45,6 @@ pub enum PollsEvent {
 
     /// An error happened when executing a `polls` command
     Error(Error),
-}
-
-impl From<Started> for PollsEvent {
-    fn from(value: Started) -> Self {
-        Self::Started(value)
-    }
 }
 
 impl From<Error> for PollsEvent {
@@ -54,7 +65,7 @@ mod serde_tests {
 
     #[test]
     fn started() {
-        let started = PollsEvent::Started(Started {
+        let started = PollsEvent::Started {
             id: PollId::nil(),
             topic: "polling".into(),
             live: true,
@@ -70,7 +81,7 @@ mod serde_tests {
                 },
             ],
             duration: Duration::from_millis(10000),
-        });
+        };
 
         assert_eq!(
             serde_json::to_value(started).unwrap(),

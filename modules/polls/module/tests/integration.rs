@@ -17,8 +17,8 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_polls::{
     Choice, ChoiceId, Item, PollId, Results,
-    command::{Choices, Finish, PollsCommand, Start, Vote},
-    event::{Error, PollsEvent, Started},
+    command::{Choices, PollsCommand, Vote},
+    event::{Error, PollsEvent},
     state::PollsState,
 };
 
@@ -30,13 +30,13 @@ async fn can_not_start_second_poll() {
     // Alice starts a new poll
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Poll 0".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -45,19 +45,19 @@ async fn can_not_start_second_poll() {
     // Poll is started successfully
     assert!(matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
-        PollsEvent::Started(..)
+        PollsEvent::Started { .. }
     ));
 
     // Alice tries to start a second poll
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Poll 1".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -77,13 +77,13 @@ async fn non_moderator_cant_start_poll() {
 
     // Bob tries to start a poll
     bob.send_command::<PollsModule>(
-        PollsCommand::Start(Start {
+        PollsCommand::Start {
             topic: "Test".into(),
             live: false,
             multiple_choice: false,
             choices: vec!["a".into(), "b".into()],
             duration: Duration::from_secs(300),
-        }),
+        },
         None,
     )
     .await
@@ -104,13 +104,13 @@ async fn can_not_start_poll_with_invalid_duration() {
     // Alice tries to start a poll with a very long duration
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(60 * 60 * 24 * 30), // 30 days
-            }),
+            },
             None,
         )
         .await
@@ -130,13 +130,13 @@ async fn can_not_start_poll_with_invalid_topic_length() {
     // Alice tries to start a poll with a topic name that is too long
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: iter::repeat_n("a", 101).collect(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -156,13 +156,13 @@ async fn can_not_start_polls_with_invalid_choice_count() {
     // Alice tries to start a poll with too few choices
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Poll 0".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -176,13 +176,13 @@ async fn can_not_start_polls_with_invalid_choice_count() {
     // Alice tries to start a poll with too many choices
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Poll 0".into(),
                 live: false,
                 multiple_choice: false,
                 choices: iter::repeat_n("a".into(), 65).collect(),
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -202,13 +202,13 @@ async fn can_not_start_poll_with_invalid_option_length() {
     // Alice tries to start a poll with a topic name that is too long
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec![iter::repeat_n("a", 101).collect(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -247,13 +247,13 @@ async fn can_not_vote_on_wrong_poll() {
     // Alice starts a poll
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -262,7 +262,7 @@ async fn can_not_vote_on_wrong_poll() {
     // Poll started successfully
     assert!(matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
-        PollsEvent::Started(..)
+        PollsEvent::Started { .. }
     ));
 
     // Alice tries to vote on a different poll
@@ -293,20 +293,20 @@ async fn can_not_give_multiple_choices_on_single_choice_poll() {
     // Alice starts a poll without multiple choice
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
         .unwrap();
 
     let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 
@@ -338,20 +338,20 @@ async fn can_not_vote_on_invalid_choice() {
     // Alice starts a poll
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
         .unwrap();
 
     let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 
@@ -385,13 +385,13 @@ async fn non_moderator_can_not_finish_poll() {
     // Alice starts a poll
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -399,12 +399,12 @@ async fn non_moderator_can_not_finish_poll() {
 
     let event = bob.receive_event::<PollsModule>().await.unwrap().payload;
     // Bob receives the started event
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 
     // Bob tries to stop the poll
-    bob.send_command::<PollsModule>(PollsCommand::Finish(Finish { id }), None)
+    bob.send_command::<PollsModule>(PollsCommand::Finish { id }, None)
         .await
         .unwrap();
 
@@ -422,13 +422,13 @@ async fn can_not_finish_poll_with_invalid_id() {
     // Alice starts a poll
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -437,14 +437,14 @@ async fn can_not_finish_poll_with_invalid_id() {
     // Poll is started successfully
     assert!(matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
-        PollsEvent::Started(..)
+        PollsEvent::Started { .. }
     ));
 
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Finish(Finish {
+            PollsCommand::Finish {
                 id: PollId::generate(),
-            }),
+            },
             None,
         )
         .await
@@ -466,13 +466,13 @@ async fn receiving_live_update_when_enabled() {
     // Alice starts a poll with live update
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: true,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -480,13 +480,13 @@ async fn receiving_live_update_when_enabled() {
 
     // Poll is started successfully
     let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 
     assert!(matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
-        PollsEvent::Started(..)
+        PollsEvent::Started { .. }
     ));
 
     // Alice votes
@@ -535,13 +535,13 @@ async fn not_receiving_live_update_when_disabled() {
     // Alice starts a poll without live update
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -549,13 +549,13 @@ async fn not_receiving_live_update_when_disabled() {
 
     // Poll is started successfully
     let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 
     assert!(matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
-        PollsEvent::Started(..)
+        PollsEvent::Started { .. }
     ));
 
     // Alice votes
@@ -587,13 +587,13 @@ async fn single_choice_poll() {
     // Alice starts a poll
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -601,13 +601,13 @@ async fn single_choice_poll() {
 
     // Poll is started successfully
     let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 
     assert!(matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
-        PollsEvent::Started(..)
+        PollsEvent::Started { .. }
     ));
 
     // Alice votes
@@ -639,7 +639,7 @@ async fn single_choice_poll() {
 
     // Alice ends the poll
     alice
-        .send_command::<PollsModule>(PollsCommand::Finish(Finish { id }), None)
+        .send_command::<PollsModule>(PollsCommand::Finish { id }, None)
         .await
         .unwrap();
 
@@ -677,13 +677,13 @@ async fn multiple_choice_poll() {
     // Alice starts a poll with multiple choice
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: true,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -691,13 +691,13 @@ async fn multiple_choice_poll() {
 
     // Poll is started successfully
     let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 
     assert!(matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
-        PollsEvent::Started(..)
+        PollsEvent::Started { .. }
     ));
 
     // Alice votes for both options
@@ -729,7 +729,7 @@ async fn multiple_choice_poll() {
 
     // Alice ends the poll
     alice
-        .send_command::<PollsModule>(PollsCommand::Finish(Finish { id }), None)
+        .send_command::<PollsModule>(PollsCommand::Finish { id }, None)
         .await
         .unwrap();
 
@@ -765,13 +765,13 @@ async fn can_update_vote() {
     // Alice starts a poll with multiple choice
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: true,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -779,7 +779,7 @@ async fn can_update_vote() {
 
     // Poll is started successfully
     let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 
@@ -813,7 +813,7 @@ async fn can_update_vote() {
 
     // Alice ends the poll
     alice
-        .send_command::<PollsModule>(PollsCommand::Finish(Finish { id }), None)
+        .send_command::<PollsModule>(PollsCommand::Finish { id }, None)
         .await
         .unwrap();
 
@@ -847,13 +847,13 @@ async fn polls_expire() {
     // Alice starts a poll
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(0),
-            }),
+            },
             None,
         )
         .await
@@ -862,11 +862,11 @@ async fn polls_expire() {
     // Alice and Bob receive the started event
     assert!(matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
-        PollsEvent::Started(..)
+        PollsEvent::Started { .. }
     ));
     assert!(matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
-        PollsEvent::Started(..)
+        PollsEvent::Started { .. }
     ));
 
     // Alice and Bob receive the done event
@@ -919,13 +919,13 @@ async fn breakout_scopes() {
     // Alice starts a poll with live updates in her room
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: true,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -933,7 +933,7 @@ async fn breakout_scopes() {
 
     // Alice receives the started event
     let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 
@@ -976,7 +976,7 @@ async fn breakout_scopes() {
 
     // Alice ends the poll
     alice
-        .send_command::<PollsModule>(PollsCommand::Finish(Finish { id }), None)
+        .send_command::<PollsModule>(PollsCommand::Finish { id }, None)
         .await
         .unwrap();
 
@@ -1037,13 +1037,13 @@ async fn switch_breakout_room_join_module_data() {
     // Alice starts a poll her room
     alice
         .send_command::<PollsModule>(
-            PollsCommand::Start(Start {
+            PollsCommand::Start {
                 topic: "Test".into(),
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
                 duration: Duration::from_secs(300),
-            }),
+            },
             None,
         )
         .await
@@ -1051,7 +1051,7 @@ async fn switch_breakout_room_join_module_data() {
 
     // Alice receives the started event
     let event = alice.receive_event::<PollsModule>().await.unwrap().payload;
-    let PollsEvent::Started(Started { id, .. }) = event else {
+    let PollsEvent::Started { id, .. } = event else {
         unreachable!("Poll did not start");
     };
 

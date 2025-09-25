@@ -6,8 +6,6 @@
 
 mod error;
 mod polls_event;
-mod started;
 
 pub use error::Error;
 pub use polls_event::PollsEvent;
-pub use started::Started;
