@@ -405,7 +405,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
                 let mut module_peer_data = participants_module_data.remove(id).unwrap_or_default();
                 Self::join_success_breakout_peer_data(&mut module_peer_data, state)?;
-                self.join_success_core_peer_data(participant_id, state, &mut module_peer_data)?;
+                self.join_success_core_peer_data(*id, state, &mut module_peer_data)?;
 
                 Ok(Participant {
                     id: *id,
