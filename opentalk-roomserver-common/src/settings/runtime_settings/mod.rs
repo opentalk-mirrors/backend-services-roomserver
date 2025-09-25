@@ -7,6 +7,7 @@ use conference::Conference;
 use defaults::Defaults;
 use http::Http;
 use telemetry::{Metrics, Monitoring, Tracing};
+use url::Url;
 
 use super::{settings_file::SettingsFile, signaling_salt::SignalingSalt};
 
@@ -36,12 +37,16 @@ impl Settings {
     ///
     /// Do not use in production
     pub fn test_settings(api_token: String) -> Settings {
+        let port = 11333;
+        let public_url = Url::parse(&format!("http://localhost:{port}")).unwrap();
+
         Settings {
             http: Http {
                 address: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-                port: 11333,
+                port,
                 api_token,
                 disable_openapi: false,
+                public_url,
             },
             monitoring: None,
             metrics: None,

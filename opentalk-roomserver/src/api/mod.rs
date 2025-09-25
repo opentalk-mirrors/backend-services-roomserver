@@ -26,12 +26,14 @@ use opentalk_roomserver_module_timer::TimerModule;
 use opentalk_roomserver_module_whiteboard::WhiteboardModule;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, room_parameters, room_parameters::RoomParameters,
+    api::RoomServerAccess,
+    client_parameters::ClientParameters,
+    room_parameters::{self, RoomParameters},
     signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use opentalk_types_common::rooms::RoomId;
 use service_probe::{ServiceState, set_service_state};
 use token_store::TokenStore;
 use tokio::sync::{Mutex, watch};
@@ -287,7 +289,7 @@ impl RoomBackend for Context {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-    ) -> Result<Option<Token>, opentalk_types_api_v1::error::ApiError> {
+    ) -> Result<Option<RoomServerAccess>, opentalk_types_api_v1::error::ApiError> {
         let task_handle = self.room_tasks.get_task_handle(&room_id).await;
 
         match (task_handle, room_parameters) {
@@ -343,7 +345,9 @@ impl RoomBackend for Context {
             .await
             .create_token(SignalingClientContext::new(room_id, client_parameters));
 
-        Ok(Some(token))
+        let public_url = self.settings.http.public_url.clone();
+
+        Ok(Some(RoomServerAccess { public_url, token }))
     }
 }
 

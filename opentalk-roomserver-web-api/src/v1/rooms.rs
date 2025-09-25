@@ -12,12 +12,12 @@ use axum::{
     routing::{post, put},
 };
 use opentalk_roomserver_types::{
-    api::{TokenRequestBody, TokenResponse},
+    api::{RoomServerAccess, TokenRequestBody, TokenResponse},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
 };
 use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use opentalk_types_common::rooms::RoomId;
 
 use crate::Router;
 
@@ -60,7 +60,7 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-    ) -> Result<Option<Token>, ApiError>;
+    ) -> Result<Option<RoomServerAccess>, ApiError>;
 }
 
 /// Creates a new room instance with the specified parameters if no room with the provided id
@@ -133,7 +133,7 @@ pub(crate) async fn request_token<B: RoomBackend>(
         .request_room_token(path.0, body.client_parameters, body.room_parameters)
         .await?
     {
-        Some(token) => TokenResponse::Token { token },
+        Some(token) => TokenResponse::Token(token),
         None => TokenResponse::UnknownRoom,
     };
 

@@ -25,6 +25,7 @@ use opentalk_types_common::{
     tariffs::{TariffId, TariffModuleResource, TariffResource},
 };
 use tokio::sync::watch;
+use url::Url;
 
 use super::participant::{MockParticipantJoined, MockParticipantJoining, ReceiveError};
 use crate::{
@@ -57,12 +58,15 @@ impl From<ReceiveError> for Error {
 }
 
 fn settings() -> Settings {
+    let port = 11333;
+    let public_url = Url::parse(&format!("http://localhost:{port}")).unwrap();
     Settings {
         http: Http {
             address: std::net::IpAddr::V6(Ipv6Addr::LOCALHOST),
-            port: 11333,
+            port,
             api_token: "Secret".to_string(),
             disable_openapi: true,
+            public_url,
         },
         monitoring: Default::default(),
         metrics: Default::default(),

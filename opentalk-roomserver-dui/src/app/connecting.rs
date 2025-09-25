@@ -3,9 +3,9 @@
 
 use egui::{Color32, RichText};
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, room_parameters::RoomParameters,
+    api::RoomServerAccess, client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
-use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use opentalk_types_common::rooms::RoomId;
 use tokio::sync::{mpsc::UnboundedSender, oneshot::Receiver};
 use url::Url;
 
@@ -20,7 +20,7 @@ type ResponseReceiver<T> = Receiver<RunnerResponse<T>>;
 #[derive(Debug, Default)]
 struct Progress {
     push_server_settings: SetupProgress<(Url, ResponseReceiver<()>), Url>,
-    request_token: SetupProgress<ResponseReceiver<Token>, Token>,
+    request_token: SetupProgress<ResponseReceiver<RoomServerAccess>, RoomServerAccess>,
     signaling_connection: SetupProgress<ResponseReceiver<()>, ()>,
 }
 
@@ -192,7 +192,9 @@ impl ConnectingView {
     }
 
     fn do_signaling_connection(&mut self, command_tx: &UnboundedSender<RunnerCommand>) {
-        let SetupProgress::Done(token) = self.progress.request_token else {
+        let SetupProgress::Done(RoomServerAccess { token, public_url }) =
+            &self.progress.request_token
+        else {
             self.progress.signaling_connection =
                 SetupProgress::Failed("Internal Error: invalid state".to_string());
             return;
@@ -203,7 +205,8 @@ impl ConnectingView {
                 let (tx, rx) = tokio::sync::oneshot::channel();
                 let command = RunnerCommand::ConnectSignaling {
                     response_tx: tx,
-                    token,
+                    token: *token,
+                    url: public_url.clone(),
                 };
                 if command_tx.send(command).is_ok() {
                     self.progress.signaling_connection = SetupProgress::Ongoing(rx);

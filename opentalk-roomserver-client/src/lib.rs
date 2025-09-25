@@ -13,7 +13,7 @@ use http::{HeaderValue, header::InvalidHeaderValue};
 use http_request_derive_client::Client as _;
 use http_request_derive_client_reqwest::{ReqwestClient, ReqwestClientError};
 use opentalk_roomserver_types::{
-    api::{TokenRequestBody, TokenResponse},
+    api::{RoomServerAccess, TokenRequestBody, TokenResponse},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
 };
@@ -41,7 +41,6 @@ pub struct ServerError {
 
 #[derive(Debug)]
 pub struct Client {
-    base_url: Url,
     reqwest_client: ReqwestClient,
     api_token: HeaderValue,
 }
@@ -52,7 +51,6 @@ impl Client {
 
         let api_token = format!("bearer {api_token}").parse()?;
         Ok(Self {
-            base_url,
             reqwest_client,
             api_token,
         })
@@ -80,7 +78,7 @@ impl Client {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-    ) -> Result<Option<Token>, ServerError> {
+    ) -> Result<Option<RoomServerAccess>, ServerError> {
         let request = TokenRequest::new(
             room_id,
             TokenRequestBody {
@@ -91,15 +89,16 @@ impl Client {
         );
         let response = self.reqwest_client.execute(request).await?;
         match response {
-            TokenResponse::Token { token } => Ok(Some(token)),
+            TokenResponse::Token(token) => Ok(Some(token)),
             TokenResponse::UnknownRoom => Ok(None),
         }
     }
 
     pub async fn open_signaling_connection(
         &self,
+        url: Url,
         token: Token,
     ) -> Result<SignalingConnection, SignalingError> {
-        SignalingConnection::connect(self.base_url.clone(), token).await
+        SignalingConnection::connect(url, token).await
     }
 }
