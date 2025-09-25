@@ -4,10 +4,13 @@
 
 //! Signaling commands for the `moderation` namespace
 
+use std::collections::BTreeSet;
+
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
+use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::{command::ResetRaisedHands, event::RaiseHandsEvent};
+use crate::event::RaiseHandsEvent;
 
 /// Commands for the `moderation` namespace
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,13 +29,14 @@ pub enum RaiseHandsCommand {
     LowerHand,
 
     /// Reset raised hands for the meeting
-    ResetRaisedHands(ResetRaisedHands),
-}
-
-impl From<ResetRaisedHands> for RaiseHandsCommand {
-    fn from(value: ResetRaisedHands) -> Self {
-        Self::ResetRaisedHands(value)
-    }
+    ResetRaisedHands {
+        /// An optional single participant to reset the raised hand for
+        #[serde(
+            default,
+            with = "opentalk_types_common::collections::one_or_many_btree_set_option"
+        )]
+        target: Option<BTreeSet<ParticipantId>>,
+    },
 }
 
 impl CreateReplica<RaiseHandsEvent> for RaiseHandsCommand {
@@ -142,9 +146,9 @@ mod serde_tests {
 
     #[test]
     fn serialize_reset_raise_hands_for_single_participant() {
-        let cmd = RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands {
+        let cmd = RaiseHandsCommand::ResetRaisedHands {
             target: Some(BTreeSet::from_iter([ParticipantId::nil()])),
-        });
+        };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
         {
@@ -165,7 +169,7 @@ mod serde_tests {
 
         let msg: RaiseHandsCommand = serde_json::from_value(json).unwrap();
 
-        if let RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target }) = msg {
+        if let RaiseHandsCommand::ResetRaisedHands { target } = msg {
             assert_eq!(target, Some(BTreeSet::from_iter([ParticipantId::nil()])));
         } else {
             panic!()
@@ -174,12 +178,12 @@ mod serde_tests {
 
     #[test]
     fn serialize_reset_raise_hands_for_multiple_participants() {
-        let cmd = RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands {
+        let cmd = RaiseHandsCommand::ResetRaisedHands {
             target: Some(BTreeSet::from_iter([
                 ParticipantId::nil(),
                 ParticipantId::from_u128(0xcafe),
             ])),
-        });
+        };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
         {
@@ -201,7 +205,7 @@ mod serde_tests {
 
         let cmd: RaiseHandsCommand = serde_json::from_value(json).unwrap();
 
-        if let RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target }) = cmd {
+        if let RaiseHandsCommand::ResetRaisedHands { target } = cmd {
             assert_eq!(
                 target,
                 Some(BTreeSet::from_iter([
@@ -216,7 +220,7 @@ mod serde_tests {
 
     #[test]
     fn serialize_reset_raise_hands_for_all_participants() {
-        let cmd = RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target: None });
+        let cmd = RaiseHandsCommand::ResetRaisedHands { target: None };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
         {
@@ -234,7 +238,7 @@ mod serde_tests {
 
         let msg: RaiseHandsCommand = serde_json::from_value(json).unwrap();
 
-        if let RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target }) = msg {
+        if let RaiseHandsCommand::ResetRaisedHands { target } = msg {
             assert!(target.is_none());
         } else {
             panic!()
