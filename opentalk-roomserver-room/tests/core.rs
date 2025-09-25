@@ -112,7 +112,7 @@ async fn participant_joined() {
             "core": {
               "avatar_url": "https://example.com/avatar-of-alice",
               "display_name": "Alice the angry",
-              "is_room_owner": false,
+              "is_room_owner": true,
               "joined_at": "[timestamp]",
               "participation_kind": "registered",
               "role": "moderator"
