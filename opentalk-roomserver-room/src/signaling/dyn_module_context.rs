@@ -12,7 +12,7 @@ use opentalk_roomserver_signaling::{
     participant_state::Participants,
     room_info::RoomTaskInfo,
     signaling_module::SignalingModule,
-    storage::provider::StorageProvider,
+    storage::provider::AssetStorageProvider,
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::room_kind::RoomKind;
@@ -30,7 +30,7 @@ pub struct DynModuleContext<'ctx> {
     pub waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
     pub banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
     pub timestamp: Timestamp,
-    pub storage: Arc<dyn StorageProvider>,
+    pub storage: Arc<dyn AssetStorageProvider>,
     pub messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
 }
@@ -46,7 +46,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
         banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
         timestamp: Timestamp,
-        storage: Arc<dyn StorageProvider>,
+        storage: Arc<dyn AssetStorageProvider>,
         messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
     ) -> Self {

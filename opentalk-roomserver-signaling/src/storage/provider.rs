@@ -9,7 +9,7 @@ use opentalk_types_common::assets::AssetId;
 use crate::storage::{AssetMetaData, StorageContext, StorageError, UploadResult};
 
 #[async_trait]
-pub trait StorageProvider: Send + Sync + Debug {
+pub trait AssetStorageProvider: Send + Sync + Debug {
     /// Uploads a file to the storage backend
     async fn upload_file(
         &self,

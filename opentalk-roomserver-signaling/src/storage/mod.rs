@@ -3,13 +3,14 @@
 
 //! Storage module for handling asset uploads in the RoomServer.
 //!
-//! This module provides the [`ModuleStorage`] struct, which is used by signaling modules to store
-//! assets. The [`ModuleStorage`] acts as a wrapper around a storage provider implementation, adding
-//! contextual information like the room ID and module namespace to each operation.
+//! This module provides the [`ModuleAssetStorage`] struct, which is used by signaling modules to
+//! store assets. The [`ModuleAssetStorage`] acts as a wrapper around a storage provider
+//! implementation, adding contextual information like the room ID and module namespace to each
+//! operation.
 //!
-//! The [`StorageProvider`] trait defines the interface for storage backends, allowing different
-//! implementations (e.g., local filesystem, cloud storage) to be plugged in as needed. All asset
-//! uploads, chunked uploads, and quota management are handled through this trait.
+//! The [`AssetStorageProvider`] trait defines the interface for storage backends, allowing
+//! different implementations (e.g., local filesystem, cloud storage) to be plugged in as needed.
+//! All asset uploads, chunked uploads, and quota management are handled through this trait.
 
 pub mod provider;
 
@@ -29,21 +30,21 @@ use opentalk_types_common::{
 };
 use url::Url;
 
-use crate::storage::provider::StorageProvider;
+use crate::storage::provider::AssetStorageProvider;
 
 pub type UploadFuture<'a> = Pin<Box<dyn Future<Output = UploadResult> + Send + 'a>>;
 pub type UploadResult = Result<AssetUploaded, StorageError>;
 
-/// Provides storage operations for signaling modules, wrapping a [`StorageProvider`] with
+/// Provides storage operations for signaling modules, wrapping a [`AssetStorageProvider`] with
 /// contextual information such as room ID and module namespace.
 #[derive(Debug, Clone)]
-pub struct ModuleStorage {
-    provider: Arc<dyn StorageProvider>,
+pub struct ModuleAssetStorage {
+    provider: Arc<dyn AssetStorageProvider>,
     context: StorageContext,
 }
 
-impl ModuleStorage {
-    pub fn new(provider: Arc<dyn StorageProvider>, context: StorageContext) -> Self {
+impl ModuleAssetStorage {
+    pub fn new(provider: Arc<dyn AssetStorageProvider>, context: StorageContext) -> Self {
         Self { provider, context }
     }
 

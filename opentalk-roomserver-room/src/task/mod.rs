@@ -75,7 +75,7 @@ use opentalk_roomserver_signaling::{
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
-    storage::provider::StorageProvider,
+    storage::provider::AssetStorageProvider,
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
@@ -109,7 +109,7 @@ use crate::{
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
-        memory_file_storage::MemoryFileStorage,
+        memory_file_storage::MemoryAssetStorage,
         timeout::Timeout,
     },
 };
@@ -162,7 +162,7 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 
     modules: Modules,
 
-    storage: Arc<dyn StorageProvider>,
+    storage: Arc<dyn AssetStorageProvider>,
 
     /// Collection of participants in the waiting room.
     waiting_participants: HashMap<ParticipantId, WaitingParticipant>,
@@ -1047,8 +1047,8 @@ fn participant_id_from_uuid(user_id: impl Into<Uuid>) -> ParticipantId {
 fn create_storage_provider(
     config: &AssetStorageConfig,
     quota: Option<u64>,
-) -> Arc<dyn StorageProvider> {
+) -> Arc<dyn AssetStorageProvider> {
     match config {
-        AssetStorageConfig::InMemory => Arc::new(MemoryFileStorage::new(quota)),
+        AssetStorageConfig::InMemory => Arc::new(MemoryAssetStorage::new(quota)),
     }
 }

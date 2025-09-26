@@ -17,7 +17,7 @@ use opentalk_roomserver_signaling::{
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, SignalingModule, SignalingModuleInitData,
     },
-    storage::ModuleStorage,
+    storage::ModuleAssetStorage,
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom, connection_id::ConnectionId, room_kind::RoomKind,
@@ -214,7 +214,7 @@ impl SignalingModule for LiveKitModule {
         Ok(())
     }
 
-    fn destroy(self, _room_id: RoomId, _storage: ModuleStorage) {
+    fn destroy(self, _room_id: RoomId, _storage: ModuleAssetStorage) {
         let span = Span::current();
         let rooms = self.rooms.into_values().zip(repeat(span));
         let futures = stream::iter(rooms)

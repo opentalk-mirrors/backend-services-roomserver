@@ -37,7 +37,7 @@ use crate::{
         },
         socket::MockSocket,
     },
-    task::{RoomTask, memory_file_storage::MemoryFileStorage},
+    task::{RoomTask, memory_file_storage::MemoryAssetStorage},
 };
 
 #[derive(Debug)]
@@ -323,9 +323,9 @@ impl TestRoom {
         storage.file_count().await
     }
 
-    fn downcast_storage(&self) -> Arc<MemoryFileStorage> {
+    fn downcast_storage(&self) -> Arc<MemoryAssetStorage> {
         let storage = self.room_handle.storage().into_any();
-        let storage: Arc<MemoryFileStorage> =
+        let storage: Arc<MemoryAssetStorage> =
             Arc::downcast(storage).expect("The RoomTask must be configured with MemoryStorage.");
         storage
     }

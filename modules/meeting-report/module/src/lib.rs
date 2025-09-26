@@ -5,7 +5,7 @@ use std::{collections::BTreeMap, path::Path};
 
 use chrono_tz::Tz;
 use opentalk_roomserver_report_generation::ToReportDateTime;
-use opentalk_roomserver_room::{AssetUploaded, ModuleStorage};
+use opentalk_roomserver_room::{AssetUploaded, ModuleAssetStorage};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
@@ -181,7 +181,7 @@ impl MeetingReportModule {
     }
 
     async fn generate_report(
-        storage: ModuleStorage,
+        storage: ModuleAssetStorage,
         report_timezone: TimeZone,
         tz: Tz,
         participants: Vec<ReportParticipant>,

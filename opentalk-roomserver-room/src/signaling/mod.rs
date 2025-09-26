@@ -24,7 +24,7 @@ use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
     module_context::ModuleContext,
     signaling_module::{CreateReplica, SignalingModule},
-    storage::{ModuleStorage, StorageContext, provider::StorageProvider},
+    storage::{ModuleAssetStorage, StorageContext, provider::AssetStorageProvider},
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom,
@@ -58,7 +58,7 @@ pub trait ModuleHandle: Send + Sync {
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError>;
 
-    fn destroy(self: Box<Self>, room_id: RoomId, storage: Arc<dyn StorageProvider>);
+    fn destroy(self: Box<Self>, room_id: RoomId, storage: Arc<dyn AssetStorageProvider>);
 }
 
 pub enum DynEvent {
@@ -481,8 +481,8 @@ where
         Ok(())
     }
 
-    fn destroy(self: Box<Self>, room_id: RoomId, storage: Arc<dyn StorageProvider>) {
-        let storage = ModuleStorage::new(
+    fn destroy(self: Box<Self>, room_id: RoomId, storage: Arc<dyn AssetStorageProvider>) {
+        let storage = ModuleAssetStorage::new(
             Arc::clone(&storage),
             StorageContext {
                 room_id,

@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use opentalk_roomserver_signaling::storage::provider::StorageProvider;
+use opentalk_roomserver_signaling::storage::provider::AssetStorageProvider;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
@@ -68,7 +68,7 @@ impl<Socket: SignalingSocket> RoomTaskHandleError<Socket> {
 /// Is used for communication between the room task and the web server API
 #[derive(Debug)]
 pub struct RoomTaskHandle<Socket: SignalingSocket> {
-    pub(super) storage: Arc<dyn StorageProvider>,
+    pub(super) storage: Arc<dyn AssetStorageProvider>,
     pub(super) sender: mpsc::Sender<TaskMessage<Socket>>,
 }
 
@@ -174,7 +174,7 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Ok(response)
     }
 
-    pub fn storage(&self) -> Arc<dyn StorageProvider> {
+    pub fn storage(&self) -> Arc<dyn AssetStorageProvider> {
         Arc::clone(&self.storage)
     }
 }

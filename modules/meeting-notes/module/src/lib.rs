@@ -14,7 +14,7 @@ use opentalk_roomserver_signaling::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
         SignalingModuleInitData,
     },
-    storage::ModuleStorage,
+    storage::ModuleAssetStorage,
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
@@ -287,7 +287,7 @@ impl SignalingModule for MeetingNotesModule {
         Ok(())
     }
 
-    fn destroy(self, _room_id: RoomId, _storage: ModuleStorage) {
+    fn destroy(self, _room_id: RoomId, _storage: ModuleAssetStorage) {
         let span = Span::current();
         tokio::spawn(
             loopback::delete_pads(

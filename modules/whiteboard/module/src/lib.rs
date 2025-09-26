@@ -14,7 +14,7 @@ use opentalk_roomserver_signaling::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
         SignalingModuleInitData,
     },
-    storage::ModuleStorage,
+    storage::ModuleAssetStorage,
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
@@ -219,7 +219,7 @@ impl SignalingModule for WhiteboardModule {
         Ok(())
     }
 
-    fn destroy(self, _room_id: RoomId, storage: ModuleStorage) {
+    fn destroy(self, _room_id: RoomId, storage: ModuleAssetStorage) {
         let spaces: Vec<String> = self
             .state
             .into_values()
@@ -300,7 +300,7 @@ impl WhiteboardModule {
     #[tracing::instrument(skip_all, fields(spaces), level = "debug")]
     fn delete_spaces(
         client: Arc<SpacedeckClient>,
-        storage: ModuleStorage,
+        storage: ModuleAssetStorage,
         spaces: Vec<String>,
         timestamp: Timestamp,
     ) {

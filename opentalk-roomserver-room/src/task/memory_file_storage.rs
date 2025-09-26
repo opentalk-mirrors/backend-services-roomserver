@@ -10,7 +10,7 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use opentalk_roomserver_signaling::storage::{
     AssetMetaData, AssetUploaded, StorageContext, StorageError, UploadResult,
-    provider::StorageProvider,
+    provider::AssetStorageProvider,
 };
 use opentalk_types_common::assets::AssetId;
 use tokio::sync::Mutex;
@@ -22,14 +22,14 @@ use url::Url;
 /// mocking module and only be used for tests once a real storage provider has
 /// been implemented.
 #[derive(Debug)]
-pub struct MemoryFileStorage {
+pub struct MemoryAssetStorage {
     quota: Option<u64>,
     files: Mutex<HashMap<AssetId, Vec<u8>>>,
     running_uploads: Mutex<HashSet<AssetId>>,
 }
 
-impl MemoryFileStorage {
-    /// Creates a new [`MemoryFileStorage`]
+impl MemoryAssetStorage {
+    /// Creates a new [`MemoryAssetStorage`]
     ///
     /// * `quota` - The total size of files the user is allowed to upload (in bytes)
     pub fn new(quota: Option<u64>) -> Self {
@@ -50,7 +50,7 @@ impl MemoryFileStorage {
 }
 
 #[async_trait]
-impl StorageProvider for MemoryFileStorage {
+impl AssetStorageProvider for MemoryAssetStorage {
     async fn upload_file(
         &self,
         file: Vec<u8>,
@@ -135,7 +135,7 @@ impl StorageProvider for MemoryFileStorage {
     }
 }
 
-impl MemoryFileStorage {
+impl MemoryAssetStorage {
     fn file_url(id: AssetId, metadata: &AssetMetaData) -> Url {
         let file_name = format!("{id}_{metadata}");
         let url = format!("file://{file_name}");
@@ -146,7 +146,7 @@ impl MemoryFileStorage {
 #[cfg(test)]
 mod test {
     use opentalk_roomserver_signaling::storage::{
-        AssetMetaData, StorageContext, StorageError, provider::StorageProvider as _,
+        AssetMetaData, StorageContext, StorageError, provider::AssetStorageProvider as _,
     };
     use opentalk_roomserver_types::breakout::BREAKOUT_MODULE_ID;
     use opentalk_types_common::{
@@ -155,12 +155,12 @@ mod test {
         time::Timestamp,
     };
 
-    use crate::task::memory_file_storage::MemoryFileStorage;
+    use crate::task::memory_file_storage::MemoryAssetStorage;
 
     #[tokio::test]
     async fn upload_file() {
         let quota = 5 * 1024u64.pow(3);
-        let storage = MemoryFileStorage::new(Some(quota));
+        let storage = MemoryAssetStorage::new(Some(quota));
         let storage_context = StorageContext {
             room_id: RoomId::from_u128(0x12),
             namespace: BREAKOUT_MODULE_ID,
@@ -186,7 +186,7 @@ mod test {
     #[tokio::test]
     async fn exceed_quota() {
         let quota = 1;
-        let storage = MemoryFileStorage::new(Some(quota));
+        let storage = MemoryAssetStorage::new(Some(quota));
         let storage_context = StorageContext {
             room_id: RoomId::from_u128(0x12),
             namespace: BREAKOUT_MODULE_ID,
