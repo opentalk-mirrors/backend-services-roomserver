@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::convert::Infallible;
+
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
@@ -8,9 +10,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
 };
-use opentalk_roomserver_types_echo::{
-    ECHO_MODULE_ID, command::EchoCommand, error::EchoError, event::EchoEvent,
-};
+use opentalk_roomserver_types_echo::{ECHO_MODULE_ID, command::EchoCommand, event::EchoEvent};
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 
@@ -31,7 +31,7 @@ impl SignalingModule for EchoModule {
 
     type PeerJoinInfo = String;
 
-    type Error = EchoError;
+    type Error = Infallible;
 
     fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self)

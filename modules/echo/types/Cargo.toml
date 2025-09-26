@@ -13,6 +13,5 @@ version.workspace = true
 
 [dependencies]
 opentalk-roomserver-signaling.workspace = true
-opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true
 serde.workspace = true

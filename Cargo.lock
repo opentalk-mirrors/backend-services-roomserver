@@ -6334,7 +6334,6 @@ name = "opentalk-roomserver-types-echo"
 version = "0.0.8-dev"
 dependencies = [
  "opentalk-roomserver-signaling",
- "opentalk-roomserver-types",
  "opentalk-types-common",
  "serde",
 ]

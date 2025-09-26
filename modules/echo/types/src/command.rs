@@ -9,7 +9,8 @@ use crate::event::EchoEvent;
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum EchoCommand {
-    /// A normal ping
+    /// A ping command to which the module responds with a [`Pong`](crate::event::EchoEvent::Pong)
+    /// event.
     Ping,
 }
 
