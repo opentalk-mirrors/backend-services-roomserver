@@ -79,18 +79,7 @@ async fn accept_participant(
         }
     );
 
-    let event = joinee
-        .receive_event::<ModerationModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(event, ModerationEvent::Accepted);
-
-    joinee
-        .send_core_command(CoreCommand::EnterRoom, None)
-        .await
-        .unwrap();
-    let mut joinee = joinee.join_success().await.unwrap();
+    let mut joinee = joinee.enter_room().await.unwrap();
 
     let event = moderator.receive::<CoreEvent>().await.unwrap();
     assert!(matches!(
