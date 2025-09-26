@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, str::FromStr};
 
 use opentalk_roomserver_room::mocking::{
     mock_module::{MockCommand, MockModule},
+    participant::{MockParticipantBuilder, bob_public_user_profile},
     room::TestRoom,
 };
-use opentalk_roomserver_types::{core::CoreEvent, error::SignalingError};
+use opentalk_roomserver_types::{client_parameters::Role, core::CoreEvent, error::SignalingError};
 use opentalk_roomserver_web_api::v1::signaling::websocket::CloseFrame;
-use opentalk_types_common::tariffs::{QuotaType, TariffId, TariffResource};
+use opentalk_types_common::{
+    roomserver::DeviceSecret,
+    tariffs::{QuotaType, TariffId, TariffResource},
+};
 use serde_json::json;
 
 #[test_log::test(tokio::test)]
@@ -96,4 +100,24 @@ async fn room_task_time_limit() {
             reason: "closed by server".to_string(),
         })
     );
+}
+
+#[test_log::test(tokio::test)]
+async fn participant_receives_same_display_name() {
+    let mut room = TestRoom::builder().spawn();
+    let bob_0 = room.join_bob(0).await;
+
+    // Bob tries to join with a different display name
+    let join_success = MockParticipantBuilder::new(
+        bob_public_user_profile(),
+        DeviceSecret::from_str("New device secret").unwrap(),
+        Role::User,
+    )
+    .display_name("Bobby".into())
+    .join(&mut room)
+    .await
+    .unwrap();
+
+    // But he receives the same display name as before
+    assert_eq!(join_success.display_name(), bob_0.display_name());
 }

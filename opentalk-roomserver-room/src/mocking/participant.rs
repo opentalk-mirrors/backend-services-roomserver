@@ -722,6 +722,14 @@ pub struct MockParticipantBuilder<P> {
 }
 
 impl<P> MockParticipantBuilder<P> {
+    pub fn new(profile: P, secret: DeviceSecret, role: Role) -> Self {
+        Self {
+            profile,
+            role,
+            secret,
+        }
+    }
+
     pub fn secret(mut self, secret: DeviceSecret) -> Self {
         self.secret = secret;
         self

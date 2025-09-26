@@ -415,7 +415,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             })
             .collect::<Result<Vec<_>, FatalError>>()?;
 
-        let display_name = client_kind.display_name();
+        let display_name = self
+            .participants
+            .all_unfiltered
+            .get(&participant_id)
+            .map(|state| state.kind.display_name())
+            .unwrap_or_else(|| client_kind.display_name());
         let (role, avatar_url, is_room_owner) = match client_kind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => (
                 role.to_opentalk_types_signaling_role(),
