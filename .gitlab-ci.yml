@@ -256,12 +256,15 @@ test:cargo_test:
     RUST_LOG: opentalk=trace
   services:
     # etherpad container for meeting notes module tests
-    - name: registry.opencode.de/opentalk/etherpad:latest
+    - name: registry.opencode.de/opentalk/etherpad:v2.0.1
+      pull_policy: if-not-present
       alias: etherpad
-    - name: livekit/livekit-server:latest
+    - name: livekit/livekit-server:v1.9.1
+      pull_policy: if-not-present
       alias: livekit
       command: [--dev, --bind, 0.0.0.0]
-    - name: registry.opencode.de/opentalk/spacedeck:latest
+    - name: registry.opencode.de/opentalk/spacedeck:v2.0.2
+      pull_policy: if-not-present
       alias: spacedeck
 
 build:
