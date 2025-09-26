@@ -7,7 +7,7 @@ use opentalk_roomserver_client::{
     api::signaling::{SignalingConnection, SignalingError},
 };
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, room_parameters::RoomParameters,
+    api::RoomServerAccess, client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use tokio::{
@@ -36,7 +36,7 @@ pub enum RunnerCommand {
     },
 
     RequestToken {
-        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<Token>>,
+        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<RoomServerAccess>>,
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Box<Option<RoomParameters>>,
@@ -45,6 +45,7 @@ pub enum RunnerCommand {
     ConnectSignaling {
         response_tx: tokio::sync::oneshot::Sender<RunnerResponse<()>>,
         token: Token,
+        url: Url,
     },
 
     SuspendReceive,
@@ -222,8 +223,12 @@ impl RoomServerRunner {
                 self.request_token(room_id, client_parameters, *room_parameters, response_tx)
                     .await;
             }
-            RunnerCommand::ConnectSignaling { response_tx, token } => {
-                self.connect_signaling(token, response_tx).await?;
+            RunnerCommand::ConnectSignaling {
+                response_tx,
+                token,
+                url,
+            } => {
+                self.connect_signaling(url, token, response_tx).await?;
             }
             RunnerCommand::Send { message } => {
                 self.send_websocket_message(message).await?;
@@ -287,7 +292,7 @@ impl RoomServerRunner {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<Token>>,
+        response_tx: tokio::sync::oneshot::Sender<RunnerResponse<RoomServerAccess>>,
     ) {
         let res = self
             .client
@@ -308,12 +313,13 @@ impl RoomServerRunner {
 
     async fn connect_signaling(
         &mut self,
+        url: Url,
         token: Token,
         response_tx: tokio::sync::oneshot::Sender<RunnerResponse<()>>,
     ) -> Result<(), FatalError> {
         self.disconnect().await?;
 
-        let connection = match self.client.open_signaling_connection(token).await {
+        let connection = match self.client.open_signaling_connection(url, token).await {
             Ok(con) => con,
             Err(e) => {
                 let _ = response_tx.send(Err(e.into()));

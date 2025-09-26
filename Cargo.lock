@@ -5880,6 +5880,7 @@ dependencies = [
  "serde",
  "serde_path_to_error",
  "thiserror 2.0.16",
+ "url",
 ]
 
 [[package]]
@@ -6280,6 +6281,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.16",
+ "url",
  "utoipa",
  "uuid",
 ]

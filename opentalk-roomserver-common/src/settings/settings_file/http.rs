@@ -4,6 +4,7 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use serde::Deserialize;
+use url::Url;
 
 /// Settings for the HTTP server
 #[derive(Debug, Clone, Deserialize)]
@@ -16,6 +17,10 @@ pub struct Http {
     #[serde(default = "default_port")]
     pub port: u16,
 
+    /// The publicly reachable URL of this server
+    #[serde(default = "default_public_url")]
+    pub public_url: Url,
+
     /// The API token for service endpoints
     pub api_token: String,
 
@@ -25,10 +30,15 @@ pub struct Http {
     pub disable_openapi: bool,
 }
 
-pub(crate) fn default_bind_address() -> IpAddr {
+pub(crate) const fn default_bind_address() -> IpAddr {
     IpAddr::V4(Ipv4Addr::UNSPECIFIED)
 }
 
 const fn default_port() -> u16 {
     11333
+}
+
+fn default_public_url() -> Url {
+    let port = default_port();
+    Url::parse(&format!("http://localhost:{port}")).unwrap()
 }

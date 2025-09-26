@@ -487,6 +487,22 @@ components:
         - v3rys3cr3t
       maxLength: 255
       minLength: 1
+    RoomServerAccess:
+      type: object
+      required:
+        - public_url
+        - token
+      properties:
+        public_url:
+          type: string
+          format: uri
+          description: The public url for the roomserver with the requested room
+        token:
+          $ref: "#/components/schemas/Token"
+          description: The signaling token for the requested room
+      example:
+        public_url: "https://example.com/"
+        token: 00000000-0000-0000-0000-0000abadcafe
     SharedFolder:
       type: object
       description: |-
@@ -713,18 +729,18 @@ components:
           waiting_room: false
     TokenResponse:
       oneOf:
-        - type: object
+        - allOf:
+            - $ref: "#/components/schemas/RoomServerAccess"
+              description: The signaling token for the requested room
+            - type: object
+              required:
+                - response
+              properties:
+                response:
+                  type: string
+                  enum:
+                    - token
           description: The signaling token for the requested room
-          required:
-            - token
-            - response
-          properties:
-            response:
-              type: string
-              enum:
-                - token
-            token:
-              $ref: "#/components/schemas/Token"
         - type: object
           description: |-
             The requested room is unknown to the roomserver and needs to be provided through the
@@ -738,6 +754,7 @@ components:
                 - unknown_room
       description: "The response body for GET `/rooms/{room_id}/token`"
       example:
+        public_url: "https://example.com/"
         response: token
         token: 00000000-0000-0000-0000-0000abadcafe
     UserId:

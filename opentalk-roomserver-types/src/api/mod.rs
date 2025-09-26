@@ -5,4 +5,4 @@ mod token_request_body;
 mod token_response;
 
 pub use token_request_body::TokenRequestBody;
-pub use token_response::TokenResponse;
+pub use token_response::{RoomServerAccess, TokenResponse};

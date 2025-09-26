@@ -14,6 +14,9 @@ pub struct Http {
     /// The port that the HTTP server should use
     pub port: u16,
 
+    /// The publicly reachable URL of this server
+    pub public_url: url::Url,
+
     /// The API token for service endpoints
     pub api_token: String,
 
@@ -27,6 +30,7 @@ impl From<settings_file::http::Http> for Http {
         Self {
             address: value.address,
             port: value.port,
+            public_url: value.public_url,
             api_token: value.api_token,
             disable_openapi: value.disable_openapi,
         }
