@@ -44,7 +44,7 @@ pub enum CoreEvent {
         participant_id: ParticipantId,
 
         /// The id of the connection used by the participant
-        connection_id: ConnectionId,
+        connection_ids: Vec<ConnectionId>,
 
         /// The time when the participant joined the waiting room with their first connection
         joined_at: DateTime<Utc>,
@@ -117,7 +117,7 @@ mod tests {
             joined_at: DateTime::UNIX_EPOCH,
             display_name: "Waiting Walter".parse().unwrap(),
             avatar_url: Some("https://example.com/avatar_url/waiting-walter".to_string()),
-            connection_id: ConnectionId::from_u128(456),
+            connection_ids: vec![ConnectionId::from_u128(456)],
         })
         .unwrap();
 
@@ -125,7 +125,9 @@ mod tests {
         {
           "joined_waiting_room": {
             "participant_id": "00000000-0000-0000-0000-00000000007b",
-            "connection_id": "00000000-0000-0000-0000-0000000001c8",
+            "connection_ids": [
+              "00000000-0000-0000-0000-0000000001c8"
+            ],
             "joined_at": "1970-01-01T00:00:00Z",
             "display_name": "Waiting Walter",
             "avatar_url": "https://example.com/avatar_url/waiting-walter"

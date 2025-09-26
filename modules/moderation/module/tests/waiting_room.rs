@@ -612,10 +612,25 @@ async fn send_to_waiting_room() {
         } if participant_id == bob.id() && connection_id == bob.connection_id() && reason == DisconnectReason::SentToWaitingRoom
     ));
 
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::JoinedWaitingRoom {
+        participant_id,
+        connection_ids,
+        ..
+    } = event
+    else {
+        panic!("Expected JoinedWaitingRoom event, got: {:?}", event);
+    };
+    assert_eq!(participant_id, bob.id());
+    assert_eq!(connection_ids, vec![bob.connection_id()]);
+
     let event = bob
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(event, ModerationEvent::SentToWaitingRoom);
+
+    // Bob does not receive the JoinedWaitingRoom event
+    assert!(bob.received_nothing());
 }

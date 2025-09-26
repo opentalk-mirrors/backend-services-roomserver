@@ -111,7 +111,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             None,
             CoreEvent::JoinedWaitingRoom {
                 participant_id,
-                connection_id,
+                connection_ids: vec![connection_id],
                 joined_at,
                 display_name,
                 avatar_url,
@@ -133,8 +133,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         let connections = mem::take(&mut state.connections);
-        let ids = connections.keys();
-        self.message_router.move_to_waiting_room(ids.clone());
+        let connection_ids = connections.keys();
+        self.message_router
+            .move_to_waiting_room(connection_ids.clone());
 
         self.waiting_participants.insert(
             participant_id,
@@ -149,8 +150,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         state.in_waiting_room = true;
 
+        let connection_ids: Vec<ConnectionId> = connection_ids.copied().collect();
+        let display_name = state.kind.display_name();
+        let avatar_url = state.kind.avatar_url().map(str::to_owned);
         let room = state.room;
-        for connection_id in ids {
+
+        for connection_id in &connection_ids {
             self.participant_disconnected(
                 EventOrigin::Internal,
                 participant_id,
@@ -159,6 +164,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 DisconnectReason::SentToWaitingRoom,
             )?;
         }
+
+        self.message_router.conference.serialize_and_send(
+            self.participants.connected().moderators().connection_ids(),
+            CORE_MODULE_ID,
+            None,
+            CoreEvent::JoinedWaitingRoom {
+                participant_id,
+                connection_ids,
+                joined_at: Utc::now(),
+                display_name,
+                avatar_url,
+            },
+        )?;
+
         Ok(())
     }
 }
