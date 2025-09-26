@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "message", rename_all = "snake_case")]
 pub enum EchoEvent {
+    /// The response to a [`EchoCommand::Ping`](super::command::EchoCommand::Ping).
     Pong,
 }
 
