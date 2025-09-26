@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 
-use crate::error::EchoError;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "message", rename_all = "snake_case")]
 pub enum EchoEvent {
     Pong,
-    Error(EchoError),
 }
 
-impl From<EchoError> for EchoEvent {
-    fn from(err: EchoError) -> Self {
-        Self::Error(err)
+// This is here to satisfy the `SignalingModule` trait requirements.
+impl From<Infallible> for EchoEvent {
+    fn from(_: Infallible) -> Self {
+        panic!("Infallible cannot be instantiated")
     }
 }

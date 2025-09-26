@@ -6,5 +6,4 @@ use opentalk_types_common::modules::{ModuleId, module_id};
 pub const ECHO_MODULE_ID: ModuleId = module_id!("echo");
 
 pub mod command;
-pub mod error;
 pub mod event;
