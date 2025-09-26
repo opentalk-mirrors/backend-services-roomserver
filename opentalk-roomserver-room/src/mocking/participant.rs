@@ -278,6 +278,17 @@ impl MockParticipantJoined {
 
         self.receive::<BreakoutEvent>().await.unwrap().payload
     }
+
+    pub fn in_waiting_room(self) -> MockParticipantWaiting {
+        MockParticipantWaiting {
+            sender: self.sender,
+            receiver: self.receiver,
+            state: WaitingRoomState {
+                connection_id: self.state.connection_id,
+                participant_id: self.state.id,
+            },
+        }
+    }
 }
 
 impl MockParticipantWaiting {

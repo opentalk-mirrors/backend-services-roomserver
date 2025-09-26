@@ -49,15 +49,8 @@ async fn join_info() {
 
 async fn accept_participant(
     moderator: &mut MockParticipantJoined,
-    mut joinee: MockParticipantWaiting,
+    joinee: MockParticipantWaiting,
 ) -> MockParticipantJoined {
-    let event = moderator.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == joinee.id()
-    ));
-    assert!(joinee.received_nothing());
-
     moderator
         .send_command::<ModerationModule>(
             ModerationCommand::Accept {
@@ -117,6 +110,12 @@ async fn join_via_waiting_room() {
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let charlie = room.waiting_room_charlie(0).await;
+
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(
+        event.payload,
+        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == charlie.id()
+    ));
     let mut charlie = accept_participant(&mut alice, charlie).await;
 
     let mut bob_0 = room.waiting_room_bob(0).await;
@@ -282,6 +281,11 @@ async fn registered_users_once_accepted_always_skip() {
     let mut alice = room.join_alice_moderator(0).await;
 
     let bob = room.waiting_room_bob(0).await;
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(
+        event.payload,
+        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == bob.id()
+    ));
     let bob = accept_participant(&mut alice, bob).await;
 
     bob.disconnect().await.unwrap();
@@ -312,6 +316,11 @@ async fn guest_users_once_accepted_always_skip() {
     let mut alice = room.join_alice_moderator(0).await;
 
     let gustav = room.waiting_room_gustav_guest().await;
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(
+        event.payload,
+        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == gustav.id()
+    ));
     let gustav = accept_participant(&mut alice, gustav).await;
 
     gustav.disconnect().await.unwrap();
@@ -555,6 +564,7 @@ async fn send_to_waiting_room() {
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
+    // Alice sends Bob to the waiting room
     alice
         .send_command::<ModerationModule>(
             ModerationCommand::SendToWaitingRoom { target: bob.id() },
@@ -563,6 +573,7 @@ async fn send_to_waiting_room() {
         .await
         .unwrap();
 
+    // Alice and bob receive the waiting room enabled event
     let event = alice
         .receive_event::<ModerationModule>()
         .await
@@ -577,6 +588,7 @@ async fn send_to_waiting_room() {
         .payload;
     assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
 
+    // Alice receives the ParticipantDisconnected and JoinedWaitingRoom events
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
     assert!(matches!(
         event,
@@ -599,6 +611,7 @@ async fn send_to_waiting_room() {
     assert_eq!(participant_id, bob.id());
     assert_eq!(connection_ids, vec![bob.connection_id()]);
 
+    // Bob receives the SentToWaitingRoom event
     let event = bob
         .receive_event::<ModerationModule>()
         .await
@@ -608,4 +621,32 @@ async fn send_to_waiting_room() {
 
     // Bob does not receive the JoinedWaitingRoom event
     assert!(bob.received_nothing());
+
+    let bob = bob.in_waiting_room();
+
+    // Alice accepts bob
+    let mut bob_0 = accept_participant(&mut alice, bob).await;
+
+    // Bob can now join directly with a second device again
+    let bob_1 = room.join_bob(1).await;
+
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert!(matches!(
+        event,
+        CoreEvent::ParticipantConnected {
+            participant_id,
+            connection_id,
+            ..
+        } if participant_id == bob_1.id() && connection_id == bob_1.connection_id()
+    ));
+
+    let event = bob_0.receive::<CoreEvent>().await.unwrap().payload;
+    assert!(matches!(
+        event,
+        CoreEvent::ParticipantConnected {
+            participant_id,
+            connection_id,
+            ..
+        } if participant_id == bob_1.id() && connection_id == bob_1.connection_id()
+    ));
 }
