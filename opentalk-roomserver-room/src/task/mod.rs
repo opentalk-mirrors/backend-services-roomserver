@@ -37,7 +37,7 @@
 //! # [`ConnectionId`] and [`ParticipantId`]
 //!
 //! Every connection to a Room is identified by the [`ConnectionId`]. The connection ID is generated
-//! by [`ScopedRouter::add_connection`](crate::message_router::ScopedRouter::add_connection).
+//! by [`MessageRouter::add_conference_connection`]/[`MessageRouter::add_waiting_room_connection`].
 //!
 //! For registered users, the [`ParticipantId`] is derived from the [`UserId`] that is part of the
 //! [`PublicUserProfile`]. Guests and services don't have a such a profile. These clients provide a
@@ -794,12 +794,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .get(&participant_id)
                 .is_none_or(|participant| participant.in_waiting_room);
 
-        let scoped_router = if join_waiting_room {
-            &mut self.message_router.waiting_room
+        let result = if join_waiting_room {
+            self.message_router
+                .add_waiting_room_connection(participant_id, socket)
         } else {
-            &mut self.message_router.conference
+            self.message_router
+                .add_conference_connection(participant_id, socket)
         };
-        let Ok(connection_id) = scoped_router.add_connection(participant_id, socket) else {
+        let Ok(connection_id) = result else {
             tracing::debug!("rejecting participant connection: already connected");
             return Ok(());
         };

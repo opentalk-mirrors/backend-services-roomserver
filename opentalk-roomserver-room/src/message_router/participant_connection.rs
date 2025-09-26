@@ -208,7 +208,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                         Ok(allocated_msg) => allocated_msg,
                         Err(exit_reason) => return exit_reason,
                     };
-                    if let Err(exit_reason) = self.handle_websocket_frame(msg, permit).await{
+                    if let Err(exit_reason) = self.handle_websocket_frame(msg, permit).await {
                         return exit_reason;
                     }
                 },
