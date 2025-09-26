@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 
 use super::module_context::ModuleContext;
-use crate::{participant_state::ParticipantState, storage::StorageProvider};
+use crate::{participant_state::ParticipantState, storage::ModuleAssetStorage};
 
 /// The trait that defines a signaling module
 ///
@@ -170,7 +170,7 @@ pub trait SignalingModule: Send + Sync + Sized {
     ///
     /// Long running tasks must be spawned in a separate task
     #[allow(unused_variables)]
-    fn destroy(self, room_id: RoomId, storage: Arc<dyn StorageProvider>) {}
+    fn destroy(self, room_id: RoomId, storage: ModuleAssetStorage) {}
 }
 
 pub trait CreateReplica<T> {

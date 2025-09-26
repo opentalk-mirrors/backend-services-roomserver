@@ -15,7 +15,7 @@ use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
-    room_parameters::{EventContext, RoomParameters},
+    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
 };
 use opentalk_roomserver_types_timer::TIMER_MODULE_ID;
 use opentalk_types_common::{
@@ -87,7 +87,20 @@ pub fn default_room_parameters() -> RoomParameters {
         tariff: TariffResource {
             id: TariffId::from_u128(0x2da2b825_6db9_4dc4_b9e6_b4fd64e66a16),
             name: "Starter tariff".to_string(),
-            quotas: BTreeMap::default(),
+            quotas: BTreeMap::from([
+                (
+                    opentalk_types_common::tariffs::QuotaType::MaxStorage,
+                    1024 * 1024 * 1024 * 5, // 5 GiB
+                ),
+                (
+                    opentalk_types_common::tariffs::QuotaType::RoomParticipantLimit,
+                    25,
+                ),
+                (
+                    opentalk_types_common::tariffs::QuotaType::RoomTimeLimitSecs,
+                    60 * 60 * 24, // 24h
+                ),
+            ]),
             modules: BTreeMap::from([
                 (AUTOMOD_MODULE_ID, TariffModuleResource::default()),
                 (ECHO_MODULE_ID, TariffModuleResource::default()),
@@ -108,6 +121,7 @@ pub fn default_room_parameters() -> RoomParameters {
         streaming_links: vec![],
         e2e_encryption: false,
         module_settings: ModuleSettings::example_data(),
+        asset_storage: AssetStorageConfig::InMemory,
     }
 }
 

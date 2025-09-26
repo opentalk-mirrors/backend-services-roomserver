@@ -359,6 +359,7 @@ mod test {
         client_parameters::{ClientKind, Role},
         module_settings::ModuleSettings,
         public_user_profile::PublicUserProfile,
+        room_parameters::AssetStorageConfig,
     };
     use opentalk_types_common::{
         roomserver::DeviceSecret,
@@ -427,6 +428,7 @@ mod test {
             streaming_links: vec![],
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
+            asset_storage: AssetStorageConfig::example_data(),
         }
     }
 

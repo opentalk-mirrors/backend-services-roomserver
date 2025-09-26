@@ -35,7 +35,10 @@ use crate::{
     room_info::RoomTaskInfo,
     signaling_event::SignalingEvent,
     signaling_module::SignalingModule,
-    storage::{AssetMetaData, StorageProvider, UploadResult},
+    storage::{
+        AssetMetaData, ModuleAssetStorage, StorageContext, UploadResult,
+        provider::AssetStorageProvider,
+    },
     waiting_participant::WaitingParticipant,
 };
 
@@ -70,7 +73,7 @@ where
     pub banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
     pub timestamp: Timestamp,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
-    storage: Arc<dyn StorageProvider>,
+    storage: Arc<dyn AssetStorageProvider>,
 
     m: PhantomData<fn() -> M>,
 }
@@ -91,7 +94,7 @@ where
         banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
         timestamp: Timestamp,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
-        storage: Arc<dyn StorageProvider>,
+        storage: Arc<dyn AssetStorageProvider>,
     ) -> ModuleContext<'ctx, M> {
         Self {
             room_id,
@@ -510,8 +513,15 @@ where
         user_id == self.room_task_info.room.created_by.id
     }
 
-    pub fn storage(&self) -> Arc<dyn StorageProvider> {
-        Arc::clone(&self.storage)
+    pub fn storage(&self) -> ModuleAssetStorage {
+        ModuleAssetStorage::new(Arc::clone(&self.storage), self.storage_context())
+    }
+
+    fn storage_context(&self) -> StorageContext {
+        StorageContext {
+            room_id: self.room_id,
+            namespace: M::NAMESPACE,
+        }
     }
 }
 
@@ -521,8 +531,15 @@ where
     M::Loopback: From<UploadResult>,
 {
     pub fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) {
+        let storage_context = self.storage_context();
         let storage = Arc::clone(&self.storage);
-        self.spawn(async move { storage.upload_file(file, metadata).await.into() });
+
+        self.spawn(async move {
+            storage
+                .upload_file(file, metadata, &storage_context)
+                .await
+                .into()
+        });
     }
 }
 

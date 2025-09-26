@@ -56,9 +56,11 @@ pub struct RoomParameters {
     /// Indicates whether the meeting room should have e2e encryption enabled.
     pub e2e_encryption: bool,
 
-    #[serde(default)]
     /// Additional configuration options that are used by modules during initialization.
     pub module_settings: ModuleSettings,
+
+    /// Configuration for storing room assets (e.g., meeting reports).
+    pub asset_storage: AssetStorageConfig,
 }
 
 impl RoomParameters {
@@ -105,6 +107,7 @@ impl ExampleData for RoomParameters {
             streaming_links: vec![StreamingLink::example_data()],
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
+            asset_storage: AssetStorageConfig::example_data(),
         }
     }
 }
@@ -145,6 +148,19 @@ impl ExampleData for EventContext {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(AssetStorageConfig::example_data())))]
+#[serde(rename_all = "snake_case")]
+pub enum AssetStorageConfig {
+    InMemory,
+}
+
+impl ExampleData for AssetStorageConfig {
+    fn example_data() -> Self {
+        Self::InMemory
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use opentalk_types_common::utils::ExampleData;
@@ -168,6 +184,7 @@ mod tests {
                 "timezone": "Europe/Berlin"
             },
             "password": "1234",
+            "asset_storage": "in_memory",
             "call_in": {
                 "tel": "+555-123-456-789",
                 "id": "1234567890",

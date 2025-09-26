@@ -17,12 +17,13 @@ use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
     core::CoreEvent,
     module_settings::{ModuleSettings, SignalingModuleSettings},
-    room_parameters::{EventContext, RoomParameters},
+    public_user_profile::PublicUserProfile,
+    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
 };
 use opentalk_types_common::{
     assets::AssetId,
     rooms::RoomId,
-    tariffs::{TariffId, TariffModuleResource, TariffResource},
+    tariffs::{QuotaType, TariffId, TariffModuleResource, TariffResource},
 };
 use tokio::sync::watch;
 use url::Url;
@@ -36,7 +37,7 @@ use crate::{
         },
         socket::MockSocket,
     },
-    task::{RoomTask, memory_file_storage::MemoryFileStorage},
+    task::{RoomTask, memory_file_storage::MemoryAssetStorage},
 };
 
 #[derive(Debug)]
@@ -81,7 +82,6 @@ pub struct TestRoomBuilder {
     settings: Settings,
     room_parameters: RoomParameters,
     module_registry: ModuleRegistry,
-    storage_quota: u64,
 }
 
 impl TestRoomBuilder {
@@ -105,9 +105,9 @@ impl TestRoomBuilder {
                 streaming_links: Vec::new(),
                 e2e_encryption: false,
                 module_settings: ModuleSettings::new(),
+                asset_storage: AssetStorageConfig::InMemory,
             },
             module_registry: ModuleRegistry::new(),
-            storage_quota: 5 * 1024u64.pow(3), // 5GiB
         }
     }
 
@@ -150,13 +150,16 @@ impl TestRoomBuilder {
         self
     }
 
-    pub fn room_parameters(mut self, room_parameters: RoomParameters) -> Self {
-        self.room_parameters = room_parameters;
+    pub fn storage_quota(mut self, quota: u64) -> Self {
+        self.room_parameters
+            .tariff
+            .quotas
+            .insert(QuotaType::MaxStorage, quota);
         self
     }
 
-    pub fn storage_quota(mut self, quota: u64) -> Self {
-        self.storage_quota = quota;
+    pub fn owner(mut self, created_by: PublicUserProfile) -> Self {
+        self.room_parameters.created_by = created_by;
         self
     }
 
@@ -166,7 +169,6 @@ impl TestRoomBuilder {
             self.room_parameters,
             self.module_registry,
             self.settings,
-            self.storage_quota,
         )
     }
 }
@@ -180,7 +182,6 @@ impl Default for TestRoomBuilder {
 pub struct TestRoom {
     room_id: RoomId,
     pub room_handle: RoomTaskHandle<MockSocket>,
-    storage: Arc<MemoryFileStorage>,
     _settings: Arc<Settings>,
     _app_state_tx: watch::Sender<ApplicationState>,
 }
@@ -195,19 +196,14 @@ impl TestRoom {
         room_parameters: RoomParameters,
         module_registry: ModuleRegistry,
         settings: Settings,
-        storage_quota: u64,
     ) -> Self {
         let settings = Arc::new(settings);
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
-
-        let storage = Arc::new(MemoryFileStorage::new(storage_quota));
-        let tmp = Arc::clone(&storage);
 
         let (room_handle, _) = RoomTask::spawn(
             room_id,
             room_parameters.into(),
             Arc::new(module_registry),
-            tmp,
             Arc::clone(&settings),
             rx,
         );
@@ -215,7 +211,6 @@ impl TestRoom {
         Self {
             room_id,
             room_handle,
-            storage,
             _settings: settings,
             _app_state_tx: app_state_tx,
         }
@@ -319,11 +314,20 @@ impl TestRoom {
     }
 
     pub async fn stored_file(&self, id: AssetId) -> Option<Vec<u8>> {
-        self.storage.file(id).await
+        let storage = self.downcast_storage();
+        storage.file(id).await
     }
 
     pub async fn file_count(&self) -> usize {
-        self.storage.file_count().await
+        let storage = self.downcast_storage();
+        storage.file_count().await
+    }
+
+    fn downcast_storage(&self) -> Arc<MemoryAssetStorage> {
+        let storage = self.room_handle.storage().into_any();
+        let storage: Arc<MemoryAssetStorage> =
+            Arc::downcast(storage).expect("The RoomTask must be configured with MemoryStorage.");
+        storage
     }
 }
 
