@@ -4,7 +4,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
-use opentalk_roomserver_signaling::module_resources::provider::ModuleResourceProvider;
+use opentalk_roomserver_signaling::storage::module_resources::provider::ModuleResourceProvider;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
 use opentalk_types_common::rooms::RoomId;
@@ -14,10 +14,12 @@ use tokio::{
 };
 
 use super::signaling::module_initializer::ModuleRegistry;
-use crate::task::{
-    RoomTask,
-    handle::{RoomTaskHandle, RoomTaskHandleError},
-    memory_module_storage::MemoryModuleResourceStorage,
+use crate::{
+    storage::memory_module_storage::MemoryModuleResourceStorage,
+    task::{
+        RoomTask,
+        handle::{RoomTaskHandle, RoomTaskHandleError},
+    },
 };
 
 /// The room task registry

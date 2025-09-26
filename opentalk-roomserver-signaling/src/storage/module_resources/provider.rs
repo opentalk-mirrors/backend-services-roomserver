@@ -6,7 +6,7 @@ use opentalk_types_common::{
     module_resources::ModuleResourceId, modules::ModuleId, rooms::RoomId, users::UserId,
 };
 
-use crate::module_resources::{
+use crate::storage::module_resources::{
     Error, ModuleResource, ModuleResourceFilter, ModuleResourceOperation,
 };
 

@@ -9,8 +9,10 @@ use std::{
 use anyhow::anyhow;
 use async_trait::async_trait;
 use opentalk_roomserver_signaling::storage::{
-    AssetMetaData, AssetUploaded, StorageContext, StorageError, UploadResult,
-    provider::AssetStorageProvider,
+    StorageContext,
+    assets::{
+        AssetMetaData, AssetUploaded, StorageError, UploadResult, provider::AssetStorageProvider,
+    },
 };
 use opentalk_types_common::assets::AssetId;
 use tokio::sync::Mutex;
@@ -146,7 +148,8 @@ impl MemoryAssetStorage {
 #[cfg(test)]
 mod test {
     use opentalk_roomserver_signaling::storage::{
-        AssetMetaData, StorageContext, StorageError, provider::AssetStorageProvider as _,
+        StorageContext,
+        assets::{AssetMetaData, StorageError, provider::AssetStorageProvider as _},
     };
     use opentalk_roomserver_types::breakout::BREAKOUT_MODULE_ID;
     use opentalk_types_common::{
@@ -155,7 +158,7 @@ mod test {
         time::Timestamp,
     };
 
-    use crate::task::memory_file_storage::MemoryAssetStorage;
+    use super::MemoryAssetStorage;
 
     #[tokio::test]
     async fn upload_file() {

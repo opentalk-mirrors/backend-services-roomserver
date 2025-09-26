@@ -4,7 +4,9 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use opentalk_roomserver_signaling::storage::{AssetMetaData, AssetUploaded, ModuleAssetStorage};
+use opentalk_roomserver_signaling::storage::assets::{
+    AssetMetaData, AssetUploaded, ModuleAssetStorage,
+};
 use opentalk_roomserver_types::{
     room_kind::RoomKind, signaling::module_error::SignalingModuleError,
 };

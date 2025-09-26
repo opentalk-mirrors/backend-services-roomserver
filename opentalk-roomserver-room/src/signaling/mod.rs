@@ -24,7 +24,10 @@ use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
     module_context::ModuleContext,
     signaling_module::{CreateReplica, SignalingModule},
-    storage::{ModuleAssetStorage, StorageContext, provider::AssetStorageProvider},
+    storage::{
+        StorageContext,
+        assets::{ModuleAssetStorage, provider::AssetStorageProvider},
+    },
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom,

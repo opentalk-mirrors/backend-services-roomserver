@@ -16,7 +16,6 @@ pub mod internal_module_message;
 #[doc(hidden)]
 pub mod loopback;
 pub mod module_context;
-pub mod module_resources;
 pub mod participant_filter;
 pub mod participant_state;
 pub mod room_info;

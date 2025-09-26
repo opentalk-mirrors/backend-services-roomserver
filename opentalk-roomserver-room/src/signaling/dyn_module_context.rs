@@ -9,11 +9,12 @@ use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
     loopback::LoopbackFuture,
     module_context::{ModuleContext, ModuleMessage},
-    module_resources::provider::ModuleResourceProvider,
     participant_state::Participants,
     room_info::RoomTaskInfo,
     signaling_module::SignalingModule,
-    storage::provider::AssetStorageProvider,
+    storage::{
+        assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
+    },
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::room_kind::RoomKind;

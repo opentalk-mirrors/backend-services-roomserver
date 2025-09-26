@@ -72,11 +72,12 @@ use opentalk_roomserver_signaling::{
     internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
     module_context::ModuleMessage,
-    module_resources::provider::ModuleResourceProvider,
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
-    storage::provider::AssetStorageProvider,
+    storage::{
+        assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
+    },
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
@@ -108,9 +109,9 @@ use super::{
 use crate::{
     message_router::{MessageEnvelope, MessageRouter, ScopedRouter, SignalingMessage},
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
+    storage::memory_file_storage::MemoryAssetStorage,
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
-        memory_file_storage::MemoryAssetStorage,
         timeout::Timeout,
     },
 };
@@ -118,8 +119,6 @@ use crate::{
 pub mod breakout;
 pub mod core;
 pub mod handle;
-pub mod memory_file_storage;
-pub mod memory_module_storage;
 pub mod timeout;
 pub mod waiting_room;
 

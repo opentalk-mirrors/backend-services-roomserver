@@ -31,14 +31,14 @@ use crate::{
     instruction::Instruction,
     internal_module_message::InterModuleMessage,
     loopback::{LoopbackFuture, LoopbackMessage},
-    module_resources::{ModuleResourceStorage, provider::ModuleResourceProvider},
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_event::SignalingEvent,
     signaling_module::SignalingModule,
     storage::{
-        AssetMetaData, ModuleAssetStorage, StorageContext, UploadResult,
-        provider::AssetStorageProvider,
+        StorageContext,
+        assets::{AssetMetaData, ModuleAssetStorage, UploadResult, provider::AssetStorageProvider},
+        module_resources::{ModuleResourceStorage, provider::ModuleResourceProvider},
     },
     waiting_participant::WaitingParticipant,
 };

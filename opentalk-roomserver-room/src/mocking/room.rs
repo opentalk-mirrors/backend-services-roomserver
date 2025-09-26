@@ -37,10 +37,10 @@ use crate::{
         },
         socket::MockSocket,
     },
-    task::{
-        RoomTask, memory_file_storage::MemoryAssetStorage,
-        memory_module_storage::MemoryModuleResourceStorage,
+    storage::{
+        memory_file_storage::MemoryAssetStorage, memory_module_storage::MemoryModuleResourceStorage,
     },
+    task::RoomTask,
 };
 
 #[derive(Debug)]

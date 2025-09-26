@@ -12,11 +12,11 @@ pub mod types;
 pub use opentalk_types_common::module_resources::ModuleResourceId;
 pub use types::{ModuleResource, ModuleResourceFilter, ModuleResourceOperation};
 
-use crate::{
+use crate::storage::{
+    StorageContext,
     module_resources::provider::{
         InternalModuleResourceFilter, ModuleResourceProvider, NewModuleResource,
     },
-    storage::StorageContext,
 };
 
 #[derive(Debug, Error)]

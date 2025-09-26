@@ -8,7 +8,7 @@ use json_patch::{
     AddOperation, CopyOperation, MoveOperation, Patch, PatchOperation, RemoveOperation,
     ReplaceOperation, TestOperation, patch,
 };
-use opentalk_roomserver_signaling::module_resources::{
+use opentalk_roomserver_signaling::storage::module_resources::{
     Error, ModuleResource, ModuleResourceOperation,
     provider::{InternalModuleResourceFilter, ModuleResourceProvider, NewModuleResource},
 };
@@ -168,7 +168,7 @@ fn to_patch_operation(operation: ModuleResourceOperation) -> Result<PatchOperati
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-    use opentalk_roomserver_signaling::module_resources::{
+    use opentalk_roomserver_signaling::storage::module_resources::{
         ModuleResource, ModuleResourceOperation,
         provider::{InternalModuleResourceFilter, ModuleResourceProvider, NewModuleResource},
     };
@@ -181,7 +181,7 @@ mod tests {
     };
     use serde_json::json;
 
-    use crate::task::memory_module_storage::MemoryModuleResourceStorage;
+    use super::MemoryModuleResourceStorage;
 
     #[derive(Debug, Default)]
     struct ResourceBuilder {

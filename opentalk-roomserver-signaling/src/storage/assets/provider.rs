@@ -6,7 +6,7 @@ use std::{fmt::Debug, sync::Arc};
 use async_trait::async_trait;
 use opentalk_types_common::assets::AssetId;
 
-use crate::storage::{AssetMetaData, StorageContext, StorageError, UploadResult};
+use crate::storage::assets::{AssetMetaData, StorageContext, StorageError, UploadResult};
 
 #[async_trait]
 pub trait AssetStorageProvider: Send + Sync + Debug {

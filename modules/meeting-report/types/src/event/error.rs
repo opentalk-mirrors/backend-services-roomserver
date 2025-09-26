@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_signaling::storage::StorageError;
+use opentalk_roomserver_signaling::storage::assets::StorageError;
 use opentalk_roomserver_types::signaling::module_error::ModuleError;
 use serde::{Deserialize, Serialize};
 

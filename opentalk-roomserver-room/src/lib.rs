@@ -16,9 +16,10 @@ pub mod message_router;
 pub mod mocking;
 pub mod registry;
 pub mod signaling;
+pub mod storage;
 pub mod task;
 
-pub use opentalk_roomserver_signaling::storage::{
+pub use opentalk_roomserver_signaling::storage::assets::{
     AssetMetaData, AssetUploaded, ModuleAssetStorage, StorageError,
 };
 
@@ -48,7 +49,8 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{participant::create_participant_connection, socket::MockSocket},
-        task::{RoomTask, memory_module_storage::MemoryModuleResourceStorage},
+        storage::memory_module_storage::MemoryModuleResourceStorage,
+        task::RoomTask,
     };
 
     const TIMEOUT: Duration = Duration::from_millis(500);

@@ -9,7 +9,7 @@ use opentalk_roomserver_room::{AssetUploaded, ModuleAssetStorage};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
-    storage::AssetMetaData,
+    storage::assets::AssetMetaData,
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, room_parameters::EventContext,
