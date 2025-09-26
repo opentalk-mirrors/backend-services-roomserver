@@ -16,7 +16,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_raise_hands::{
     RAISE_HANDS_MODULE_ID,
-    command::{RaiseHandsCommand, ResetRaisedHands},
+    command::RaiseHandsCommand,
     event::{RaiseHandsError, RaiseHandsEvent},
     state::{RaisedHandPeerState, RaisedHandState},
 };
@@ -115,7 +115,7 @@ impl SignalingModule for RaiseHandsModule {
             RaiseHandsCommand::DisableRaiseHands => self.disable_raise_hands(ctx, sender),
             RaiseHandsCommand::RaiseHand => self.raise_hand(ctx, sender),
             RaiseHandsCommand::LowerHand => self.lower_hand(ctx, sender),
-            RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target }) => {
+            RaiseHandsCommand::ResetRaisedHands { target } => {
                 self.reset_raised_hands(ctx, sender, target)
             }
         }

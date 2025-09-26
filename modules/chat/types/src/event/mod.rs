@@ -4,18 +4,8 @@
 
 //! Signaling events for the `chat` namespace
 
-mod chat_disabled;
-mod chat_enabled;
 mod chat_event;
 mod error;
-mod history_cleared;
-mod message_sent;
-mod search_results;
 
-pub use chat_disabled::ChatDisabled;
-pub use chat_enabled::ChatEnabled;
 pub use chat_event::ChatEvent;
-pub use error::Error;
-pub use history_cleared::HistoryCleared;
-pub use message_sent::MessageSent;
-pub use search_results::SearchResults;
+pub use error::ChatError;

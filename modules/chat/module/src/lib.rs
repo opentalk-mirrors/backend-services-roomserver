@@ -19,11 +19,8 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_chat::{
     CHAT_MODULE_ID, MessageId, Scope,
-    command::{ChatCommand, GetHistoryChunk, SearchHistory, SendMessage, SetLastSeenTimestamp},
-    event::{
-        ChatDisabled, ChatEnabled, ChatEvent, Error as ChatError, HistoryCleared, MessageSent,
-        SearchResults,
-    },
+    command::ChatCommand,
+    event::{ChatError, ChatEvent},
     peer_state::ChatPeerState,
     state::{
         BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, GroupHistory, PrivateHistory,
@@ -117,37 +114,32 @@ impl SignalingModule for ChatModule {
             ChatCommand::DisableChat => {
                 self.set_chat_state(ctx, participant_id, false)?;
             }
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 scope: Scope::Group(_),
                 ..
-            }) => {
+            } => {
                 tracing::warn!("Ignoring chat message to group");
             }
-            ChatCommand::SendMessage(SendMessage { content, scope }) => {
+            ChatCommand::SendMessage { content, scope } => {
                 self.send_message(ctx, participant_id, content, scope)?;
             }
-            ChatCommand::GetHistoryChunk(GetHistoryChunk {
+            ChatCommand::GetHistoryChunk {
                 message_index,
                 scope,
-            }) => {
+            } => {
                 self.get_history_chunk(ctx, participant_id, message_index, scope)?;
             }
             ChatCommand::ClearHistory => {
                 self.clear_messages(ctx, participant_id)?;
             }
-            ChatCommand::SetLastSeenTimestamp(set_last_seen_timestamp) => {
-                self.set_last_seen_timestamp(
-                    ctx,
-                    participant_id,
-                    set_last_seen_timestamp.scope,
-                    set_last_seen_timestamp.timestamp,
-                )?;
+            ChatCommand::SetLastSeenTimestamp { scope, timestamp } => {
+                self.set_last_seen_timestamp(ctx, participant_id, scope, timestamp)?;
             }
-            ChatCommand::SearchHistory(SearchHistory {
+            ChatCommand::SearchHistory {
                 scope,
                 term,
                 message_index,
-            }) => {
+            } => {
                 self.search_history(ctx, participant_id, scope, &term, message_index)?;
             }
         }
@@ -403,13 +395,13 @@ impl ChatModule {
 
         self.enabled = enabled;
         let msg = if enabled {
-            ChatEvent::ChatEnabled(ChatEnabled {
+            ChatEvent::ChatEnabled {
                 issued_by: participant,
-            })
+            }
         } else {
-            ChatEvent::ChatDisabled(ChatDisabled {
+            ChatEvent::ChatDisabled {
                 issued_by: participant,
-            })
+            }
         };
 
         ctx.send_ws_message(ctx.participants.connected().ids(), msg)?;
@@ -448,20 +440,15 @@ impl ChatModule {
             return Err(ChatError::UnknownParticipant.into());
         }
 
-        let out_message = MessageSent {
-            id: MessageId::generate(),
-            source: participant,
-            content,
-            scope,
-        };
+        let id = MessageId::generate();
         let stored_msg = StoredMessage {
-            id: out_message.id,
-            source: out_message.source,
-            content: out_message.content.clone(),
-            scope: out_message.scope.clone(),
+            id,
+            source: participant,
+            content: content.clone(),
+            scope: scope.clone(),
             timestamp: Timestamp::now(),
         };
-        let chat_id = ChatId::from_scope_and_source(out_message.scope.clone(), participant);
+        let chat_id = ChatId::from_scope_and_source(scope.clone(), participant);
 
         self.history
             .entry(chat_id.clone())
@@ -488,7 +475,12 @@ impl ChatModule {
             ChatId::Global => {
                 ctx.send_ws_message(
                     ctx.participants.connected().ids(),
-                    ChatEvent::MessageSent(out_message),
+                    ChatEvent::MessageSent {
+                        id,
+                        source: participant,
+                        content,
+                        scope,
+                    },
                 )?;
             }
             ChatId::Breakout(breakout_id) => {
@@ -497,7 +489,12 @@ impl ChatModule {
                         .connected()
                         .room(RoomKind::Breakout(*breakout_id))
                         .ids(),
-                    ChatEvent::MessageSent(out_message),
+                    ChatEvent::MessageSent {
+                        id,
+                        source: participant,
+                        content,
+                        scope,
+                    },
                 )?;
             }
             ChatId::Group(_) => {}
@@ -507,10 +504,16 @@ impl ChatModule {
                 for recipient in private_chat_id.participants() {
                     ctx.send_ws_message(
                         [recipient],
-                        ChatEvent::MessageSent(MessageSent {
+                        // ChatEvent::MessageSent(MessageSent {
+                        //     scope: private_chat_id.to_scope(recipient),
+                        //     ..out_message.clone()
+                        // }),
+                        ChatEvent::MessageSent {
+                            id,
+                            source: participant,
+                            content: content.clone(),
                             scope: private_chat_id.to_scope(recipient),
-                            ..out_message.clone()
-                        }),
+                        },
                     )?;
                 }
             }
@@ -604,10 +607,10 @@ impl ChatModule {
 
         ctx.send_ws_message(
             [sender],
-            ChatEvent::SearchResults(SearchResults {
+            ChatEvent::SearchResults {
                 matches: history,
                 scope,
-            }),
+            },
         )?;
 
         Ok(())
@@ -626,9 +629,9 @@ impl ChatModule {
 
         ctx.send_ws_message(
             ctx.participants.connected().ids(),
-            ChatEvent::HistoryCleared(HistoryCleared {
+            ChatEvent::HistoryCleared {
                 issued_by: participant,
-            }),
+            },
         )?;
         Ok(())
     }
@@ -648,7 +651,7 @@ impl ChatModule {
 
         ctx.send_ws_message(
             ctx.participants.connected().ids(),
-            ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp { scope, timestamp }),
+            ChatEvent::SetLastSeenTimestamp { scope, timestamp },
         )?;
         Ok(())
     }

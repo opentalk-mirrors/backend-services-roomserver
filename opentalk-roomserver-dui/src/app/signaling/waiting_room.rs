@@ -17,9 +17,7 @@ use opentalk_roomserver_types::{
     shared_json::SharedJson,
 };
 use opentalk_roomserver_types_moderation::{
-    command::{Accept, ModerationCommand, SendToWaitingRoom},
-    event::ModerationEvent,
-    state::ModerationState,
+    command::ModerationCommand, event::ModerationEvent, state::ModerationState,
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
@@ -140,9 +138,9 @@ impl WaitingRoomPlugin {
             ui.menu_button("Sent To waiting Room", |ui| {
                 for (participant, state) in &self.in_room {
                     if ui.button(state.display_name.to_string()).clicked() {
-                        return Some(ModerationCommand::SendToWaitingRoom(SendToWaitingRoom {
+                        return Some(ModerationCommand::SendToWaitingRoom {
                             target: *participant,
-                        }));
+                        });
                     }
                 }
                 None
@@ -187,7 +185,7 @@ impl WaitingRoomPlugin {
                 });
             });
 
-        accept_participant.map(|accept_me| ModerationCommand::Accept(Accept { target: accept_me }))
+        accept_participant.map(|accept_me| ModerationCommand::Accept { target: accept_me })
     }
 
     fn handle_signaling(&mut self, signaling_event: &SignalingEvent) {

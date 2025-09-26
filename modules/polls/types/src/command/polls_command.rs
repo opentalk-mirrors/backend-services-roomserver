@@ -2,26 +2,46 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::time::Duration;
+
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    command::{Finish, Start, Vote},
-    event::PollsEvent,
-};
+use crate::{PollId, command::Vote, event::PollsEvent};
 
 /// Commands received by the `polls` module
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum PollsCommand {
     /// Start a poll
-    Start(Start),
+    Start {
+        /// The description of the poll topic
+        topic: String,
+
+        /// True if the poll is live
+        #[serde(default)]
+        live: bool,
+
+        /// True if the poll accepts multiple choices
+        #[serde(default)]
+        multiple_choice: bool,
+
+        /// The choices of the poll
+        choices: Vec<String>,
+
+        /// The duration of the poll
+        #[serde(with = "opentalk_types_common::utils::duration_seconds")]
+        duration: Duration,
+    },
 
     /// Cast a vote
     Vote(Vote),
 
     /// Finish the poll
-    Finish(Finish),
+    Finish {
+        /// The id of the poll
+        id: PollId,
+    },
 }
 
 impl CreateReplica<PollsEvent> for PollsCommand {
@@ -33,21 +53,9 @@ impl CreateReplica<PollsEvent> for PollsCommand {
     }
 }
 
-impl From<Start> for PollsCommand {
-    fn from(value: Start) -> Self {
-        Self::Start(value)
-    }
-}
-
 impl From<Vote> for PollsCommand {
     fn from(value: Vote) -> Self {
         Self::Vote(value)
-    }
-}
-
-impl From<Finish> for PollsCommand {
-    fn from(value: Finish) -> Self {
-        Self::Finish(value)
     }
 }
 
@@ -73,13 +81,13 @@ mod serde_tests {
 
         let message: PollsCommand = serde_json::from_value(json).unwrap();
 
-        if let PollsCommand::Start(Start {
+        if let PollsCommand::Start {
             topic,
             live,
             multiple_choice,
             choices,
             duration,
-        }) = message
+        } = message
         {
             assert_eq!(topic, "abc");
             assert!(live);
@@ -192,6 +200,6 @@ mod serde_tests {
 
         let message: PollsCommand = serde_json::from_value(json).unwrap();
 
-        assert_eq!(message, PollsCommand::Finish(Finish { id: PollId::nil() }));
+        assert_eq!(message, PollsCommand::Finish { id: PollId::nil() });
     }
 }

@@ -80,7 +80,7 @@ use opentalk_roomserver_types_automod::{
     AUTOMOD_MODULE_ID,
     command::{AutomodCommand, Select},
     config::{FrontendConfig, Parameter, SelectionStrategy},
-    event::{AutomodError, AutomodEvent, SpeakerUpdated, StoppedReason},
+    event::{AutomodError, AutomodEvent, StoppedReason},
     state::AutomodState,
 };
 use opentalk_roomserver_types_livekit::{LiveKitInternal, ParticipantsMuted};
@@ -527,11 +527,11 @@ impl AutomodModule {
 
             ctx.send_ws_message(
                 ctx.participants.in_room(ctx.room).connected().ids(),
-                AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+                AutomodEvent::SpeakerUpdated {
                     speaker,
                     history,
                     remaining,
-                }),
+                },
             )?;
         } else {
             let session = self.sessions.get(&ctx.room).with_context(|| {
@@ -543,11 +543,11 @@ impl AutomodModule {
 
             ctx.send_ws_message(
                 ctx.participants.in_room(ctx.room).connected().ids(),
-                AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+                AutomodEvent::SpeakerUpdated {
                     speaker: session.speaker,
                     history: Some(session.participant_history().collect()),
                     remaining: Some(session.remaining.clone()),
-                }),
+                },
             )?;
         }
 

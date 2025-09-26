@@ -4,11 +4,13 @@
 
 //! Signaling events for the `chat` namespace
 
+use opentalk_types_common::time::Timestamp;
+use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    command::SetLastSeenTimestamp,
-    event::{ChatDisabled, ChatEnabled, Error, HistoryCleared, MessageSent, SearchResults},
+    MessageId, Scope,
+    event::ChatError,
     state::{BreakoutHistory, ChatChunk, GroupHistory, PrivateHistory},
 };
 
@@ -16,11 +18,17 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "message", rename_all = "snake_case")]
 pub enum ChatEvent {
-    /// Chat event where chat was enabled see [ChatEnabled]
-    ChatEnabled(ChatEnabled),
+    /// Chat event where chat was enabled
+    ChatEnabled {
+        /// Participant who enabled the chat
+        issued_by: ParticipantId,
+    },
 
-    /// Chat event where chat was disabled see [ChatDisabled]
-    ChatDisabled(ChatDisabled),
+    /// Chat event where chat was disabled
+    ChatDisabled {
+        /// Participant who disabled the chat
+        issued_by: ParticipantId,
+    },
 
     /// A chunk of the rooms chat history
     RoomChatHistoryChunk {
@@ -37,61 +45,54 @@ pub enum ChatEvent {
     /// A chunk of a private chat history between two participants
     PrivateChatHistoryChunk(PrivateHistory),
 
-    /// Chat event where a message was sent see [MessageSent]
-    MessageSent(MessageSent),
+    /// Chat event where a message was sent
+    MessageSent {
+        /// Id of the message
+        id: MessageId,
 
-    /// Chat event where history was cleared see [HistoryCleared]
-    HistoryCleared(HistoryCleared),
+        /// Sender of the message
+        source: ParticipantId,
+
+        /// Content of the message
+        content: String,
+
+        /// Scope of the message
+        #[serde(flatten)]
+        scope: Scope,
+    },
+
+    /// Chat event where history was cleared
+    HistoryCleared {
+        /// ID of the participant that cleared chat history
+        issued_by: ParticipantId,
+    },
 
     /// Chat event when last seen timestamp was set.
-    SetLastSeenTimestamp(SetLastSeenTimestamp),
+    SetLastSeenTimestamp {
+        /// Scope of the timestamp
+        #[serde(flatten)]
+        scope: Scope,
+
+        /// Last seen timestamp
+        timestamp: Timestamp,
+    },
 
     /// The results of a search
-    SearchResults(SearchResults),
+    SearchResults {
+        /// A chunk of messages matching the search term
+        matches: ChatChunk,
+        /// The [`Scope`] of the messages
+        #[serde(flatten)]
+        scope: Scope,
+    },
 
-    /// Chat event which errored see [Error]
-    Error(Error),
+    /// Chat event which errored, see [`ChatError`]
+    Error(ChatError),
 }
 
-impl From<ChatEnabled> for ChatEvent {
-    fn from(value: ChatEnabled) -> Self {
-        Self::ChatEnabled(value)
-    }
-}
-
-impl From<ChatDisabled> for ChatEvent {
-    fn from(value: ChatDisabled) -> Self {
-        Self::ChatDisabled(value)
-    }
-}
-
-impl From<MessageSent> for ChatEvent {
-    fn from(value: MessageSent) -> Self {
-        Self::MessageSent(value)
-    }
-}
-
-impl From<HistoryCleared> for ChatEvent {
-    fn from(value: HistoryCleared) -> Self {
-        Self::HistoryCleared(value)
-    }
-}
-
-impl From<Error> for ChatEvent {
-    fn from(value: Error) -> Self {
+impl From<ChatError> for ChatEvent {
+    fn from(value: ChatError) -> Self {
         Self::Error(value)
-    }
-}
-
-impl From<SetLastSeenTimestamp> for ChatEvent {
-    fn from(value: SetLastSeenTimestamp) -> Self {
-        Self::SetLastSeenTimestamp(value)
-    }
-}
-
-impl From<SearchResults> for ChatEvent {
-    fn from(value: SearchResults) -> Self {
-        Self::SearchResults(value)
     }
 }
 
@@ -110,9 +111,9 @@ mod serde_tests {
 
     #[test]
     fn serialize_chat_enabled() {
-        let event = ChatEvent::ChatEnabled(ChatEnabled {
+        let event = ChatEvent::ChatEnabled {
             issued_by: ParticipantId::from_u128(1),
-        });
+        };
         let serialized = serde_json::to_value(&event).expect("Serialization failed");
         assert_eq!(
             serialized,
@@ -133,18 +134,21 @@ mod serde_tests {
         );
         let deserialized: ChatEvent =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::ChatEnabled(chat_enabled) = deserialized {
-            assert_eq!(chat_enabled.issued_by, ParticipantId::from_u128(1));
-        } else {
-            panic!("Expected ChatEvent::ChatEnabled");
+        if let ChatEvent::ChatEnabled { issued_by } = deserialized {
+            assert_eq!(issued_by, ParticipantId::from_u128(1));
+            if let ChatEvent::ChatEnabled { issued_by } = deserialized {
+                assert_eq!(issued_by, ParticipantId::from_u128(1));
+            } else {
+                panic!("Expected ChatEvent::ChatEnabled");
+            }
         }
     }
 
     #[test]
     fn serialize_chat_disabled() {
-        let event = ChatEvent::ChatDisabled(ChatDisabled {
+        let event = ChatEvent::ChatDisabled {
             issued_by: ParticipantId::from_u128(2),
-        });
+        };
         let serialized = serde_json::to_value(&event).expect("Serialization failed");
         assert_eq!(
             serialized,
@@ -168,18 +172,21 @@ mod serde_tests {
 
         let deserialized: ChatEvent =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::ChatDisabled(chat_disabled) = deserialized {
-            assert_eq!(chat_disabled.issued_by, ParticipantId::from_u128(2));
-        } else {
-            panic!("Expected ChatEvent::ChatDisabled");
+        if let ChatEvent::ChatDisabled { issued_by } = deserialized {
+            assert_eq!(issued_by, ParticipantId::from_u128(2));
+            if let ChatEvent::ChatDisabled { issued_by } = deserialized {
+                assert_eq!(issued_by, ParticipantId::from_u128(2));
+            } else {
+                panic!("Expected ChatEvent::ChatDisabled");
+            }
         }
     }
 
     #[test]
     fn serialize_history_cleared() {
-        let event = ChatEvent::HistoryCleared(HistoryCleared {
+        let event = ChatEvent::HistoryCleared {
             issued_by: ParticipantId::from_u128(4),
-        });
+        };
         let serialized = serde_json::to_value(&event).expect("Serialization failed");
         assert_eq!(
             serialized,
@@ -201,8 +208,8 @@ mod serde_tests {
 
         let deserialized: ChatEvent =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::HistoryCleared(history_cleared) = deserialized {
-            assert_eq!(history_cleared.issued_by, ParticipantId::from_u128(4));
+        if let ChatEvent::HistoryCleared { issued_by } = deserialized {
+            assert_eq!(issued_by, ParticipantId::from_u128(4));
         } else {
             panic!("Expected ChatEvent::HistoryCleared");
         }
@@ -210,10 +217,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_set_last_seen_timestamp() {
-        let event = ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp {
+        let event = ChatEvent::SetLastSeenTimestamp {
             scope: Scope::Global,
             timestamp: Timestamp::unix_epoch(),
-        });
+        };
         let serialized = serde_json::to_value(&event).expect("Serialization failed");
         assert_eq!(
             serialized,
@@ -237,8 +244,8 @@ mod serde_tests {
 
         let deserialized: ChatEvent =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::SetLastSeenTimestamp(set_last_seen_timestamp) = deserialized {
-            assert_eq!(set_last_seen_timestamp.scope, Scope::Global);
+        if let ChatEvent::SetLastSeenTimestamp { scope, .. } = deserialized {
+            assert_eq!(scope, Scope::Global);
         } else {
             panic!("Expected ChatEvent::HistoryCleared");
         }
@@ -246,12 +253,12 @@ mod serde_tests {
 
     #[test]
     fn serialize_global_message() {
-        let produced = serde_json::to_value(ChatEvent::MessageSent(MessageSent {
+        let produced = serde_json::to_value(ChatEvent::MessageSent {
             id: MessageId::nil(),
             source: ParticipantId::nil(),
             content: "Hello All!".to_string(),
             scope: Scope::Global,
-        }))
+        })
         .unwrap();
 
         let expected = json!({
@@ -279,11 +286,17 @@ mod serde_tests {
 
         let deserialized: ChatEvent =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::MessageSent(message_sent) = deserialized {
-            assert_eq!(message_sent.id, MessageId::from_u128(123));
-            assert_eq!(message_sent.source, ParticipantId::from_u128(3));
-            assert_eq!(message_sent.content, "Hello, world!");
-            assert_eq!(message_sent.scope, Scope::Global);
+        if let ChatEvent::MessageSent {
+            id,
+            source,
+            content,
+            scope,
+        } = deserialized
+        {
+            assert_eq!(id, MessageId::from_u128(123));
+            assert_eq!(source, ParticipantId::from_u128(3));
+            assert_eq!(content, "Hello, world!");
+            assert_eq!(scope, Scope::Global);
         } else {
             panic!("Expected ChatEvent::MessageSent");
         }
@@ -291,12 +304,12 @@ mod serde_tests {
 
     #[test]
     fn serialize_group_message() {
-        let produced = serde_json::to_value(ChatEvent::MessageSent(MessageSent {
+        let produced = serde_json::to_value(ChatEvent::MessageSent {
             id: MessageId::nil(),
             source: ParticipantId::nil(),
             content: "Hello managers!".to_string(),
             scope: Scope::Group(GroupName::from("management".to_owned())),
-        }))
+        })
         .unwrap();
         let expected = json!({
             "message":"message_sent",
@@ -324,12 +337,18 @@ mod serde_tests {
 
         let deserialized: ChatEvent =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::MessageSent(message_sent) = deserialized {
-            assert_eq!(message_sent.id, MessageId::from_u128(123));
-            assert_eq!(message_sent.source, ParticipantId::from_u128(3));
-            assert_eq!(message_sent.content, "Hello, world!");
+        if let ChatEvent::MessageSent {
+            id,
+            source,
+            content,
+            scope,
+        } = deserialized
+        {
+            assert_eq!(id, MessageId::from_u128(123));
+            assert_eq!(source, ParticipantId::from_u128(3));
+            assert_eq!(content, "Hello, world!");
             assert_eq!(
-                message_sent.scope,
+                scope,
                 Scope::Group("test".parse().expect("Valid group name"))
             );
         } else {
@@ -339,12 +358,12 @@ mod serde_tests {
 
     #[test]
     fn serialize_private_message() {
-        let produced = serde_json::to_value(ChatEvent::MessageSent(MessageSent {
+        let produced = serde_json::to_value(ChatEvent::MessageSent {
             id: MessageId::nil(),
             source: ParticipantId::nil(),
             content: "Hello All!".to_string(),
             scope: Scope::Private(ParticipantId::from_u128(1)),
-        }))
+        })
         .unwrap();
 
         let expected = json!({
@@ -373,14 +392,17 @@ mod serde_tests {
 
         let deserialized: ChatEvent =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::MessageSent(message_sent) = deserialized {
-            assert_eq!(message_sent.id, MessageId::from_u128(123));
-            assert_eq!(message_sent.source, ParticipantId::from_u128(3));
-            assert_eq!(message_sent.content, "Hello, world!");
-            assert_eq!(
-                message_sent.scope,
-                Scope::Private(ParticipantId::from_u128(1))
-            );
+        if let ChatEvent::MessageSent {
+            id,
+            source,
+            content,
+            scope,
+        } = deserialized
+        {
+            assert_eq!(id, MessageId::from_u128(123));
+            assert_eq!(source, ParticipantId::from_u128(3));
+            assert_eq!(content, "Hello, world!");
+            assert_eq!(scope, Scope::Private(ParticipantId::from_u128(1)));
         } else {
             panic!("Expected ChatEvent::MessageSent");
         }
@@ -388,7 +410,7 @@ mod serde_tests {
 
     #[test]
     fn serialize_error() {
-        let produced = serde_json::to_value(ChatEvent::Error(Error::ChatDisabled)).unwrap();
+        let produced = serde_json::to_value(ChatEvent::Error(ChatError::ChatDisabled)).unwrap();
 
         let expected = json!({
             "message": "error",
@@ -408,7 +430,7 @@ mod serde_tests {
 
         let deserialized: ChatEvent =
             serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::Error(Error::InsufficientPermissions) = deserialized {
+        if let ChatEvent::Error(ChatError::InsufficientPermissions) = deserialized {
             // Success
         } else {
             panic!("Expected ChatEvent::Error(ChatError::InsufficientPermissions)");
@@ -535,10 +557,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_search_results() {
-        let produced = serde_json::to_string_pretty(&ChatEvent::SearchResults(SearchResults {
+        let produced = serde_json::to_string_pretty(&ChatEvent::SearchResults {
             matches: ChatChunk::default(),
             scope: Scope::Global,
-        }))
+        })
         .expect("Serialization failed");
 
         assert_snapshot!(produced, @r#"
@@ -565,10 +587,10 @@ mod serde_tests {
         });
         let produced = serde_json::from_value(json).expect("Deserialization failed");
 
-        let expected = ChatEvent::SearchResults(SearchResults {
+        let expected = ChatEvent::SearchResults {
             matches: ChatChunk::default(),
             scope: Scope::Global,
-        });
+        };
 
         assert_eq!(expected, produced);
     }

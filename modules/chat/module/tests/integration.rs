@@ -19,11 +19,8 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_chat::{
     MessageId, Scope,
-    command::{ChatCommand, GetHistoryChunk, SearchHistory, SendMessage, SetLastSeenTimestamp},
-    event::{
-        ChatDisabled, ChatEnabled, ChatEvent, Error as ChatError, HistoryCleared, MessageSent,
-        SearchResults,
-    },
+    command::ChatCommand,
+    event::{ChatError, ChatEvent},
     state::{
         BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, GroupHistory, PrivateHistory,
         StoredMessage,
@@ -39,21 +36,23 @@ use pretty_assertions::assert_eq;
 /// If a function would be used, the panic would show the function as location regardless
 /// of the test it's used in.
 macro_rules! assert_message_eq {
-    ($expected_scope:expr, $expected_content:expr, $expected_source:expr, $event:expr$(,)?) => {
-        if let ChatEvent::MessageSent(msg @ MessageSent { .. }) = $event {
+    ($expected_scope:expr, $expected_content:expr, $expected_source:expr, $event:expr$(,)?) => {{
+        // Evaluate the event expression exactly once (prevents double awaiting).
+        let event = $event;
+        if let &ChatEvent::MessageSent { id, .. } = event {
             pretty_assertions::assert_eq!(
-                msg,
-                &MessageSent {
-                    id: msg.id,
+                event,
+                &ChatEvent::MessageSent {
+                    id,
                     source: $expected_source,
                     content: $expected_content.to_string(),
                     scope: $expected_scope.clone(),
-                },
+                }
             );
         } else {
-            panic!("Expected ChatEvent::MessageSent, but got: {:?}", $event);
+            panic!("Expected ChatEvent::MessageSent, but got: {:?}", event);
         }
-    };
+    }};
 }
 
 /// Once the chat is disabled, messages cannot be sent.
@@ -72,25 +71,25 @@ async fn chat_is_disabled() {
 
     assert_eq!(
         alice.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::ChatDisabled(ChatDisabled {
+        ChatEvent::ChatDisabled {
             issued_by: alice.id()
-        })
+        }
     );
 
     assert_eq!(
         bob.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::ChatDisabled(ChatDisabled {
+        ChatEvent::ChatDisabled {
             issued_by: alice.id()
-        })
+        }
     );
 
     // Alice cannot send a global message
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: "Hi there".to_string(),
                 scope: Scope::Global,
-            }),
+            },
             None,
         )
         .await
@@ -104,10 +103,10 @@ async fn chat_is_disabled() {
     // Alice cannot send a private message
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: "Hi there".to_string(),
                 scope: Scope::Private(bob.id()),
-            }),
+            },
             None,
         )
         .await
@@ -120,10 +119,10 @@ async fn chat_is_disabled() {
 
     // Bob cannot send a private message
     bob.send_command::<ChatModule>(
-        ChatCommand::SendMessage(SendMessage {
+        ChatCommand::SendMessage {
             content: "Hi there".to_string(),
             scope: Scope::Private(alice.id()),
-        }),
+        },
         None,
     )
     .await
@@ -151,15 +150,15 @@ async fn chat_works_after_enabling() {
         .unwrap();
     assert_eq!(
         alice.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::ChatDisabled(ChatDisabled {
+        ChatEvent::ChatDisabled {
             issued_by: alice.id()
-        })
+        }
     );
     assert_eq!(
         bob.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::ChatDisabled(ChatDisabled {
+        ChatEvent::ChatDisabled {
             issued_by: alice.id()
-        })
+        }
     );
 
     // Enabling the chat should broadcast the ChatEnabled event
@@ -169,24 +168,24 @@ async fn chat_works_after_enabling() {
         .unwrap();
     assert_eq!(
         alice.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::ChatEnabled(ChatEnabled {
+        ChatEvent::ChatEnabled {
             issued_by: alice.id()
-        })
+        }
     );
     assert_eq!(
         bob.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::ChatEnabled(ChatEnabled {
+        ChatEvent::ChatEnabled {
             issued_by: alice.id()
-        })
+        }
     );
 
     // Alice can send a global message, bob and alice should receive the message
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: "Hi there".to_string(),
                 scope: Scope::Global,
-            }),
+            },
             None,
         )
         .await
@@ -207,10 +206,10 @@ async fn chat_works_after_enabling() {
     // Alice can send a private message, bob and alice should receive the message
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: "Hi there".to_string(),
                 scope: Scope::Private(bob.id()),
-            }),
+            },
             None,
         )
         .await
@@ -245,10 +244,10 @@ async fn private_messages_are_private() {
     // Private messages should not be received by third parties
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: "Hi there".to_string(),
                 scope: Scope::Private(bob.id()),
-            }),
+            },
             None,
         )
         .await
@@ -292,10 +291,10 @@ async fn global_chat_is_cleared() {
     let global_message = "Hi there";
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: global_message.to_string(),
                 scope: Scope::Global,
-            }),
+            },
             None,
         )
         .await
@@ -317,10 +316,10 @@ async fn global_chat_is_cleared() {
     let private_message = "Hi there from alice";
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: private_message.to_string(),
                 scope: Scope::Private(bob.id()),
-            }),
+            },
             None,
         )
         .await
@@ -345,15 +344,15 @@ async fn global_chat_is_cleared() {
         .unwrap();
     assert_eq!(
         alice.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::HistoryCleared(HistoryCleared {
+        ChatEvent::HistoryCleared {
             issued_by: alice.id()
-        })
+        }
     );
     assert_eq!(
         bob.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::HistoryCleared(HistoryCleared {
+        ChatEvent::HistoryCleared {
             issued_by: alice.id()
-        })
+        }
     );
 
     // When bob reconnects, the join success should only contain the private message
@@ -409,39 +408,39 @@ async fn last_seen_timestamp_should_be_stored() {
     // set global last seen timestamp
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SetLastSeenTimestamp(SetLastSeenTimestamp {
+            ChatCommand::SetLastSeenTimestamp {
                 scope: Scope::Global,
                 timestamp,
-            }),
+            },
             None,
         )
         .await
         .unwrap();
     assert_eq!(
         alice.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp {
+        ChatEvent::SetLastSeenTimestamp {
             scope: Scope::Global,
             timestamp,
-        })
+        }
     );
 
     // set private last seen timestamp
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SetLastSeenTimestamp(SetLastSeenTimestamp {
+            ChatCommand::SetLastSeenTimestamp {
                 scope: Scope::Private(other_participant),
                 timestamp,
-            }),
+            },
             None,
         )
         .await
         .unwrap();
     assert_eq!(
         alice.receive_event::<ChatModule>().await.unwrap().payload,
-        ChatEvent::SetLastSeenTimestamp(SetLastSeenTimestamp {
+        ChatEvent::SetLastSeenTimestamp {
             scope: Scope::Private(other_participant),
             timestamp,
-        })
+        }
     );
 
     alice.disconnect().await.unwrap();
@@ -484,10 +483,10 @@ async fn breakout_scope_messages() {
     // Alice sends a message to the breakout room
     breakout_alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: breakout_message.clone(),
                 scope: breakout_scope.clone(),
-            }),
+            },
             None,
         )
         .await
@@ -543,10 +542,10 @@ async fn invalid_breakout_scope() {
     // Charlie sends a message to breakout room 1
     main_room_charlie
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: breakout_message.clone(),
                 scope: breakout_scope.clone(),
-            }),
+            },
             None,
         )
         .await
@@ -587,10 +586,10 @@ async fn send_global_message_from_breakout_room() {
     // Alice sends a message to the global room
     breakout_alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: global_message_from_breakout_room.clone(),
                 scope: global_scope.clone(),
-            }),
+            },
             None,
         )
         .await
@@ -652,10 +651,10 @@ async fn send_global_message_to_breakout_room() {
     // Charlie sends a message to the global room
     main_room_charlie
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: global_message_from_breakout_room.clone(),
                 scope: global_scope.clone(),
-            }),
+            },
             None,
         )
         .await
@@ -715,10 +714,10 @@ async fn send_private_message_breakout_to_breakout() {
     let message: String = "private message from breakout to breakout room".into();
     breakout_alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: message.clone(),
                 scope: Scope::Private(breakout_bob.id()),
-            }),
+            },
             None,
         )
         .await
@@ -772,10 +771,10 @@ async fn send_private_message_breakout_to_main() {
     let message: String = "private message from breakout to main room".into();
     breakout_bob
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: message.clone(),
                 scope: Scope::Private(main_room_charlie.id()),
-            }),
+            },
             None,
         )
         .await
@@ -829,10 +828,10 @@ async fn send_private_message_main_to_breakout() {
     let message: String = "private message from main to breakout room".into();
     main_room_charlie
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: message.clone(),
                 scope: Scope::Private(breakout_alice.id()),
-            }),
+            },
             None,
         )
         .await
@@ -873,10 +872,10 @@ async fn send_private_message_unknown_participant() {
 
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: "hello".into(),
                 scope: Scope::Private(ParticipantId::nil()),
-            }),
+            },
             None,
         )
         .await
@@ -1144,10 +1143,10 @@ async fn other_breakout_room_history_chunk() {
     // inside it
     let scope = Scope::Breakout(BreakoutId::from(0));
     bob.send_command::<ChatModule>(
-        ChatCommand::GetHistoryChunk(GetHistoryChunk {
+        ChatCommand::GetHistoryChunk {
             message_index: 0,
             scope: scope.clone(),
-        }),
+        },
         None,
     )
     .await
@@ -1159,10 +1158,10 @@ async fn other_breakout_room_history_chunk() {
     // Alice is allowed to search the messages of the breakout room
     alice
         .send_command::<ChatModule>(
-            ChatCommand::GetHistoryChunk(GetHistoryChunk {
+            ChatCommand::GetHistoryChunk {
                 message_index: 0,
                 scope: scope.clone(),
-            }),
+            },
             None,
         )
         .await
@@ -1185,10 +1184,10 @@ async fn get_chunk(
 ) -> ChatChunk {
     participant
         .send_command::<ChatModule>(
-            ChatCommand::GetHistoryChunk(GetHistoryChunk {
+            ChatCommand::GetHistoryChunk {
                 message_index,
                 scope: scope.clone(),
-            }),
+            },
             None,
         )
         .await
@@ -1227,16 +1226,16 @@ async fn fill_messages(
     for i in 0..message_count {
         sender
             .send_command::<ChatModule>(
-                ChatCommand::SendMessage(SendMessage {
+                ChatCommand::SendMessage {
                     content: format!("{i}_{content}"),
                     scope: scope.clone(),
-                }),
+                },
                 None,
             )
             .await
             .unwrap();
         let event = sender.receive_event::<ChatModule>().await.unwrap().payload;
-        assert!(matches!(event, ChatEvent::MessageSent(..)));
+        assert!(matches!(event, ChatEvent::MessageSent { .. }));
 
         // Messages must be received because otherwise the channel fills up and
         // builds back pressure on the sender of the sending participant.
@@ -1258,10 +1257,10 @@ async fn private_chat_history_on_join() {
     // Alice sends a private message to Bob
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SendMessage(SendMessage {
+            ChatCommand::SendMessage {
                 content: "hello Bob".into(),
                 scope: Scope::Private(bob.id()),
-            }),
+            },
             None,
         )
         .await
@@ -1331,11 +1330,11 @@ async fn invalid_search_term_length() {
 
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SearchHistory(SearchHistory {
+            ChatCommand::SearchHistory {
                 term: "".into(),
                 scope: Scope::Global,
                 message_index: None,
-            }),
+            },
             None,
         )
         .await
@@ -1557,11 +1556,11 @@ async fn search(
 ) -> ChatChunk {
     participant
         .send_command::<ChatModule>(
-            ChatCommand::SearchHistory(SearchHistory {
+            ChatCommand::SearchHistory {
                 term: term.into(),
                 scope: search_scope.clone(),
                 message_index,
-            }),
+            },
             None,
         )
         .await
@@ -1574,7 +1573,7 @@ async fn search(
         .payload;
 
     match event {
-        ChatEvent::SearchResults(SearchResults { matches, scope }) => {
+        ChatEvent::SearchResults { matches, scope } => {
             assert_eq!(scope, search_scope);
             for message in &matches.messages {
                 message.content.contains(term);
@@ -1609,11 +1608,11 @@ async fn search_other_breakout_room() {
     // inside it
     let scope = Scope::Breakout(BreakoutId::from(0));
     bob.send_command::<ChatModule>(
-        ChatCommand::SearchHistory(SearchHistory {
+        ChatCommand::SearchHistory {
             scope: scope.clone(),
             term: "hello".into(),
             message_index: None,
-        }),
+        },
         None,
     )
     .await
@@ -1625,11 +1624,11 @@ async fn search_other_breakout_room() {
     // Alice is allowed to search the messages of the breakout room
     alice
         .send_command::<ChatModule>(
-            ChatCommand::SearchHistory(SearchHistory {
+            ChatCommand::SearchHistory {
                 scope: scope.clone(),
                 term: "hello".into(),
                 message_index: None,
-            }),
+            },
             None,
         )
         .await
@@ -1638,9 +1637,9 @@ async fn search_other_breakout_room() {
     let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        ChatEvent::SearchResults(SearchResults {
+        ChatEvent::SearchResults {
             matches: ChatChunk::default(),
             scope
-        })
+        }
     );
 }

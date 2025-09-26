@@ -6,10 +6,8 @@
 
 mod automod_event;
 mod error;
-mod speaker_updated;
 mod stopped_reason;
 
 pub use automod_event::AutomodEvent;
 pub use error::AutomodError;
-pub use speaker_updated::SpeakerUpdated;
 pub use stopped_reason::StoppedReason;

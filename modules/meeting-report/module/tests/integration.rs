@@ -6,7 +6,7 @@ use opentalk_roomserver_module_meeting_report::MeetingReportModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types_meeting_report::{
     command::MeetingReportCommand,
-    event::{MeetingReportError, MeetingReportEvent, PdfAsset},
+    event::{MeetingReportError, MeetingReportEvent},
 };
 
 #[test_log::test(tokio::test)]
@@ -36,7 +36,7 @@ async fn generate_meeting_report() {
         .await
         .unwrap()
         .payload;
-    let MeetingReportEvent::PdfAsset(PdfAsset { asset_id, .. }) = event else {
+    let MeetingReportEvent::PdfAsset { asset_id, .. } = event else {
         panic!("Expected PdfAsset event, got {event:#?}");
     };
 

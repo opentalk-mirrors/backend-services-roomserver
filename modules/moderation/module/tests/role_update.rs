@@ -10,7 +10,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
-    event::{ModerationError, ModerationEvent, RoleUpdate},
+    event::{ModerationError, ModerationEvent},
 };
 use opentalk_roomserver_types_shared_folder::event::SharedFolderEvent;
 use opentalk_types_common::{
@@ -30,10 +30,10 @@ async fn insufficient_permissions() {
 
     // Bob tries to change the role of charlie to a moderator
     bob.send_command::<ModerationModule>(
-        ModerationCommand::UpdateRole(RoleUpdate {
+        ModerationCommand::UpdateRole {
             participant_id: charlie.id(),
             new_role: Role::Moderator,
-        }),
+        },
         None,
     )
     .await
@@ -48,10 +48,10 @@ async fn insufficient_permissions() {
 
     // Bob tries to change the role of charlie to a user
     bob.send_command::<ModerationModule>(
-        ModerationCommand::UpdateRole(RoleUpdate {
+        ModerationCommand::UpdateRole {
             participant_id: charlie.id(),
             new_role: Role::User,
-        }),
+        },
         None,
     )
     .await
@@ -79,10 +79,10 @@ async fn cannot_change_room_owner_role() {
     // Frank tries to change the role of Alice
     frank
         .send_command::<ModerationModule>(
-            ModerationCommand::UpdateRole(RoleUpdate {
+            ModerationCommand::UpdateRole {
                 participant_id: alice.id(),
                 new_role: Role::User,
-            }),
+            },
             None,
         )
         .await
@@ -105,10 +105,10 @@ async fn unknown_participant() {
 
     alice
         .send_command::<ModerationModule>(
-            ModerationCommand::UpdateRole(RoleUpdate {
+            ModerationCommand::UpdateRole {
                 participant_id: ParticipantId::from_u128(0xb0b),
                 new_role: Role::User,
-            }),
+            },
             None,
         )
         .await
@@ -132,20 +132,27 @@ async fn change_role_to_moderator() {
     let dave = room.join_dave(0).await;
     flush_connected_events(&mut [&mut alice, &mut bob]).await;
 
-    let role_update = RoleUpdate {
-        participant_id: bob.id(),
-        new_role: Role::Moderator,
-    };
-
     alice
-        .send_command::<ModerationModule>(ModerationCommand::UpdateRole(role_update.clone()), None)
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: bob.id(),
+                new_role: Role::Moderator,
+            },
+            None,
+        )
         .await
         .unwrap();
 
     // Alice and Bob receive the role update event
     let bob_event = bob.receive_event::<ModerationModule>().await.unwrap();
     let alice_event = alice.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(bob_event.payload, ModerationEvent::RoleUpdated(role_update));
+    assert_eq!(
+        bob_event.payload,
+        ModerationEvent::RoleUpdated {
+            participant_id: bob.id(),
+            new_role: Role::Moderator,
+        }
+    );
     assert_eq!(alice_event.payload, bob_event.payload);
 
     // Check if bob is now moderator by banning dave
@@ -176,13 +183,14 @@ async fn change_role_to_user() {
     let mut dave = room.join_dave(0).await;
     flush_connected_events(&mut [&mut alice, &mut frank]).await;
 
-    let role_update = RoleUpdate {
-        participant_id: frank.id(),
-        new_role: Role::User,
-    };
-
     alice
-        .send_command::<ModerationModule>(ModerationCommand::UpdateRole(role_update.clone()), None)
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: frank.id(),
+                new_role: Role::User,
+            },
+            None,
+        )
         .await
         .unwrap();
 
@@ -191,7 +199,10 @@ async fn change_role_to_user() {
     let alice_event = alice.receive_event::<ModerationModule>().await.unwrap();
     let dave_event = dave.receive_event::<ModerationModule>().await.unwrap();
 
-    let expected_event = ModerationEvent::RoleUpdated(role_update);
+    let expected_event = ModerationEvent::RoleUpdated {
+        participant_id: frank.id(),
+        new_role: Role::User,
+    };
     assert_eq!(bob_event.payload, expected_event);
     assert_eq!(alice_event.payload, expected_event);
     assert_eq!(dave_event.payload, expected_event);
@@ -241,20 +252,27 @@ async fn shared_folder_after_promotion() {
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
-    let role_update = RoleUpdate {
-        participant_id: bob.id(),
-        new_role: Role::Moderator,
-    };
-
     alice
-        .send_command::<ModerationModule>(ModerationCommand::UpdateRole(role_update.clone()), None)
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: bob.id(),
+                new_role: Role::Moderator,
+            },
+            None,
+        )
         .await
         .unwrap();
 
     // Alice and Bob receive the role update event
     let bob_event = bob.receive_event::<ModerationModule>().await.unwrap();
     let alice_event = alice.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(bob_event.payload, ModerationEvent::RoleUpdated(role_update));
+    assert_eq!(
+        bob_event.payload,
+        ModerationEvent::RoleUpdated {
+            participant_id: bob.id(),
+            new_role: Role::Moderator,
+        }
+    );
     assert_eq!(alice_event.payload, bob_event.payload);
 
     // Bob receives the new shared folder
@@ -299,13 +317,14 @@ async fn shared_folder_after_demotion() {
     let mut frank = room.join_frank_moderator(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
-    let role_update = RoleUpdate {
-        participant_id: frank.id(),
-        new_role: Role::User,
-    };
-
     alice
-        .send_command::<ModerationModule>(ModerationCommand::UpdateRole(role_update.clone()), None)
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: frank.id(),
+                new_role: Role::User,
+            },
+            None,
+        )
         .await
         .unwrap();
 
@@ -314,7 +333,10 @@ async fn shared_folder_after_demotion() {
     let alice_event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         frank_event.payload,
-        ModerationEvent::RoleUpdated(role_update)
+        ModerationEvent::RoleUpdated {
+            participant_id: frank.id(),
+            new_role: Role::User,
+        }
     );
     assert_eq!(alice_event.payload, frank_event.payload);
 

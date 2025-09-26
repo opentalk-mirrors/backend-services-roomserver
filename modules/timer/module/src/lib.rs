@@ -20,8 +20,8 @@ use opentalk_roomserver_types::{
     signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_timer::{
-    Kind, Start, StopKind, TIMER_MODULE_ID, TimerCommand, TimerConfig, TimerError, command,
-    event::{Started, Stopped, TimerEvent, updated_ready_status::UpdatedReadyStatus},
+    Kind, StopKind, TIMER_MODULE_ID, TimerCommand, TimerConfig, TimerError, command,
+    event::{Stopped, TimerEvent},
     peer_state::TimerPeerState,
     state::TimerState,
 };
@@ -220,7 +220,12 @@ impl SignalingModule for TimerModule {
         payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match payload {
-            TimerCommand::Start(start) => self.start_timer(ctx, sender, start)?,
+            TimerCommand::Start {
+                kind,
+                style,
+                title,
+                enable_ready_check,
+            } => self.start_timer(ctx, sender, kind, style, title, enable_ready_check)?,
             TimerCommand::Stop { reason } => self.stop_timer(ctx, sender, reason)?,
             TimerCommand::UpdateReadyStatus { status } => {
                 self.update_ready_status(ctx, sender, status)?;
@@ -259,7 +264,10 @@ impl TimerModule {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
-        start: Start,
+        kind: command::Kind,
+        style: Option<String>,
+        title: Option<String>,
+        ready_check_enabled: bool,
     ) -> Result<(), SignalingModuleError<<TimerModule as SignalingModule>::Error>> {
         if !ctx.is_moderator(sender) {
             return Err(TimerError::InsufficientPermissions.into());
@@ -275,7 +283,7 @@ impl TimerModule {
 
         let started_at = ctx.timestamp;
         let mut tx_cancel = None;
-        let kind = match start.kind {
+        let kind = match kind {
             command::Kind::Stopwatch => Kind::Stopwatch,
             command::Kind::Countdown { duration } => {
                 let signed_duration = duration
@@ -301,24 +309,24 @@ impl TimerModule {
             config: TimerConfig {
                 started_at,
                 kind,
-                style: start.style.clone(),
-                title: start.title.clone(),
-                ready_check_enabled: start.enable_ready_check,
+                style: style.clone(),
+                title: title.clone(),
+                ready_check_enabled,
             },
             tx_cancel,
         });
 
         ctx.send_ws_message(
             ctx.participants.filter().room(ctx.room).ids(),
-            TimerEvent::Started(Started {
+            TimerEvent::Started {
                 config: TimerConfig {
                     started_at,
                     kind,
-                    style: start.style,
-                    title: start.title,
-                    ready_check_enabled: start.enable_ready_check,
+                    style,
+                    title,
+                    ready_check_enabled,
                 },
-            }),
+            },
         )?;
         Ok(())
     }
@@ -413,10 +421,10 @@ impl TimerModule {
         if changed {
             ctx.send_ws_message(
                 ctx.participants.filter().room(ctx.room).ids(),
-                TimerEvent::UpdatedReadyStatus(UpdatedReadyStatus {
+                TimerEvent::UpdatedReadyStatus {
                     participant_id: sender,
                     status: ready,
-                }),
+                },
             )?;
         }
 

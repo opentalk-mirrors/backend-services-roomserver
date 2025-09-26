@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     config::PublicConfig,
-    event::{AutomodError, SpeakerUpdated, StoppedReason},
+    event::{AutomodError, StoppedReason},
 };
 
 /// Events send by the `automod` module
@@ -22,10 +22,39 @@ pub enum AutomodEvent {
     /// See [`StoppedReason`]
     Stopped(StoppedReason),
 
-    /// The current speaker has been updated.
+    /// The current speaker state has changed
     ///
-    /// See [`SpeakerUpdated`]
-    SpeakerUpdated(SpeakerUpdated),
+    /// This event will ALWAYS notify of a speaker change, even if the speaker is the same
+    /// participant as before, it MUST be handled as changed.
+    ///
+    /// Both `history` and `remaining`: If the field is set it will contain the complete new list.
+    /// If it doesn't exist it must be treated as unchanged.
+    SpeakerUpdated {
+        /// Speaker field. If [`None`] no speaker is currently selected.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        speaker: Option<ParticipantId>,
+
+        /// Optional modification of the history.
+        ///
+        /// If set the frontend MUST replace its history with the given one.
+        /// If not set the frontend MUST keep its current history.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        history: Option<Vec<ParticipantId>>,
+
+        /// Optional modification of the remaining participants.
+        ///
+        /// Remaining participants must be interpreted differently depending on the selection
+        /// strategy. E.g. in the playlist moderation `remaining` lists the participants
+        /// left inside the playlist. All other strategies will use `remaining` (if at all)
+        /// to list all participants (if public) that are eligible to be selected.
+        ///
+        /// This will only be set when using the `playlist` selection_strategy.
+        ///
+        /// If set the frontend MUST replace its remaining list with the given one.
+        /// If not set the frontend MUST keep its current remaining list.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        remaining: Option<Vec<ParticipantId>>,
+    },
 
     /// The remaining list has been updated
     RemainingUpdated {
@@ -119,11 +148,11 @@ mod serde_tests {
 
     #[test]
     fn speaker_update_event() {
-        let produced = serde_json::to_value(AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        let produced = serde_json::to_value(AutomodEvent::SpeakerUpdated {
             speaker: Some(ParticipantId::from_u128(1)),
             history: Some(vec![]),
             remaining: Some(vec![ParticipantId::from_u128(2)]),
-        }))
+        })
         .unwrap();
 
         let expected = json!({
@@ -135,11 +164,11 @@ mod serde_tests {
 
         assert_eq!(produced, expected);
 
-        let produced = serde_json::to_value(AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        let produced = serde_json::to_value(AutomodEvent::SpeakerUpdated {
             speaker: None,
             history: None,
             remaining: None,
-        }))
+        })
         .unwrap();
 
         let expected = json!({

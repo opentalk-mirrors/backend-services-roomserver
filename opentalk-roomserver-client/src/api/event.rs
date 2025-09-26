@@ -107,11 +107,11 @@ mod tests {
         breakout::event::BreakoutEvent, connection_id::ConnectionId, core::CoreEvent,
     };
     use opentalk_roomserver_types_automod::event::{AutomodEvent, StoppedReason};
-    use opentalk_roomserver_types_chat::event::{ChatDisabled, ChatEvent};
+    use opentalk_roomserver_types_chat::event::ChatEvent;
     use opentalk_roomserver_types_echo::event::EchoEvent;
     use opentalk_roomserver_types_livekit::LiveKitEvent;
     use opentalk_roomserver_types_meeting_notes::MeetingNotesEvent;
-    use opentalk_roomserver_types_meeting_report::event::{MeetingReportEvent, PdfAsset};
+    use opentalk_roomserver_types_meeting_report::event::MeetingReportEvent;
     use opentalk_roomserver_types_moderation::event::ModerationEvent;
     use opentalk_roomserver_types_polls::{
         ChoiceId, PollId,
@@ -124,9 +124,7 @@ mod tests {
         event::SubroomAudioEvent,
         state::{WhisperGroup, WhisperState},
     };
-    use opentalk_roomserver_types_timer::{
-        TimerEvent, event::updated_ready_status::UpdatedReadyStatus,
-    };
+    use opentalk_roomserver_types_timer::TimerEvent;
     use opentalk_roomserver_types_whiteboard::WhiteboardEvent;
     use opentalk_types_common::{assets::AssetId, modules::ModuleId, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
@@ -224,9 +222,9 @@ mod tests {
         let event = SignalingEvent {
             transaction_id: None,
             timestamp: Timestamp::unix_epoch(),
-            payload: SignalingModuleEvent::Chat(ChatEvent::ChatDisabled(ChatDisabled {
+            payload: SignalingModuleEvent::Chat(ChatEvent::ChatDisabled {
                 issued_by: ParticipantId::from_u128(0x01),
-            })),
+            }),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
@@ -304,12 +302,10 @@ mod tests {
         let event = SignalingEvent {
             transaction_id: None,
             timestamp: Timestamp::unix_epoch(),
-            payload: SignalingModuleEvent::Timer(TimerEvent::UpdatedReadyStatus(
-                UpdatedReadyStatus {
-                    participant_id: ParticipantId::nil(),
-                    status: true,
-                },
-            )),
+            payload: SignalingModuleEvent::Timer(TimerEvent::UpdatedReadyStatus {
+                participant_id: ParticipantId::nil(),
+                status: true,
+            }),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
@@ -366,10 +362,10 @@ mod tests {
         let event = SignalingEvent {
             transaction_id: None,
             timestamp: Timestamp::unix_epoch(),
-            payload: SignalingModuleEvent::MeetingReport(MeetingReportEvent::PdfAsset(PdfAsset {
+            payload: SignalingModuleEvent::MeetingReport(MeetingReportEvent::PdfAsset {
                 filename: "name".into(),
                 asset_id: AssetId::nil(),
-            })),
+            }),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
 

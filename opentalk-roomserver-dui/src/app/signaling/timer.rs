@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_client::api::command::{SignalingCommand, SignalingModuleCommand};
-use opentalk_roomserver_types_timer::{Start, TimerCommand, command::Kind};
+use opentalk_roomserver_types_timer::{TimerCommand, command::Kind};
 use rand::RngCore as _;
 
 use super::plugin::Received;
@@ -98,12 +98,12 @@ impl TimerPlugin {
     fn start_command_ui(&mut self, ui: &mut egui::Ui) -> Option<TimerCommand> {
         ui.horizontal(|ui| {
             if ui.button("Start").clicked() {
-                return Some(TimerCommand::Start(Start {
+                return Some(TimerCommand::Start {
                     kind: self.new_timer_kind,
                     style: None,
                     title: None,
                     enable_ready_check: self.new_timer_ready_check,
-                }));
+                });
             }
             let kind_label = match self.new_timer_kind {
                 Kind::Stopwatch => "Stopwatch",

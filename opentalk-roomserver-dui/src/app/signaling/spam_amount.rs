@@ -3,10 +3,7 @@
 
 use egui::Widget;
 use opentalk_roomserver_client::api::command::{SignalingCommand, SignalingModuleCommand};
-use opentalk_roomserver_types_chat::{
-    Scope,
-    command::{ChatCommand, SendMessage},
-};
+use opentalk_roomserver_types_chat::{Scope, command::ChatCommand};
 use rand::RngCore as _;
 
 use super::plugin::Received;
@@ -107,12 +104,11 @@ impl SpamAmountPlugin {
 
     fn next_message(&mut self) {
         let content: String = std::iter::repeat_n('~', self.message_size).collect();
-        let mut signaling_command = SignalingCommand::from(SignalingModuleCommand::Chat(
-            ChatCommand::SendMessage(SendMessage {
+        let mut signaling_command =
+            SignalingCommand::from(SignalingModuleCommand::Chat(ChatCommand::SendMessage {
                 content,
                 scope: Scope::Global,
-            }),
-        ));
+            }));
         signaling_command.transaction_id = Some(self.rng.next_u64());
         self.message =
             serde_json::to_string(&signaling_command).expect("ChatCommand must be serializable");

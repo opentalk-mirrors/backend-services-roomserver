@@ -19,7 +19,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_automod::{
     command::{AutomodCommand, Select},
     config::{FrontendConfig, Parameter, SelectionStrategy},
-    event::{AutomodError, AutomodEvent, SpeakerUpdated, StoppedReason},
+    event::{AutomodError, AutomodEvent, StoppedReason},
     state::AutomodState,
 };
 use opentalk_types_signaling::ParticipantId;
@@ -287,21 +287,21 @@ async fn livekit_insufficient_permissions_yield() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(allow_list.clone())
-        })
+        }
     );
 
     let event = bob.receive_event::<AutomodModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(allow_list)
-        })
+        }
     );
 
     bob.send_command::<AutomodModule>(
@@ -810,11 +810,11 @@ async fn livekit_join_auto_append() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(Vec::new())
-        })
+        }
     );
 
     // Bob joins the room
@@ -871,21 +871,21 @@ async fn livekit_join_auto_append() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(bob.id()),
             history: Some(vec![alice.id(), bob.id()]),
             remaining: Some(Vec::new())
-        })
+        }
     );
 
     let event = bob.receive_event::<AutomodModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(bob.id()),
             history: Some(vec![alice.id(), bob.id()]),
             remaining: Some(Vec::new())
-        })
+        }
     );
 }
 
@@ -920,11 +920,11 @@ async fn livekit_join_no_auto_append() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(Vec::new())
-        })
+        }
     );
 
     // Bob joins the room
@@ -1186,11 +1186,11 @@ async fn livekit_selection_strategy_none() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(allow_list.clone())
-        })
+        }
     );
 
     // Yielding is not allowed
@@ -1213,11 +1213,11 @@ async fn livekit_selection_strategy_none() {
     let event = bob.receive_event::<AutomodModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(allow_list.clone())
-        })
+        }
     );
 
     // Selecting None is allowed
@@ -1233,21 +1233,21 @@ async fn livekit_selection_strategy_none() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: None,
             history: Some(vec![alice.id()]),
             remaining: Some(allow_list.clone())
-        })
+        }
     );
 
     let event = bob.receive_event::<AutomodModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: None,
             history: Some(vec![alice.id()]),
             remaining: Some(allow_list.clone())
-        })
+        }
     );
 }
 
@@ -1294,21 +1294,21 @@ async fn livekit_selection_strategy_playlist() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(vec![bob.id(), gustav.id()])
-        })
+        }
     );
 
     let event = bob.receive_event::<AutomodModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(vec![bob.id(), gustav.id()])
-        })
+        }
     );
 
     // Selecting charlie is not allowed, because he is not in the playlist
@@ -1349,21 +1349,21 @@ async fn livekit_selection_strategy_playlist() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(bob.id()),
             history: Some(vec![alice.id(), bob.id()]),
             remaining: Some(vec![bob.id(), gustav.id()])
-        })
+        }
     );
 
     let event = bob.receive_event::<AutomodModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(bob.id()),
             history: Some(vec![alice.id(), bob.id()]),
             remaining: Some(vec![bob.id(), gustav.id()])
-        })
+        }
     );
 
     // Yielding with specifying the next participant is not allowed
@@ -1387,11 +1387,11 @@ async fn livekit_selection_strategy_playlist() {
     let event = bob.receive_event::<AutomodModule>().await.unwrap().payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(bob.id()),
             history: Some(vec![alice.id(), bob.id(), bob.id()]),
             remaining: Some(vec![gustav.id()])
-        })
+        }
     );
 
     let event = alice
@@ -1401,11 +1401,11 @@ async fn livekit_selection_strategy_playlist() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(bob.id()),
             history: Some(vec![alice.id(), bob.id(), bob.id()]),
             remaining: Some(vec![gustav.id()])
-        })
+        }
     );
 
     // Selecting none is allowed
@@ -1421,11 +1421,11 @@ async fn livekit_selection_strategy_playlist() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: None,
             history: Some(vec![alice.id(), bob.id(), bob.id()]),
             remaining: Some(vec![gustav.id()])
-        })
+        }
     );
 
     // Selecting a random participant is allowed
@@ -1441,11 +1441,11 @@ async fn livekit_selection_strategy_playlist() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(gustav.id()),
             history: Some(vec![alice.id(), bob.id(), bob.id(), gustav.id()]),
             remaining: Some(Vec::new())
-        })
+        }
     );
 
     alice
@@ -1527,11 +1527,11 @@ async fn livekit_selection_strategy_random() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(vec![alice.id(), bob.id()])
-        })
+        }
     );
 
     // Yielding with specifying the next participant is not allowed
@@ -1564,7 +1564,7 @@ async fn livekit_selection_strategy_random() {
         .payload;
     assert!(matches!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated { speaker, .. })
+        AutomodEvent::SpeakerUpdated { speaker, .. }
             if speaker == Some(alice.id()) || speaker == Some(bob.id())
     ));
 
@@ -1580,7 +1580,7 @@ async fn livekit_selection_strategy_random() {
         .payload;
     assert!(matches!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated { speaker: None, .. })
+        AutomodEvent::SpeakerUpdated { speaker: None, .. }
     ));
 
     // Selecting a random participant is allowed
@@ -1596,7 +1596,7 @@ async fn livekit_selection_strategy_random() {
         .payload;
     assert!(matches!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated { speaker, .. })
+        AutomodEvent::SpeakerUpdated { speaker, .. }
             if speaker == Some(alice.id()) || speaker == Some(bob.id())
     ));
 
@@ -1694,11 +1694,11 @@ async fn livekit_selection_strategy_nomination() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(alice.id()),
             history: Some(vec![alice.id()]),
             remaining: Some(vec![bob.id(), gustav.id()])
-        })
+        }
     );
 
     // Yielding with specifying the next participant is allowed
@@ -1719,11 +1719,11 @@ async fn livekit_selection_strategy_nomination() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(bob.id()),
             history: Some(vec![alice.id(), bob.id()]),
             remaining: Some(vec![gustav.id()])
-        })
+        }
     );
 
     // Selecting none is allowed
@@ -1739,11 +1739,11 @@ async fn livekit_selection_strategy_nomination() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: None,
             history: Some(vec![alice.id(), bob.id()]),
             remaining: Some(vec![gustav.id()])
-        })
+        }
     );
 
     // Selecting a random participant is allowed
@@ -1759,10 +1759,10 @@ async fn livekit_selection_strategy_nomination() {
         .payload;
     assert_eq!(
         event,
-        AutomodEvent::SpeakerUpdated(SpeakerUpdated {
+        AutomodEvent::SpeakerUpdated {
             speaker: Some(gustav.id()),
             history: Some(vec![alice.id(), bob.id(), gustav.id()]),
             remaining: Some(Vec::new())
-        })
+        }
     );
 }

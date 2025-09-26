@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// Errors from the `chat` module namespace
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "error", rename_all = "snake_case")]
-pub enum Error {
+pub enum ChatError {
     /// Request while chat is disabled
     ChatDisabled,
 
@@ -28,4 +28,4 @@ pub enum Error {
     },
 }
 
-impl ModuleError for Error {}
+impl ModuleError for ChatError {}

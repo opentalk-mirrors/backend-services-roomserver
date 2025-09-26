@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    WhisperGroupOutgoing, WhisperInvite, error::SubroomAudioError,
-    participants_invited::ParticipantsInvited, whisper_accepted::WhisperAccepted,
-    whisper_participant_info::WhisperParticipantInfo, whisper_token::WhisperToken,
+    WhisperGroupOutgoing, error::SubroomAudioError,
+    whisper_participant_info::WhisperParticipantInfo,
 };
 use crate::whisper_id::WhisperId;
 
@@ -24,13 +24,34 @@ pub enum SubroomAudioEvent {
         group: WhisperGroupOutgoing,
     },
     /// An invite to a whisper group
-    WhisperInvite(WhisperInvite),
+    WhisperInvite {
+        /// The issuer of the invite
+        issuer: ParticipantId,
+        /// The whisper group
+        #[serde(flatten)]
+        group: WhisperGroupOutgoing,
+    },
     /// The access token for a whisper group
-    WhisperToken(WhisperToken),
+    WhisperToken {
+        /// Unique id for the whisper group
+        whisper_id: WhisperId,
+        /// The JWT access token for the whisper room
+        token: String,
+    },
     /// Another participant was invited to the whisper group
-    ParticipantsInvited(ParticipantsInvited),
+    ParticipantsInvited {
+        /// The id of the whisper group
+        whisper_id: WhisperId,
+        /// The participants that were invited
+        participant_ids: Vec<ParticipantId>,
+    },
     /// The invite to a whisper group was accepted
-    WhisperInviteAccepted(WhisperAccepted),
+    WhisperInviteAccepted {
+        /// The id of the whisper group
+        whisper_id: WhisperId,
+        /// The participant that accepted the invite
+        participant_id: ParticipantId,
+    },
     /// The participant declined the whisper invite
     WhisperInviteDeclined(WhisperParticipantInfo),
     /// Kicked from the whisper group
@@ -59,10 +80,7 @@ mod serde_tests {
 
     use super::SubroomAudioEvent;
     use crate::{
-        event::{
-            ParticipantsInvited, SubroomAudioError, WhisperAccepted, WhisperInvite,
-            WhisperParticipantInfo, WhisperToken,
-        },
+        event::{SubroomAudioError, WhisperParticipantInfo},
         state::{WhisperGroup, WhisperState},
         whisper_id::WhisperId,
     };
@@ -120,12 +138,10 @@ mod serde_tests {
             ]),
         };
 
-        let invite = WhisperInvite {
+        let event = SubroomAudioEvent::WhisperInvite {
             issuer: ParticipantId::from_u128(0),
             group: group.into(),
         };
-
-        let event = SubroomAudioEvent::WhisperInvite(invite);
 
         let value = serde_json::to_value(event).expect("Must be serializable");
 
@@ -155,10 +171,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_whisper_token() {
-        let event = SubroomAudioEvent::WhisperToken(WhisperToken {
+        let event = SubroomAudioEvent::WhisperToken {
             whisper_id: WhisperId::nil(),
             token: "<jwt-token>".into(),
-        });
+        };
 
         let value = serde_json::to_value(event).expect("Must be serializable");
         assert_eq!(
@@ -173,10 +189,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_participants_invited() {
-        let event = SubroomAudioEvent::ParticipantsInvited(ParticipantsInvited {
+        let event = SubroomAudioEvent::ParticipantsInvited {
             whisper_id: WhisperId::nil(),
             participant_ids: vec![ParticipantId::from_u128(0), ParticipantId::from_u128(1)],
-        });
+        };
 
         let value = serde_json::to_value(event).expect("Must be serializable");
         assert_eq!(
@@ -191,10 +207,10 @@ mod serde_tests {
 
     #[test]
     fn serialize_whisper_invite_accepted() {
-        let event = SubroomAudioEvent::WhisperInviteAccepted(WhisperAccepted {
+        let event = SubroomAudioEvent::WhisperInviteAccepted {
             whisper_id: WhisperId::nil(),
             participant_id: ParticipantId::nil(),
-        });
+        };
 
         let value = serde_json::to_value(event).expect("Must be serializable");
         assert_eq!(

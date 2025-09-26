@@ -10,7 +10,7 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_e2ee::{
-    E2EE_MODULE_ID, E2eeCommand, E2eeError, E2eeEvent, Invite, MlsMessages,
+    E2EE_MODULE_ID, E2eeCommand, E2eeError, E2eeEvent, MlsMessages, WelcomeMessage,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
@@ -73,7 +73,11 @@ impl SignalingModule for E2eeModule {
         payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match payload {
-            E2eeCommand::Invite(invite) => self.publish_invite(ctx, connection_id, invite),
+            E2eeCommand::Invite {
+                invitee,
+                welcome_message,
+                mls_messages,
+            } => self.publish_invite(ctx, connection_id, invitee, welcome_message, mls_messages),
             E2eeCommand::Message(message) => Self::forward_message(ctx, connection_id, message),
         }
     }
@@ -84,9 +88,11 @@ impl E2eeModule {
         &self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ConnectionId,
-        invite: Invite,
+        invitee: ConnectionId,
+        welcome_message: WelcomeMessage,
+        mls_messages: MlsMessages,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
-        Self::ensure_valid_invite(ctx, &invite)?;
+        Self::ensure_valid_invite(ctx, invitee, &welcome_message, &mls_messages)?;
 
         // send MLS message to all but the invitee and sender
         ctx.send_ws_message_to_connections(
@@ -94,38 +100,37 @@ impl E2eeModule {
                 .connected()
                 .room(ctx.room)
                 .connection_ids()
-                .filter(|&p| p != sender && p != invite.invitee),
-            E2eeEvent::MlsMessages(invite.mls_messages),
+                .filter(|&p| p != sender && p != invitee),
+            E2eeEvent::MlsMessages(mls_messages),
         )?;
 
-        ctx.send_ws_message_to_connections(
-            [invite.invitee],
-            E2eeEvent::Welcome(invite.welcome_message),
-        )?;
+        ctx.send_ws_message_to_connections([invitee], E2eeEvent::Welcome(welcome_message))?;
 
         Ok(())
     }
 
     fn ensure_valid_invite(
         ctx: &mut ModuleContext<'_, Self>,
-        invite: &Invite,
+        invitee: ConnectionId,
+        welcome_message: &WelcomeMessage,
+        mls_messages: &MlsMessages,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
-        if !invite.welcome_message.is_valid() || !invite.mls_messages.is_valid() {
+        if !welcome_message.is_valid() || !mls_messages.is_valid() {
             return Err(E2eeError::InvalidInvite.into());
         }
-        Self::ensure_valid_connection(ctx, &invite.invitee)
+        Self::ensure_valid_connection(ctx, invitee)
     }
 
     fn ensure_valid_connection(
         ctx: &mut ModuleContext<'_, Self>,
-        connection: &ConnectionId,
+        connection: ConnectionId,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
         if ctx
             .participants
             .connected()
             .room(ctx.room)
             .connection_ids()
-            .any(|c| &c == connection)
+            .any(|c| c == connection)
         {
             Ok(())
         } else {

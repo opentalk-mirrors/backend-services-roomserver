@@ -24,10 +24,7 @@ use opentalk_roomserver_types_livekit::LiveKitSettings;
 use opentalk_roomserver_types_subroom_audio::{
     SUBROOM_AUDIO_MODULE_ID, WhisperId,
     command::{ParticipantTargets, SubroomAudioCommand},
-    event::{
-        ParticipantsInvited, SubroomAudioError, SubroomAudioEvent, WhisperAccepted, WhisperInvite,
-        WhisperParticipantInfo, WhisperToken,
-    },
+    event::{SubroomAudioError, SubroomAudioEvent, WhisperParticipantInfo},
     state::{WhisperGroup, WhisperState},
 };
 use opentalk_types_common::modules::ModuleId;
@@ -198,10 +195,10 @@ impl SubroomAudioModule {
                 .keys()
                 .filter(|&&p| p != sender)
                 .copied(),
-            SubroomAudioEvent::WhisperInvite(WhisperInvite {
+            SubroomAudioEvent::WhisperInvite {
                 issuer: sender,
                 group: whisper_group.clone().into(),
-            }),
+            },
         )?;
 
         ctx.send_ws_message(
@@ -236,7 +233,7 @@ impl SubroomAudioModule {
 
         ctx.send_ws_message(
             [sender],
-            SubroomAudioEvent::WhisperToken(WhisperToken { whisper_id, token }),
+            SubroomAudioEvent::WhisperToken { whisper_id, token },
         )?;
 
         ctx.send_ws_message(
@@ -245,10 +242,10 @@ impl SubroomAudioModule {
                 .keys()
                 .filter(|&&p| p != sender)
                 .copied(),
-            SubroomAudioEvent::WhisperInviteAccepted(WhisperAccepted {
+            SubroomAudioEvent::WhisperInviteAccepted {
                 whisper_id,
                 participant_id: sender,
-            }),
+            },
         )?;
 
         Ok(())
@@ -394,21 +391,19 @@ impl SubroomAudioModule {
 
         ctx.send_ws_message(
             new_participant_ids.clone(),
-            SubroomAudioEvent::WhisperInvite(WhisperInvite {
+            SubroomAudioEvent::WhisperInvite {
                 issuer: sender,
                 group: whisper_group.clone().into(),
-            }),
+            },
         )?;
-
-        let participants_invited_event = ParticipantsInvited {
-            whisper_id: participant_targets.whisper_id,
-            participant_ids: new_participant_ids,
-        };
 
         // This is only send to the original whisper group participants
         ctx.send_ws_message(
             original_participant_ids,
-            SubroomAudioEvent::ParticipantsInvited(participants_invited_event),
+            SubroomAudioEvent::ParticipantsInvited {
+                whisper_id: participant_targets.whisper_id,
+                participant_ids: new_participant_ids,
+            },
         )?;
 
         Ok(())

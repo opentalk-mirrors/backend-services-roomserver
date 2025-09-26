@@ -21,7 +21,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_raise_hands::{
     RAISE_HANDS_MODULE_ID,
-    command::{RaiseHandsCommand, ResetRaisedHands},
+    command::RaiseHandsCommand,
     event::{RaiseHandsError, RaiseHandsEvent},
     state::{RaisedHandPeerState, RaisedHandState},
 };
@@ -153,7 +153,7 @@ async fn reset_raise_hands_insufficient_permissions() {
     let mut bob = room.join_bob(0).await;
 
     bob.send_command::<RaiseHandsModule>(
-        RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target: None }),
+        RaiseHandsCommand::ResetRaisedHands { target: None },
         None,
     )
     .await
@@ -326,9 +326,9 @@ async fn reset_raised_hands_partial() {
     // Alice resets raised hands for Bob
     alice
         .send_command::<RaiseHandsModule>(
-            RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands {
+            RaiseHandsCommand::ResetRaisedHands {
                 target: Some(BTreeSet::from_iter([bob.id()])),
-            }),
+            },
             None,
         )
         .await
@@ -393,7 +393,7 @@ async fn reset_raised_hands_all() {
     // Alice resets raised hands for all
     alice
         .send_command::<RaiseHandsModule>(
-            RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target: None }),
+            RaiseHandsCommand::ResetRaisedHands { target: None },
             None,
         )
         .await
@@ -457,7 +457,7 @@ async fn reset_raise_hands_ignores_unraised() {
     // Alice resets raised hands all
     alice
         .send_command::<RaiseHandsModule>(
-            RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target: None }),
+            RaiseHandsCommand::ResetRaisedHands { target: None },
             None,
         )
         .await
@@ -515,7 +515,7 @@ async fn reset_raised_hands_noop() {
 
     alice
         .send_command::<RaiseHandsModule>(
-            RaiseHandsCommand::ResetRaisedHands(ResetRaisedHands { target: None }),
+            RaiseHandsCommand::ResetRaisedHands { target: None },
             None,
         )
         .await

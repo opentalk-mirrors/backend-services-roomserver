@@ -7,14 +7,12 @@
 use std::collections::BTreeSet;
 
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
+use opentalk_roomserver_types::client_parameters::Role;
+use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    KickScope,
-    command::{ChangeDisplayName, SendToWaitingRoom},
-    event::{ModerationEvent, RoleUpdate},
-};
+use crate::{KickScope, event::ModerationEvent};
 
 /// Commands for the `moderation` namespace
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,7 +28,12 @@ pub enum ModerationCommand {
     Unban { target: ParticipantId },
 
     /// Change the role of a participant
-    UpdateRole(RoleUpdate),
+    UpdateRole {
+        /// The affected participant
+        participant_id: ParticipantId,
+        /// The participants new role
+        new_role: Role,
+    },
 
     /// Start the debriefing
     Debrief(KickScope),
@@ -42,13 +45,25 @@ pub enum ModerationCommand {
     DisableWaitingRoom,
 
     /// Send a participant to the waiting room
-    SendToWaitingRoom(SendToWaitingRoom),
+    SendToWaitingRoom {
+        /// The participant to move to the waiting room
+        target: ParticipantId,
+    },
 
     /// Change the display name of the targeted guest
-    ChangeDisplayName(ChangeDisplayName),
+    ChangeDisplayName {
+        /// The new display name
+        new_name: DisplayName,
+
+        /// The participant that will have their name changed
+        target: ParticipantId,
+    },
 
     /// Accept a participant from the waiting room into the meeting
-    Accept(Accept),
+    Accept {
+        /// The participant to accept into the meeting
+        target: ParticipantId,
+    },
 
     /// Mutes participants
     Mute {
@@ -74,12 +89,6 @@ pub enum ModerationCommand {
 pub struct Accept {
     /// The participant to accept into the meeting
     pub target: ParticipantId,
-}
-
-impl From<ChangeDisplayName> for ModerationCommand {
-    fn from(value: ChangeDisplayName) -> Self {
-        Self::ChangeDisplayName(value)
-    }
 }
 
 impl CreateReplica<ModerationEvent> for ModerationCommand {
@@ -212,9 +221,9 @@ mod serde_tests {
 
     #[test]
     fn serialize_accept() {
-        let cmd = ModerationCommand::Accept(Accept {
+        let cmd = ModerationCommand::Accept {
             target: ParticipantId::nil(),
-        });
+        };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
         {
@@ -231,19 +240,19 @@ mod serde_tests {
             "target": "00000000-0000-0000-0000-000000000000",
         });
         let produced: ModerationCommand = serde_json::from_value(json).unwrap();
-        let expected = ModerationCommand::Accept(Accept {
+        let expected = ModerationCommand::Accept {
             target: ParticipantId::nil(),
-        });
+        };
 
         assert_eq!(produced, expected);
     }
 
     #[test]
     fn serialize_change_display_name() {
-        let cmd = ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+        let cmd = ModerationCommand::ChangeDisplayName {
             new_name: DisplayName::from_str_lossy("Alice"),
             target: ParticipantId::nil(),
-        });
+        };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
         {
@@ -262,10 +271,10 @@ mod serde_tests {
             "target": "00000000-0000-0000-0000-000000000000"
         });
         let produced: ModerationCommand = serde_json::from_value(json).unwrap();
-        let expected = ModerationCommand::ChangeDisplayName(ChangeDisplayName {
+        let expected = ModerationCommand::ChangeDisplayName {
             new_name: DisplayName::from_str_lossy("Alice"),
             target: ParticipantId::nil(),
-        });
+        };
 
         assert_eq!(produced, expected);
     }

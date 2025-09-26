@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use bytes::Bytes;
-use opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_types_common::modules::{ModuleId, module_id};
 
 mod command;
@@ -15,14 +14,6 @@ pub use error::E2eeError;
 pub use event::E2eeEvent;
 
 pub const E2EE_MODULE_ID: ModuleId = module_id!("e2ee");
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct Invite {
-    pub invitee: ConnectionId,
-    pub welcome_message: WelcomeMessage,
-    /// Proposal and commit sent to the existing members of the group
-    pub mls_messages: MlsMessages,
-}
 
 /// Welcome and ratchet tree sent to the invitee
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

@@ -3,8 +3,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 pub mod kind;
-pub mod start;
-pub mod stop;
 pub mod timer_command;
 pub mod timer_config;
 

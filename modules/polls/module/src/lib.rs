@@ -22,8 +22,8 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_polls::{
     Choice, ChoiceId, POLLS_MODULE_ID, PollId, Results,
-    command::{PollsCommand, Start, Vote},
-    event::{Error, PollsEvent, Started},
+    command::{PollsCommand, Vote},
+    event::{Error, PollsEvent},
     state::{Poll, PollsState, StopKind},
 };
 use opentalk_types_common::modules::ModuleId;
@@ -108,9 +108,15 @@ impl SignalingModule for PollsModule {
         payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Error>> {
         match payload {
-            PollsCommand::Start(start) => self.start_poll(ctx, sender, start),
+            PollsCommand::Start {
+                topic,
+                live,
+                multiple_choice,
+                choices,
+                duration,
+            } => self.start_poll(ctx, sender, topic, live, multiple_choice, choices, duration),
             PollsCommand::Vote(vote) => self.vote(ctx, sender, vote),
-            PollsCommand::Finish(finish) => self.finish_poll(ctx, sender, finish.id),
+            PollsCommand::Finish { id } => self.finish_poll(ctx, sender, id),
         }
     }
 
@@ -186,17 +192,16 @@ impl PollsModule {
         self.polls.contains_key(&room)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn start_poll(
         &mut self,
         ctx: &ModuleContext<'_, Self>,
         sender: ParticipantId,
-        Start {
-            topic,
-            live,
-            multiple_choice,
-            choices,
-            duration,
-        }: Start,
+        topic: String,
+        live: bool,
+        multiple_choice: bool,
+        choices: Vec<String>,
+        duration: Duration,
     ) -> Result<(), SignalingModuleError<Error>> {
         if !ctx.is_moderator(sender) {
             return Err(Error::InsufficientPermissions.into());
@@ -273,14 +278,14 @@ impl PollsModule {
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
-            PollsEvent::Started(Started {
+            PollsEvent::Started {
                 id,
                 topic,
                 live,
                 multiple_choice,
                 choices,
                 duration,
-            }),
+            },
         )?;
 
         Ok(())
