@@ -118,6 +118,11 @@ paths:
       security: []
 components:
   schemas:
+    AssetStorageConfig:
+      type: string
+      enum:
+        - in_memory
+      example: in_memory
     CallInId:
       $ref: "#/components/schemas/NumericId"
       description: The id of a call-in participation
@@ -400,7 +405,12 @@ components:
         - tariff
         - streaming_links
         - e2e_encryption
+        - module_settings
+        - asset_storage
       properties:
+        asset_storage:
+          $ref: "#/components/schemas/AssetStorageConfig"
+          description: "Configuration for storing room assets (e.g., meeting reports)."
         call_in:
           $ref: "#/components/schemas/CallInInfo"
         created_by:
@@ -426,6 +436,7 @@ components:
         waiting_room:
           type: boolean
       example:
+        asset_storage: in_memory
         call_in:
           id: "1234567890"
           password: "0987654321"
@@ -673,6 +684,7 @@ components:
             title: ""
           role: moderator
         room_parameters:
+          asset_storage: in_memory
           call_in:
             id: "1234567890"
             password: "0987654321"

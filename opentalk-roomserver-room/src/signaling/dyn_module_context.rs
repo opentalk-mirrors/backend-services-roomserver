@@ -12,7 +12,7 @@ use opentalk_roomserver_signaling::{
     participant_state::Participants,
     room_info::RoomTaskInfo,
     signaling_module::SignalingModule,
-    storage::StorageProvider,
+    storage::provider::StorageProvider,
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::room_kind::RoomKind;

@@ -7,8 +7,7 @@ use anyhow::anyhow;
 use chrono::{Duration, Utc};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use opentalk_etherpad_client::{EtherpadClient, EtherpadError};
-use opentalk_roomserver_room::{AssetMetaData, AssetUploaded, StorageProvider};
-use opentalk_roomserver_signaling::storage::upload_stream;
+use opentalk_roomserver_room::{AssetMetaData, AssetUploaded, ModuleStorage};
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     signaling::module_error::{FatalError, SignalingModuleError},
@@ -333,7 +332,7 @@ pub(super) fn delete_pads(
 #[tracing::instrument(skip(etherpad_client, storage_client, timestamp), level = "debug")]
 pub(super) async fn generate_pdf(
     etherpad_client: Arc<EtherpadClient>,
-    storage_client: Arc<dyn StorageProvider>,
+    storage_client: ModuleStorage,
     pad_id: String,
     session_id: String,
     timestamp: Timestamp,
@@ -351,7 +350,8 @@ pub(super) async fn generate_pdf(
         extension: FileExtension::pdf(),
     };
 
-    let asset = upload_stream(storage_client, &mut stream, metadata)
+    let asset = storage_client
+        .upload_stream(&mut stream, metadata)
         .await
         .map_err(MeetingNotesError::from)?;
 

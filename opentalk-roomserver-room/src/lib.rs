@@ -19,7 +19,7 @@ pub mod signaling;
 pub mod task;
 
 pub use opentalk_roomserver_signaling::storage::{
-    AssetMetaData, AssetUploaded, StorageError, StorageProvider,
+    AssetMetaData, AssetUploaded, ModuleStorage, StorageError,
 };
 
 pub use crate::{

@@ -9,7 +9,8 @@ use std::{
 use anyhow::anyhow;
 use async_trait::async_trait;
 use opentalk_roomserver_signaling::storage::{
-    AssetMetaData, AssetUploaded, StorageError, StorageProvider, UploadResult,
+    AssetMetaData, AssetUploaded, StorageContext, StorageError, UploadResult,
+    provider::StorageProvider,
 };
 use opentalk_types_common::assets::AssetId;
 use tokio::sync::Mutex;
@@ -50,9 +51,14 @@ impl MemoryFileStorage {
 
 #[async_trait]
 impl StorageProvider for MemoryFileStorage {
-    async fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) -> UploadResult {
+    async fn upload_file(
+        &self,
+        file: Vec<u8>,
+        metadata: AssetMetaData,
+        context: &StorageContext,
+    ) -> UploadResult {
         if self
-            .remaining_quota()
+            .remaining_quota(context)
             .await
             .map(|q| q == 0)
             .unwrap_or(false)
@@ -66,16 +72,21 @@ impl StorageProvider for MemoryFileStorage {
         Ok(AssetUploaded {
             id,
             filename: metadata.to_string(),
-            remaining_quota: self.remaining_quota().await,
+            remaining_quota: self.remaining_quota(context).await,
             url: Self::file_url(id, &metadata),
         })
     }
 
-    async fn upload_chunk(&self, id: AssetId, chunk: &[u8]) -> Result<(), StorageError> {
+    async fn upload_chunk(
+        &self,
+        id: AssetId,
+        chunk: &[u8],
+        context: &StorageContext,
+    ) -> Result<(), StorageError> {
         let mut running_uploads = self.running_uploads.lock().await;
         if !running_uploads.contains(&id) {
             if self
-                .remaining_quota()
+                .remaining_quota(context)
                 .await
                 .map(|q| q == 0)
                 .unwrap_or(false)
@@ -92,7 +103,12 @@ impl StorageProvider for MemoryFileStorage {
         Ok(())
     }
 
-    async fn finalize_upload(&self, id: AssetId, metadata: AssetMetaData) -> UploadResult {
+    async fn finalize_upload(
+        &self,
+        id: AssetId,
+        metadata: AssetMetaData,
+        context: &StorageContext,
+    ) -> UploadResult {
         if !self.running_uploads.lock().await.remove(&id) {
             return Err(anyhow!("No upload with id {id} running").into());
         }
@@ -100,12 +116,12 @@ impl StorageProvider for MemoryFileStorage {
         Ok(AssetUploaded {
             id,
             filename: metadata.to_string(),
-            remaining_quota: self.remaining_quota().await,
+            remaining_quota: self.remaining_quota(context).await,
             url: Self::file_url(id, &metadata),
         })
     }
 
-    async fn remaining_quota(&self) -> Option<u64> {
+    async fn remaining_quota(&self, _context: &StorageContext) -> Option<u64> {
         if let Some(q) = self.quota {
             let used: usize = self.files.lock().await.values().map(Vec::len).sum();
             Some(q.saturating_sub(used as u64))
@@ -129,9 +145,13 @@ impl MemoryFileStorage {
 
 #[cfg(test)]
 mod test {
-    use opentalk_roomserver_signaling::storage::{AssetMetaData, StorageError, StorageProvider};
+    use opentalk_roomserver_signaling::storage::{
+        AssetMetaData, StorageContext, StorageError, provider::StorageProvider as _,
+    };
+    use opentalk_roomserver_types::breakout::BREAKOUT_MODULE_ID;
     use opentalk_types_common::{
         assets::{FileExtension, asset_file_kind},
+        rooms::RoomId,
         time::Timestamp,
     };
 
@@ -141,6 +161,10 @@ mod test {
     async fn upload_file() {
         let quota = 5 * 1024u64.pow(3);
         let storage = MemoryFileStorage::new(Some(quota));
+        let storage_context = StorageContext {
+            room_id: RoomId::from_u128(0x12),
+            namespace: BREAKOUT_MODULE_ID,
+        };
 
         let file = b"test".to_vec();
         let name = AssetMetaData {
@@ -150,7 +174,10 @@ mod test {
             // we currently have and it is not worth adding one only for tests
             extension: FileExtension::pdf(),
         };
-        let uploaded = storage.upload_file(file.clone(), name).await.unwrap();
+        let uploaded = storage
+            .upload_file(file.clone(), name, &storage_context)
+            .await
+            .unwrap();
         let produced = storage.file(uploaded.id).await.unwrap();
 
         assert_eq!(file, produced);
@@ -160,6 +187,10 @@ mod test {
     async fn exceed_quota() {
         let quota = 1;
         let storage = MemoryFileStorage::new(Some(quota));
+        let storage_context = StorageContext {
+            room_id: RoomId::from_u128(0x12),
+            namespace: BREAKOUT_MODULE_ID,
+        };
 
         let file = b"file that exceeds the quota".to_vec();
         let name = AssetMetaData {
@@ -167,14 +198,17 @@ mod test {
             timestamp: Timestamp::now(),
             extension: FileExtension::pdf(),
         };
-        storage.upload_file(file.clone(), name).await.unwrap();
+        storage
+            .upload_file(file.clone(), name, &storage_context)
+            .await
+            .unwrap();
 
         let name = AssetMetaData {
             kind: asset_file_kind!("text"),
             timestamp: Timestamp::now(),
             extension: FileExtension::pdf(),
         };
-        let produced = storage.upload_file(file, name).await;
+        let produced = storage.upload_file(file, name, &storage_context).await;
 
         assert!(matches!(produced, Err(StorageError::QuotaReached)));
     }

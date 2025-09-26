@@ -24,7 +24,7 @@ use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
     module_context::ModuleContext,
     signaling_module::{CreateReplica, SignalingModule},
-    storage::StorageProvider,
+    storage::{ModuleStorage, StorageContext, provider::StorageProvider},
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom,
@@ -482,6 +482,13 @@ where
     }
 
     fn destroy(self: Box<Self>, room_id: RoomId, storage: Arc<dyn StorageProvider>) {
+        let storage = ModuleStorage::new(
+            Arc::clone(&storage),
+            StorageContext {
+                room_id,
+                namespace: M::NAMESPACE,
+            },
+        );
         self.module.destroy(room_id, storage);
     }
 }

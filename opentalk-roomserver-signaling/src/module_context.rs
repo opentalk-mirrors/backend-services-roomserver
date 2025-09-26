@@ -35,7 +35,9 @@ use crate::{
     room_info::RoomTaskInfo,
     signaling_event::SignalingEvent,
     signaling_module::SignalingModule,
-    storage::{AssetMetaData, StorageProvider, UploadResult},
+    storage::{
+        AssetMetaData, ModuleStorage, StorageContext, UploadResult, provider::StorageProvider,
+    },
     waiting_participant::WaitingParticipant,
 };
 
@@ -510,8 +512,15 @@ where
         user_id == self.room_task_info.room.created_by.id
     }
 
-    pub fn storage(&self) -> Arc<dyn StorageProvider> {
-        Arc::clone(&self.storage)
+    pub fn storage(&self) -> ModuleStorage {
+        ModuleStorage::new(Arc::clone(&self.storage), self.storage_context())
+    }
+
+    fn storage_context(&self) -> StorageContext {
+        StorageContext {
+            room_id: self.room_id,
+            namespace: M::NAMESPACE,
+        }
     }
 }
 
@@ -521,8 +530,15 @@ where
     M::Loopback: From<UploadResult>,
 {
     pub fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) {
+        let storage_context = self.storage_context();
         let storage = Arc::clone(&self.storage);
-        self.spawn(async move { storage.upload_file(file, metadata).await.into() });
+
+        self.spawn(async move {
+            storage
+                .upload_file(file, metadata, &storage_context)
+                .await
+                .into()
+        });
     }
 }
 

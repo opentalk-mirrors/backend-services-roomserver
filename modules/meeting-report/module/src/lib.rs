@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::BTreeMap, path::Path, sync::Arc};
+use std::{collections::BTreeMap, path::Path};
 
 use chrono_tz::Tz;
 use opentalk_roomserver_report_generation::ToReportDateTime;
-use opentalk_roomserver_room::{AssetUploaded, StorageProvider};
+use opentalk_roomserver_room::{AssetUploaded, ModuleStorage};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
@@ -181,7 +181,7 @@ impl MeetingReportModule {
     }
 
     async fn generate_report(
-        storage: Arc<dyn StorageProvider>,
+        storage: ModuleStorage,
         report_timezone: TimeZone,
         tz: Tz,
         participants: Vec<ReportParticipant>,

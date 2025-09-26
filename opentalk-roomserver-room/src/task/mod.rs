@@ -75,7 +75,7 @@ use opentalk_roomserver_signaling::{
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
-    storage::StorageProvider,
+    storage::provider::StorageProvider,
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{

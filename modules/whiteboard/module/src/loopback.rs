@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use opentalk_roomserver_signaling::storage::{self, AssetMetaData, AssetUploaded, StorageProvider};
+use opentalk_roomserver_signaling::storage::{AssetMetaData, AssetUploaded, ModuleStorage};
 use opentalk_roomserver_types::{
     room_kind::RoomKind, signaling::module_error::SignalingModuleError,
 };
@@ -51,7 +51,7 @@ pub(super) async fn create_space(
 #[tracing::instrument(skip_all, fields(id), level = "debug")]
 pub(super) async fn generate_pdf(
     spacedeck_client: Arc<SpacedeckClient>,
-    storage_client: Arc<dyn StorageProvider>,
+    storage_client: ModuleStorage,
     id: String,
     timestamp: Timestamp,
 ) -> Result<WhiteboardLoopback, SignalingModuleError<WhiteboardError>> {
@@ -66,7 +66,8 @@ pub(super) async fn generate_pdf(
         timestamp,
         extension: FileExtension::pdf(),
     };
-    let asset = storage::upload_stream(storage_client, &mut stream, metadata)
+    let asset = storage_client
+        .upload_stream(&mut stream, metadata)
         .await
         .map_err(WhiteboardError::from)?;
 
@@ -76,7 +77,7 @@ pub(super) async fn generate_pdf(
 #[tracing::instrument(level = "debug", skip_all, fields(id))]
 pub(super) async fn delete_space(
     spacedeck_client: Arc<SpacedeckClient>,
-    storage_client: Arc<dyn StorageProvider>,
+    storage_client: ModuleStorage,
     id: String,
     timestamp: Timestamp,
 ) {
