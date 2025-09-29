@@ -93,6 +93,9 @@ pub enum CoreError {
     UnknownParticipant,
     /// The participant cannot enter the room because they were not accepted by a moderator yet.
     NotAccepted,
+    /// The participant sent a [`CoreCommand::EnterRoom`](super::command::CoreCommand::EnterRoom),
+    /// but is already in the room.
+    AlreadyInRoom,
 }
 
 impl From<CoreError> for SignalingModuleError<CoreError> {
