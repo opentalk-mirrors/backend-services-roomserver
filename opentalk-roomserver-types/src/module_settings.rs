@@ -45,6 +45,14 @@ impl ModuleSettings {
         self.0.insert(T::NAMESPACE, serde_json::to_value(data)?);
         Ok(())
     }
+
+    /// Retains only the entries specified by the predicate
+    pub fn retain<F>(&mut self, f: F)
+    where
+        F: FnMut(&ModuleId, &mut serde_json::Value) -> bool,
+    {
+        self.0.retain(f);
+    }
 }
 
 impl ExampleData for ModuleSettings {
