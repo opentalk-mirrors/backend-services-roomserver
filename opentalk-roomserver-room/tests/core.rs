@@ -3,7 +3,7 @@
 
 use insta::assert_json_snapshot;
 use opentalk_roomserver_room::mocking::{mock_module::MockModule, room::TestRoom};
-use opentalk_roomserver_types::core::CoreEvent;
+use opentalk_roomserver_types::core::{CoreCommand, CoreError, CoreEvent};
 
 #[test_log::test(tokio::test)]
 async fn join_success() {
@@ -163,4 +163,18 @@ async fn participant_joined() {
     }
     "#
         );
+}
+
+#[test_log::test(tokio::test)]
+async fn already_in_room() {
+    let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_core_command(CoreCommand::EnterRoom, None)
+        .await
+        .unwrap();
+
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert!(matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom)));
 }

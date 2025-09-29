@@ -47,7 +47,7 @@ use crate::{
 };
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
-    pub(crate) fn handle_core_command(
+    pub(crate) fn handle_conference_core_command(
         &mut self,
         participant_origin: ParticipantOrigin,
         command: SignalingCommand,
@@ -55,15 +55,53 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let core_command: CoreCommand = match serde_json::from_str(command.payload.get()) {
             Ok(command) => command,
             Err(err) => {
-                tracing::debug!("received unsupported core command");
-                self.message_router_for_participant(participant_origin.id)
-                    .send_error(
-                        participant_origin.connection_id,
-                        participant_origin.transaction_id,
-                        SignalingError::InvalidJson {
-                            message: format!("{err:?}"),
-                        },
-                    );
+                tracing::debug!("received unsupported core command from conference");
+                self.message_router.conference.send_error(
+                    participant_origin.connection_id,
+                    participant_origin.transaction_id,
+                    SignalingError::InvalidJson {
+                        message: format!("{err:?}"),
+                    },
+                );
+                return;
+            }
+        };
+
+        let result = match core_command {
+            CoreCommand::EnterRoom => self.message_router.conference.serialize_and_send(
+                [participant_origin.connection_id],
+                CORE_MODULE_ID,
+                command.transaction_id,
+                CoreEvent::Error(CoreError::AlreadyInRoom),
+            ),
+        };
+
+        if let Err(err) = result {
+            tracing::error!("fatal error in core module: {err:?}");
+            self.message_router.conference.send_error(
+                participant_origin.connection_id,
+                command.transaction_id,
+                SignalingError::Internal,
+            );
+        }
+    }
+
+    pub(crate) fn handle_waiting_room_core_command(
+        &mut self,
+        participant_origin: ParticipantOrigin,
+        command: SignalingCommand,
+    ) {
+        let core_command: CoreCommand = match serde_json::from_str(command.payload.get()) {
+            Ok(command) => command,
+            Err(err) => {
+                tracing::debug!("received unsupported core command from waiting room");
+                self.message_router.waiting_room.send_error(
+                    participant_origin.connection_id,
+                    participant_origin.transaction_id,
+                    SignalingError::InvalidJson {
+                        message: format!("{err:?}"),
+                    },
+                );
                 return;
             }
         };

@@ -719,6 +719,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         // We currently do not handle the core namespace here because `EnterRoom` as the only core
         // command is only useful in the waiting room.
         match &signaling_command.namespace {
+            m if *m == CORE_MODULE_ID => {
+                self.handle_conference_core_command(participant_origin, signaling_command);
+                Ok(())
+            }
             m if *m == BREAKOUT_MODULE_ID => {
                 self.handle_breakout_command(participant_origin, signaling_command);
                 Ok(())
@@ -761,7 +765,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         match &signaling_command.namespace {
             m if *m == CORE_MODULE_ID => {
-                self.handle_core_command(participant_origin, signaling_command);
+                self.handle_waiting_room_core_command(participant_origin, signaling_command);
                 Ok(())
             }
             _ => {
