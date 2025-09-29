@@ -5,6 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.8] - 2025-09-29
+
+[0.0.8]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.7...v0.0.8
+
+### 🚀 New features
+
+- (whiteboard) Add whiteboard signaling module ([!569](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/569), [#82](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/82))
+- Include public url in token response ([!595](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/595), [#145](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/145))
+- (roomserver) Per-connection command streams to enable websocket rate limiting ([!586](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/586))
+- Allow to configure the asset storage via RoomParameter ([!598](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/598))
+- (siganling) Add context information to `StorageProvider` ([!598](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/598))
+
+### 🐛 Bug fixes
+
+- (client) `SignalingModuleEvent::namespace()` returns the wrong id for subroom audio ([!576](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/576))
+- Pass correct participant id for core peer data ([!594](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/594))
+- (room) Send `JoinedWaitingRoom` event when a participant is moved to the waiting room ([!602](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/602))
+- (room) Participants' `in_waiting_room` state is not reset when joining the conference ([!603](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/603))
+
+### 📚 Documentation
+
+- (echo) Document echo types ([!600](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/600))
+
+### 🔨 Refactor
+
+- Apply `clippy::pedantic` lints ([!575](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/575))
+- Allow signaling modules to store files when being destroyed ([!569](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/569))
+- Replace `ModuleData` with `ModuleSettings` in `RoomParameters` ([!585](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/585), [#144](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/144))
+- (automod) Inline structs in event ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (chat) Inline structs in command & event ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (chat) Rename chat module error to `ChatError` ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (e2ee) Inline structs in command ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (meeting-report) Inline structs in event ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (moderation) Inline structs in command & event ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (polls) Inline structs in command & event ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (raise-hands) Inline structs in command ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (subroom-audio) Inline structs in command & event ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (timer) Inline structs in command & event ([!593](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/593))
+- (echo) Remove event error variant ([!600](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/600))
+- (echo) Reexport command and event ([!600](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/600))
+- (room) Separate conference and waiting room commands early ([!589](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/589))
+- Add `Asset` to the asset storage related type names ([!598](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/598))
+- (mock) Replace `wait_accept` function with `enter_room` and use it in tests ([!603](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/603))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!581](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/581))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.90.0 ([!582](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/582))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.18.5 ([!584](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/584))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.5 ([!583](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/583))
+- (deps) Update rust crate config to v0.15.17 ([!591](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/591))
+- (deps) Update rust crates tungstenite and tokio-tungstenite to 0.28.0 ([!590](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/590))
+- (deps) Update rust crate serde to v1.0.227 ([!596](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/596))
+- (deps) Lock file maintenance ([!608](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/608))
+- (deps) Update rust crate livekit to v0.7.19 ([!609](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/609))
+
+### ⚙ Miscellaneous
+
+- Remove old scripts that are replaced by the DUI ([!598](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/598))
+- Remove old values from the example config ([!598](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/598))
+
+### Ci
+
+- Use fixed container tags ([!599](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/599))
+- (renovate) Add group rule for livekit ([!609](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/609))
+
+### Test
+
+- (whiteboard) Add integration tests for whiteboard module ([!569](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/569))
+- (mock) Don't allow to overwrite RoomParameters in RoomBuilder ([!598](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/598))
+
 ## [0.0.7] - 2025-09-19
 
 [0.0.7]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.6...v0.0.7
