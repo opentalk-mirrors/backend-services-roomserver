@@ -54,7 +54,7 @@ impl ModuleResourceStorage {
         created_by: UserId,
         tag: Option<String>,
         data: serde_json::Value,
-    ) -> Result<ModuleResource, Error> {
+    ) -> anyhow::Result<ModuleResource> {
         let resource = NewModuleResource {
             room_id: self.ctx.room_id,
             created_by,

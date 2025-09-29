@@ -142,8 +142,8 @@ impl MeetingReportModule {
                     .flatten()
                     .map(String::from)
                     .unwrap_or_default(),
-                joined_at: state.joined_at.to_report_date_time(&tz),
-                left_at: state.left_at.to_report_date_time(&tz),
+                joined_at: state.joined_at.into_report_date_time(&tz),
+                left_at: state.left_at.into_report_date_time(&tz),
             })
             .collect();
 
@@ -190,10 +190,10 @@ impl MeetingReportModule {
         let event = event.as_ref();
         let starts_at = event
             .and_then(|event| event.starts_at)
-            .to_report_date_time(&tz);
+            .into_report_date_time(&tz);
         let ends_at = event
             .and_then(|event| event.ends_at)
-            .to_report_date_time(&tz);
+            .into_report_date_time(&tz);
         let title = event.map_or_else(
             || EventTitle::from_str_lossy(""),
             |event| event.title.clone(),

@@ -8,6 +8,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_automod::{AUTOMOD_MODULE_ID, event::AutomodEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
 use opentalk_roomserver_types_echo::{ECHO_MODULE_ID, event::EchoEvent};
+use opentalk_roomserver_types_legal_vote::{LEGAL_VOTE_MODULE_ID, event::LegalVoteEvent};
 use opentalk_roomserver_types_meeting_notes::{MEETING_NOTES_MODULE_ID, MeetingNotesEvent};
 use opentalk_roomserver_types_meeting_report::{
     MEETING_REPORT_MODULE_ID, event::MeetingReportEvent,
@@ -73,6 +74,7 @@ pub enum SignalingModuleEvent {
     SubroomAudio(SubroomAudioEvent),
     MeetingNotes(MeetingNotesEvent),
     Whiteboard(WhiteboardEvent),
+    LegalVote(LegalVoteEvent),
 }
 
 impl SignalingModuleEvent {
@@ -94,6 +96,7 @@ impl SignalingModuleEvent {
             Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
             Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
+            Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
         }
     }
 }
@@ -109,6 +112,11 @@ mod tests {
     use opentalk_roomserver_types_automod::event::{AutomodEvent, StoppedReason};
     use opentalk_roomserver_types_chat::event::ChatEvent;
     use opentalk_roomserver_types_echo::event::EchoEvent;
+    use opentalk_roomserver_types_legal_vote::{
+        LegalVoteEvent,
+        token::Token,
+        vote::{LegalVoteId, VoteOption},
+    };
     use opentalk_roomserver_types_livekit::LiveKitEvent;
     use opentalk_roomserver_types_meeting_notes::MeetingNotesEvent;
     use opentalk_roomserver_types_meeting_report::event::MeetingReportEvent;
@@ -510,6 +518,35 @@ mod tests {
           "payload": {
             "message": "initialized",
             "url": "https://example.com/"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_event_legal_vote() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
+            payload: SignalingModuleEvent::LegalVote(LegalVoteEvent::Voted {
+                legal_vote_id: LegalVoteId::from_u128(1),
+                vote_option: VoteOption::Yes,
+                issuer: ParticipantId::from_u128(2),
+                consumed_token: Token::new(3),
+            }),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "timestamp": "1970-01-01T00:00:00Z",
+          "namespace": "legal_vote",
+          "payload": {
+            "message": "voted",
+            "legal_vote_id": "00000000-0000-0000-0000-000000000001",
+            "vote_option": "yes",
+            "issuer": "00000000-0000-0000-0000-000000000002",
+            "consumed_token": "11111111114"
           }
         }
         "#);

@@ -122,6 +122,9 @@ exceptions = [
   ], name = "opentalk-roomserver-types-echo" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-legal-vote" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-livekit" },
   { allow = [
     "EUPL-1.2",
