@@ -37,7 +37,10 @@ use crate::{
     signaling_module::SignalingModule,
     storage::{
         StorageContext,
-        assets::{AssetMetaData, ModuleAssetStorage, UploadResult, provider::AssetStorageProvider},
+        assets::{
+            AssetMetaData, ModuleAssetStorage, UploadResult,
+            provider::{AssetStorageProvider, AssetStream},
+        },
         module_resources::{ModuleResourceStorage, provider::ModuleResourceProvider},
     },
     waiting_participant::WaitingParticipant,
@@ -570,7 +573,7 @@ where
     M: SignalingModule,
     M::Loopback: From<UploadResult>,
 {
-    pub fn upload_file(&self, asset: Vec<u8>, metadata: AssetMetaData) {
+    pub fn upload_file(&self, asset: AssetStream, metadata: AssetMetaData) {
         let storage_context = self.storage_context();
         let storage = Arc::clone(&self.storage);
 

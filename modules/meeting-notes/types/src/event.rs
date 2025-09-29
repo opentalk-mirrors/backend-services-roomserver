@@ -87,7 +87,7 @@ impl From<StorageError> for MeetingNotesError {
     fn from(err: StorageError) -> Self {
         match err {
             StorageError::QuotaReached => Self::StorageExceeded,
-            StorageError::StorageError(..) => Self::InternalStorage,
+            StorageError::Internal(..) | StorageError::ReadAsset(..) => Self::InternalStorage,
         }
     }
 }

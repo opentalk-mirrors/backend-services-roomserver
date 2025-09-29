@@ -222,7 +222,7 @@ impl MeetingReportModule {
         )?;
 
         let upload = storage
-            .upload_asset(
+            .upload_asset_vec(
                 report,
                 AssetMetaData {
                     kind: ASSET_FILE_KIND,

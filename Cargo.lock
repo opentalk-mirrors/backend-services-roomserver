@@ -5352,6 +5352,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "blake3",
+ "bytes",
  "chrono",
  "futures",
  "insta",

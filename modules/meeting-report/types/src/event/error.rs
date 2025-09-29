@@ -24,7 +24,7 @@ impl From<StorageError> for MeetingReportError {
     fn from(err: StorageError) -> Self {
         match err {
             StorageError::QuotaReached => MeetingReportError::StorageExceeded,
-            StorageError::StorageError(..) => MeetingReportError::Storage,
+            StorageError::Internal(..) | StorageError::ReadAsset(..) => MeetingReportError::Storage,
         }
     }
 }

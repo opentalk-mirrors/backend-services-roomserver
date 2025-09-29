@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
-use anyhow::anyhow;
 use async_trait::async_trait;
+use futures::StreamExt;
 use opentalk_roomserver_signaling::storage::{
     StorageContext,
     assets::{
-        AssetMetaData, AssetUploaded, StorageError, UploadResult, provider::AssetStorageProvider,
+        AssetMetaData, AssetUploaded, StorageError, UploadResult,
+        provider::{AssetStorageProvider, AssetStream},
     },
 };
 use opentalk_types_common::assets::AssetId;
@@ -27,7 +25,6 @@ use url::Url;
 pub struct MemoryAssetStorage {
     quota: Option<u64>,
     assets: Mutex<HashMap<AssetId, Vec<u8>>>,
-    running_uploads: Mutex<HashSet<AssetId>>,
 }
 
 impl MemoryAssetStorage {
@@ -38,7 +35,6 @@ impl MemoryAssetStorage {
         Self {
             quota,
             assets: Mutex::new(HashMap::new()),
-            running_uploads: Mutex::new(HashSet::new()),
         }
     }
 
@@ -55,7 +51,7 @@ impl MemoryAssetStorage {
 impl AssetStorageProvider for MemoryAssetStorage {
     async fn upload_asset(
         &self,
-        asset: Vec<u8>,
+        mut asset: AssetStream,
         metadata: AssetMetaData,
         context: &StorageContext,
     ) -> UploadResult {
@@ -68,52 +64,14 @@ impl AssetStorageProvider for MemoryAssetStorage {
             return Err(StorageError::QuotaReached);
         }
 
+        let mut data = Vec::new();
+        while let Some(chunk) = asset.next().await {
+            let chunk = chunk.map_err(StorageError::ReadAsset)?;
+            data.extend_from_slice(&chunk);
+        }
+
         let id = AssetId::generate();
-        self.assets.lock().await.insert(id, asset);
-
-        Ok(AssetUploaded {
-            id,
-            filename: metadata.to_string(),
-            remaining_quota: self.remaining_quota(context).await,
-            url: Self::asset_url(id, &metadata),
-        })
-    }
-
-    async fn upload_chunk(
-        &self,
-        id: AssetId,
-        chunk: &[u8],
-        context: &StorageContext,
-    ) -> Result<(), StorageError> {
-        let mut running_uploads = self.running_uploads.lock().await;
-        if !running_uploads.contains(&id) {
-            if self
-                .remaining_quota(context)
-                .await
-                .map(|q| q == 0)
-                .unwrap_or(false)
-            {
-                return Err(StorageError::QuotaReached);
-            }
-            running_uploads.insert(id);
-        }
-
-        let mut assets = self.assets.lock().await;
-        let asset = assets.entry(id).or_default();
-        asset.extend_from_slice(chunk);
-
-        Ok(())
-    }
-
-    async fn finalize_upload(
-        &self,
-        id: AssetId,
-        metadata: AssetMetaData,
-        context: &StorageContext,
-    ) -> UploadResult {
-        if !self.running_uploads.lock().await.remove(&id) {
-            return Err(anyhow!("No upload with id {id} running").into());
-        }
+        self.assets.lock().await.insert(id, data);
 
         Ok(AssetUploaded {
             id,
@@ -147,9 +105,14 @@ impl MemoryAssetStorage {
 
 #[cfg(test)]
 mod test {
+    use anyhow::anyhow;
+    use futures::{StreamExt, stream};
     use opentalk_roomserver_signaling::storage::{
         StorageContext,
-        assets::{AssetMetaData, StorageError, provider::AssetStorageProvider as _},
+        assets::{
+            AssetMetaData, StorageError,
+            provider::{AssetLoadError, AssetStorageProvider as _},
+        },
     };
     use opentalk_roomserver_types::breakout::BREAKOUT_MODULE_ID;
     use opentalk_types_common::{
@@ -169,7 +132,9 @@ mod test {
             namespace: BREAKOUT_MODULE_ID,
         };
 
-        let asset = b"test".to_vec();
+        let content = b"some file content";
+
+        let asset = stream::iter(vec![Ok(bytes::Bytes::from_static(content))]);
         let name = AssetMetaData {
             kind: asset_file_kind!("text"),
             timestamp: Timestamp::now(),
@@ -178,12 +143,12 @@ mod test {
             extension: FileExtension::pdf(),
         };
         let uploaded = storage
-            .upload_asset(asset.clone(), name, &storage_context)
+            .upload_asset(asset.boxed(), name, &storage_context)
             .await
             .unwrap();
         let produced = storage.asset(uploaded.id).await.unwrap();
 
-        assert_eq!(asset, produced);
+        assert_eq!(content.to_vec(), produced);
     }
 
     #[tokio::test]
@@ -195,24 +160,60 @@ mod test {
             namespace: BREAKOUT_MODULE_ID,
         };
 
-        let asset = b"file that exceeds the quota".to_vec();
+        let content = b"asset that exceeds the quota";
+
+        let asset = stream::iter(vec![Ok(bytes::Bytes::from_static(content))]);
         let name = AssetMetaData {
             kind: asset_file_kind!("text"),
             timestamp: Timestamp::now(),
             extension: FileExtension::pdf(),
         };
         storage
-            .upload_asset(asset.clone(), name, &storage_context)
+            .upload_asset(asset.boxed(), name, &storage_context)
             .await
             .unwrap();
 
+        let asset = stream::iter(vec![Ok(bytes::Bytes::from_static(content))]);
         let name = AssetMetaData {
             kind: asset_file_kind!("text"),
             timestamp: Timestamp::now(),
             extension: FileExtension::pdf(),
         };
-        let produced = storage.upload_asset(asset, name, &storage_context).await;
+        let produced = storage
+            .upload_asset(asset.boxed(), name, &storage_context)
+            .await;
 
         assert!(matches!(produced, Err(StorageError::QuotaReached)));
+    }
+
+    #[tokio::test]
+    async fn stream_error() {
+        let quota = 5 * 1024u64.pow(3);
+        let storage = MemoryAssetStorage::new(Some(quota));
+        let storage_context = StorageContext {
+            room_id: RoomId::from_u128(0x12),
+            namespace: BREAKOUT_MODULE_ID,
+        };
+
+        let content = b"some file content";
+
+        let asset = stream::iter(vec![
+            Ok(bytes::Bytes::from_static(content)),
+            Err(AssetLoadError {
+                source: Box::<dyn std::error::Error + Send + Sync>::from(anyhow!("stream error")),
+            }),
+        ]);
+        let name = AssetMetaData {
+            kind: asset_file_kind!("text"),
+            timestamp: Timestamp::now(),
+            // using pdf as extension here because this is the only extension
+            // we currently have and it is not worth adding one only for tests
+            extension: FileExtension::pdf(),
+        };
+        let uploaded = storage
+            .upload_asset(asset.boxed(), name, &storage_context)
+            .await;
+
+        assert!(matches!(uploaded, Err(StorageError::ReadAsset(_))));
     }
 }

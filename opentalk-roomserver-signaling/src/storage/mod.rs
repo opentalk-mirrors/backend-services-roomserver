@@ -7,7 +7,7 @@ pub mod assets;
 pub mod module_resources;
 
 /// Context for scoped storage access
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StorageContext {
     pub room_id: RoomId,
     pub namespace: ModuleId,

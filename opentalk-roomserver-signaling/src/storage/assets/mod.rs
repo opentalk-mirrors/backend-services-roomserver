@@ -20,15 +20,17 @@ use std::{
     sync::Arc,
 };
 
-use bytes::Bytes;
-use futures::{Stream, StreamExt as _};
+use futures::{StreamExt, stream};
 use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     time::Timestamp,
 };
 use url::Url;
 
-use crate::storage::{StorageContext, assets::provider::AssetStorageProvider};
+use crate::storage::{
+    StorageContext,
+    assets::provider::{AssetLoadError, AssetStorageProvider, AssetStream},
+};
 
 pub type UploadFuture<'a> = Pin<Box<dyn Future<Output = UploadResult> + Send + 'a>>;
 pub type UploadResult = Result<AssetUploaded, StorageError>;
@@ -47,42 +49,24 @@ impl ModuleAssetStorage {
     }
 
     /// Uploads an asset to the storage backend
-    pub async fn upload_asset(&self, asset: Vec<u8>, metadata: AssetMetaData) -> UploadResult {
+    pub async fn upload_asset(&self, asset: AssetStream, metadata: AssetMetaData) -> UploadResult {
         self.provider
             .upload_asset(asset, metadata, &self.context)
             .await
     }
 
-    /// Uploads a chunk of data to the storage backend
-    pub async fn upload_chunk(&self, id: AssetId, chunk: &[u8]) -> Result<(), StorageError> {
-        self.provider.upload_chunk(id, chunk, &self.context).await
-    }
-
-    /// Finalizes an upload of one or multiple chunks
-    pub async fn finalize_upload(&self, id: AssetId, metadata: AssetMetaData) -> UploadResult {
+    pub async fn upload_asset_vec(&self, asset: Vec<u8>, metadata: AssetMetaData) -> UploadResult {
         self.provider
-            .finalize_upload(id, metadata, &self.context)
+            .upload_asset(
+                stream::iter(vec![Ok(bytes::Bytes::from(asset))]).boxed(),
+                metadata,
+                &self.context,
+            )
             .await
     }
 
     pub async fn remaining_quota(&self) -> Option<u64> {
         self.provider.remaining_quota(&self.context).await
-    }
-
-    pub async fn upload_stream<E>(
-        self,
-        stream: &mut (impl Stream<Item = Result<Bytes, E>> + Unpin + Sized),
-        metadata: AssetMetaData,
-    ) -> Result<AssetUploaded, StorageError>
-    where
-        StorageError: From<E>,
-    {
-        let id = AssetId::generate();
-        while let Some(bytes) = stream.next().await {
-            self.upload_chunk(id, &bytes?).await?;
-        }
-
-        self.finalize_upload(id, metadata).await
     }
 }
 
@@ -90,22 +74,28 @@ impl ModuleAssetStorage {
 pub enum StorageError {
     /// The quota was reached before the current upload
     QuotaReached,
-    StorageError(anyhow::Error),
+
+    /// Error while uploading to the storage backend
+    Internal(anyhow::Error),
+
+    /// An error occurred while reading the asset
+    ReadAsset(AssetLoadError),
 }
 
 impl From<anyhow::Error> for StorageError {
     fn from(err: anyhow::Error) -> Self {
-        StorageError::StorageError(err)
+        StorageError::Internal(err)
     }
 }
 
 impl From<reqwest::Error> for StorageError {
     fn from(err: reqwest::Error) -> Self {
-        StorageError::StorageError(anyhow::Error::new(err))
+        StorageError::Internal(anyhow::Error::new(err))
     }
 }
 
 /// Metadata about an stored asset
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetMetaData {
     /// The kind of the asset
     pub kind: AssetFileKind,
@@ -128,7 +118,7 @@ impl Display for AssetMetaData {
 }
 
 /// Information about an asset that has been uploaded to a storage backend
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetUploaded {
     pub id: AssetId,
     pub filename: String,

@@ -4,8 +4,9 @@
 use std::sync::Arc;
 
 use anyhow::Context;
+use futures::{StreamExt, TryStreamExt as _};
 use opentalk_roomserver_signaling::storage::assets::{
-    AssetMetaData, AssetUploaded, ModuleAssetStorage,
+    AssetMetaData, AssetUploaded, ModuleAssetStorage, provider::AssetLoadError,
 };
 use opentalk_roomserver_types::{
     room_kind::RoomKind, signaling::module_error::SignalingModuleError,
@@ -61,7 +62,12 @@ pub(super) async fn generate_pdf(
 
     tracing::debug!("Generating PDF for space '{id}'");
     let url = spacedeck_client.get_pdf(&id).await?;
-    let mut stream = spacedeck_client.download_pdf(url).await?;
+    let stream = spacedeck_client
+        .download_pdf(url)
+        .await?
+        .map_err(|e| AssetLoadError {
+            source: Box::new(e),
+        });
 
     let metadata = AssetMetaData {
         kind: ASSET_FILE_KIND,
@@ -69,7 +75,7 @@ pub(super) async fn generate_pdf(
         extension: FileExtension::pdf(),
     };
     let asset = storage_client
-        .upload_stream(&mut stream, metadata)
+        .upload_asset(stream.boxed(), metadata)
         .await
         .map_err(WhiteboardError::from)?;
 

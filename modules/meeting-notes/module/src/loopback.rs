@@ -3,11 +3,12 @@
 
 use std::{collections::BTreeMap, sync::Arc};
 
-use anyhow::anyhow;
+use anyhow::{Context as _, anyhow};
 use chrono::{Duration, Utc};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use opentalk_etherpad_client::{EtherpadClient, EtherpadError};
 use opentalk_roomserver_room::{AssetMetaData, AssetUploaded, ModuleAssetStorage};
+use opentalk_roomserver_signaling::storage::assets::provider::AssetLoadError;
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     signaling::module_error::{FatalError, SignalingModuleError},
@@ -339,10 +340,14 @@ pub(super) async fn generate_pdf(
 ) -> Result<MeetingNotesLoopback, SignalingModuleError<MeetingNotesError>> {
     const ASSET_FILE_KIND: AssetFileKind = asset_file_kind!("meetingnotes_pdf");
 
-    let mut stream = etherpad_client
+    let stream = etherpad_client
         .download_pdf(&session_id, &pad_id)
         .await
-        .map_err(|e| anyhow!("Failed to create PDF: {e:?}"))?;
+        // return an internal if the PDF can't be fetched from etherpad
+        .context("Failed to create PDF")?
+        .map_err(|e| AssetLoadError {
+            source: Box::new(e),
+        });
 
     let metadata = AssetMetaData {
         kind: ASSET_FILE_KIND,
@@ -351,7 +356,7 @@ pub(super) async fn generate_pdf(
     };
 
     let asset = storage_client
-        .upload_stream(&mut stream, metadata)
+        .upload_asset(stream.boxed(), metadata)
         .await
         .map_err(MeetingNotesError::from)?;
 
