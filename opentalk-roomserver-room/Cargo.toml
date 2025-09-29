@@ -18,6 +18,7 @@ async-trait.workspace = true
 blake3.workspace = true
 chrono.workspace = true
 futures.workspace = true
+json-patch.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true

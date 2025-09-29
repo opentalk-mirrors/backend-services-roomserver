@@ -4,7 +4,7 @@
 
 //! Types related to signaling events in the `meeting-notes` namespace
 
-use opentalk_roomserver_signaling::storage::StorageError;
+use opentalk_roomserver_signaling::storage::assets::StorageError;
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::ModuleError,
 };

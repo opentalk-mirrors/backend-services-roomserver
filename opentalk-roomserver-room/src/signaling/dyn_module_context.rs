@@ -12,7 +12,9 @@ use opentalk_roomserver_signaling::{
     participant_state::Participants,
     room_info::RoomTaskInfo,
     signaling_module::SignalingModule,
-    storage::provider::AssetStorageProvider,
+    storage::{
+        assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
+    },
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::room_kind::RoomKind;
@@ -31,6 +33,7 @@ pub struct DynModuleContext<'ctx> {
     pub banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
     pub timestamp: Timestamp,
     pub storage: Arc<dyn AssetStorageProvider>,
+    pub module_resources: Arc<dyn ModuleResourceProvider>,
     pub messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
 }
@@ -47,6 +50,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
         timestamp: Timestamp,
         storage: Arc<dyn AssetStorageProvider>,
+        module_resources: Arc<dyn ModuleResourceProvider>,
         messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
     ) -> Self {
@@ -60,6 +64,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             banned_participants,
             timestamp,
             storage,
+            module_resources,
             messages,
             loopback_futures,
         }
@@ -77,12 +82,13 @@ impl<'ctx> DynModuleContext<'ctx> {
             banned_participants: self.banned_participants,
             timestamp: self.timestamp,
             storage: Arc::clone(&self.storage),
+            module_resources: Arc::clone(&self.module_resources),
             messages: self.messages,
             loopback_futures: self.loopback_futures,
         }
     }
 
-    pub(crate) fn into_typed_context<M: SignalingModule>(self) -> ModuleContext<'ctx, M> {
+    pub(crate) fn into_typed_context<M: SignalingModule + 'static>(self) -> ModuleContext<'ctx, M> {
         ModuleContext::new(
             self.room_id,
             self.room,
@@ -95,6 +101,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             self.timestamp,
             self.loopback_futures,
             self.storage,
+            self.module_resources,
         )
     }
 }

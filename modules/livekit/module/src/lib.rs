@@ -17,7 +17,7 @@ use opentalk_roomserver_signaling::{
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, SignalingModule, SignalingModuleInitData,
     },
-    storage::ModuleAssetStorage,
+    storage::assets::ModuleAssetStorage,
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom, connection_id::ConnectionId, room_kind::RoomKind,

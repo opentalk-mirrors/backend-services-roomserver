@@ -75,7 +75,9 @@ use opentalk_roomserver_signaling::{
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
-    storage::provider::AssetStorageProvider,
+    storage::{
+        assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
+    },
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
@@ -107,9 +109,9 @@ use super::{
 use crate::{
     message_router::{MessageEnvelope, MessageRouter, ScopedRouter, SignalingMessage},
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
+    storage::memory_file_storage::MemoryAssetStorage,
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
-        memory_file_storage::MemoryAssetStorage,
         timeout::Timeout,
     },
 };
@@ -117,7 +119,6 @@ use crate::{
 pub mod breakout;
 pub mod core;
 pub mod handle;
-pub mod memory_file_storage;
 pub mod timeout;
 pub mod waiting_room;
 
@@ -164,6 +165,8 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 
     storage: Arc<dyn AssetStorageProvider>,
 
+    module_resources: Arc<dyn ModuleResourceProvider>,
+
     /// Collection of participants in the waiting room.
     waiting_participants: HashMap<ParticipantId, WaitingParticipant>,
 
@@ -181,6 +184,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         room_id: RoomId,
         room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
+        module_resources: Arc<dyn ModuleResourceProvider>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
@@ -189,6 +193,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             room_parameters,
             app_state,
             module_registry,
+            module_resources,
             settings,
             IDLE_TIMEOUT,
         )
@@ -196,11 +201,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     /// Spawns a new [`RoomTask`] with a specific timeout
     #[tracing::instrument(level = "info", skip_all, fields(opentalk.room_id = %room_id))]
+    #[allow(clippy::too_many_arguments)]
     pub fn spawn_with_timeout(
         room_id: RoomId,
         mut room_parameters: Arc<RoomParameters>,
         app_state: watch::Receiver<ApplicationState>,
         module_registry: Arc<ModuleRegistry>,
+        module_resources: Arc<dyn ModuleResourceProvider>,
         settings: Arc<Settings>,
         timeout: Duration,
     ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
@@ -261,6 +268,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 participants: Participants::new(),
                 modules,
                 storage,
+                module_resources,
                 waiting_participants: HashMap::new(),
                 banned_participants: HashMap::new(),
                 quota_timeout: Timeout::new(Duration::from_secs(time_limit)),
@@ -415,6 +423,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.banned_participants,
             msg.timestamp,
             Arc::clone(&self.storage),
+            Arc::clone(&self.module_resources),
             &mut messages,
             &mut self.loopback_futures,
         );
@@ -502,6 +511,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.banned_participants,
             timestamp,
             Arc::clone(&self.storage),
+            Arc::clone(&self.module_resources),
             &mut messages,
             &mut self.loopback_futures,
         );
@@ -814,6 +824,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.banned_participants,
             timestamp,
             Arc::clone(&self.storage),
+            Arc::clone(&self.module_resources),
             &mut messages,
             &mut self.loopback_futures,
         );

@@ -24,7 +24,10 @@ use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
     module_context::ModuleContext,
     signaling_module::{CreateReplica, SignalingModule},
-    storage::{ModuleAssetStorage, StorageContext, provider::AssetStorageProvider},
+    storage::{
+        StorageContext,
+        assets::{ModuleAssetStorage, provider::AssetStorageProvider},
+    },
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom,
@@ -143,7 +146,7 @@ impl Display for DynBroadcastEvent<'_> {
 /// Resolves generic JSON messages into concrete types for the associated [`SignalingModule`]
 ///
 /// Implements the [`ModuleHandle`] trait.
-pub struct ModuleDispatcher<M: SignalingModule + Send> {
+pub struct ModuleDispatcher<M: SignalingModule + Send + 'static> {
     module: M,
 }
 

@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 
 use super::module_context::ModuleContext;
-use crate::{participant_state::ParticipantState, storage::ModuleAssetStorage};
+use crate::{participant_state::ParticipantState, storage::assets::ModuleAssetStorage};
 
 /// The trait that defines a signaling module
 ///

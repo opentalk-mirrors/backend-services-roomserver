@@ -16,9 +16,10 @@ pub mod message_router;
 pub mod mocking;
 pub mod registry;
 pub mod signaling;
+pub mod storage;
 pub mod task;
 
-pub use opentalk_roomserver_signaling::storage::{
+pub use opentalk_roomserver_signaling::storage::assets::{
     AssetMetaData, AssetUploaded, ModuleAssetStorage, StorageError,
 };
 
@@ -48,6 +49,7 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{participant::create_participant_connection, socket::MockSocket},
+        storage::memory_module_storage::MemoryModuleResourceStorage,
         task::RoomTask,
     };
 
@@ -59,12 +61,22 @@ mod tests {
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
+        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
+
         (
-            RoomTask::spawn_with_timeout(id, params, state, module_registry, settings, TIMEOUT).0,
+            RoomTask::spawn_with_timeout(
+                id,
+                params,
+                state,
+                module_registry,
+                module_resources,
+                settings,
+                TIMEOUT,
+            )
+            .0,
             sender,
         )
     }
-
     #[tokio::test]
     async fn timeout() {
         let (handle, _sender) = create_room_task();

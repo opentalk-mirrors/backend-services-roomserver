@@ -37,7 +37,10 @@ use crate::{
         },
         socket::MockSocket,
     },
-    task::{RoomTask, memory_file_storage::MemoryAssetStorage},
+    storage::{
+        memory_file_storage::MemoryAssetStorage, memory_module_storage::MemoryModuleResourceStorage,
+    },
+    task::RoomTask,
 };
 
 #[derive(Debug)]
@@ -200,10 +203,13 @@ impl TestRoom {
         let settings = Arc::new(settings);
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
 
+        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
+
         let (room_handle, _) = RoomTask::spawn(
             room_id,
             room_parameters.into(),
             Arc::new(module_registry),
+            module_resources,
             Arc::clone(&settings),
             rx,
         );

@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use opentalk_roomserver_signaling::storage::provider::AssetStorageProvider;
+use opentalk_roomserver_signaling::storage::assets::provider::AssetStorageProvider;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
 };

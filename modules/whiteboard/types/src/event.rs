@@ -3,7 +3,7 @@
 
 //! Signaling events for the `whiteboard` namespace
 
-use opentalk_roomserver_signaling::storage::StorageError;
+use opentalk_roomserver_signaling::storage::assets::StorageError;
 use opentalk_roomserver_types::signaling::module_error::ModuleError;
 use opentalk_types_common::assets::AssetId;
 use serde::{Deserialize, Serialize};
