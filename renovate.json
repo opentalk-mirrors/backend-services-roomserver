@@ -16,12 +16,18 @@
     },
     {
       "matchPackagePatterns": [
-        "egui-*",
-        "egui_*",
+        "egui*",
         "eframe"
       ],
       "groupName": "egui",
       "groupSlug": "egui"
+    },
+    {
+      "matchPackagePatterns": [
+        "livekit*"
+      ],
+      "groupName": "livekit",
+      "groupSlug": "livekit"
     }
   ]
 }
