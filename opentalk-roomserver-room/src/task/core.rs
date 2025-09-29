@@ -55,7 +55,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let core_command: CoreCommand = match serde_json::from_str(command.payload.get()) {
             Ok(command) => command,
             Err(err) => {
-                tracing::warn!("🚨🚨🚨 received unsupported core command 🚨🚨🚨");
+                tracing::debug!("received unsupported core command");
                 self.message_router_for_participant(participant_origin.id)
                     .send_error(
                         participant_origin.connection_id,
