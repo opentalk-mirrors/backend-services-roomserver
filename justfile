@@ -66,11 +66,13 @@ _check_yq:
 prepare-release VERSION: (set-version VERSION) update-frontend-api (update-changelog VERSION)
 
 # Sets the version in the Cargo.toml and updates the Cargo.lock
-set-version VERSION: _check_cargo_set_version
+set-version VERSION: _check_cargo_set_version _check_yq
     # Set the version number for all packages in the workspace
     cargo set-version --workspace {{ VERSION }}
     # Regenerate the lockfile
     cargo check
+    # update the frontend api
+    yq '.info.version = "{{ VERSION }}"' -i api/docs/openapi.yml
 
 # Update the version in the OpenAPI spec
 update-frontend-api:
