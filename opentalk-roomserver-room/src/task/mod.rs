@@ -896,6 +896,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     state.joined_at = Utc::now();
                     state.left_at = None;
                 }
+                state.in_waiting_room = false;
                 state.connections.insert(connection_id, device_id);
             }
             Vacant(vacant) => {

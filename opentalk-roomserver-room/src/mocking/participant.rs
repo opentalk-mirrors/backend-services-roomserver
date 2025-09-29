@@ -278,14 +278,29 @@ impl MockParticipantJoined {
 
         self.receive::<BreakoutEvent>().await.unwrap().payload
     }
+
+    pub fn in_waiting_room(self) -> MockParticipantWaiting {
+        MockParticipantWaiting {
+            sender: self.sender,
+            receiver: self.receiver,
+            state: WaitingRoomState {
+                connection_id: self.state.connection_id,
+                participant_id: self.state.id,
+            },
+        }
+    }
 }
 
 impl MockParticipantWaiting {
     /// 1. Receive `ModerationEvent::Accepted`
-    /// 2. Receive [`JoinSuccess`]
-    pub async fn wait_accept(&mut self) -> Result<(), ReceiveError> {
-        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv()).await? else {
-            return Err(ReceiveError::Closed);
+    /// 2. Send [`CoreCommand::EnterRoom`]
+    /// 3. Receive [`JoinSuccess`]
+    pub async fn enter_room(mut self) -> Result<MockParticipantJoined, ParticipantError> {
+        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.recv())
+            .await
+            .map_err(|err| ParticipantError::Receive(err.into()))?
+        else {
+            return Err(ReceiveError::Closed.into());
         };
         match received {
             SignalingSocketMessage::Text(text) => {
@@ -297,22 +312,20 @@ impl MockParticipantWaiting {
 
                 // The mocking module can not depend on the moderation module, so we
                 // can only verify the namespace here.
-                if event.namespace == module_id!("moderation") {
-                    Ok(())
-                } else {
-                    Err(ReceiveError::UnexpectedMessage(
-                        SignalingSocketMessage::Text(text),
-                    ))
+                if event.namespace != module_id!("moderation") {
+                    return Err(
+                        ReceiveError::UnexpectedMessage(SignalingSocketMessage::Text(text)).into(),
+                    );
                 }
             }
-            other => Err(ReceiveError::UnexpectedMessage(other)),
-        }
-    }
+            other => return Err(ReceiveError::UnexpectedMessage(other).into()),
+        };
 
-    pub async fn enter_room(&mut self) -> Result<(), ParticipantError> {
         self.send_core_command(CoreCommand::EnterRoom, None)
             .await
-            .map_err(ParticipantError::from)
+            .map_err(ParticipantError::from)?;
+
+        self.join_success().await
     }
 
     pub async fn join_success(mut self) -> Result<MockParticipantJoined, ParticipantError> {
