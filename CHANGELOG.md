@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.9] - 2025-09-29
+
+[0.0.9]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.8...v0.0.9
+
+### 🚀 New features
+
+- (types) Add retain function to `ModuleSettings` ([!613](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/613))
+
+### 🐛 Bug fixes
+
+- (room) Use `ParticipantState.display_name` in `ParticipantJoined` if participant already exists ([!604](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/604))
+- (room) `CoreCommand::EnterRoom` while already in room returns `SignalingError::UnknownNamespace` ([!612](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/612), [#147](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/147))
+
+### 🔨 Refactor
+
+- (room) Lower trace level for unsupported core commands ([!612](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/612))
+
+### ⚙ Miscellaneous
+
+- (justfile) Update frontend api version number with `set-version` ([!614](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/614))
+
 ## [0.0.8] - 2025-09-29
 
 [0.0.8]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.7...v0.0.8
