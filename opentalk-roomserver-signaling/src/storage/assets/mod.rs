@@ -46,10 +46,10 @@ impl ModuleAssetStorage {
         Self { provider, context }
     }
 
-    /// Uploads a file to the storage backend
-    pub async fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) -> UploadResult {
+    /// Uploads an asset to the storage backend
+    pub async fn upload_asset(&self, asset: Vec<u8>, metadata: AssetMetaData) -> UploadResult {
         self.provider
-            .upload_file(file, metadata, &self.context)
+            .upload_asset(asset, metadata, &self.context)
             .await
     }
 

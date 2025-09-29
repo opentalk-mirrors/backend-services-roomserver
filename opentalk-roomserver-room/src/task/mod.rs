@@ -106,7 +106,7 @@ use super::{
 use crate::{
     message_router::{MessageEnvelope, MessageRouter, ScopedRouter, SignalingMessage},
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
-    storage::memory_file_storage::MemoryAssetStorage,
+    storage::memory_asset_storage::MemoryAssetStorage,
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
         timeout::Timeout,

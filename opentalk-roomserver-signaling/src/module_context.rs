@@ -570,13 +570,13 @@ where
     M: SignalingModule,
     M::Loopback: From<UploadResult>,
 {
-    pub fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) {
+    pub fn upload_file(&self, asset: Vec<u8>, metadata: AssetMetaData) {
         let storage_context = self.storage_context();
         let storage = Arc::clone(&self.storage);
 
         self.spawn(async move {
             storage
-                .upload_file(file, metadata, &storage_context)
+                .upload_asset(asset, metadata, &storage_context)
                 .await
                 .into()
         });

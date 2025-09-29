@@ -10,10 +10,10 @@ use crate::storage::assets::{AssetMetaData, StorageContext, StorageError, Upload
 
 #[async_trait]
 pub trait AssetStorageProvider: Send + Sync + Debug {
-    /// Uploads a file to the storage backend
-    async fn upload_file(
+    /// Uploads an asset to the storage backend
+    async fn upload_asset(
         &self,
-        file: Vec<u8>,
+        asset: Vec<u8>,
         metadata: AssetMetaData,
         context: &StorageContext,
     ) -> UploadResult;

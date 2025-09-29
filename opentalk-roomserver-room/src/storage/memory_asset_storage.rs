@@ -18,7 +18,7 @@ use opentalk_types_common::assets::AssetId;
 use tokio::sync::Mutex;
 use url::Url;
 
-/// A simple storage provider using the local file system as storage backend.
+/// A simple storage provider using the local asset system as storage backend.
 ///
 /// This implementation is for testing purposes only. It will be moved to the
 /// mocking module and only be used for tests once a real storage provider has
@@ -26,36 +26,36 @@ use url::Url;
 #[derive(Debug)]
 pub struct MemoryAssetStorage {
     quota: Option<u64>,
-    files: Mutex<HashMap<AssetId, Vec<u8>>>,
+    assets: Mutex<HashMap<AssetId, Vec<u8>>>,
     running_uploads: Mutex<HashSet<AssetId>>,
 }
 
 impl MemoryAssetStorage {
     /// Creates a new [`MemoryAssetStorage`]
     ///
-    /// * `quota` - The total size of files the user is allowed to upload (in bytes)
+    /// * `quota` - The total size of assets the user is allowed to upload (in bytes)
     pub fn new(quota: Option<u64>) -> Self {
         Self {
             quota,
-            files: Mutex::new(HashMap::new()),
+            assets: Mutex::new(HashMap::new()),
             running_uploads: Mutex::new(HashSet::new()),
         }
     }
 
-    pub async fn file(&self, id: AssetId) -> Option<Vec<u8>> {
-        self.files.lock().await.get(&id).cloned()
+    pub async fn asset(&self, id: AssetId) -> Option<Vec<u8>> {
+        self.assets.lock().await.get(&id).cloned()
     }
 
-    pub async fn file_count(&self) -> usize {
-        self.files.lock().await.len()
+    pub async fn asset_count(&self) -> usize {
+        self.assets.lock().await.len()
     }
 }
 
 #[async_trait]
 impl AssetStorageProvider for MemoryAssetStorage {
-    async fn upload_file(
+    async fn upload_asset(
         &self,
-        file: Vec<u8>,
+        asset: Vec<u8>,
         metadata: AssetMetaData,
         context: &StorageContext,
     ) -> UploadResult {
@@ -69,13 +69,13 @@ impl AssetStorageProvider for MemoryAssetStorage {
         }
 
         let id = AssetId::generate();
-        self.files.lock().await.insert(id, file);
+        self.assets.lock().await.insert(id, asset);
 
         Ok(AssetUploaded {
             id,
             filename: metadata.to_string(),
             remaining_quota: self.remaining_quota(context).await,
-            url: Self::file_url(id, &metadata),
+            url: Self::asset_url(id, &metadata),
         })
     }
 
@@ -98,9 +98,9 @@ impl AssetStorageProvider for MemoryAssetStorage {
             running_uploads.insert(id);
         }
 
-        let mut files = self.files.lock().await;
-        let file = files.entry(id).or_default();
-        file.extend_from_slice(chunk);
+        let mut assets = self.assets.lock().await;
+        let asset = assets.entry(id).or_default();
+        asset.extend_from_slice(chunk);
 
         Ok(())
     }
@@ -119,13 +119,13 @@ impl AssetStorageProvider for MemoryAssetStorage {
             id,
             filename: metadata.to_string(),
             remaining_quota: self.remaining_quota(context).await,
-            url: Self::file_url(id, &metadata),
+            url: Self::asset_url(id, &metadata),
         })
     }
 
     async fn remaining_quota(&self, _context: &StorageContext) -> Option<u64> {
         if let Some(q) = self.quota {
-            let used: usize = self.files.lock().await.values().map(Vec::len).sum();
+            let used: usize = self.assets.lock().await.values().map(Vec::len).sum();
             Some(q.saturating_sub(used as u64))
         } else {
             None
@@ -138,9 +138,9 @@ impl AssetStorageProvider for MemoryAssetStorage {
 }
 
 impl MemoryAssetStorage {
-    fn file_url(id: AssetId, metadata: &AssetMetaData) -> Url {
-        let file_name = format!("{id}_{metadata}");
-        let url = format!("file://{file_name}");
+    fn asset_url(id: AssetId, metadata: &AssetMetaData) -> Url {
+        let asset_name = format!("{id}_{metadata}");
+        let url = format!("file://{asset_name}");
         Url::parse(&url).expect("Parsing url failed")
     }
 }
@@ -161,7 +161,7 @@ mod test {
     use super::MemoryAssetStorage;
 
     #[tokio::test]
-    async fn upload_file() {
+    async fn upload_asset() {
         let quota = 5 * 1024u64.pow(3);
         let storage = MemoryAssetStorage::new(Some(quota));
         let storage_context = StorageContext {
@@ -169,7 +169,7 @@ mod test {
             namespace: BREAKOUT_MODULE_ID,
         };
 
-        let file = b"test".to_vec();
+        let asset = b"test".to_vec();
         let name = AssetMetaData {
             kind: asset_file_kind!("text"),
             timestamp: Timestamp::now(),
@@ -178,12 +178,12 @@ mod test {
             extension: FileExtension::pdf(),
         };
         let uploaded = storage
-            .upload_file(file.clone(), name, &storage_context)
+            .upload_asset(asset.clone(), name, &storage_context)
             .await
             .unwrap();
-        let produced = storage.file(uploaded.id).await.unwrap();
+        let produced = storage.asset(uploaded.id).await.unwrap();
 
-        assert_eq!(file, produced);
+        assert_eq!(asset, produced);
     }
 
     #[tokio::test]
@@ -195,14 +195,14 @@ mod test {
             namespace: BREAKOUT_MODULE_ID,
         };
 
-        let file = b"file that exceeds the quota".to_vec();
+        let asset = b"file that exceeds the quota".to_vec();
         let name = AssetMetaData {
             kind: asset_file_kind!("text"),
             timestamp: Timestamp::now(),
             extension: FileExtension::pdf(),
         };
         storage
-            .upload_file(file.clone(), name, &storage_context)
+            .upload_asset(asset.clone(), name, &storage_context)
             .await
             .unwrap();
 
@@ -211,7 +211,7 @@ mod test {
             timestamp: Timestamp::now(),
             extension: FileExtension::pdf(),
         };
-        let produced = storage.upload_file(file, name, &storage_context).await;
+        let produced = storage.upload_asset(asset, name, &storage_context).await;
 
         assert!(matches!(produced, Err(StorageError::QuotaReached)));
     }

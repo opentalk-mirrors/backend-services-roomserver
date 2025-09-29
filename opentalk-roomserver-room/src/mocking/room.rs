@@ -39,7 +39,8 @@ use crate::{
         socket::MockSocket,
     },
     storage::{
-        memory_file_storage::MemoryAssetStorage, memory_module_storage::MemoryModuleResourceStorage,
+        memory_asset_storage::MemoryAssetStorage,
+        memory_module_storage::MemoryModuleResourceStorage,
     },
     task::RoomTask,
 };
@@ -325,12 +326,12 @@ impl TestRoom {
 
     pub async fn stored_file(&self, id: AssetId) -> Option<Vec<u8>> {
         let storage = self.downcast_storage();
-        storage.file(id).await
+        storage.asset(id).await
     }
 
     pub async fn file_count(&self) -> usize {
         let storage = self.downcast_storage();
-        storage.file_count().await
+        storage.asset_count().await
     }
 
     fn downcast_storage(&self) -> Arc<MemoryAssetStorage> {
