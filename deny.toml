@@ -103,9 +103,6 @@ exceptions = [
   ], name = "opentalk-roomserver-report-generation" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-roomserver-room" },
-  { allow = [
-    "EUPL-1.2",
   ], name = "opentalk-roomserver-signaling" },
   { allow = [
     "EUPL-1.2",
