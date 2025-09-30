@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.10] - 2025-09-30
+
+[0.0.10]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.9...v0.0.10
+
+### 🚀 New features
+
+- (core) Add module resources interface ([!556](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/556))
+
+### 🔨 Refactor
+
+- Organize storage module locations ([!556](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/556))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate opentalk-etherpad-client to 0.4 ([!616](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/616))
+- (deps) Update opentalk ([!618](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/618))
+
+### ⚙ Miscellaneous
+
+- Switch to internal kaniko image ([!587](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/587))
+
 ## [0.0.9] - 2025-09-29
 
 [0.0.9]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.8...v0.0.9
