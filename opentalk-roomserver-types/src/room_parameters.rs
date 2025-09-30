@@ -150,14 +150,18 @@ impl ExampleData for EventContext {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(AssetStorageConfig::example_data())))]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case", tag = "type")]
 pub enum AssetStorageConfig {
     InMemory,
+    Controller { url: url::Url, secret: String },
 }
 
 impl ExampleData for AssetStorageConfig {
     fn example_data() -> Self {
-        Self::InMemory
+        Self::Controller {
+            url: "https://localhost:11411".parse().unwrap(),
+            secret: "secret".to_string(),
+        }
     }
 }
 
@@ -184,7 +188,11 @@ mod tests {
                 "timezone": "Europe/Berlin"
             },
             "password": "1234",
-            "asset_storage": "in_memory",
+            "asset_storage": {
+                "type": "controller",
+                "secret": "secret",
+                "url": "https://localhost:11411/",
+            },
             "call_in": {
                 "tel": "+555-123-456-789",
                 "id": "1234567890",

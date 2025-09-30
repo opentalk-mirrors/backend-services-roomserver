@@ -14,7 +14,6 @@ use opentalk_roomserver_signaling::storage::{
 };
 use opentalk_types_common::assets::AssetId;
 use tokio::sync::Mutex;
-use url::Url;
 
 /// A simple storage provider using the local asset system as storage backend.
 ///
@@ -77,7 +76,6 @@ impl AssetStorageProvider for MemoryAssetStorage {
             id,
             filename: metadata.to_string(),
             remaining_quota: self.remaining_quota(context).await,
-            url: Self::asset_url(id, &metadata),
         })
     }
 
@@ -92,14 +90,6 @@ impl AssetStorageProvider for MemoryAssetStorage {
 
     fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync> {
         self
-    }
-}
-
-impl MemoryAssetStorage {
-    fn asset_url(id: AssetId, metadata: &AssetMetaData) -> Url {
-        let asset_name = format!("{id}_{metadata}");
-        let url = format!("file://{asset_name}");
-        Url::parse(&url).expect("Parsing url failed")
     }
 }
 
@@ -130,6 +120,7 @@ mod test {
         let storage_context = StorageContext {
             room_id: RoomId::from_u128(0x12),
             namespace: BREAKOUT_MODULE_ID,
+            event: None,
         };
 
         let content = b"some file content";
@@ -158,6 +149,7 @@ mod test {
         let storage_context = StorageContext {
             room_id: RoomId::from_u128(0x12),
             namespace: BREAKOUT_MODULE_ID,
+            event: None,
         };
 
         let content = b"asset that exceeds the quota";
@@ -193,6 +185,7 @@ mod test {
         let storage_context = StorageContext {
             room_id: RoomId::from_u128(0x12),
             namespace: BREAKOUT_MODULE_ID,
+            event: None,
         };
 
         let content = b"some file content";

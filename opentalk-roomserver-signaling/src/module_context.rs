@@ -562,6 +562,7 @@ where
         StorageContext {
             room_id: self.room_id,
             namespace: M::NAMESPACE,
+            event: self.room_task_info.room.event.clone(),
         }
     }
 }

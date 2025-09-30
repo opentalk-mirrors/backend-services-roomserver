@@ -25,7 +25,6 @@ use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     time::Timestamp,
 };
-use url::Url;
 
 use crate::storage::{
     StorageContext,
@@ -123,5 +122,4 @@ pub struct AssetUploaded {
     pub id: AssetId,
     pub filename: String,
     pub remaining_quota: Option<u64>,
-    pub url: Url,
 }

@@ -16,6 +16,13 @@ pub struct AssetLoadError {
     pub source: Box<dyn std::error::Error + Send + Sync>,
 }
 
+// this is is required to transform the AssetStream into a reqwest Body.
+impl From<AssetLoadError> for Box<dyn std::error::Error + Send + Sync> {
+    fn from(err: AssetLoadError) -> Self {
+        err.source
+    }
+}
+
 #[async_trait]
 pub trait AssetStorageProvider: Send + Sync + Debug {
     /// Uploads an asset to the storage backend

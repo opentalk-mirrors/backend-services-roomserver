@@ -5364,6 +5364,7 @@ dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "reqwest",
  "serde",
  "serde_json",
  "test-log",
@@ -5395,7 +5396,6 @@ dependencies = [
  "thiserror 2.0.17",
  "tokio",
  "tracing",
- "url",
 ]
 
 [[package]]
