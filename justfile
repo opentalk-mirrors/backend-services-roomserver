@@ -120,7 +120,7 @@ run-dui *ARGS:
 generate-deps-graph: _check_cargo_depgraph _check_dot
     #!/usr/bin/env bash
     set -euo pipefail
-    OUT_PATH=`mktemp --suffix=.png`
+    OUT_PATH="target/dep-graph.png"
     cargo depgraph --workspace-only --all-deps | dot -Tpng > $OUT_PATH
     echo "Created dependency graph at $OUT_PATH"
 
