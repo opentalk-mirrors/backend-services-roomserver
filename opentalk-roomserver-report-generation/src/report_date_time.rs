@@ -7,6 +7,7 @@ use std::{fmt::Display, str::FromStr};
 use chrono::{DateTime, NaiveDateTime, SubsecRound, TimeZone};
 use chrono_tz::Tz;
 use serde::{Deserialize, Deserializer, Serialize};
+use thiserror::Error;
 
 /// Representation of a date-time for use in report generation
 ///
@@ -41,12 +42,14 @@ impl Display for ReportDateTime {
 }
 
 /// The error that is returned by [ModuleId::from_str] on failure.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ParseReportDateTimeError {
     /// NaiveDateTime parsing failed
-    NaiveDateTime { source: chrono::format::ParseError },
+    #[error("NaiveDateTime parsing failed")]
+    NaiveDateTime(#[from] chrono::format::ParseError),
 
     /// The ReportDateTime type must be rounded to seconds
+    #[error("The ReportDateTime type must be rounded to seconds")]
     NotRoundedToSeconds,
 }
 
@@ -54,9 +57,7 @@ impl FromStr for ReportDateTime {
     type Err = ParseReportDateTimeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let dt: NaiveDateTime = s
-            .parse()
-            .map_err(|err| ParseReportDateTimeError::NaiveDateTime { source: err })?;
+        let dt: NaiveDateTime = s.parse().map_err(ParseReportDateTimeError::from)?;
         if dt.round_subsecs(0) == dt {
             Ok(Self(dt))
         } else {
