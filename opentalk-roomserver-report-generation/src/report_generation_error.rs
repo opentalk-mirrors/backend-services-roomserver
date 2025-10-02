@@ -13,18 +13,6 @@ pub enum ReportGenerationError {
         /// The warnings that were emitted during compilation
         warnings: EcoVec<SourceDiagnostic>,
     },
-
-    /// Error creating the dump directory
-    DumpDirectoryCreation {
-        /// The source of the error
-        source: std::io::Error,
-    },
-
-    /// Error exporting dump file
-    DumpFileExport {
-        /// The source of the error
-        source: std::io::Error,
-    },
 }
 
 impl From<EcoVec<SourceDiagnostic>> for ReportGenerationError {
