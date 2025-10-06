@@ -6218,6 +6218,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_json",
+ "thiserror 2.0.17",
  "tracing",
  "typst",
  "typst-kit",

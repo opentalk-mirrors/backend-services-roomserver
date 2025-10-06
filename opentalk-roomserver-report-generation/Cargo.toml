@@ -18,6 +18,7 @@ chrono-tz.workspace = true
 ecow.workspace = true
 pretty_assertions.workspace = true
 serde.workspace = true
+thiserror.workspace = true
 tracing.workspace = true
 typst.workspace = true
 typst-kit = { workspace = true, default-features = false, features = [

@@ -3,27 +3,17 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use ecow::EcoVec;
+use thiserror::Error;
 use typst::diag::SourceDiagnostic;
 
 /// An error that can happen during report generation
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ReportGenerationError {
     /// Compilation failed
+    #[error("Compilation failed, the following warnings were emitted: {warnings:#?}")]
     Compilation {
         /// The warnings that were emitted during compilation
         warnings: EcoVec<SourceDiagnostic>,
-    },
-
-    /// Error creating the dump directory
-    DumpDirectoryCreation {
-        /// The source of the error
-        source: std::io::Error,
-    },
-
-    /// Error exporting dump file
-    DumpFileExport {
-        /// The source of the error
-        source: std::io::Error,
     },
 }
 
