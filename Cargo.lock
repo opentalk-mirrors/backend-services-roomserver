@@ -4966,7 +4966,6 @@ dependencies = [
  "futures",
  "http 1.3.1",
  "insta",
- "log",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-automod",
  "opentalk-roomserver-types-chat",
@@ -4992,6 +4991,7 @@ dependencies = [
  "thiserror 2.0.17",
  "tokio",
  "tokio-tungstenite 0.28.0",
+ "tracing",
  "tungstenite 0.28.0",
  "url",
 ]
