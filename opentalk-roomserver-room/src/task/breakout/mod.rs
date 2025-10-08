@@ -491,4 +491,30 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         );
         Ok(())
     }
+
+    /// Attach breakout related info about the joining participant to other participants (peers).
+    ///
+    /// This will be sent to all other participants, but not the joining participant.
+    pub(crate) fn join_success_breakout_peer_events(
+        &self,
+        participant_id: ParticipantId,
+        peer_events: &mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
+    ) -> Result<(), FatalError> {
+        let Some(joinee) = self.participants.all_unfiltered.get(&participant_id) else {
+            return Err(FatalError(anyhow::anyhow!("joining participant not found")));
+        };
+        let data = BreakoutPeerModuleData { room: joinee.room };
+        let data = SharedJson::from(
+            serde_json::to_value(data)
+                .context("Failed to serialize BreakoutPeerModuleData")
+                .map_err(FatalError)?,
+        );
+        for peer_id in self.participants.connected().ids() {
+            peer_events
+                .entry(peer_id)
+                .or_default()
+                .insert(BREAKOUT_MODULE_ID, data.clone());
+        }
+        Ok(())
+    }
 }

@@ -254,6 +254,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         );
 
         self.join_success_breakout_own_data(&mut own_data, current_breakout_room);
+        self.join_success_breakout_peer_events(participant_id, &mut peer_events)?;
         self.join_success_core_peer_events(participant_id, &mut peer_events)?;
 
         let join_success_msg = self.build_join_success(
