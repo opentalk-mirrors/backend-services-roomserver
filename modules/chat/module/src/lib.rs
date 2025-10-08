@@ -78,9 +78,7 @@ impl SignalingModule for ChatModule {
         _is_first_connection: bool,
     ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
         let mut join_info = ModuleJoinData {
-            join_success: Some(
-                self.chat_state_latest_chunks_for_participant(p_joined, RoomKind::Main),
-            ),
+            join_success: Some(self.chat_state_latest_chunks_for_participant(p_joined, ctx.room)),
             ..Default::default()
         };
 
