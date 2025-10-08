@@ -149,6 +149,11 @@ async fn participant_joined() {
         "participant_id": "00000000-0000-0000-0000-000000000b0b",
         "connection_id": "[uuid]",
         "peer_data": {
+          "breakout": {
+            "room": {
+              "kind": "main"
+            }
+          },
           "core": {
             "avatar_url": "https://example.com/avatar-of-bob",
             "display_name": "Bob the bold",

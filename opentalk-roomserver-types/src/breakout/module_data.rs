@@ -25,7 +25,7 @@ impl SignalingModuleFrontendData for BreakoutModuleData {
     const NAMESPACE: Option<ModuleId> = Some(super::BREAKOUT_MODULE_ID);
 }
 
-/// The peer module data that is attached to the `JoinSuccess` message
+/// The peer module data that is attached to the `JoinSuccess` and `ParticipantJoined` messages.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BreakoutPeerModuleData {
     /// The current room of the participant
