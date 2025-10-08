@@ -182,6 +182,43 @@ mod serde_tests {
     }
 
     #[test]
+    fn serialize_breakout_message() {
+        let command = ChatCommand::SendMessage {
+            content: "test message".to_string(),
+            scope: Scope::Breakout(0.into()),
+        };
+        let raw = serde_json::to_string_pretty(&command).expect("Serialization failed");
+
+        assert_snapshot!(raw, @r#"
+        {
+          "action": "send_message",
+          "content": "test message",
+          "scope": "breakout",
+          "target": 0
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_breakout_message() {
+        let json = json!({
+            "action": "send_message",
+            "scope": "breakout",
+            "target": 0,
+            "content": "test message"
+        });
+        let msg: ChatCommand = serde_json::from_value(json).unwrap();
+
+        assert_eq!(
+            msg,
+            ChatCommand::SendMessage {
+                content: "test message".to_string(),
+                scope: Scope::Breakout(0.into())
+            }
+        );
+    }
+
+    #[test]
     fn serialize_group_message() {
         let command = ChatCommand::SendMessage {
             content: "test message".to_string(),
