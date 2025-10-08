@@ -1324,6 +1324,63 @@ async fn private_chat_history_on_join() {
 }
 
 #[test_log::test(tokio::test)]
+async fn breakout_chat_history_on_join() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .start_breakout_rooms(
+            &mut [],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".into(),
+                    assignments: vec![alice.id()],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    alice
+        .switch_breakout_room(&mut [], RoomKind::Breakout(0.into()))
+        .await;
+
+    alice
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage {
+                content: "hello breakout room".into(),
+                scope: Scope::Breakout(0.into()),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
+    assert!(matches!(event, ChatEvent::MessageSent { .. }));
+
+    let alice_id = alice.id();
+    alice.disconnect().await.unwrap();
+
+    let breakout_messages = room
+        .join_alice_moderator(0)
+        .await
+        .join_success()
+        .module_data
+        .get::<ChatState>()
+        .expect("ChatState must be valid")
+        .expect("ChatState must exist")
+        .breakout_room_history
+        .unwrap();
+
+    assert_eq!(breakout_messages.messages.len(), 1);
+    let msg = &breakout_messages.messages[0];
+    assert_eq!(msg.source, alice_id);
+    assert_eq!(msg.content, "hello breakout room");
+    assert_eq!(msg.scope, Scope::Breakout(0.into()));
+}
+
+#[test_log::test(tokio::test)]
 async fn invalid_search_term_length() {
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
     let mut alice = room.join_alice_moderator(1).await;
