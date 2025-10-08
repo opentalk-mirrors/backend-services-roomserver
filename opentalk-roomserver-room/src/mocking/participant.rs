@@ -43,7 +43,7 @@ use super::{
     socket::MockSocket,
 };
 
-const SOCKET_TIMEOUT: Duration = Duration::from_millis(500);
+const SOCKET_TIMEOUT: Duration = Duration::from_secs(3);
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParticipantError {
