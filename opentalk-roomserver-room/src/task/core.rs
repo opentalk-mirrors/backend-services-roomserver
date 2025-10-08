@@ -13,14 +13,13 @@ use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
     module_context::ModuleMessage,
     participant_state::ParticipantState,
-    signaling_event::SignalingEvent,
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, Role as RoomserverClientRole},
     connection_id::ConnectionId,
     core::{
         CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, JoinBlockedReason, LeftWaitingRoom,
-        state::CoreState,
+        RoomCloseReason, state::CoreState,
     },
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
@@ -32,7 +31,6 @@ use opentalk_roomserver_types::{
     room_info::RoomInfo,
     room_kind::RoomKind,
     shared_json::SharedJson,
-    shared_raw_json::SharedRawJson,
     signaling::{
         SignalingCommand,
         module_error::{FatalError, SignalingModuleError},
@@ -426,12 +424,34 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             err.0
         );
 
-        let Some(module) = self.modules.remove(&namespace) else {
+        let Some(mut module) = self.modules.remove(&namespace) else {
             tracing::error!("Attempted to remove non-existent module {namespace}");
             return;
         };
 
-        module.destroy(self.info.room_id, Arc::clone(&self.storage));
+        let timestamp = Timestamp::now();
+        let mut messages = RefCell::new(Vec::new());
+        let mut ctx = DynModuleContext::new(
+            self.info.room_id,
+            RoomKind::Main,
+            EventOrigin::Internal,
+            &mut self.info,
+            &mut self.participants,
+            &mut self.waiting_participants,
+            &mut self.banned_participants,
+            timestamp,
+            Arc::clone(&self.storage),
+            Arc::clone(&self.module_resources),
+            &mut messages,
+            &mut self.loopback_futures,
+        );
+        module.on_closing(&mut ctx);
+
+        if let Err(err) =
+            self.handle_module_messages(messages, RoomKind::Main, EventOrigin::Internal, timestamp)
+        {
+            tracing::error!("Handling module messages during fatal error handling failed: {err:?}");
+        }
 
         // Remove the module from the room state
         self.info.room.tariff.modules.remove(&namespace);
@@ -556,30 +576,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         })
     }
 
-    /// Sends a [`CoreEvent::TimeLimitQuotaElapsed`] to all participants in the conference and
-    /// waiting room
-    pub(crate) fn time_limit_quota_elapsed(&mut self) {
-        let event = SignalingEvent {
-            namespace: CORE_MODULE_ID,
-            transaction_id: None,
-            timestamp: Timestamp::now(),
-            payload: CoreEvent::TimeLimitQuotaElapsed,
-        };
-        let Ok(raw_value) = serde_json::value::to_raw_value(&event) else {
-            tracing::error!("Failed to serialize CoreEvent");
-            return;
-        };
-
-        let shared_json: SharedRawJson = raw_value.into();
-        self.message_router
-            .conference
-            .broadcast_event(shared_json.clone(), &[]);
-
-        self.message_router
-            .waiting_room
-            .broadcast_event(shared_json, &[]);
-    }
-
     /// Attach core related info about the joining participant for other participants (peers).
     ///
     /// This will be sent to all other participants, but not the joining participant.
@@ -638,6 +634,24 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .map_err(FatalError)?,
         );
         peer_data.insert(CORE_MODULE_ID, data);
+
+        Ok(())
+    }
+
+    pub(crate) fn broadcast_closing_event(
+        &mut self,
+        reason: RoomCloseReason,
+    ) -> Result<(), FatalError> {
+        let event = CoreEvent::Closing { reason };
+        self.message_router.conference.serialize_and_broadcast(
+            CORE_MODULE_ID,
+            None,
+            event.clone(),
+        )?;
+
+        self.message_router
+            .waiting_room
+            .serialize_and_broadcast(CORE_MODULE_ID, None, event)?;
 
         Ok(())
     }

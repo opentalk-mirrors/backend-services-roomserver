@@ -14,7 +14,6 @@ use opentalk_roomserver_signaling::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
         SignalingModuleInitData,
     },
-    storage::assets::ModuleAssetStorage,
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
@@ -27,7 +26,6 @@ use opentalk_roomserver_types_meeting_notes::{
 };
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
-use tracing::{Instrument, Span};
 use url::Url;
 
 use crate::loopback::{GenerateUrlFailed, MeetingNotesLoopback};
@@ -287,15 +285,20 @@ impl SignalingModule for MeetingNotesModule {
         Ok(())
     }
 
-    fn destroy(self, _room_id: RoomId, _storage: ModuleAssetStorage) {
-        let span = Span::current();
-        tokio::spawn(
-            loopback::delete_pads(
-                Arc::clone(&self.etherpad),
-                self.etherpad_rooms.into_values(),
-            )
-            .instrument(span),
-        );
+    fn on_closing(&mut self, ctx: &mut ModuleContext<'_, Self>) -> anyhow::Result<()> {
+        let rooms: Vec<InitState> = self
+            .etherpad_rooms
+            .drain()
+            .map(|(.., state)| state)
+            .collect();
+        let client = Arc::clone(&self.etherpad);
+
+        ctx.spawn_optional(async move {
+            loopback::delete_pads(client, rooms.into_iter()).await;
+            None
+        });
+
+        Ok(())
     }
 }
 

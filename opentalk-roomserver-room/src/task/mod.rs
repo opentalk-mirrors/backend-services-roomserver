@@ -54,7 +54,6 @@ use std::{
         HashMap,
         hash_map::Entry::{Occupied, Vacant},
     },
-    future::pending,
     mem,
     sync::Arc,
     time::Duration,
@@ -84,7 +83,7 @@ use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
     client_parameters::{ClientKind, ClientParameters, Role},
     connection_id::ConnectionId,
-    core::CORE_MODULE_ID,
+    core::{CORE_MODULE_ID, RoomCloseReason},
     device_id::DeviceId,
     error::SignalingError,
     room_kind::RoomKind,
@@ -97,7 +96,7 @@ use opentalk_types_common::{
 };
 use opentalk_types_signaling::ParticipantId;
 use tokio::{
-    sync::{mpsc, watch},
+    sync::{mpsc, oneshot, watch},
     task::JoinHandle,
 };
 use uuid::Uuid;
@@ -117,6 +116,7 @@ use crate::{
 };
 
 pub mod breakout;
+pub mod closing;
 pub mod core;
 pub mod handle;
 pub mod timeout;
@@ -127,6 +127,10 @@ pub enum RoomTaskApiError {
     /// Placeholder error for features that are currently missing.
     #[error("This functionality is currently not available")]
     NotImplemented,
+
+    /// The room task is shutting down and cannot process the request.
+    #[error("The room task is shutting down and cannot process the request")]
+    Closing,
 }
 
 /// The timeout for an empty room
@@ -154,6 +158,9 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 
     /// Loopback futures that were created by signaling modules
     loopback_futures: FuturesUnordered<LoopbackFuture>,
+    /// Cancellation sender for the loopback futures. When dropped or sent, the loopback futures
+    /// will return `None` when all futures are completed.
+    loopback_cancel_tx: Option<oneshot::Sender<()>>,
 
     settings: Arc<Settings>,
 
@@ -247,8 +254,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 room: (*room_parameters).clone(),
             };
 
+            let (loopback_cancel_tx, loopback_rx) = oneshot::channel::<()>();
             let loopback_futures: FuturesUnordered<LoopbackFuture> = FuturesUnordered::new();
-            loopback_futures.push(Box::pin(pending()));
+            loopback_futures.push(Box::pin(async {
+                let _ = loopback_rx.await;
+                tracing::debug!("Loopback guard canceled, loopback futures may finish");
+                None
+            }));
 
             let time_limit = room_info
                 .room
@@ -262,6 +274,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 idle_timeout: Timeout::start_new(timeout),
                 message_router,
                 breakout_config: None,
+                loopback_cancel_tx: Some(loopback_cancel_tx),
                 loopback_futures,
                 settings,
                 app_state,
@@ -284,26 +297,29 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         tracing::debug!("Spawn room with modules: {:?}", self.modules.keys());
         let room_id = self.info.room_id;
 
-        if let Err(e) = self.inner_run().await {
-            tracing::error!("RoomTask exited with error {e:?}");
-        }
+        let close_reason = self
+            .inner_run()
+            .await
+            .inspect_err(|e| {
+                tracing::error!("RoomTask exited with error {e:?}");
+            })
+            .unwrap_or(RoomCloseReason::FatalError);
 
-        tracing::debug!("Shutting down modules");
-        for (_, module_handle) in self.modules.drain() {
-            module_handle.destroy(room_id, Arc::clone(&self.storage));
-        }
+        tracing::debug!("Close room {room_id}");
 
-        tracing::debug!("Closing room {room_id}");
+        if let Err(e) = self.close(close_reason).await {
+            tracing::error!("RoomTask closing loop exited with error {e:?}");
+        }
     }
 
-    async fn inner_run(&mut self) -> Result<(), FatalError> {
+    async fn inner_run(&mut self) -> Result<RoomCloseReason, FatalError> {
         loop {
             tokio::select! {
                 msg = self.api_rx.recv() => {
                     let Some(msg) = msg else {
                         // TaskHandle dropped, exiting
                         tracing::warn!("Room tasks {} api channel was dropped, exiting", self.info.room_id);
-                        return Ok(());
+                        return Ok(RoomCloseReason::ImmediateShutdown);
                     };
 
                     if let Err(e) = self.handle_api_request(msg).await {
@@ -318,7 +334,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 },
                 () = self.idle_timeout.wait_for_completion() => {
                     tracing::debug!("Room task {} reached its idle timeout, exiting", self.info.room_id);
-                    return Ok(());
+                    return Ok(RoomCloseReason::IdleTimeoutReached);
                 }
                 () = Self::check_breakout_timeout(&mut self.breakout_config) => {
                     self.breakout_expired();
@@ -326,13 +342,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 result = self.app_state.changed() => {
                     if result.is_err() || self.app_state.borrow().is_shutting_down() {
                         tracing::debug!("Room task {} received shutdown signal, exiting", self.info.room_id);
-                        return Ok(())
+                        return Ok(RoomCloseReason::GracefulShutdown)
                     }
                 }
                 () = self.quota_timeout.wait_for_completion() => {
                     tracing::debug!("Room task {} reached its time limit, exiting", self.info.room_id);
-                    self.time_limit_quota_elapsed();
-                    return Ok(());
+                    return Ok(RoomCloseReason::TimeLimitReached);
                 }
             };
             for (connection_id, participant_id) in self.message_router.disconnected() {

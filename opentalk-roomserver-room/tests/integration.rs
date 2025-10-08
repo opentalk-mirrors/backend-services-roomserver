@@ -8,7 +8,11 @@ use opentalk_roomserver_room::mocking::{
     participant::{MockParticipantBuilder, bob_public_user_profile},
     room::TestRoom,
 };
-use opentalk_roomserver_types::{client_parameters::Role, core::CoreEvent, error::SignalingError};
+use opentalk_roomserver_types::{
+    client_parameters::Role,
+    core::{CoreEvent, RoomCloseReason},
+    error::SignalingError,
+};
 use opentalk_roomserver_web_api::v1::signaling::websocket::CloseFrame;
 use opentalk_types_common::{
     roomserver::DeviceSecret,
@@ -90,7 +94,12 @@ async fn room_task_time_limit() {
     let mut alice = room.join_alice_moderator(0).await;
 
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(event, CoreEvent::TimeLimitQuotaElapsed));
+    assert!(matches!(
+        event,
+        CoreEvent::Closing {
+            reason: RoomCloseReason::TimeLimitReached
+        }
+    ));
 
     let close_frame = alice.receive_close_frame().await.unwrap();
     assert_eq!(

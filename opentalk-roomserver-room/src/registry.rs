@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, pin::Pin, sync::Arc};
 
+use futures::{StreamExt as _, stream::FuturesOrdered};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::storage::module_resources::provider::ModuleResourceProvider;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
@@ -22,12 +23,15 @@ use crate::{
     },
 };
 
+type PendingRoomTasks = FuturesOrdered<Pin<Box<dyn Future<Output = ()> + Send + Sync>>>;
+
 /// The room task registry
 ///
 /// Holds a list over all active rooms and their [`RoomTaskHandle`].
 #[derive(Default, Debug)]
 pub struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
     inner: Arc<RwLock<HashMap<RoomId, RoomTaskHandle<Socket>>>>,
+    pending_room_tasks: Arc<RwLock<PendingRoomTasks>>,
 }
 
 // Manually implementing clone so that we don't require [`Socket`] to be
@@ -36,6 +40,7 @@ impl<Socket: SignalingSocket> Clone for RoomTaskRegistry<Socket> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
+            pending_room_tasks: self.pending_room_tasks.clone(),
         }
     }
 }
@@ -45,6 +50,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     pub fn new() -> Self {
         Self {
             inner: Arc::default(),
+            pending_room_tasks: Arc::default(),
         }
     }
 
@@ -82,12 +88,13 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             app_state,
         );
 
-        self.insert(room_id, registry, &task_handle, join_handle);
+        self.insert(room_id, registry, &task_handle, join_handle)
+            .await;
 
         Ok((RoomAction::Created, task_handle))
     }
 
-    fn insert(
+    async fn insert(
         &self,
         room_id: RoomId,
         mut registry: tokio::sync::RwLockWriteGuard<'_, HashMap<RoomId, RoomTaskHandle<Socket>>>,
@@ -96,10 +103,13 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     ) {
         registry.insert(room_id, task_handle.clone());
         let this = self.clone();
-        tokio::spawn(async move {
-            let _ = join_handle.await;
-            this.remove_room(room_id).await;
-        });
+        self.pending_room_tasks
+            .write()
+            .await
+            .push_front(Box::pin(async move {
+                let _ = join_handle.await;
+                this.remove_room(room_id).await;
+            }));
     }
 
     /// Spawns a new room task if it does not already exists
@@ -129,7 +139,8 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             app_state,
         );
 
-        self.insert(room_id, registry, &task_handle, join_handle);
+        self.insert(room_id, registry, &task_handle, join_handle)
+            .await;
     }
 
     /// Checks if the requested room id exists and refreshes the idle timeout if it does
@@ -163,6 +174,12 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 
         tracing::trace!("Remove room task handle from registry: {room_id}");
         room_list.remove(&room_id);
+    }
+
+    pub async fn wait_for_room_closed(&self) {
+        // Wait for all room tasks to finish, acquire the lock in every iteration to not cause a
+        // deadlock
+        while self.pending_room_tasks.write().await.next().await.is_some() {}
     }
 }
 

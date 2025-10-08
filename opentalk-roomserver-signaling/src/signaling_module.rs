@@ -13,13 +13,13 @@ use opentalk_roomserver_types::{
     shared_json::SharedJson,
     signaling::module_error::{FatalError, ModuleError, SignalingModuleError},
 };
-use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
+use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 
 use super::module_context::ModuleContext;
-use crate::{participant_state::ParticipantState, storage::assets::ModuleAssetStorage};
+use crate::participant_state::ParticipantState;
 
 /// The trait that defines a signaling module
 ///
@@ -168,9 +168,11 @@ pub trait SignalingModule: Send + Sync + Sized {
 
     /// Destroy the module and remove all associated resources
     ///
-    /// Long running tasks must be spawned in a separate task
+    /// Loopback tasks are awaited before the room fully closes.
     #[allow(unused_variables)]
-    fn destroy(self, room_id: RoomId, storage: ModuleAssetStorage) {}
+    fn on_closing(&mut self, ctx: &mut ModuleContext<'_, Self>) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
 }
 
 pub trait CreateReplica<T> {

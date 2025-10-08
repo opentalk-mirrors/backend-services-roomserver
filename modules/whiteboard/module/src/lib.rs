@@ -25,7 +25,7 @@ use opentalk_roomserver_types_whiteboard::{
     WHITEBOARD_MODULE_ID, WhiteboardCommand, WhiteboardError, WhiteboardEvent, WhiteboardSettings,
     WhiteboardState, state::SpaceInfo,
 };
-use opentalk_types_common::{modules::ModuleId, rooms::RoomId, time::Timestamp};
+use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use tracing::{Instrument, Span};
 
@@ -201,12 +201,9 @@ impl SignalingModule for WhiteboardModule {
         let breakout_rooms: Vec<String> = self
             .state
             .extract_if(|&room, _| room != RoomKind::Main)
-            .filter_map(|(.., state)| {
-                if let InitState::Initialized(SpaceInfo { id, .. }) = state {
-                    Some(id)
-                } else {
-                    None
-                }
+            .filter_map(|(.., state)| match state {
+                InitState::Initializing => None,
+                InitState::Initialized(SpaceInfo { id, .. }) => Some(id),
             })
             .collect();
         Self::delete_spaces(
@@ -219,19 +216,23 @@ impl SignalingModule for WhiteboardModule {
         Ok(())
     }
 
-    fn destroy(self, _room_id: RoomId, storage: ModuleAssetStorage) {
+    fn on_closing(&mut self, ctx: &mut ModuleContext<'_, Self>) -> anyhow::Result<()> {
         let spaces: Vec<String> = self
             .state
-            .into_values()
-            .filter_map(|state| {
-                if let InitState::Initialized(SpaceInfo { id, .. }) = state {
-                    Some(id)
-                } else {
-                    None
-                }
+            .drain()
+            .filter_map(|(.., state)| match state {
+                InitState::Initializing => None,
+                InitState::Initialized(SpaceInfo { id, .. }) => Some(id),
             })
             .collect();
-        Self::delete_spaces(Arc::clone(&self.client), storage, spaces, Timestamp::now());
+        Self::delete_spaces(
+            Arc::clone(&self.client),
+            ctx.storage(),
+            spaces,
+            Timestamp::now(),
+        );
+
+        Ok(())
     }
 }
 
