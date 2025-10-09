@@ -109,9 +109,9 @@ opentalk-etherpad-client = { version = "0.4", default-features = false, features
   "rustls-tls-native-roots",
 ] }
 opentalk-version = "0.2.0"
-opentelemetry = "0.30.0"
-opentelemetry-otlp = { version = "0.30.0", features = ["grpc-tonic"] }
-opentelemetry_sdk = { version = "0.30.0", features = [
+opentelemetry = "0.31.0"
+opentelemetry-otlp = { version = "0.31.0", features = ["grpc-tonic"] }
+opentelemetry_sdk = { version = "0.31.0", features = [
   "rt-tokio-current-thread",
 ] }
 pdf-extract = "0.10"
@@ -137,7 +137,7 @@ tokio-util = "0.7.15"
 tower = "0.5"
 tower-http = "0.6.2"
 tracing = "0.1"
-tracing-opentelemetry = "0.31.0"
+tracing-opentelemetry = "0.32.0"
 tracing-subscriber = { version = "0.3", features = [
   "env-filter",
   "parking_lot",
