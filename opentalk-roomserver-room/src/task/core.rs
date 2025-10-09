@@ -759,67 +759,66 @@ mod tests {
           "transaction_id": 0,
           "timestamp": "1970-01-01T00:00:00Z",
           "payload": {
-            "join_success": {
+            "message": "join_success",
+            "id": "00000000-0000-0000-0000-000000000000",
+            "connection_id": "00000000-0000-0000-0000-000000000001",
+            "device_id": "00000000-0000-0000-0000-000000000002",
+            "connections": [
+              {
+                "connection_id": "00000000-0000-0000-0000-000000000003",
+                "device_id": "00000000-0000-0000-0000-000000000004"
+              }
+            ],
+            "display_name": "Alice Adams",
+            "role": "guest",
+            "tariff": {
               "id": "00000000-0000-0000-0000-000000000000",
-              "connection_id": "00000000-0000-0000-0000-000000000001",
-              "device_id": "00000000-0000-0000-0000-000000000002",
-              "connections": [
-                {
-                  "connection_id": "00000000-0000-0000-0000-000000000003",
-                  "device_id": "00000000-0000-0000-0000-000000000004"
-                }
-              ],
-              "display_name": "Alice Adams",
-              "role": "guest",
-              "tariff": {
-                "id": "00000000-0000-0000-0000-000000000000",
-                "name": "Starter tariff",
-                "quotas": {
-                  "max_storage": 50000
+              "name": "Starter tariff",
+              "quotas": {
+                "max_storage": 50000
+              },
+              "modules": {
+                "chat": {
+                  "features": []
                 },
-                "modules": {
-                  "chat": {
-                    "features": []
-                  },
-                  "core": {
-                    "features": []
-                  },
-                  "livekit": {
-                    "features": []
-                  },
-                  "moderation": {
-                    "features": []
-                  },
-                  "recording": {
-                    "features": [
-                      "record"
-                    ]
-                  }
+                "core": {
+                  "features": []
+                },
+                "livekit": {
+                  "features": []
+                },
+                "moderation": {
+                  "features": []
+                },
+                "recording": {
+                  "features": [
+                    "record"
+                  ]
                 }
-              },
-              "module_data": {
-                "test": {
-                  "a": "test",
-                  "b": 42
-                }
-              },
-              "participants": [],
-              "event_info": null,
-              "meeting_details": {
-                "streaming_links": []
-              },
-              "room_info": {
-                "id": "00000000-0000-0000-0000-000000000000",
-                "created_by": {
-                  "title": "",
-                  "firstname": "Alice",
-                  "lastname": "Adams",
-                  "display_name": "Alice Adams",
-                  "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-                }
-              },
-              "is_room_owner": false
-            }
+              }
+            },
+            "module_data": {
+              "test": {
+                "a": "test",
+                "b": 42
+              }
+            },
+            "participants": [],
+            "event_info": null,
+            "meeting_details": {
+              "streaming_links": []
+            },
+            "room_info": {
+              "id": "00000000-0000-0000-0000-000000000000",
+              "created_by": {
+                "title": "",
+                "firstname": "Alice",
+                "lastname": "Adams",
+                "display_name": "Alice Adams",
+                "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+              }
+            },
+            "is_room_owner": false
           }
         }
         "#);
@@ -829,68 +828,67 @@ mod tests {
             "transaction_id": 0,
             "timestamp": "1970-01-01T00:00:00Z",
             "payload": {
-                "join_success": {
+            "message": "join_success",
+                "id": "00000000-0000-0000-0000-000000000000",
+                "connection_id": "00000000-0000-0000-0000-000000000000",
+                "device_id": "00000000-0000-0000-0000-000000000000",
+                "connections": [
+                    {
+                        "connection_id": "00000000-0000-0000-0000-000000000000",
+                        "device_id": "00000000-0000-0000-0000-000000000000"
+                    }
+                ],
+                "display_name": "Alice Adams",
+                "role": "guest",
+                "tariff": {
                     "id": "00000000-0000-0000-0000-000000000000",
-                    "connection_id": "00000000-0000-0000-0000-000000000000",
-                    "device_id": "00000000-0000-0000-0000-000000000000",
-                    "connections": [
-                        {
-                            "connection_id": "00000000-0000-0000-0000-000000000000",
-                            "device_id": "00000000-0000-0000-0000-000000000000"
-                        }
-                    ],
-                    "display_name": "Alice Adams",
-                    "role": "guest",
-                    "tariff": {
-                        "id": "00000000-0000-0000-0000-000000000000",
-                        "name": "Starter tariff",
-                        "quotas": {
-                            "max_storage": 50000
+                    "name": "Starter tariff",
+                    "quotas": {
+                        "max_storage": 50000
+                    },
+                    "modules": {
+                        "chat": {
+                            "features": []
                         },
-                        "modules": {
-                            "chat": {
-                                "features": []
-                            },
-                            "core": {
-                                "features": []
-                            },
-                            "livekit": {
-                                "features": []
-                            },
-                            "moderation": {
-                                "features": []
-                            },
-                            "recording": {
-                                "features": [
-                                    "record"
-                                ]
-                            }
+                        "core": {
+                            "features": []
+                        },
+                        "livekit": {
+                            "features": []
+                        },
+                        "moderation": {
+                            "features": []
+                        },
+                        "recording": {
+                            "features": [
+                                "record"
+                            ]
                         }
-                    },
-                    "module_data": {
-                        "test": {
-                            "a": "test",
-                            "b": 42
-                        }
-                    },
-                    "participants": [],
-                    "event_info": null,
-                    "room_info": {
-                        "id": "00000000-0000-0000-0000-000000000000",
-                        "created_by": {
-                            "title": "",
-                            "firstname": "Alice",
-                            "lastname": "Adams",
-                            "display_name": "Alice Adams",
-                            "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-                        }
-                    },
-                    "meeting_details": {
-                        "streaming_links": []
-                    },
+                    }
+                },
+                "module_data": {
+                    "test": {
+                        "a": "test",
+                        "b": 42
+                    }
+                },
+                "participants": [],
+                "event_info": null,
+                "room_info": {
+                    "id": "00000000-0000-0000-0000-000000000000",
+                    "created_by": {
+                        "title": "",
+                        "firstname": "Alice",
+                        "lastname": "Adams",
+                        "display_name": "Alice Adams",
+                        "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+                    }
+                },
+                "meeting_details": {
+                    "streaming_links": []
+                },
 
-                    "is_room_owner": false
-                }
+                "is_room_owner": false
             }
         });
 

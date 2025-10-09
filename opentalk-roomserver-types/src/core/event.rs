@@ -16,7 +16,7 @@ use crate::{
 
 /// Outgoing websocket messages in the core namespace
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "message", rename_all = "snake_case")]
 pub enum CoreEvent {
     /// Message sent to a participant on a successful join
     JoinSuccess(Box<JoinSuccess>),
@@ -98,6 +98,7 @@ impl From<CoreError> for CoreEvent {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(tag = "error", rename_all = "snake_case")]
 pub enum CoreError {
     /// The requested participant is not connected
     UnknownParticipant,
@@ -133,8 +134,9 @@ mod tests {
 
     use super::{CoreEvent, LeftWaitingRoom};
     use crate::{
-        connection_id::ConnectionId, device_id::DeviceId, disconnect_reason::DisconnectReason,
-        join::join_success::JoinSuccess, room_info::RoomInfo, shared_json::SharedJson,
+        connection_id::ConnectionId, core::CoreError, device_id::DeviceId,
+        disconnect_reason::DisconnectReason, join::join_success::JoinSuccess, room_info::RoomInfo,
+        shared_json::SharedJson,
     };
 
     #[test]
@@ -169,57 +171,56 @@ mod tests {
 
         assert_snapshot!(produced, @r#"
         {
-          "join_success": {
+          "message": "join_success",
+          "id": "00000000-0000-0000-0000-000000000000",
+          "connection_id": "00000000-0000-0000-0000-000000000000",
+          "device_id": "00000000-0000-0000-0000-000000000000",
+          "connections": [],
+          "display_name": "Alice Adams",
+          "role": "guest",
+          "tariff": {
             "id": "00000000-0000-0000-0000-000000000000",
-            "connection_id": "00000000-0000-0000-0000-000000000000",
-            "device_id": "00000000-0000-0000-0000-000000000000",
-            "connections": [],
-            "display_name": "Alice Adams",
-            "role": "guest",
-            "tariff": {
-              "id": "00000000-0000-0000-0000-000000000000",
-              "name": "Starter tariff",
-              "quotas": {
-                "max_storage": 50000
+            "name": "Starter tariff",
+            "quotas": {
+              "max_storage": 50000
+            },
+            "modules": {
+              "chat": {
+                "features": []
               },
-              "modules": {
-                "chat": {
-                  "features": []
-                },
-                "core": {
-                  "features": []
-                },
-                "livekit": {
-                  "features": []
-                },
-                "moderation": {
-                  "features": []
-                },
-                "recording": {
-                  "features": [
-                    "record"
-                  ]
-                }
+              "core": {
+                "features": []
+              },
+              "livekit": {
+                "features": []
+              },
+              "moderation": {
+                "features": []
+              },
+              "recording": {
+                "features": [
+                  "record"
+                ]
               }
-            },
-            "module_data": {},
-            "participants": [],
-            "event_info": null,
-            "meeting_details": {
-              "streaming_links": []
-            },
-            "room_info": {
-              "id": "00000000-0000-0000-0000-000000000000",
-              "created_by": {
-                "title": "",
-                "firstname": "Alice",
-                "lastname": "Adams",
-                "display_name": "Alice Adams",
-                "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-              }
-            },
-            "is_room_owner": false
-          }
+            }
+          },
+          "module_data": {},
+          "participants": [],
+          "event_info": null,
+          "meeting_details": {
+            "streaming_links": []
+          },
+          "room_info": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "created_by": {
+              "title": "",
+              "firstname": "Alice",
+              "lastname": "Adams",
+              "display_name": "Alice Adams",
+              "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+            }
+          },
+          "is_room_owner": false
         }
         "#);
     }
@@ -243,13 +244,12 @@ mod tests {
 
         assert_snapshot!(produced, @r#"
         {
-          "participant_connected": {
-            "participant_id": "00000000-0000-0000-0000-000000000000",
-            "connection_id": "00000000-0000-0000-0000-000000000000",
-            "peer_data": {
-              "test": {
-                "key": "value"
-              }
+          "message": "participant_connected",
+          "participant_id": "00000000-0000-0000-0000-000000000000",
+          "connection_id": "00000000-0000-0000-0000-000000000000",
+          "peer_data": {
+            "test": {
+              "key": "value"
             }
           }
         }
@@ -265,7 +265,8 @@ mod tests {
 
         assert_snapshot!(produced, @r#"
         {
-          "join_blocked": "participant_limit_reached"
+          "message": "join_blocked",
+          "participant_limit_reached": null
         }
         "#);
     }
@@ -281,11 +282,10 @@ mod tests {
 
         assert_snapshot!(produced, @r#"
         {
-          "participant_disconnected": {
-            "participant_id": "00000000-0000-0000-0000-000000000000",
-            "connection_id": "00000000-0000-0000-0000-000000000000",
-            "reason": "connection_lost"
-          }
+          "message": "participant_disconnected",
+          "participant_id": "00000000-0000-0000-0000-000000000000",
+          "connection_id": "00000000-0000-0000-0000-000000000000",
+          "reason": "connection_lost"
         }
         "#);
     }
@@ -303,15 +303,14 @@ mod tests {
 
         assert_snapshot!(produced, @r#"
         {
-          "joined_waiting_room": {
-            "participant_id": "00000000-0000-0000-0000-00000000007b",
-            "connection_ids": [
-              "00000000-0000-0000-0000-0000000001c8"
-            ],
-            "joined_at": "1970-01-01T00:00:00Z",
-            "display_name": "Waiting Walter",
-            "avatar_url": "https://example.com/avatar_url/waiting-walter"
-          }
+          "message": "joined_waiting_room",
+          "participant_id": "00000000-0000-0000-0000-00000000007b",
+          "connection_ids": [
+            "00000000-0000-0000-0000-0000000001c8"
+          ],
+          "joined_at": "1970-01-01T00:00:00Z",
+          "display_name": "Waiting Walter",
+          "avatar_url": "https://example.com/avatar_url/waiting-walter"
         }
         "#);
     }
@@ -329,10 +328,50 @@ mod tests {
 
         assert_snapshot!(produced, @r#"
         {
-          "left_waiting_room": {
-            "id": "00000000-0000-0000-0000-0000000001c8",
-            "connection_id": "00000000-0000-0000-0000-000000000237"
-          }
+          "message": "left_waiting_room",
+          "id": "00000000-0000-0000-0000-0000000001c8",
+          "connection_id": "00000000-0000-0000-0000-000000000237"
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_in_waiting_room() {
+        let produced = serde_json::to_string_pretty(&CoreEvent::InWaitingRoom {
+            connection_id: ConnectionId::from_u128(1),
+            participant_id: ParticipantId::from_u128(2),
+        })
+        .unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "in_waiting_room",
+          "connection_id": "00000000-0000-0000-0000-000000000001",
+          "participant_id": "00000000-0000-0000-0000-000000000002"
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_time_limit_quota_elapsed() {
+        let produced = serde_json::to_string_pretty(&CoreEvent::TimeLimitQuotaElapsed).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "time_limit_quota_elapsed"
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_error() {
+        let produced =
+            serde_json::to_string_pretty(&CoreEvent::Error(CoreError::NotAccepted)).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "error",
+          "error": "not_accepted"
         }
         "#);
     }
