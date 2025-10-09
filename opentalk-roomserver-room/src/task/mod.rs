@@ -842,6 +842,16 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), FatalError> {
         let device_id = self.derive_device_id(&client_parameters.device_secret);
         let participant_id = build_participant_id(&client_parameters.kind, device_id);
+
+        // Enforce room participant limit
+        if self.exceeds_room_participant_limit(participant_id) {
+            tracing::info!(
+                "Rejecting new participant '{participant_id}', room participant limit reached"
+            );
+            Self::participant_limit_reached(socket)?;
+            return Ok(());
+        }
+
         let role = client_parameters.role;
 
         // If we ever run into the issue of an uuid collision, a guest could hijack a user session
@@ -893,6 +903,35 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )?;
         }
         Ok(())
+    }
+
+    /// Returns true when a participant limit is set and adding the `new_participant_id` would
+    /// exceed it.
+    fn exceeds_room_participant_limit(&self, new_participant_id: ParticipantId) -> bool {
+        let Some(limit) = self
+            .info
+            .room
+            .tariff
+            .quota(&QuotaType::RoomParticipantLimit)
+        else {
+            return false;
+        };
+
+        // Participants that are already connected do not count towards the limit
+        if self.participants.connected().contains(&new_participant_id) {
+            return false;
+        }
+
+        let participant_count = self
+            .participants
+            .connected()
+            .iter()
+            .count()
+            .saturating_add(self.waiting_participants.len())
+            .try_into()
+            .unwrap_or(u64::MAX);
+
+        participant_count >= limit
     }
 
     fn join_room(

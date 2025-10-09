@@ -34,21 +34,29 @@ pub use crate::{
 
 #[cfg(test)]
 mod tests {
-    use std::{sync::Arc, time::Duration};
+    use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
     use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
     use opentalk_roomserver_types::{
-        client_parameters::{self, ClientParameters},
+        client_parameters::{self, ClientParameters, Role},
+        core::{CoreEvent, JoinBlockedReason},
         room_parameters::RoomParameters,
     };
+    use opentalk_roomserver_web_api::v1::signaling::websocket::{
+        CloseFrame, SignalingSocketMessage,
+    };
     use opentalk_types_common::{
-        rooms::RoomId, roomserver::DeviceSecret, users::DisplayName, utils::ExampleData,
+        rooms::RoomId,
+        roomserver::DeviceSecret,
+        tariffs::{QuotaType, TariffId, TariffResource},
+        users::DisplayName,
+        utils::ExampleData,
     };
     use tokio::{sync::watch, time::sleep};
 
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
-        mocking::{participant::create_participant_connection, socket::MockSocket},
+        mocking::{participant::create_participant_connection, room::TestRoom, socket::MockSocket},
         storage::memory_module_storage::MemoryModuleResourceStorage,
         task::RoomTask,
     };
@@ -102,5 +110,62 @@ mod tests {
             .accept_signaling_socket(socket, client_parameters)
             .await
             .unwrap();
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn room_participant_limit() {
+        let mut room = TestRoom::builder()
+            .tariff(TariffResource {
+                id: TariffId::generate(),
+                name: "Room Participant Limit".into(),
+                quotas: BTreeMap::from_iter([(QuotaType::RoomParticipantLimit, 2)]),
+                modules: BTreeMap::new(),
+            })
+            .spawn();
+
+        // Alice and Bob join the room, the room participant limit is now reached
+        let _alice = room.join_alice_moderator(0).await;
+        let _charlie = room.join_charlie(0).await;
+
+        // Charlie tries to join the room, but is rejected because the room participant limit is
+        // reached
+        let (socket, mut participant) = create_participant_connection();
+        room.room_handle
+            .accept_signaling_socket(
+                socket,
+                ClientParameters {
+                    device_secret: "Device Secret Charlie".parse().unwrap(),
+                    kind: client_parameters::ClientKind::Guest {
+                        display_name: "Charlie".parse().unwrap(),
+                    },
+                    role: Role::User,
+                },
+            )
+            .await
+            .unwrap();
+
+        // Charlie first receives a `JoinBlocked` event
+        let msg = participant.receiver.recv().await.unwrap();
+        let SignalingSocketMessage::Text(msg) = msg else {
+            panic!("Expected text message, received {msg:?}");
+        };
+        let event: CoreEvent = serde_json::from_str(&msg).unwrap();
+        assert!(
+            matches!(
+                event,
+                CoreEvent::JoinBlocked(JoinBlockedReason::ParticipantLimitReached),
+            ),
+            "Expected `CoreEvent`, received {event:#?}"
+        );
+
+        // Then Charlie receives a close frame with code 1013 (Try Again Later)
+        let msg = participant.receiver.recv().await.unwrap();
+        assert!(
+            matches!(
+                msg,
+                SignalingSocketMessage::Close(Some(CloseFrame { code: 1013, .. }))
+            ),
+            "Expected close message, received {msg:?}"
+        );
     }
 }
