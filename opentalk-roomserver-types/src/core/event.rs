@@ -116,15 +116,148 @@ impl From<CoreError> for SignalingModuleError<CoreError> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use chrono::DateTime;
     use insta::assert_snapshot;
-    use opentalk_types_signaling::ParticipantId;
+    use opentalk_types_common::{
+        events::MeetingDetails,
+        modules::module_id,
+        rooms::RoomId,
+        tariffs::TariffResource,
+        users::{DisplayName, UserInfo},
+        utils::ExampleData as _,
+    };
+    use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
+    use serde_json::json;
 
     use super::{CoreEvent, LeftWaitingRoom};
-    use crate::connection_id::ConnectionId;
+    use crate::{
+        connection_id::ConnectionId, device_id::DeviceId, disconnect_reason::DisconnectReason,
+        join::join_success::JoinSuccess, room_info::RoomInfo, shared_json::SharedJson,
+    };
 
     #[test]
-    fn join_blocked() {
+    fn serialize_join_success() {
+        let join_success = JoinSuccess {
+            id: ParticipantId::nil(),
+            connection_id: ConnectionId::nil(),
+            device_id: DeviceId::nil(),
+            connections: vec![],
+            display_name: DisplayName::example_data(),
+            avatar_url: None,
+            role: Role::Guest,
+            closes_at: None,
+            tariff: Box::new(TariffResource::example_data()),
+            module_data: ModuleData::new(),
+            participants: vec![],
+            event_info: None,
+            room_info: RoomInfo {
+                id: RoomId::nil(),
+                password: None,
+                created_by: UserInfo::example_data(),
+            },
+            meeting_details: MeetingDetails {
+                invite_code_id: None,
+                call_in: None,
+                streaming_links: vec![],
+            },
+            is_room_owner: false,
+        };
+        let event = CoreEvent::JoinSuccess(Box::new(join_success));
+        let produced = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "join_success": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "connection_id": "00000000-0000-0000-0000-000000000000",
+            "device_id": "00000000-0000-0000-0000-000000000000",
+            "connections": [],
+            "display_name": "Alice Adams",
+            "role": "guest",
+            "tariff": {
+              "id": "00000000-0000-0000-0000-000000000000",
+              "name": "Starter tariff",
+              "quotas": {
+                "max_storage": 50000
+              },
+              "modules": {
+                "chat": {
+                  "features": []
+                },
+                "core": {
+                  "features": []
+                },
+                "livekit": {
+                  "features": []
+                },
+                "moderation": {
+                  "features": []
+                },
+                "recording": {
+                  "features": [
+                    "record"
+                  ]
+                }
+              }
+            },
+            "module_data": {},
+            "participants": [],
+            "event_info": null,
+            "meeting_details": {
+              "streaming_links": []
+            },
+            "room_info": {
+              "id": "00000000-0000-0000-0000-000000000000",
+              "created_by": {
+                "title": "",
+                "firstname": "Alice",
+                "lastname": "Adams",
+                "display_name": "Alice Adams",
+                "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+              }
+            },
+            "is_room_owner": false
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_participant_connected() {
+        let mut peer_join_data = BTreeMap::new();
+        peer_join_data.insert(
+            module_id!("test"),
+            SharedJson::from(json!({
+                "key": "value"
+            })),
+        );
+
+        let event = CoreEvent::ParticipantConnected {
+            participant_id: ParticipantId::nil(),
+            connection_id: ConnectionId::nil(),
+            peer_data: peer_join_data,
+        };
+        let produced = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "participant_connected": {
+            "participant_id": "00000000-0000-0000-0000-000000000000",
+            "connection_id": "00000000-0000-0000-0000-000000000000",
+            "peer_data": {
+              "test": {
+                "key": "value"
+              }
+            }
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_join_blocked() {
         let produced = serde_json::to_string_pretty(&CoreEvent::JoinBlocked(
             super::JoinBlockedReason::ParticipantLimitReached,
         ))
@@ -138,7 +271,27 @@ mod tests {
     }
 
     #[test]
-    fn joined_waiting_room() {
+    fn serialize_participant_disconnected() {
+        let event = CoreEvent::ParticipantDisconnected {
+            participant_id: ParticipantId::nil(),
+            connection_id: ConnectionId::nil(),
+            reason: DisconnectReason::ConnectionLost,
+        };
+        let produced = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "participant_disconnected": {
+            "participant_id": "00000000-0000-0000-0000-000000000000",
+            "connection_id": "00000000-0000-0000-0000-000000000000",
+            "reason": "connection_lost"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_joined_waiting_room() {
         let produced = serde_json::to_string_pretty(&CoreEvent::JoinedWaitingRoom {
             participant_id: ParticipantId::from_u128(123),
             joined_at: DateTime::UNIX_EPOCH,
@@ -164,7 +317,7 @@ mod tests {
     }
 
     #[test]
-    fn left_waiting_room() {
+    fn serialize_left_waiting_room() {
         let left_waiting_room = LeftWaitingRoom {
             id: opentalk_types_signaling::ParticipantId::from_u128(456),
             connection_id: ConnectionId::from_u128(567),

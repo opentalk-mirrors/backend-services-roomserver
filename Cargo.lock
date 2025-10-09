@@ -6184,7 +6184,6 @@ dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
- "pretty_assertions",
  "serde",
  "serde_json",
  "test-log",
