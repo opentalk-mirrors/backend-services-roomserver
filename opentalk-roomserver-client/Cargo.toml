@@ -31,6 +31,7 @@ opentalk-roomserver-types-raise-hands.workspace = true
 opentalk-roomserver-types-shared-folder.workspace = true
 opentalk-roomserver-types-subroom-audio.workspace = true
 opentalk-roomserver-types-timer.workspace = true
+opentalk-roomserver-types-training-participation-report.workspace = true
 opentalk-roomserver-types-whiteboard.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true

@@ -31,6 +31,9 @@ pub use {
         SUBROOM_AUDIO_MODULE_ID, command::SubroomAudioCommand,
     },
     opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerCommand},
+    opentalk_roomserver_types_training_participation_report::{
+        TRAINING_PARTICIPATION_REPORT_MODULE_ID, command::TrainingParticipationReportCommand,
+    },
     opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardCommand},
 };
 
@@ -81,6 +84,7 @@ pub enum SignalingModuleCommand {
     MeetingNotes(MeetingNotesCommand),
     Whiteboard(WhiteboardCommand),
     LegalVote(LegalVoteCommand),
+    TrainingParticipationReport(TrainingParticipationReportCommand),
 }
 
 impl SignalingModuleCommand {
@@ -103,6 +107,7 @@ impl SignalingModuleCommand {
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
             Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
+            Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
         }
     }
 }
@@ -129,6 +134,7 @@ mod tests {
     };
     use opentalk_roomserver_types_raise_hands::command::RaiseHandsCommand;
     use opentalk_roomserver_types_timer::{TimerCommand, command::Kind};
+    use opentalk_roomserver_types_training_participation_report::TrainingParticipationReportCommand;
     use opentalk_roomserver_types_whiteboard::WhiteboardCommand;
     use opentalk_types_common::modules::ModuleId;
     use opentalk_types_signaling::ParticipantId;
@@ -444,6 +450,26 @@ mod tests {
             "action": "cancel",
             "legal_vote_id": "00000000-0000-0000-0000-000000000001",
             "reason": "Test Reason"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_training_participation_report() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            payload: SignalingModuleCommand::TrainingParticipationReport(
+                TrainingParticipationReportCommand::ConfirmPresence,
+            ),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "training_participation_report",
+          "payload": {
+            "action": "confirm_presence"
           }
         }
         "#);
