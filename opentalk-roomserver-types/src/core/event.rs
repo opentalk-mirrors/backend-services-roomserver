@@ -31,6 +31,9 @@ pub enum CoreEvent {
         peer_data: BTreeMap<ModuleId, SharedJson>,
     },
 
+    /// Joining the room failed
+    JoinBlocked(JoinBlockedReason),
+
     /// Broadcast message sent to all participants when a participant disconnected
     ParticipantDisconnected {
         participant_id: ParticipantId,
@@ -70,6 +73,13 @@ pub enum CoreEvent {
 
     /// An error happened when executing a `core` command
     Error(CoreError),
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JoinBlockedReason {
+    /// The participant limit for the meeting's tariff has been reached
+    ParticipantLimitReached,
 }
 
 /// A participant left the waiting room
@@ -112,6 +122,20 @@ mod tests {
 
     use super::{CoreEvent, LeftWaitingRoom};
     use crate::connection_id::ConnectionId;
+
+    #[test]
+    fn join_blocked() {
+        let produced = serde_json::to_string_pretty(&CoreEvent::JoinBlocked(
+            super::JoinBlockedReason::ParticipantLimitReached,
+        ))
+        .unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "join_blocked": "participant_limit_reached"
+        }
+        "#);
+    }
 
     #[test]
     fn joined_waiting_room() {

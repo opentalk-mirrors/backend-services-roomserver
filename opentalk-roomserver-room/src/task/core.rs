@@ -8,6 +8,7 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
+use futures::SinkExt as _;
 use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
     module_context::ModuleMessage,
@@ -17,7 +18,10 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, Role as RoomserverClientRole},
     connection_id::ConnectionId,
-    core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, LeftWaitingRoom, state::CoreState},
+    core::{
+        CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, JoinBlockedReason, LeftWaitingRoom,
+        state::CoreState,
+    },
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     error::SignalingError,
@@ -34,7 +38,9 @@ use opentalk_roomserver_types::{
         module_error::{FatalError, SignalingModuleError},
     },
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
+use opentalk_roomserver_web_api::v1::signaling::websocket::{
+    CloseFrame, SignalingSocket, SignalingSocketMessage,
+};
 use opentalk_types_common::{
     events::MeetingDetails, modules::ModuleId, tariffs::QuotaType, time::Timestamp,
 };
@@ -308,6 +314,25 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             // This will have no effect if the timer is already running
             self.quota_timeout.start();
         }
+
+        Ok(())
+    }
+
+    pub(super) fn participant_limit_reached(mut socket: Socket) -> Result<(), FatalError> {
+        const WS_CLOSE_TRY_AGAIN_LATER: u16 = 1013;
+        let event = CoreEvent::JoinBlocked(JoinBlockedReason::ParticipantLimitReached);
+        let msg = serde_json::to_string(&event)
+            .context("Failed to serialize `JoinBlocked` event")
+            .map_err(FatalError)?;
+        tokio::spawn(async move {
+            socket.send(SignalingSocketMessage::Text(msg)).await?;
+            socket
+                .send(SignalingSocketMessage::Close(Some(CloseFrame {
+                    code: WS_CLOSE_TRY_AGAIN_LATER,
+                    reason: "Participant limit reached".into(),
+                })))
+                .await
+        });
 
         Ok(())
     }
