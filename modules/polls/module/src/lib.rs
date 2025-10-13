@@ -48,6 +48,19 @@ pub struct PollsModule {
     polls: HashMap<RoomKind, Poll>,
 }
 
+#[derive(Debug)]
+pub enum PollsLoopback {
+    StoppedByModerator,
+    Expired,
+    ChannelDropped,
+}
+
+impl From<ChannelDroppedError> for PollsLoopback {
+    fn from(_: ChannelDroppedError) -> Self {
+        Self::ChannelDropped
+    }
+}
+
 /// Contains the state of a poll and a [`Sender`] to cancel it
 #[derive(Debug)]
 struct Poll {
@@ -58,7 +71,7 @@ struct Poll {
     pub voted_choice_ids: HashMap<ParticipantId, BTreeSet<ChoiceId>>,
 
     /// Cancels the poll
-    pub tx_cancel: Sender<StopKind>,
+    pub tx_cancel: Sender<PollsLoopback>,
 }
 
 impl Poll {
@@ -85,15 +98,6 @@ impl Poll {
     }
 }
 
-/// Determines how a poll was stopped
-#[derive(Debug)]
-pub enum StopKind {
-    /// The poll was stopped by a moderator
-    ByModerator,
-    /// The poll expired
-    Expired,
-}
-
 impl SignalingModule for PollsModule {
     const NAMESPACE: ModuleId = POLLS_MODULE_ID;
 
@@ -103,7 +107,7 @@ impl SignalingModule for PollsModule {
 
     type Internal = NoOp;
 
-    type Loopback = Result<StopKind, ChannelDroppedError>;
+    type Loopback = PollsLoopback;
 
     type JoinInfo = PollsState;
 
@@ -172,21 +176,19 @@ impl SignalingModule for PollsModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Error>> {
-        let Ok(kind) = event else {
-            ctx.send_ws_message(
-                ctx.participants.in_room(ctx.room).ids(),
-                PollsEvent::Error(Error::Internal),
-            )?;
-            return Ok(());
-        };
-
-        match kind {
+        match event {
             // Everything is already handled when stopped by a moderator
-            StopKind::ByModerator => {}
-            StopKind::Expired => {
+            PollsLoopback::StoppedByModerator => {}
+            PollsLoopback::Expired => {
                 if let Some(poll) = self.polls.remove(&ctx.room) {
                     Self::send_results(ctx, &poll)?;
                 }
+            }
+            PollsLoopback::ChannelDropped => {
+                ctx.send_ws_message(
+                    ctx.participants.in_room(ctx.room).ids(),
+                    PollsEvent::Error(Error::Internal),
+                )?;
             }
         }
 
@@ -295,7 +297,7 @@ impl PollsModule {
         }
 
         // Start a loopback that stops the poll when its duration is reached
-        let tx_cancel = ctx.loopback_after(duration, || StopKind::Expired);
+        let tx_cancel = ctx.loopback_after(duration, || PollsLoopback::Expired);
 
         let choices: Vec<Choice> = choices
             .into_iter()
@@ -401,7 +403,11 @@ impl PollsModule {
         Self::send_results(ctx, &poll)?;
 
         // Cancel the running poll
-        if poll.tx_cancel.send(StopKind::ByModerator).is_err() {
+        if poll
+            .tx_cancel
+            .send(PollsLoopback::StoppedByModerator)
+            .is_err()
+        {
             tracing::debug!("Poll cancel sender has been dropped");
         }
 

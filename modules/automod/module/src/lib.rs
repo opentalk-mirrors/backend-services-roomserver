@@ -111,6 +111,13 @@ pub struct AutomodModule {
 pub enum AutomodLoopback {
     SpeakerTimeLimitReached { speaker: Option<ParticipantId> },
     ParticipantsMuted(ParticipantsMuted),
+    ChannelDropped,
+}
+
+impl From<ChannelDroppedError> for AutomodLoopback {
+    fn from(_: ChannelDroppedError) -> Self {
+        AutomodLoopback::ChannelDropped
+    }
 }
 
 impl SignalingModule for AutomodModule {
@@ -122,7 +129,7 @@ impl SignalingModule for AutomodModule {
 
     type Internal = NoOp;
 
-    type Loopback = Result<AutomodLoopback, ChannelDroppedError>;
+    type Loopback = AutomodLoopback;
 
     type JoinInfo = AutomodState;
 
@@ -188,14 +195,6 @@ impl SignalingModule for AutomodModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        let Ok(event) = event else {
-            ctx.send_ws_message(
-                ctx.participants.in_room(ctx.room).connected().ids(),
-                AutomodEvent::Error(AutomodError::Internal),
-            )?;
-            return Ok(());
-        };
-
         match event {
             AutomodLoopback::SpeakerTimeLimitReached { speaker } => {
                 self.on_speaker_time_limit_reached(ctx, speaker)?;
@@ -205,6 +204,12 @@ impl SignalingModule for AutomodModule {
                     "Following participants were muted by the {} module: {participants:?}",
                     Self::NAMESPACE
                 );
+            }
+            AutomodLoopback::ChannelDropped => {
+                ctx.send_ws_message(
+                    ctx.participants.in_room(ctx.room).connected().ids(),
+                    AutomodEvent::Error(AutomodError::Internal),
+                )?;
             }
         }
 

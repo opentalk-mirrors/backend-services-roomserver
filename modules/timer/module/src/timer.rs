@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_types_timer::{TimerConfig, event::Stopped};
+use opentalk_roomserver_types_timer::TimerConfig;
 use tokio::sync::oneshot::Sender;
+
+use crate::TimerLoopback;
 
 /// A timer
 ///
@@ -12,5 +14,5 @@ use tokio::sync::oneshot::Sender;
 pub struct Timer {
     pub config: TimerConfig,
     /// The sender used to cancel the timer
-    pub tx_cancel: Option<Sender<Stopped>>,
+    pub tx_cancel: Option<Sender<TimerLoopback>>,
 }
