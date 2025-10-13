@@ -16,7 +16,7 @@ pub(crate) fn json_editor(ui: &mut egui::Ui, text: &mut String) -> egui::Respons
             "json",
         );
         layout_job.wrap.max_width = wrap_width;
-        ui.fonts(|f| f.layout_job(layout_job))
+        ui.fonts_mut(|f| f.layout_job(layout_job))
     };
 
     egui::ScrollArea::vertical()
