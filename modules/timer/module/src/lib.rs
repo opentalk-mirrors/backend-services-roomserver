@@ -256,13 +256,13 @@ impl SignalingModule for TimerModule {
         match event {
             TimerLoopback::Stopped(stopped) => {
                 ctx.send_ws_message(
-                    ctx.participants.filter().room(ctx.room).ids(),
+                    ctx.participants.in_room(ctx.room).ids(),
                     TimerEvent::Stopped(stopped),
                 )?;
             }
             TimerLoopback::ChannelDropped => {
                 ctx.send_ws_message(
-                    ctx.participants.filter().room(ctx.room).ids(),
+                    ctx.participants.in_room(ctx.room).ids(),
                     TimerEvent::Error(TimerError::Internal),
                 )?;
             }
