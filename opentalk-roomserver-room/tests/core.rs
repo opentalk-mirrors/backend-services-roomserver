@@ -145,25 +145,24 @@ async fn participant_joined() {
         ".peer_data.core.joined_at" => "[timestamp]",
     }, @r#"
     {
-      "participant_connected": {
-        "participant_id": "00000000-0000-0000-0000-000000000b0b",
-        "connection_id": "[uuid]",
-        "peer_data": {
-          "breakout": {
-            "room": {
-              "kind": "main"
-            }
-          },
-          "core": {
-            "avatar_url": "https://example.com/avatar-of-bob",
-            "display_name": "Bob the bold",
-            "is_room_owner": false,
-            "joined_at": "[timestamp]",
-            "participation_kind": "registered",
-            "role": "user"
-          },
-          "mock": "From 00000000-0000-0000-0000-000000000b0b for 00000000-0000-0000-0000-0000000a11ce"
-        }
+      "message": "participant_connected",
+      "participant_id": "00000000-0000-0000-0000-000000000b0b",
+      "connection_id": "[uuid]",
+      "peer_data": {
+        "breakout": {
+          "room": {
+            "kind": "main"
+          }
+        },
+        "core": {
+          "avatar_url": "https://example.com/avatar-of-bob",
+          "display_name": "Bob the bold",
+          "is_room_owner": false,
+          "joined_at": "[timestamp]",
+          "participation_kind": "registered",
+          "role": "user"
+        },
+        "mock": "From 00000000-0000-0000-0000-000000000b0b for 00000000-0000-0000-0000-0000000a11ce"
       }
     }
     "#

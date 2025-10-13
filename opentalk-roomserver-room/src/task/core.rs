@@ -668,8 +668,6 @@ impl RequestedModuleActions {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
     use insta::assert_snapshot;
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_types::{
@@ -678,7 +676,6 @@ mod tests {
         device_id::DeviceId,
         join::{connection_info::ConnectionInfo, join_success::JoinSuccess},
         room_info::RoomInfo,
-        shared_json::SharedJson,
     };
     use opentalk_types_common::{
         events::MeetingDetails,
@@ -690,11 +687,10 @@ mod tests {
         utils::ExampleData,
     };
     use opentalk_types_signaling::{ModuleData, ParticipantId, Role, SignalingModuleFrontendData};
-    use pretty_assertions::assert_eq;
     use serde::{Deserialize, Serialize};
     use serde_json::json;
 
-    use super::{CoreEvent, DisconnectReason};
+    use super::CoreEvent;
 
     fn test_module_data() -> ModuleData {
         #[derive(Debug, Serialize, Deserialize)]
@@ -763,67 +759,66 @@ mod tests {
           "transaction_id": 0,
           "timestamp": "1970-01-01T00:00:00Z",
           "payload": {
-            "join_success": {
+            "message": "join_success",
+            "id": "00000000-0000-0000-0000-000000000000",
+            "connection_id": "00000000-0000-0000-0000-000000000001",
+            "device_id": "00000000-0000-0000-0000-000000000002",
+            "connections": [
+              {
+                "connection_id": "00000000-0000-0000-0000-000000000003",
+                "device_id": "00000000-0000-0000-0000-000000000004"
+              }
+            ],
+            "display_name": "Alice Adams",
+            "role": "guest",
+            "tariff": {
               "id": "00000000-0000-0000-0000-000000000000",
-              "connection_id": "00000000-0000-0000-0000-000000000001",
-              "device_id": "00000000-0000-0000-0000-000000000002",
-              "connections": [
-                {
-                  "connection_id": "00000000-0000-0000-0000-000000000003",
-                  "device_id": "00000000-0000-0000-0000-000000000004"
-                }
-              ],
-              "display_name": "Alice Adams",
-              "role": "guest",
-              "tariff": {
-                "id": "00000000-0000-0000-0000-000000000000",
-                "name": "Starter tariff",
-                "quotas": {
-                  "max_storage": 50000
+              "name": "Starter tariff",
+              "quotas": {
+                "max_storage": 50000
+              },
+              "modules": {
+                "chat": {
+                  "features": []
                 },
-                "modules": {
-                  "chat": {
-                    "features": []
-                  },
-                  "core": {
-                    "features": []
-                  },
-                  "livekit": {
-                    "features": []
-                  },
-                  "moderation": {
-                    "features": []
-                  },
-                  "recording": {
-                    "features": [
-                      "record"
-                    ]
-                  }
+                "core": {
+                  "features": []
+                },
+                "livekit": {
+                  "features": []
+                },
+                "moderation": {
+                  "features": []
+                },
+                "recording": {
+                  "features": [
+                    "record"
+                  ]
                 }
-              },
-              "module_data": {
-                "test": {
-                  "a": "test",
-                  "b": 42
-                }
-              },
-              "participants": [],
-              "event_info": null,
-              "meeting_details": {
-                "streaming_links": []
-              },
-              "room_info": {
-                "id": "00000000-0000-0000-0000-000000000000",
-                "created_by": {
-                  "title": "",
-                  "firstname": "Alice",
-                  "lastname": "Adams",
-                  "display_name": "Alice Adams",
-                  "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-                }
-              },
-              "is_room_owner": false
-            }
+              }
+            },
+            "module_data": {
+              "test": {
+                "a": "test",
+                "b": 42
+              }
+            },
+            "participants": [],
+            "event_info": null,
+            "meeting_details": {
+              "streaming_links": []
+            },
+            "room_info": {
+              "id": "00000000-0000-0000-0000-000000000000",
+              "created_by": {
+                "title": "",
+                "firstname": "Alice",
+                "lastname": "Adams",
+                "display_name": "Alice Adams",
+                "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+              }
+            },
+            "is_room_owner": false
           }
         }
         "#);
@@ -833,214 +828,70 @@ mod tests {
             "transaction_id": 0,
             "timestamp": "1970-01-01T00:00:00Z",
             "payload": {
-                "join_success": {
+            "message": "join_success",
+                "id": "00000000-0000-0000-0000-000000000000",
+                "connection_id": "00000000-0000-0000-0000-000000000000",
+                "device_id": "00000000-0000-0000-0000-000000000000",
+                "connections": [
+                    {
+                        "connection_id": "00000000-0000-0000-0000-000000000000",
+                        "device_id": "00000000-0000-0000-0000-000000000000"
+                    }
+                ],
+                "display_name": "Alice Adams",
+                "role": "guest",
+                "tariff": {
                     "id": "00000000-0000-0000-0000-000000000000",
-                    "connection_id": "00000000-0000-0000-0000-000000000000",
-                    "device_id": "00000000-0000-0000-0000-000000000000",
-                    "connections": [
-                        {
-                            "connection_id": "00000000-0000-0000-0000-000000000000",
-                            "device_id": "00000000-0000-0000-0000-000000000000"
-                        }
-                    ],
-                    "display_name": "Alice Adams",
-                    "role": "guest",
-                    "tariff": {
-                        "id": "00000000-0000-0000-0000-000000000000",
-                        "name": "Starter tariff",
-                        "quotas": {
-                            "max_storage": 50000
+                    "name": "Starter tariff",
+                    "quotas": {
+                        "max_storage": 50000
+                    },
+                    "modules": {
+                        "chat": {
+                            "features": []
                         },
-                        "modules": {
-                            "chat": {
-                                "features": []
-                            },
-                            "core": {
-                                "features": []
-                            },
-                            "livekit": {
-                                "features": []
-                            },
-                            "moderation": {
-                                "features": []
-                            },
-                            "recording": {
-                                "features": [
-                                    "record"
-                                ]
-                            }
+                        "core": {
+                            "features": []
+                        },
+                        "livekit": {
+                            "features": []
+                        },
+                        "moderation": {
+                            "features": []
+                        },
+                        "recording": {
+                            "features": [
+                                "record"
+                            ]
                         }
-                    },
-                    "module_data": {
-                        "test": {
-                            "a": "test",
-                            "b": 42
-                        }
-                    },
-                    "participants": [],
-                    "event_info": null,
-                    "room_info": {
-                        "id": "00000000-0000-0000-0000-000000000000",
-                        "created_by": {
-                            "title": "",
-                            "firstname": "Alice",
-                            "lastname": "Adams",
-                            "display_name": "Alice Adams",
-                            "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-                        }
-                    },
-                    "meeting_details": {
-                        "streaming_links": []
-                    },
+                    }
+                },
+                "module_data": {
+                    "test": {
+                        "a": "test",
+                        "b": 42
+                    }
+                },
+                "participants": [],
+                "event_info": null,
+                "room_info": {
+                    "id": "00000000-0000-0000-0000-000000000000",
+                    "created_by": {
+                        "title": "",
+                        "firstname": "Alice",
+                        "lastname": "Adams",
+                        "display_name": "Alice Adams",
+                        "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+                    }
+                },
+                "meeting_details": {
+                    "streaming_links": []
+                },
 
-                    "is_room_owner": false
-                }
+                "is_room_owner": false
             }
         });
 
         let _: SignalingEvent<CoreEvent> = serde_json::from_value(json).unwrap();
-    }
-
-    #[test]
-    fn serialize_core_event_success() {
-        let join_success = JoinSuccess {
-            id: ParticipantId::nil(),
-            connection_id: ConnectionId::nil(),
-            device_id: DeviceId::nil(),
-            connections: vec![],
-            display_name: DisplayName::example_data(),
-            avatar_url: None,
-            role: Role::Guest,
-            closes_at: None,
-            tariff: Box::new(TariffResource::example_data()),
-            module_data: ModuleData::new(),
-            participants: vec![],
-            event_info: None,
-            room_info: RoomInfo {
-                id: RoomId::nil(),
-                password: None,
-                created_by: UserInfo::example_data(),
-            },
-            meeting_details: MeetingDetails {
-                invite_code_id: None,
-                call_in: None,
-                streaming_links: vec![],
-            },
-            is_room_owner: false,
-        };
-        let event = CoreEvent::JoinSuccess(Box::new(join_success));
-        let json = serde_json::to_value(&event).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "join_success": {
-                    "id": "00000000-0000-0000-0000-000000000000",
-                    "connection_id": "00000000-0000-0000-0000-000000000000",
-                    "device_id": "00000000-0000-0000-0000-000000000000",
-                    "connections": [],
-                    "display_name": "Alice Adams",
-                    "role": "guest",
-                    "tariff": {
-                        "id": "00000000-0000-0000-0000-000000000000",
-                        "name": "Starter tariff",
-                        "quotas": {
-                            "max_storage": 50000
-                        },
-                        "modules": {
-                            "chat": {
-                                "features": []
-                            },
-                            "core": {
-                                "features": []
-                            },
-                            "livekit": {
-                                "features": []
-                            },
-                            "moderation": {
-                                "features": []
-                            },
-                            "recording": {
-                                "features": [
-                                    "record"
-                                ]
-                            }
-                        }
-                    },
-                    "module_data": {},
-                    "participants": [],
-                    "event_info": null,
-                    "room_info": {
-                        "id": "00000000-0000-0000-0000-000000000000",
-                        "created_by": {
-                            "title": "",
-                            "firstname": "Alice",
-                            "lastname": "Adams",
-                            "display_name": "Alice Adams",
-                            "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-                        }
-                    },
-                    "meeting_details": {
-                        "streaming_links": [],
-                    },
-                    "is_room_owner": false
-                }
-            })
-        );
-    }
-
-    #[test]
-    fn serialize_core_event_joined() {
-        let mut peer_join_data = BTreeMap::new();
-        peer_join_data.insert(
-            module_id!("test"),
-            SharedJson::from(json!({
-                "key": "value"
-            })),
-        );
-
-        let event = CoreEvent::ParticipantConnected {
-            participant_id: ParticipantId::nil(),
-            connection_id: ConnectionId::nil(),
-            peer_data: peer_join_data,
-        };
-        let json = serde_json::to_value(&event).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "participant_connected": {
-                    "participant_id": "00000000-0000-0000-0000-000000000000",
-                    "connection_id": "00000000-0000-0000-0000-000000000000",
-                    "peer_data": {
-                    "test": {
-                        "key": "value"
-                    }
-                  }
-                }
-            })
-        );
-    }
-
-    #[test]
-    fn serialize_core_event_disconnected() {
-        let event = CoreEvent::ParticipantDisconnected {
-            participant_id: ParticipantId::nil(),
-            connection_id: ConnectionId::nil(),
-            reason: DisconnectReason::ConnectionLost,
-        };
-
-        let json = serde_json::to_value(&event).unwrap();
-
-        assert_eq!(
-            json,
-            json!({
-                "participant_disconnected": {
-                    "participant_id": "00000000-0000-0000-0000-000000000000",
-                    "connection_id": "00000000-0000-0000-0000-000000000000",
-                    "reason": "connection_lost"
-                }
-            })
-        );
     }
 }

@@ -180,10 +180,9 @@ mod tests {
           "timestamp": "1970-01-01T00:00:00Z",
           "namespace": "core",
           "payload": {
-            "participant_connected": {
-              "participant_id": "00000000-0000-0000-0000-000000000001",
-              "connection_id": "00000000-0000-0000-0000-000000000002"
-            }
+            "message": "participant_connected",
+            "participant_id": "00000000-0000-0000-0000-000000000001",
+            "connection_id": "00000000-0000-0000-0000-000000000002"
           }
         }
         "#);
