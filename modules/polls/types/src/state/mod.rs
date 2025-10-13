@@ -6,4 +6,4 @@
 
 mod polls_state;
 
-pub use polls_state::{Poll, PollsState, StopKind};
+pub use polls_state::PollsState;

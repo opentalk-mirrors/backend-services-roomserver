@@ -21,13 +21,14 @@ use opentalk_roomserver_types::{
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_types_polls::{
-    Choice, ChoiceId, POLLS_MODULE_ID, PollId, Results,
+    Choice, ChoiceId, Item, POLLS_MODULE_ID, PollId, Results,
     command::{PollsCommand, Vote},
     event::{Error, PollsEvent},
-    state::{Poll, PollsState, StopKind},
+    state::PollsState,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
+use tokio::sync::oneshot::Sender;
 
 /// The maximum allowed duration of a poll
 const MAX_POLL_DURATION: u64 = 86400;
@@ -45,6 +46,52 @@ const MAX_DESCRIPTION_LENGTH: usize = 100;
 #[derive(Debug)]
 pub struct PollsModule {
     polls: HashMap<RoomKind, Poll>,
+}
+
+/// Contains the state of a poll and a [`Sender`] to cancel it
+#[derive(Debug)]
+struct Poll {
+    /// The state of the poll
+    pub state: PollsState,
+
+    /// The votes that were cast
+    pub voted_choice_ids: HashMap<ParticipantId, BTreeSet<ChoiceId>>,
+
+    /// Cancels the poll
+    pub tx_cancel: Sender<StopKind>,
+}
+
+impl Poll {
+    /// The current result of the poll
+    pub fn results(&self) -> Vec<Item> {
+        let votes = self.voted_choice_ids.values().flatten();
+        let mut results: HashMap<ChoiceId, u32> = self
+            .state
+            .choices
+            .iter()
+            .map(|choice| (choice.id, 0))
+            .collect();
+
+        for vote in votes {
+            *results.entry(*vote).or_insert(0) += 1;
+        }
+
+        let mut results = results
+            .into_iter()
+            .map(|(id, count)| Item { id, count })
+            .collect::<Vec<_>>();
+        results.sort_by(|a, b| a.id.cmp(&b.id));
+        results
+    }
+}
+
+/// Determines how a poll was stopped
+#[derive(Debug)]
+pub enum StopKind {
+    /// The poll was stopped by a moderator
+    ByModerator,
+    /// The poll expired
+    Expired,
 }
 
 impl SignalingModule for PollsModule {
