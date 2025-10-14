@@ -334,6 +334,11 @@ impl TestRoom {
         storage.asset(id).await
     }
 
+    pub async fn stored_assets(&self) -> Vec<Vec<u8>> {
+        let storage = self.downcast_storage();
+        storage.all_assets().await
+    }
+
     pub async fn file_count(&self) -> usize {
         let storage = self.downcast_storage();
         storage.asset_count().await

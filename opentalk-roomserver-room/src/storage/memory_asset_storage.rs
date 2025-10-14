@@ -41,6 +41,10 @@ impl MemoryAssetStorage {
         self.assets.lock().await.get(&id).cloned()
     }
 
+    pub async fn all_assets(&self) -> Vec<Vec<u8>> {
+        self.assets.lock().await.values().cloned().collect()
+    }
+
     pub async fn asset_count(&self) -> usize {
         self.assets.lock().await.len()
     }
