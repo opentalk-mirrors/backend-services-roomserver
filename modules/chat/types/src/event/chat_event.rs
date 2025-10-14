@@ -86,6 +86,12 @@ pub enum ChatEvent {
         scope: Scope,
     },
 
+    /// The client is sending too many messages and should slow down
+    ///
+    /// When the client does not slow down, further messages may be rejected with a
+    /// [`ChatError::TooManyRequests`] error.
+    SlowDown,
+
     /// Chat event which errored, see [`ChatError`]
     Error(ChatError),
 }

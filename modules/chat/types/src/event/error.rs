@@ -26,6 +26,9 @@ pub enum ChatError {
         /// The minimum length a search term must have
         min: usize,
     },
+
+    /// Too many messages have been sent from the connection in a short time
+    TooManyRequests,
 }
 
 impl ModuleError for ChatError {}

@@ -18,7 +18,7 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_chat::{
-    MessageId, Scope,
+    ChatSettings, MessageId, RateLimitSettings, Scope,
     command::ChatCommand,
     event::{ChatError, ChatEvent},
     state::{
@@ -1699,4 +1699,121 @@ async fn search_other_breakout_room() {
             scope
         }
     );
+}
+
+#[test_log::test(tokio::test)]
+async fn rate_limit_slow_down() {
+    let mut room = TestRoom::builder()
+        .add_init_module_data(&ChatSettings {
+            rate_limit: Some(RateLimitSettings {
+                tokens_per_second: 1,
+                // 11 messages in 1 second will trigger the too many requests error
+                token_bucket_size: 10,
+                // 6 messages in 1 second will trigger the slow down event
+                slow_down_threshold: 0.5,
+            }),
+        })
+        .unwrap()
+        .register_module::<ChatModule>()
+        .spawn();
+    let mut bob = room.join_bob(0).await;
+
+    for _ in 0..5 {
+        bob.send_command::<ChatModule>(
+            ChatCommand::SendMessage {
+                content: "hello".into(),
+                scope: Scope::Global,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+        let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
+        assert!(matches!(event, ChatEvent::MessageSent { .. }));
+    }
+
+    // The 6th message triggers the slow down event
+    bob.send_command::<ChatModule>(
+        ChatCommand::SendMessage {
+            content: "hello".into(),
+            scope: Scope::Global,
+        },
+        None,
+    )
+    .await
+    .unwrap();
+    let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
+    assert_eq!(event, ChatEvent::SlowDown);
+
+    // The message is still sent
+    let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
+    assert!(matches!(event, ChatEvent::MessageSent { .. }));
+
+    assert!(bob.received_nothing());
+}
+
+#[test_log::test(tokio::test)]
+async fn rate_limit_reached() {
+    let mut room = TestRoom::builder()
+        .add_init_module_data(&ChatSettings {
+            rate_limit: Some(RateLimitSettings {
+                tokens_per_second: 1,
+                // 11 messages in 1 second will trigger the too many requests error
+                token_bucket_size: 10,
+                // 6 messages in 1 second will trigger the slow down event
+                slow_down_threshold: 0.5,
+            }),
+        })
+        .unwrap()
+        .register_module::<ChatModule>()
+        .spawn();
+    let mut bob = room.join_bob(0).await;
+
+    for _ in 0..5 {
+        bob.send_command::<ChatModule>(
+            ChatCommand::SendMessage {
+                content: "hello".into(),
+                scope: Scope::Global,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+        let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
+        assert!(matches!(event, ChatEvent::MessageSent { .. }));
+    }
+
+    // Starting with the 5th message the slow down event is triggered
+    for _ in 0..5 {
+        bob.send_command::<ChatModule>(
+            ChatCommand::SendMessage {
+                content: "hello".into(),
+                scope: Scope::Global,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+        let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
+        assert_eq!(event, ChatEvent::SlowDown);
+
+        let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
+        assert!(matches!(event, ChatEvent::MessageSent { .. }));
+    }
+
+    // The 11th message triggers the too many requests error
+    bob.send_command::<ChatModule>(
+        ChatCommand::SendMessage {
+            content: "hello".into(),
+            scope: Scope::Global,
+        },
+        None,
+    )
+    .await
+    .unwrap();
+    let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
+    assert_eq!(event, ChatEvent::Error(ChatError::TooManyRequests));
+
+    // The message is not sent
+    assert!(bob.received_nothing());
 }
