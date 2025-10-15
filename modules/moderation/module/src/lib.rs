@@ -38,6 +38,13 @@ pub struct ModerationModule;
 pub enum ModerationLoopback {
     Mute(ParticipantsMuted),
     MicrophoneRestrictionsUpdated(Result<MicrophoneRestrictionState, MicrophoneRestrictionError>),
+    ChannelDropped,
+}
+
+impl From<ChannelDroppedError> for ModerationLoopback {
+    fn from(_: ChannelDroppedError) -> Self {
+        Self::ChannelDropped
+    }
 }
 
 impl SignalingModule for ModerationModule {
@@ -49,7 +56,7 @@ impl SignalingModule for ModerationModule {
 
     type Internal = NoOp;
 
-    type Loopback = Result<ModerationLoopback, ChannelDroppedError>;
+    type Loopback = ModerationLoopback;
 
     type JoinInfo = ModerationState;
 
@@ -157,15 +164,6 @@ impl SignalingModule for ModerationModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        let Ok(event) = event else {
-            // The channel was dropped
-            ctx.send_ws_message(
-                ctx.participants.in_room(ctx.room).ids(),
-                ModerationEvent::Error(ModerationError::Internal),
-            )?;
-            return Ok(());
-        };
-
         match event {
             ModerationLoopback::Mute(ParticipantsMuted {
                 sender,
@@ -185,6 +183,12 @@ impl SignalingModule for ModerationModule {
             }
             ModerationLoopback::MicrophoneRestrictionsUpdated(result) => {
                 self.notify_microphone_restrictions_updated(ctx, result)?;
+            }
+            ModerationLoopback::ChannelDropped => {
+                ctx.send_ws_message(
+                    ctx.participants.in_room(ctx.room).ids(),
+                    ModerationEvent::Error(ModerationError::Internal),
+                )?;
             }
         }
 

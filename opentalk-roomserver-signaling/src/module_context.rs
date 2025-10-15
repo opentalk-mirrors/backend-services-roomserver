@@ -493,6 +493,35 @@ where
         self.loopback_futures.push(future);
     }
 
+    /// Creates a loopback future that resolves after the `duration`.
+    ///
+    /// When `duration` has passed, `create_result` is invoked and the return
+    /// value is sent as a loopback event.
+    /// Can be cancelled by sending a result into the `rx_cancel` [`Receiver`].
+    pub fn loopback_after<F>(&self, duration: Duration, create_result: F) -> Sender<M::Loopback>
+    where
+        M::Loopback: From<ChannelDroppedError> + Send + Sync + 'static,
+        F: FnOnce() -> M::Loopback + Send + Sync + 'static,
+    {
+        let (tx_cancel, rx_cancel) = oneshot::channel();
+        self.spawn(handle_loopback_after(duration, rx_cancel, create_result));
+        tx_cancel
+    }
+
+    pub fn recv_loopback<F, R>(&self, receiver: oneshot::Receiver<R>, create_result: F)
+    where
+        M::Loopback: From<ChannelDroppedError> + Send + Sync + 'static,
+        F: FnOnce(R) -> M::Loopback + Send + Sync + 'static,
+        R: Send + Sync + 'static,
+    {
+        self.spawn(async move {
+            match receiver.await {
+                Ok(result) => create_result(result),
+                Err(_) => ChannelDroppedError.into(),
+            }
+        });
+    }
+
     pub fn participant_state(&self, participant_id: ParticipantId) -> Option<&ParticipantState> {
         self.participants.all_unfiltered.get(&participant_id)
     }
@@ -534,6 +563,8 @@ where
     }
 }
 
+pub struct ChannelDroppedError;
+
 impl<M> ModuleContext<'_, M>
 where
     M: SignalingModule,
@@ -552,59 +583,24 @@ where
     }
 }
 
-pub struct ChannelDroppedError;
-
-impl<M, T> ModuleContext<'_, M>
-where
-    M: 'static + SignalingModule<Loopback = Result<T, ChannelDroppedError>>,
-    T: 'static + Sync + Send,
-{
-    /// Creates a loopback future that resolves after the `duration`.
-    ///
-    /// When `duration` has passed, `create_result` is invoked and the return
-    /// value is sent as a loopback event.
-    /// Can be cancelled by sending a result into the `rx_cancel` [`Receiver`].
-    pub fn loopback_after<F>(&self, duration: Duration, create_result: F) -> Sender<T>
-    where
-        F: FnOnce() -> T + Send + Sync + 'static,
-    {
-        let (tx_cancel, rx_cancel) = oneshot::channel();
-        self.spawn(handle_loopback_after(duration, rx_cancel, create_result));
-        tx_cancel
-    }
-
-    pub fn recv_loopback<F, R>(&self, receiver: oneshot::Receiver<R>, create_result: F)
-    where
-        F: FnOnce(R) -> T + Send + Sync + 'static,
-        R: Send + Sync + 'static,
-    {
-        self.spawn(async move {
-            match receiver.await {
-                Ok(result) => Ok(create_result(result)),
-                Err(_) => Err(ChannelDroppedError),
-            }
-        });
-    }
-}
-
-async fn handle_loopback_after<T, F>(
+async fn handle_loopback_after<F, L>(
     duration: Duration,
-    rx_cancel: Receiver<T>,
+    rx_cancel: Receiver<L>,
     create_result: F,
-) -> Result<T, ChannelDroppedError>
+) -> L
 where
-    T: Sync + Send + 'static,
-    F: FnOnce() -> T + 'static,
+    F: FnOnce() -> L + 'static,
+    L: From<ChannelDroppedError> + Send + Sync + 'static,
 {
     select! {
         result = rx_cancel => {
             match result {
-                Ok(value) => Ok(value),
-                Err(_) => Err(ChannelDroppedError),
+                Ok(value) => value,
+                Err(_) => ChannelDroppedError.into(),
             }
         },
         () = tokio::time::sleep(duration) => {
-            Ok(create_result())
+            create_result()
         }
     }
 }

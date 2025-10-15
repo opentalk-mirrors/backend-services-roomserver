@@ -33,6 +33,18 @@ use crate::timer::Timer;
 mod timer;
 
 #[derive(Debug)]
+pub enum TimerLoopback {
+    Stopped(Stopped),
+    ChannelDropped,
+}
+
+impl From<ChannelDroppedError> for TimerLoopback {
+    fn from(_: ChannelDroppedError) -> Self {
+        Self::ChannelDropped
+    }
+}
+
+#[derive(Debug)]
 pub struct TimerModule {
     timers: HashMap<RoomKind, Option<Timer>>,
     ready_participants: HashMap<RoomKind, BTreeSet<ParticipantId>>,
@@ -47,7 +59,7 @@ impl SignalingModule for TimerModule {
 
     type Internal = NoOp;
 
-    type Loopback = Result<Stopped, ChannelDroppedError>;
+    type Loopback = TimerLoopback;
 
     type JoinInfo = TimerState;
 
@@ -242,15 +254,15 @@ impl SignalingModule for TimerModule {
         self.remove_timer(ctx.room)?;
 
         match event {
-            Ok(stopped) => {
+            TimerLoopback::Stopped(stopped) => {
                 ctx.send_ws_message(
-                    ctx.participants.filter().room(ctx.room).ids(),
+                    ctx.participants.in_room(ctx.room).ids(),
                     TimerEvent::Stopped(stopped),
                 )?;
             }
-            Err(..) => {
+            TimerLoopback::ChannelDropped => {
                 ctx.send_ws_message(
-                    ctx.participants.filter().room(ctx.room).ids(),
+                    ctx.participants.in_room(ctx.room).ids(),
                     TimerEvent::Error(TimerError::Internal),
                 )?;
             }
@@ -293,9 +305,11 @@ impl TimerModule {
                     .checked_add_signed(chrono::Duration::seconds(signed_duration))
                     .ok_or(TimerError::InvalidDuration)?;
 
-                let tx = ctx.loopback_after(Duration::from_secs(duration), || Stopped {
-                    kind: StopKind::Expired,
-                    reason: None,
+                let tx = ctx.loopback_after(Duration::from_secs(duration), || {
+                    TimerLoopback::Stopped(Stopped {
+                        kind: StopKind::Expired,
+                        reason: None,
+                    })
                 });
                 tx_cancel = Some(tx);
 
@@ -347,7 +361,7 @@ impl TimerModule {
                 reason,
             };
             if let Some(tx) = timer.tx_cancel.take() {
-                if tx.send(stopped).is_err() {
+                if tx.send(TimerLoopback::Stopped(stopped)).is_err() {
                     tracing::debug!("Timer cancel sender has been dropped");
                 }
             } else {
