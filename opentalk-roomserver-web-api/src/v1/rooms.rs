@@ -35,6 +35,14 @@ impl RoomAction {
     pub fn is_created(&self) -> bool {
         matches!(self, Self::Created)
     }
+
+    pub fn from_status_code(status_code: StatusCode) -> Option<Self> {
+        match status_code {
+            StatusCode::CREATED => Some(Self::Created),
+            StatusCode::NO_CONTENT => Some(Self::Updated),
+            _ => None,
+        }
+    }
 }
 
 impl IntoResponse for RoomAction {
@@ -140,7 +148,7 @@ pub(crate) async fn request_token<B: RoomBackend>(
     Ok(Json(response))
 }
 
-pub(crate) fn routes<B: RoomBackend + 'static>() -> Router<B> {
+pub fn routes<B: RoomBackend + 'static>() -> Router<B> {
     Router::new().nest(
         "/rooms",
         Router::new()
