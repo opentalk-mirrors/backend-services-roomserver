@@ -42,7 +42,7 @@ async fn build_room_from_test_container() -> (ContainerAsync<GenericImage>, Test
     // The etherpad container is very slow to shut down. This causes tests to fail when running
     // multiple test serial or in parallel. To avoid this, we use a random port for each test so
     // that multiple containers can run at the same time.
-    let etherpad_container = GenericImage::new("registry.opencode.de/opentalk/etherpad", "latest")
+    let etherpad_container = GenericImage::new("registry.opencode.de/opentalk/etherpad", "v2.0.2")
         .with_wait_for(WaitFor::message_on_stdout("Etherpad is running"))
         .with_mapped_port(0, ETHERPAD_PORT.tcp())
         .with_env_var(ENV_ETHERPAD_API_KEY, ETHERPAD_API_KEY)
