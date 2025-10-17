@@ -270,19 +270,19 @@ impl SignalingModule for MeetingNotesModule {
 
     fn on_breakout_closed(
         &mut self,
-        _ctx: &mut ModuleContext<'_, Self>,
+        ctx: &mut ModuleContext<'_, Self>,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        let old_rooms: Vec<InitState> = self
+        let breakout_rooms: Vec<InitState> = self
             .etherpad_rooms
             .extract_if(|&room, _| room != RoomKind::Main)
             .map(|(.., state)| state)
             .collect();
+        let client = Arc::clone(&self.etherpad);
 
-        let span = Span::current();
-        tokio::spawn(
-            loopback::delete_pads(Arc::clone(&self.etherpad), old_rooms.into_iter())
-                .instrument(span),
-        );
+        ctx.spawn_optional(async move {
+            loopback::delete_pads(client, breakout_rooms.into_iter()).await;
+            None
+        });
 
         Ok(())
     }
