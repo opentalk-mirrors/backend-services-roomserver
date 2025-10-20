@@ -123,8 +123,7 @@ pub(crate) async fn put_room<B: RoomBackend>(
     responses(
         (status = StatusCode::OK, description = "The response body contains either the signaling token, or a prompt to include the associated room parameters in the request", body = TokenResponse),
         (status = StatusCode::UNAUTHORIZED, description = "The provided API token is invalid"),
-        (status = StatusCode::BAD_REQUEST, description = "The provided API token could not be parsed"),
-        (status = StatusCode::UNPROCESSABLE_ENTITY, description = "Failed to parse request body"),
+        (status = StatusCode::BAD_REQUEST, description = "Failed to parse request body"),
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
     ),
     security(
