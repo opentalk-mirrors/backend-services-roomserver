@@ -299,11 +299,8 @@ impl RoomServerRunner {
             .request_token(room_id, client_parameters, room_parameters)
             .await;
         match res {
-            Ok(Some(token)) => {
+            Ok(token) => {
                 let _ = response_tx.send(Ok(token));
-            }
-            Ok(None) => {
-                let _ = response_tx.send(Err(anyhow::anyhow!("Room does not exist!?")));
             }
             Err(e) => {
                 let _ = response_tx.send(Err(anyhow::anyhow!(e)));

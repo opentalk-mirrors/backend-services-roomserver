@@ -12,7 +12,7 @@ use axum::{
     routing::{post, put},
 };
 use opentalk_roomserver_types::{
-    api::{RoomServerAccess, TokenRequestBody, TokenResponse},
+    api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
 };
@@ -68,7 +68,7 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-    ) -> Result<Option<RoomServerAccess>, ApiError>;
+    ) -> Result<RoomServerAccess, ApiError>;
 }
 
 /// Creates a new room instance with the specified parameters if no room with the provided id
@@ -121,9 +121,10 @@ pub(crate) async fn put_room<B: RoomBackend>(
         ("room_id" = RoomId, Path, description = "The UUID that identifies the room")
     ),
     responses(
-        (status = StatusCode::OK, description = "The response body contains either the signaling token, or a prompt to include the associated room parameters in the request", body = TokenResponse),
+        (status = StatusCode::OK, description = "The response body contains the signaling token and the public URL of the roomserver", body = RoomServerAccess),
         (status = StatusCode::UNAUTHORIZED, description = "The provided API token is invalid"),
         (status = StatusCode::BAD_REQUEST, description = "Failed to parse request body"),
+        (status = StatusCode::UNPROCESSABLE_ENTITY, description = "Requested room does not exist yet and no room parameters were provided"),
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
     ),
     security(
@@ -135,14 +136,10 @@ pub(crate) async fn request_token<B: RoomBackend>(
     State(mut ctx): State<B>,
     path: Path<RoomId>,
     Json(body): Json<TokenRequestBody>,
-) -> Result<Json<TokenResponse>, ApiError> {
-    let response = match ctx
+) -> Result<Json<RoomServerAccess>, ApiError> {
+    let response = ctx
         .request_room_token(path.0, body.client_parameters, body.room_parameters)
-        .await?
-    {
-        Some(token) => TokenResponse::Token(token),
-        None => TokenResponse::UnknownRoom,
-    };
+        .await?;
 
     Ok(Json(response))
 }

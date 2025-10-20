@@ -80,17 +80,17 @@ paths:
         required: true
       responses:
         "200":
-          description: "The response body contains either the signaling token, or a prompt to include the associated room parameters in the request"
+          description: The response body contains the signaling token and the public URL of the roomserver
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TokenResponse"
+                $ref: "#/components/schemas/RoomServerAccess"
         "400":
-          description: The provided API token could not be parsed
+          description: Failed to parse request body
         "401":
           description: The provided API token is invalid
         "422":
-          description: Failed to parse request body
+          description: Requested room does not exist yet and no room parameters were provided
         "500":
           description: An internal server error occurred
       security:
@@ -739,36 +739,6 @@ components:
             quotas:
               max_storage: 50000
           waiting_room: false
-    TokenResponse:
-      oneOf:
-        - allOf:
-            - $ref: "#/components/schemas/RoomServerAccess"
-              description: The signaling token for the requested room
-            - type: object
-              required:
-                - response
-              properties:
-                response:
-                  type: string
-                  enum:
-                    - token
-          description: The signaling token for the requested room
-        - type: object
-          description: |-
-            The requested room is unknown to the roomserver and needs to be provided through the
-            [TokenRequestBody](super::TokenRequestBody)
-          required:
-            - response
-          properties:
-            response:
-              type: string
-              enum:
-                - unknown_room
-      description: "The response body for GET `/rooms/{room_id}/token`"
-      example:
-        public_url: "https://example.com/"
-        response: token
-        token: 00000000-0000-0000-0000-0000abadcafe
     UserId:
       type: string
       format: uuid

@@ -289,12 +289,16 @@ impl RoomBackend for Context {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-    ) -> Result<Option<RoomServerAccess>, opentalk_types_api_v1::error::ApiError> {
+    ) -> Result<RoomServerAccess, ApiError> {
         let task_handle = self.room_tasks.get_task_handle(&room_id).await;
 
         match (task_handle, room_parameters) {
             // Room doesn't exist and no parameters were provided
-            (None, None) => return Ok(None),
+            (None, None) => {
+                return Err(
+                    ApiError::unprocessable_entity().with_message("Room parameters missing")
+                );
+            }
 
             // Room needs to be created
             (None, Some(parameters)) => {
@@ -347,7 +351,7 @@ impl RoomBackend for Context {
 
         let public_url = self.settings.http.public_url.clone();
 
-        Ok(Some(RoomServerAccess { public_url, token }))
+        Ok(RoomServerAccess { public_url, token })
     }
 }
 
@@ -355,6 +359,7 @@ impl RoomBackend for Context {
 mod test {
     use std::sync::Arc;
 
+    use axum::http::StatusCode;
     use opentalk_roomserver_types::{
         client_parameters::{ClientKind, Role},
         module_settings::ModuleSettings,
@@ -449,23 +454,26 @@ mod test {
 
         let token = ctx
             .request_room_token(RoomId::nil(), client_parameters1(), None)
-            .await
-            .unwrap();
+            .await;
 
-        assert_eq!(token, None);
+        assert!(matches!(
+            token,
+            Err(ApiError {
+                status: StatusCode::UNPROCESSABLE_ENTITY,
+                ..
+            })
+        ));
 
         let token = ctx
             .request_room_token(RoomId::nil(), client_parameters1(), Some(room_parameters()))
-            .await
-            .unwrap();
+            .await;
 
-        assert!(token.is_some());
+        assert!(token.is_ok());
 
         let token = ctx
             .request_room_token(RoomId::nil(), client_parameters2(), None)
-            .await
-            .unwrap();
+            .await;
 
-        assert!(token.is_some())
+        assert!(token.is_ok())
     }
 }
