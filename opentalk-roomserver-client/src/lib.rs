@@ -13,7 +13,7 @@ use http::{HeaderValue, header::InvalidHeaderValue};
 use http_request_derive_client::Client as _;
 use http_request_derive_client_reqwest::{ReqwestClient, ReqwestClientError};
 use opentalk_roomserver_types::{
-    api::{RoomServerAccess, TokenRequestBody, TokenResponse},
+    api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
 };
@@ -78,7 +78,7 @@ impl Client {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-    ) -> Result<Option<RoomServerAccess>, ServerError> {
+    ) -> Result<RoomServerAccess, ServerError> {
         let request = TokenRequest::new(
             room_id,
             TokenRequestBody {
@@ -87,11 +87,10 @@ impl Client {
             },
             self.api_token.clone(),
         );
-        let response = self.reqwest_client.execute(request).await?;
-        match response {
-            TokenResponse::Token(token) => Ok(Some(token)),
-            TokenResponse::UnknownRoom => Ok(None),
-        }
+        self.reqwest_client
+            .execute(request)
+            .await
+            .map_err(Into::into)
     }
 
     pub async fn open_signaling_connection(

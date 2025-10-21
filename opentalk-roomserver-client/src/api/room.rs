@@ -5,7 +5,7 @@ use bytes::Bytes;
 use http::StatusCode;
 use http_request_derive::{FromHttpResponse, HttpRequest};
 use opentalk_roomserver_types::{
-    api::{TokenRequestBody, TokenResponse},
+    api::{RoomServerAccess, TokenRequestBody},
     room_parameters::RoomParameters,
 };
 use opentalk_types_common::rooms::RoomId;
@@ -64,7 +64,7 @@ impl FromHttpResponse for RoomCreateResponse {
 }
 
 #[derive(HttpRequest)]
-#[http_request(method = "POST", response = TokenResponse, path = "/rooms/{room_id}/token")]
+#[http_request(method = "POST", response = RoomServerAccess, path = "/rooms/{room_id}/token")]
 pub(crate) struct TokenRequest {
     pub(crate) room_id: RoomId,
 
