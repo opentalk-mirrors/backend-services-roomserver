@@ -40,6 +40,8 @@ uuid = { workspace = true, features = ["v4"] }
 [dev-dependencies]
 bytes.workspace = true
 insta = { workspace = true, features = ["json", "redactions"] }
+mockito.workspace = true
+pretty_assertions.workspace = true
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true, features = ["macros", "rt"] }
 tokio-util.workspace = true

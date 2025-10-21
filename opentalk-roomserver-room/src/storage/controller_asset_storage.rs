@@ -134,3 +134,208 @@ impl AssetStorageProvider for ControllerAssetStorage {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::anyhow;
+    use bytes::Bytes;
+    use futures::{StreamExt, stream};
+    use opentalk_roomserver_signaling::storage::{
+        StorageContext,
+        assets::{
+            AssetMetaData, AssetUploaded, StorageError,
+            provider::{AssetLoadError, AssetStorageProvider},
+        },
+    };
+    use opentalk_types_api_v1::{
+        assets::AssetResource, error::ApiError, services::roomserver::PostAssetResponseBody,
+    };
+    use opentalk_types_common::{
+        assets::{AssetFileKind, AssetId, FileExtension},
+        modules::ModuleId,
+        rooms::RoomId,
+        time::Timestamp,
+    };
+    use pretty_assertions::assert_eq;
+
+    use super::ControllerAssetStorage;
+
+    #[test_log::test(tokio::test)]
+    async fn successful_asset_upload() {
+        let room_id = RoomId::from_u128(0x01);
+        let asset_file_kind = AssetFileKind::example_data();
+        let created_at = Timestamp::unix_epoch();
+        let module_id = ModuleId::example_data();
+        let response_body = PostAssetResponseBody {
+            asset_resource: AssetResource {
+                id: AssetId::from_u128(0x01),
+                filename: "Testfile".to_string(),
+                namespace: Some(module_id.clone()),
+                created_at: *created_at,
+                kind: asset_file_kind.to_string(),
+                size: 12.into(),
+            },
+            remaining_quota_bytes: None,
+        };
+
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock(
+                "POST",
+                format!("/v1/services/roomserver/room/{room_id}/asset").as_str(),
+            )
+            .match_header("authorization", "Bearer secret")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("namespace".to_string(), module_id.to_string()),
+                mockito::Matcher::UrlEncoded(
+                    "file_extension".to_string(),
+                    FileExtension::pdf().to_string(),
+                ),
+                mockito::Matcher::UrlEncoded("kind".to_string(), asset_file_kind.to_string()),
+            ]))
+            // response
+            .with_status(200)
+            .with_header("content-type", "application/octet-stream")
+            .with_body(serde_json::to_string(&response_body).unwrap())
+            .create_async()
+            .await;
+
+        let provider =
+            ControllerAssetStorage::new(server.url().parse().unwrap(), "secret".into(), None);
+        let asset_stream =
+            stream::once(async { Ok(Bytes::copy_from_slice(r"asdasd".as_bytes())) }).boxed();
+
+        let upload_result = provider
+            .upload_asset(
+                asset_stream,
+                AssetMetaData {
+                    kind: asset_file_kind,
+                    timestamp: created_at,
+                    extension: FileExtension::pdf(),
+                },
+                &StorageContext {
+                    room_id,
+                    namespace: ModuleId::example_data(),
+                    event: None,
+                },
+            )
+            .await;
+
+        mock.assert_async().await;
+
+        assert_eq!(
+            upload_result.unwrap(),
+            AssetUploaded {
+                id: response_body.asset_resource.id,
+                filename: response_body.asset_resource.filename,
+                remaining_quota: response_body.remaining_quota_bytes
+            }
+        );
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn quota_exceeded_asset_upload() {
+        let room_id = RoomId::from_u128(0x01);
+        let asset_file_kind = AssetFileKind::example_data();
+        let created_at = Timestamp::unix_epoch();
+        let module_id = ModuleId::example_data();
+
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock(
+                "POST",
+                format!("/v1/services/roomserver/room/{room_id}/asset").as_str(),
+            )
+            .match_header("authorization", "Bearer secret")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("namespace".to_string(), module_id.to_string()),
+                mockito::Matcher::UrlEncoded(
+                    "file_extension".to_string(),
+                    FileExtension::pdf().to_string(),
+                ),
+                mockito::Matcher::UrlEncoded("kind".to_string(), asset_file_kind.to_string()),
+            ]))
+            // response
+            .with_status(ApiError::storage_quota_exceeded().status.as_u16() as usize)
+            .create_async()
+            .await;
+
+        let provider =
+            ControllerAssetStorage::new(server.url().parse().unwrap(), "secret".into(), None);
+        let asset_stream =
+            stream::once(async { Ok(Bytes::copy_from_slice(r"asdasd".as_bytes())) }).boxed();
+
+        let upload_result = provider
+            .upload_asset(
+                asset_stream,
+                AssetMetaData {
+                    kind: asset_file_kind,
+                    timestamp: created_at,
+                    extension: FileExtension::pdf(),
+                },
+                &StorageContext {
+                    room_id,
+                    namespace: ModuleId::example_data(),
+                    event: None,
+                },
+            )
+            .await;
+
+        mock.assert_async().await;
+
+        assert!(matches!(upload_result, Err(StorageError::QuotaReached)));
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn test_asset_load_error() {
+        let room_id = RoomId::from_u128(0x01);
+        let asset_file_kind = AssetFileKind::example_data();
+        let created_at = Timestamp::unix_epoch();
+        let module_id = ModuleId::example_data();
+
+        let mut server = mockito::Server::new_async().await;
+        let _mock = server
+            .mock(
+                "POST",
+                format!("/v1/services/roomserver/room/{room_id}/asset").as_str(),
+            )
+            .match_header("authorization", "Bearer secret")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("namespace".to_string(), module_id.to_string()),
+                mockito::Matcher::UrlEncoded(
+                    "file_extension".to_string(),
+                    FileExtension::pdf().to_string(),
+                ),
+                mockito::Matcher::UrlEncoded("kind".to_string(), asset_file_kind.to_string()),
+            ]))
+            // response
+            .with_status(ApiError::storage_quota_exceeded().status.as_u16() as usize)
+            .create_async()
+            .await;
+
+        let provider =
+            ControllerAssetStorage::new(server.url().parse().unwrap(), "secret".into(), None);
+
+        let asset_stream = stream::iter(vec![Err(AssetLoadError {
+            source: anyhow!("Error").into(),
+        })])
+        .boxed();
+        let upload_result = provider
+            .upload_asset(
+                asset_stream,
+                AssetMetaData {
+                    kind: asset_file_kind,
+                    timestamp: created_at,
+                    extension: FileExtension::pdf(),
+                },
+                &StorageContext {
+                    room_id,
+                    namespace: ModuleId::example_data(),
+                    event: None,
+                },
+            )
+            .await;
+
+        assert!(matches!(upload_result, Err(StorageError::Internal(_))));
+    }
+}

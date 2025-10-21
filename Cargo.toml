@@ -103,6 +103,7 @@ livekit-api = "0.4"
 livekit-protocol = "0.5.0"
 livekit-runtime = { version = "0.4", default-features = false }
 log = "0.4.22"
+mockito = "1.7.0"
 opentalk-etherpad-client = { version = "0.4", default-features = false, features = [
   "rustls-tls-native-roots",
 ] }
