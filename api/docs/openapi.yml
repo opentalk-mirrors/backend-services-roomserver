@@ -90,7 +90,7 @@ paths:
         "401":
           description: The provided API token is invalid
         "422":
-          description: Requested room does not exist yet and no room parameters were provided
+          description: The request body did not match the expected format or the room does not exist and no room parameters were provided
         "500":
           description: An internal server error occurred
       security:
