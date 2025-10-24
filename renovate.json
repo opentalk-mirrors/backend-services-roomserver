@@ -28,6 +28,13 @@
       ],
       "groupName": "livekit",
       "groupSlug": "livekit"
+    },
+    {
+      "matchPackagePatterns": [
+        "typst-*"
+      ],
+      "groupName": "typst",
+      "groupSlug": "typst"
     }
   ]
 }
