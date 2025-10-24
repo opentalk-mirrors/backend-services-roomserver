@@ -68,7 +68,7 @@ opentalk-roomserver-types-subroom-audio = { path = "modules/subroom-audio/types"
 opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.11-dev" }
 opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.0.11-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.11-dev" }
-opentalk-types-api-v1 = { version = "0.42.0", features = ["axum"] }
+opentalk-types-api-v1 = { version = "0.44.0", features = ["axum"] }
 opentalk-types-common = { version = "0.37.0", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.39.0", features = [
   "serde",
