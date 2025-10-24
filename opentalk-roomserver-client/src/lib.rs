@@ -96,7 +96,7 @@ impl Client {
         room_id: RoomId,
         parameters: RoomParameters,
     ) -> Result<(), Error<PutRoomError>> {
-        let url = self.base_url.join(&format!("/rooms/{room_id}"))?;
+        let url = self.base_url.join(&format!("/v1/rooms/{room_id}"))?;
         let response = self
             .reqwest_client
             .put(url)
@@ -119,7 +119,7 @@ impl Client {
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
     ) -> Result<RoomServerAccess, Error<RequestTokenError>> {
-        let url = self.base_url.join(&format!("/rooms/{room_id}/token"))?;
+        let url = self.base_url.join(&format!("/v1/rooms/{room_id}/token"))?;
         let response = self
             .reqwest_client
             .post(url)
