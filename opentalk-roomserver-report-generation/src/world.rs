@@ -6,7 +6,7 @@ use std::{borrow::Cow, collections::BTreeMap, path::Path, sync::LazyLock};
 
 use chrono::{DateTime, Datelike as _, FixedOffset, Local, Utc};
 use typst::{
-    Library,
+    Library, LibraryExt as _,
     diag::{FileError, FileResult},
     foundations::{Bytes, Datetime},
     syntax::{FileId, Source, VirtualPath},

@@ -140,11 +140,11 @@ tracing-subscriber = { version = "0.3", features = [
   "parking_lot",
 ] }
 tungstenite = "0.28.0"
-typst = "0.13"
-typst-kit = { version = "0.13", default-features = false, features = [
+typst = "0.14"
+typst-kit = { version = "0.14", default-features = false, features = [
   "embed-fonts",
 ] }
-typst-pdf = "0.13"
+typst-pdf = "0.14"
 url = "2.5.2"
 utoipa = { version = "5.3.1", features = ["yaml"] }
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
