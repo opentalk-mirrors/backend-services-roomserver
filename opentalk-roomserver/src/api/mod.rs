@@ -132,10 +132,11 @@ where
     let app_state_subscriber = app_state.subscribe();
 
     let module_registry = setup_registry();
+    let room_registry = RoomTaskRegistry::new();
 
     let ctx = Context {
         settings: Arc::clone(&settings),
-        room_tasks: RoomTaskRegistry::new(),
+        room_tasks: room_registry.clone(),
         token_store: Arc::new(Mutex::new(TokenStore::new())),
         module_registry: Arc::new(module_registry),
         app_state,
@@ -203,6 +204,9 @@ where
     axum::serve(listener, router)
         .with_graceful_shutdown(wait_shutdown(app_state_subscriber))
         .await?;
+
+    // wait for room tasks to close
+    room_registry.wait_for_room_closed().await;
 
     Ok(())
 }

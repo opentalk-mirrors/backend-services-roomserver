@@ -68,8 +68,8 @@ pub enum CoreEvent {
         participant_id: ParticipantId,
     },
 
-    /// The quota's time limit has elapsed
-    TimeLimitQuotaElapsed,
+    /// The room is being closed, further commands will be discarded
+    Closing { reason: RoomCloseReason },
 
     /// An error happened when executing a `core` command
     Error(CoreError),
@@ -83,7 +83,7 @@ pub enum JoinBlockedReason {
 }
 
 /// A participant left the waiting room
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LeftWaitingRoom {
     /// The participant id for the associated participant
     pub id: ParticipantId,
@@ -95,6 +95,16 @@ impl From<CoreError> for CoreEvent {
     fn from(value: CoreError) -> Self {
         Self::Error(value)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RoomCloseReason {
+    GracefulShutdown,
+    ImmediateShutdown,
+    FatalError,
+    TimeLimitReached,
+    IdleTimeoutReached,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -353,12 +363,16 @@ mod tests {
     }
 
     #[test]
-    fn serialize_time_limit_quota_elapsed() {
-        let produced = serde_json::to_string_pretty(&CoreEvent::TimeLimitQuotaElapsed).unwrap();
+    fn serialize_closing() {
+        let produced = serde_json::to_string_pretty(&CoreEvent::Closing {
+            reason: super::RoomCloseReason::GracefulShutdown,
+        })
+        .unwrap();
 
         assert_snapshot!(produced, @r#"
         {
-          "message": "time_limit_quota_elapsed"
+          "message": "closing",
+          "reason": "graceful_shutdown"
         }
         "#);
     }

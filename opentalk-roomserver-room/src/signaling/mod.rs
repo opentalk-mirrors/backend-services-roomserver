@@ -16,7 +16,7 @@
 //! collection either, at least not when their generic type differs. This is where the
 //! [`ModuleHandle`] is used as an abstraction to remove any generic bounds. We achieve this with
 //! dynamic dispatch by storing them as a `Box<dyn ModuleDispatcher>`.
-use std::{any::Any, collections::BTreeMap, fmt::Display, sync::Arc, time::Duration};
+use std::{any::Any, collections::BTreeMap, fmt::Display, time::Duration};
 
 use anyhow::Context;
 use dyn_module_context::DynModuleContext;
@@ -24,10 +24,6 @@ use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
     module_context::ModuleContext,
     signaling_module::{CreateReplica, SignalingModule},
-    storage::{
-        StorageContext,
-        assets::{ModuleAssetStorage, provider::AssetStorageProvider},
-    },
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom,
@@ -37,7 +33,7 @@ use opentalk_roomserver_types::{
     shared_json::SharedJson,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
-use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
+use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use serde_json::value::RawValue;
 use tracing::{Span, field::Empty};
@@ -61,7 +57,7 @@ pub trait ModuleHandle: Send + Sync {
         event: &mut DynBroadcastEvent<'_>,
     ) -> Result<(), FatalError>;
 
-    fn destroy(self: Box<Self>, room_id: RoomId, storage: Arc<dyn AssetStorageProvider>);
+    fn on_closing(&mut self, ctx: &mut DynModuleContext<'_>);
 }
 
 pub enum DynEvent {
@@ -101,6 +97,8 @@ pub enum DynBroadcastEvent<'evt> {
         connection_id: ConnectionId,
     },
 
+    Closing,
+
     BreakoutStart {
         rooms: &'evt Vec<BreakoutRoom>,
         duration: Option<Duration>,
@@ -138,6 +136,7 @@ impl Display for DynBroadcastEvent<'_> {
             DynBroadcastEvent::BreakoutStart { .. } => write!(f, "BreakoutStart"),
             DynBroadcastEvent::BreakoutClosing => write!(f, "BreakoutClosing"),
             DynBroadcastEvent::BreakoutClosed => write!(f, "BreakoutClosed"),
+            DynBroadcastEvent::Closing => write!(f, "Closing"),
             DynBroadcastEvent::SwitchRoom { .. } => write!(f, "SwitchRoom"),
         }
     }
@@ -299,6 +298,10 @@ where
             DynBroadcastEvent::BreakoutClosed => {
                 span.record("opentalk.event_type", "BreakoutClosed");
                 self.module.on_breakout_closed(ctx)?;
+            }
+            DynBroadcastEvent::Closing => {
+                span.record("opentalk.event_type", "Closing");
+                self.module.on_closing(ctx)?;
             }
         }
         Ok(())
@@ -484,14 +487,14 @@ where
         Ok(())
     }
 
-    fn destroy(self: Box<Self>, room_id: RoomId, storage: Arc<dyn AssetStorageProvider>) {
-        let storage = ModuleAssetStorage::new(
-            Arc::clone(&storage),
-            StorageContext {
-                room_id,
-                namespace: M::NAMESPACE,
-            },
-        );
-        self.module.destroy(room_id, storage);
+    fn on_closing(&mut self, ctx: &mut DynModuleContext<'_>) {
+        let mut module_context: ModuleContext<'_, M> = ctx.reborrow().into_typed_context();
+
+        if let Err(err) = self.module.on_closing(&mut module_context) {
+            tracing::error!(
+                "Module '{}' returned an error while closing: {err:#?}",
+                M::NAMESPACE,
+            );
+        }
     }
 }

@@ -3,7 +3,6 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
-    iter::repeat,
     sync::Arc,
     time::Duration,
 };
@@ -17,7 +16,6 @@ use opentalk_roomserver_signaling::{
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, SignalingModule, SignalingModuleInitData,
     },
-    storage::assets::ModuleAssetStorage,
 };
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom, connection_id::ConnectionId, room_kind::RoomKind,
@@ -27,13 +25,9 @@ use opentalk_roomserver_types_livekit::{
     LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitInternal, LiveKitSettings, LiveKitState,
     MicrophoneRestrictionError, MicrophoneRestrictionState, ParticipantsMuted,
 };
-use opentalk_types_common::{
-    modules::{ModuleId, module_id},
-    rooms::RoomId,
-};
+use opentalk_types_common::modules::{ModuleId, module_id};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot;
-use tracing::{Instrument, Span};
 
 use crate::{
     loopback::LiveKitLoopback,
@@ -214,14 +208,11 @@ impl SignalingModule for LiveKitModule {
         Ok(())
     }
 
-    fn destroy(self, _room_id: RoomId, _storage: ModuleAssetStorage) {
-        let span = Span::current();
-        let rooms = self.rooms.into_values().zip(repeat(span));
-        let futures = stream::iter(rooms)
-            .map(|(r, span)| r.cleanup_room().instrument(span))
-            .buffer_unordered(PARALLEL_UPDATES)
-            .collect::<Vec<()>>();
-        tokio::spawn(futures);
+    fn on_closing(&mut self, ctx: &mut ModuleContext<'_, Self>) -> Result<(), anyhow::Error> {
+        let rooms = self.rooms.drain().collect();
+        Self::cleanup_rooms(ctx, rooms);
+
+        Ok(())
     }
 
     fn on_breakout_start(
@@ -294,22 +285,12 @@ impl SignalingModule for LiveKitModule {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        let breakout_rooms: HashMap<_, _> = self
+        let breakout_rooms = self
             .rooms
             .extract_if(|kind, _| *kind != RoomKind::Main)
             .collect();
+        Self::cleanup_rooms(ctx, breakout_rooms);
 
-        ctx.spawn(async {
-            stream::iter(breakout_rooms.into_iter().map(|(id, r)| async move {
-                r.cleanup_room().await;
-                tracing::debug!("LiveKitRoom removed: {id:?}");
-            }))
-            .buffer_unordered(PARALLEL_UPDATES)
-            .collect::<Vec<()>>()
-            .await;
-
-            Ok(LiveKitLoopback::RoomRemoved)
-        });
         Ok(())
     }
 }
@@ -434,6 +415,20 @@ impl LiveKitModule {
                     "Channel dropped when restricting microphone permissions"
                 ))
             })
+    }
+
+    fn cleanup_rooms(ctx: &mut ModuleContext<'_, Self>, rooms: HashMap<RoomKind, LiveKitSubroom>) {
+        ctx.spawn(async {
+            stream::iter(rooms.into_iter().map(|(id, r)| async move {
+                r.cleanup_room().await;
+                tracing::debug!("LiveKitRoom removed: {id:?}");
+            }))
+            .buffer_unordered(PARALLEL_UPDATES)
+            .collect::<Vec<()>>()
+            .await;
+
+            Ok(LiveKitLoopback::RoomRemoved)
+        });
     }
 }
 

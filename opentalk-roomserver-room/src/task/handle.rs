@@ -45,6 +45,9 @@ impl<Socket: SignalingSocket> From<RoomTaskHandleError<Socket>> for ApiError {
                 RoomTaskApiError::NotImplemented => {
                     ApiError::internal().with_message(error.to_string())
                 }
+                RoomTaskApiError::Closing => {
+                    ApiError::service_unavailable().with_message(error.to_string())
+                }
             },
         }
     }
@@ -222,4 +225,19 @@ pub enum Request<Socket: SignalingSocket> {
         socket: Socket,
         client_parameters: ClientParameters,
     },
+}
+
+impl<Socket: SignalingSocket> Request<Socket> {
+    pub fn send_error(self, error: RoomTaskApiError) -> anyhow::Result<()> {
+        match self {
+            Request::RefreshIdleTimeout { response }
+            | Request::UpdateParameter { response, .. }
+            | Request::WsJoin { response, .. } => response
+                .send(Err(error))
+                .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
+            Request::IsBanned { response, .. } => response
+                .send(Err(error))
+                .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
+        }
+    }
 }
