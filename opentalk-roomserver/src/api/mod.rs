@@ -112,9 +112,6 @@ impl utoipa::Modify for SecurityAddon {
 }
 
 /// Starts the web server
-///
-/// The api will be served under the `/v1/...` path. The version segment (`v1`) is optional, if no
-/// version is specified the latest api version is used.
 pub(crate) async fn run_web_server<L>(
     settings: Arc<Settings>,
     app_state: watch::Sender<ApplicationState>,
@@ -144,7 +141,6 @@ where
 
     let mut router = Router::new()
         .nest("/v1", v1::routes(settings.http.api_token.clone()))
-        .merge(v1::routes(settings.http.api_token.clone()))
         .with_state(ctx)
         .layer(
             TraceLayer::new_for_http()

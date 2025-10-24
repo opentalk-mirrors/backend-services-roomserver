@@ -102,7 +102,7 @@ impl SignalingConnection {
 
 fn build_signaling_socket_url(roomserver_url: &Url, token: &Token) -> anyhow::Result<http::Uri> {
     let mut url = roomserver_url
-        .join("signaling/")
+        .join("v1/signaling/")
         .context("Internal error, failed to append `signaling` path, invalid url")?
         .join(&token.to_string())
         .context("Internal error, failed to append signaling token to path, invalid url")?;
