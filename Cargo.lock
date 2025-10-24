@@ -3887,61 +3887,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "http-request-derive"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3076872b277efd8eac5d6a302b585298ab272dd75ff0664b95e507d2007dc0a"
-dependencies = [
- "async-trait",
- "bytes",
- "http 1.3.1",
- "http-request-derive-macros",
- "serde",
- "serde_json",
- "serde_url_params",
- "snafu",
- "url",
-]
-
-[[package]]
-name = "http-request-derive-client"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d1abdaaaa3fb1404482e695c82d2a780d96530012f99d123a9fd9e19584716e"
-dependencies = [
- "async-trait",
- "http-request-derive",
-]
-
-[[package]]
-name = "http-request-derive-client-reqwest"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fddf7a5031f97b360b9caf8c38a002034ee84672ead66833a86fc2ca656578c8"
-dependencies = [
- "async-trait",
- "http 1.3.1",
- "http-request-derive",
- "http-request-derive-client",
- "reqwest",
- "snafu",
- "url",
-]
-
-[[package]]
-name = "http-request-derive-macros"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3198ccc630b08dedb2e2fb86d7daf6a5fba43b2e722e1273afdf4cedb0b0db1"
-dependencies = [
- "darling 0.20.11",
- "proc-macro2",
- "quote",
- "strum 0.27.2",
- "syn",
-]
-
-[[package]]
 name = "httparse"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5745,9 +5690,6 @@ dependencies = [
  "bytes",
  "futures",
  "http 1.3.1",
- "http-request-derive",
- "http-request-derive-client",
- "http-request-derive-client-reqwest",
  "insta",
  "log",
  "opentalk-roomserver-types",
@@ -5770,6 +5712,8 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "test-log",
+ "testcontainers",
  "thiserror 2.0.17",
  "tokio",
  "tokio-tungstenite 0.28.0",
@@ -8209,16 +8153,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e24345aa0fe688594e73770a5f6d1b216508b4f93484c0026d521acd30134392"
 dependencies = [
  "serde_core",
-]
-
-[[package]]
-name = "serde_url_params"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c43307d0640738af32fe8d01e47119bc0fc8a686be470a44a586caff76dfb34"
-dependencies = [
- "serde",
- "url",
 ]
 
 [[package]]

@@ -295,9 +295,9 @@ impl RoomBackend for Context {
         match (task_handle, room_parameters) {
             // Room doesn't exist and no parameters were provided
             (None, None) => {
-                return Err(
-                    ApiError::unprocessable_entity().with_message("Room parameters missing")
-                );
+                return Err(ApiError::unprocessable_entity()
+                    .with_code("room_parameters_missing")
+                    .with_message("Room parameters missing"));
             }
 
             // Room needs to be created
@@ -357,7 +357,7 @@ impl RoomBackend for Context {
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
+    use std::{borrow::Cow, sync::Arc};
 
     use axum::http::StatusCode;
     use opentalk_roomserver_types::{
@@ -366,6 +366,7 @@ mod test {
         public_user_profile::PublicUserProfile,
         room_parameters::AssetStorageConfig,
     };
+    use opentalk_types_api_v1::error::ErrorBody;
     use opentalk_types_common::{
         roomserver::DeviceSecret,
         tariffs::TariffResource,
@@ -460,6 +461,10 @@ mod test {
             token,
             Err(ApiError {
                 status: StatusCode::UNPROCESSABLE_ENTITY,
+                body: ErrorBody {
+                    code: Cow::Borrowed("room_parameters_missing"),
+                    ..
+                },
                 ..
             })
         ));

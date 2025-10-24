@@ -5,19 +5,17 @@
 //!
 //! This crate provides the API requests to interact with the roomserver.
 
-use api::{
-    room::{RoomsCreateRequest, TokenRequest},
-    signaling::{SignalingConnection, SignalingError},
-};
+use api::signaling::{SignalingConnection, SignalingError};
+use bytes::Bytes;
 use http::{HeaderValue, header::InvalidHeaderValue};
-use http_request_derive_client::Client as _;
-use http_request_derive_client_reqwest::{ReqwestClient, ReqwestClientError};
 use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
 };
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use reqwest::{Client as ReqwestClient, Response, header::AUTHORIZATION};
+use serde::Deserialize;
 use thiserror::Error;
 use url::Url;
 
@@ -31,27 +29,64 @@ pub struct InvalidApiTokenError {
     source: InvalidHeaderValue,
 }
 
-/// The request to the RoomServer failed
 #[derive(Debug, Error)]
-#[error("request failed")]
-pub struct ServerError {
-    #[from]
-    source: ReqwestClientError,
+pub enum Error<T> {
+    #[error("Failed to parse URL: {0}")]
+    UrlParse(#[from] url::ParseError),
+    #[error("Reqwest error: {0}")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("RoomServer returned an error: {0:#?}")]
+    ApiError(#[from] ApiError<T>),
+    #[error("RoomServer returned an unexpected response")]
+    Unexpected,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ApiError<T> {
+    pub code: T,
+    pub message: String,
+}
+
+#[derive(Error, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PutRoomError {
+    #[error("The provided API token is invalid")]
+    Unauthorized,
+    #[error("The room already exists, but is shutting down")]
+    NotFound,
+    #[error("An internal server error occurred")]
+    InternalServerError,
+}
+
+#[derive(Error, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RequestTokenError {
+    #[error("The provided API token is invalid")]
+    Unauthorized,
+    #[error("The requested room does not exist and no room parameters were provided")]
+    RoomParametersMissing,
+    #[error("An internal server error occurred")]
+    InternalServerError,
+    #[error("The requesting participant is banned from the room")]
+    Banned,
 }
 
 #[derive(Debug)]
 pub struct Client {
     reqwest_client: ReqwestClient,
+    base_url: Url,
     api_token: HeaderValue,
 }
 
 impl Client {
     pub fn new(base_url: Url, api_token: &str) -> Result<Client, InvalidApiTokenError> {
-        let reqwest_client = ReqwestClient::new(base_url.clone());
+        let reqwest_client = ReqwestClient::new();
 
         let api_token = format!("bearer {api_token}").parse()?;
         Ok(Self {
             reqwest_client,
+            base_url,
             api_token,
         })
     }
@@ -60,17 +95,22 @@ impl Client {
         &self,
         room_id: RoomId,
         parameters: RoomParameters,
-    ) -> Result<(), ServerError> {
-        let _response = self
+    ) -> Result<(), Error<PutRoomError>> {
+        let url = self.base_url.join(&format!("/rooms/{room_id}"))?;
+        let response = self
             .reqwest_client
-            .execute(RoomsCreateRequest::new(
-                room_id,
-                parameters,
-                self.api_token.clone(),
-            ))
+            .put(url)
+            .header(AUTHORIZATION, self.api_token.clone())
+            .json(&parameters)
+            .send()
             .await?;
 
-        Ok(())
+        if response.status().is_success() {
+            return Ok(());
+        }
+        Err(Self::parse_api_error::<PutRoomError>(
+            &response.bytes().await?,
+        ))
     }
 
     pub async fn request_token(
@@ -78,19 +118,58 @@ impl Client {
         room_id: RoomId,
         client_parameters: ClientParameters,
         room_parameters: Option<RoomParameters>,
-    ) -> Result<RoomServerAccess, ServerError> {
-        let request = TokenRequest::new(
-            room_id,
-            TokenRequestBody {
+    ) -> Result<RoomServerAccess, Error<RequestTokenError>> {
+        let url = self.base_url.join(&format!("/rooms/{room_id}/token"))?;
+        let response = self
+            .reqwest_client
+            .post(url)
+            .header(AUTHORIZATION, self.api_token.clone())
+            .json(&TokenRequestBody {
                 client_parameters,
                 room_parameters,
-            },
-            self.api_token.clone(),
-        );
-        self.reqwest_client
-            .execute(request)
-            .await
-            .map_err(Into::into)
+            })
+            .send()
+            .await?;
+
+        Self::parse_api_response(response).await
+    }
+
+    async fn parse_api_response<T, E>(response: Response) -> Result<T, Error<E>>
+    where
+        T: for<'de> Deserialize<'de>,
+        E: for<'de> Deserialize<'de>,
+    {
+        let success = response.status().is_success();
+        let bytes = response.bytes().await?;
+
+        if success {
+            let result = serde_json::from_slice(&bytes).map_err(|_| {
+                log::error!(
+                    "Received unexpected response from RoomServer: {}",
+                    String::from_utf8_lossy(&bytes)
+                );
+                Error::Unexpected
+            })?;
+            return Ok(result);
+        }
+
+        Err(Self::parse_api_error::<E>(&bytes))
+    }
+
+    fn parse_api_error<E>(bytes: &Bytes) -> Error<E>
+    where
+        E: for<'de> Deserialize<'de>,
+    {
+        match serde_json::from_slice::<ApiError<E>>(bytes) {
+            Ok(err) => Error::ApiError(err),
+            Err(_) => {
+                log::error!(
+                    "Received unexpected error response from RoomServer: {}",
+                    String::from_utf8_lossy(bytes)
+                );
+                Error::Unexpected
+            }
+        }
     }
 
     pub async fn open_signaling_connection(

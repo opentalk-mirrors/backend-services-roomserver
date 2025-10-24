@@ -86,8 +86,8 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
         (status = StatusCode::CREATED, description = "Successfully created a new room"),
         (status = StatusCode::NO_CONTENT, description = "The room did exist before and the parameter were updated if necessary"),
         (status = StatusCode::UNAUTHORIZED, description = "The provided API token is invalid"),
-        (status = StatusCode::BAD_REQUEST, description = "The provided API token could not be parsed"),
-        (status = StatusCode::UNPROCESSABLE_ENTITY, description = "Failed to parse request body"),
+        (status = StatusCode::BAD_REQUEST, description = "The provided API token or json body could not be parsed"),
+        (status = StatusCode::UNPROCESSABLE_ENTITY, description = "The request body did not match the expected format"),
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
     ),
     security(
@@ -124,7 +124,9 @@ pub(crate) async fn put_room<B: RoomBackend>(
         (status = StatusCode::OK, description = "The response body contains the signaling token and the public URL of the roomserver", body = RoomServerAccess),
         (status = StatusCode::UNAUTHORIZED, description = "The provided API token is invalid"),
         (status = StatusCode::BAD_REQUEST, description = "Failed to parse request body"),
-        (status = StatusCode::UNPROCESSABLE_ENTITY, description = "Requested room does not exist yet and no room parameters were provided"),
+        (status = StatusCode::UNPROCESSABLE_ENTITY, description = "The request body did not match the expected format or the room does not exist and no room parameters were provided"),
+        (status = StatusCode::FORBIDDEN, description = "The requesting participant is banned from the room"),
+        (status = StatusCode::BAD_REQUEST, description = "The provided API token or json body could not be parsed"),
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
     ),
     security(

@@ -16,9 +16,6 @@ anyhow.workspace = true
 bytes.workspace = true
 futures.workspace = true
 http.workspace = true
-http-request-derive.workspace = true
-http-request-derive-client.workspace = true
-http-request-derive-client-reqwest.workspace = true
 log.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-automod.workspace = true
@@ -48,5 +45,5 @@ url.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
-tokio.workspace = true
-url.workspace = true
+test-log.workspace = true
+testcontainers.workspace = true
