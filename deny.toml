@@ -41,6 +41,10 @@ ignore = [
   #         └── typst-library
   #             └── typst
   "RUSTSEC-2024-0436",
+
+  # This crate is only used by testcontainers which is a dev dependency. The
+  # affected crate is not part of a production build.
+  "RUSTSEC-2025-0111",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
