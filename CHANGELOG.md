@@ -5,6 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.11] - 2025-10-27
+
+[0.0.11]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.10...v0.0.11
+
+### 🚀 New features
+
+- Attach the participants breakout room to the `ParticipantJoined` event data ([!634](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/634), [#149](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/149))
+- Enforce room participant limit quota ([!636](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/636), [#146](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/146))
+- (chat) Message rate limit ([!578](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/578))
+- (room) Graceful room shutdown ([!650](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/650), [#150](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/150))
+- (api) Require version specifier for API endpoints ([!663](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/663), [#157](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/157))
+
+### 🐛 Bug fixes
+
+- (just) `mktemp --suffix` doesn't work on MacOS ([!623](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/623))
+- (chat) Include breakout chat history on join ([!635](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/635), [#151](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/151))
+- (core) Tag `CoreEvent` and enforce snake_case for serialization ([!637](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/637))
+- (docs) Wrong status code when request body could not be parsed for PUT `/room/{room_id}/token` ([!656](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/656))
+- (client) Remove unnecessary `tokio` and `url` dev dependencies ([!660](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/660))
+- (api) Include status code in reply when room parameters are missing ([!660](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/660))
+- (docs) Document all possible errors for put_room and request_token ([!660](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/660))
+
+### 🔨 Refactor
+
+- (report-generation) Remove obsolete error variants ([!625](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/625))
+- (report-generation) Use `thiserror` ([!625](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/625))
+- (polls) Move `Poll` struct from types to module ([!641](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/641))
+- Loosen trait bound on `ModuleContext::loopback_after()` ([!641](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/641))
+- (timer) Simplify filtering participants for room ([!641](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/641))
+- Expose the RoomBackend for the orchestrator ([!648](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/648), [#154](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/154))
+- (web-api) Return HTTP 422 for PUT `/room/{room_id}/token` when `RoomParameters` are missing ([!656](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/656), [#136](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/136))
+- (client) Remove `http-request-derive` and improve error handling ([!660](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/660))
+- (meeting-notes) Use loopback task for deleting pads ([!650](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/650))
+
+### 📦 Dependencies
+
+- (deps) Update pre-commit hook alessandrojcm/commitlint-pre-commit-hook to v9.23.0 ([!624](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/624))
+- (deps) Lock file maintenance ([!628](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/628))
+- (deps) Update rust crate pdf-extract to 0.10 ([!626](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/626))
+- (deps) Update pre-commit hook fsfe/reuse-tool to v6 ([!630](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/630))
+- (deps) Update pre-commit hook fsfe/reuse-tool to v6.1.2 ([!631](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/631))
+- (deps) Update opentelemetry crates ([!622](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/622))
+- (deps) Lock file maintenance ([!639](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/639))
+- (deps) Update egui ([!638](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/638))
+- (deps) Update livekit ([!640](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/640))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.18.6 ([!647](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/647))
+- (deps) Update rust crate half to 2.7.1 ([!641](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/641))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.18.7 ([!649](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/649))
+- (deps) Update livekit/livekit-server docker tag to v1.9.2 ([!651](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/651))
+- (deps) Lock file maintenance ([!652](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/652))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.18.8 ([!653](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/653))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.18.9 ([!657](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/657))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.19.0 ([!659](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/659))
+- (deps) Update opentalk ([!654](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/654))
+- (deps) Update typst rust crates ([!665](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/665))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.19.1 ([!666](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/666))
+- (deps) Lock file maintenance ([!667](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/667))
+
+### Ci
+
+- Do not include a default config in the containers ([!629](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/629))
+- (renovate) Add group rule for typst ([!665](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/665))
+
+### Test
+
+- (mock) Increase socket timeout to 3 seconds ([!633](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/633))
+- (chat) Add serialization tests for breakout messages ([!635](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/635))
+- (core) Unify `CoreEvent` serialization tests ([!637](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/637))
+- (client) Add integration tests for client crate ([!660](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/660))
+- (meeting-notes) Pin etherpad container for local tests to v2.0.2 ([!650](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/650))
+
 ## [0.0.10] - 2025-09-30
 
 [0.0.10]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.9...v0.0.10
