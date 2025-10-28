@@ -68,9 +68,9 @@ opentalk-roomserver-types-subroom-audio = { path = "modules/subroom-audio/types"
 opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.12-dev" }
 opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.0.12-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.12-dev" }
-opentalk-types-api-v1 = { version = "0.44.0", features = ["axum"] }
-opentalk-types-common = { version = "0.37.0", features = ["serde", "utoipa"] }
-opentalk-types-signaling = { version = "0.39.0", features = [
+opentalk-types-api-v1 = { version = "0.45.0", features = ["axum"] }
+opentalk-types-common = { version = "0.38.0", features = ["serde", "utoipa"] }
+opentalk-types-signaling = { version = "0.40.0", features = [
   "serde",
   "utoipa",
 ] }
@@ -105,7 +105,7 @@ log = "0.4.22"
 opentalk-etherpad-client = { version = "0.4", default-features = false, features = [
   "rustls-tls-native-roots",
 ] }
-opentalk-version = "0.2.0"
+opentalk-version = "0.3.0"
 opentelemetry = "0.31.0"
 opentelemetry-otlp = { version = "0.31.0", features = ["grpc-tonic"] }
 opentelemetry_sdk = { version = "0.31.0", features = [
