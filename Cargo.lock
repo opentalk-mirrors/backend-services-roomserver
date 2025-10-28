@@ -2732,6 +2732,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "git2"
+version = "0.20.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2deb07a133b1520dc1a5690e9bd08950108873d7ed5de38dcc74d3b5ebffa110"
+dependencies = [
+ "bitflags 2.10.0",
+ "libc",
+ "libgit2-sys",
+ "log",
+ "url",
+]
+
+[[package]]
 name = "gix"
 version = "0.71.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4122,7 +4135,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.58.0",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -4787,6 +4800,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2874a2af47a2325c2001a6e6fad9b16a53b802102b528163885171cf92b15976"
 
 [[package]]
+name = "libgit2-sys"
+version = "0.18.2+1.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c42fe03df2bd3c53a3a9c7317ad91d80c81cd1fb0caec8d7cc4cd2bfa10c222"
+dependencies = [
+ "cc",
+ "libc",
+ "libz-sys",
+ "pkg-config",
+]
+
+[[package]]
 name = "libloading"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4844,6 +4869,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "840db8cf39d9ec4dd794376f38acc40d0fc65eec2a8f484f7fd375b84602becd"
 dependencies = [
  "zlib-rs",
+]
+
+[[package]]
+name = "libz-sys"
+version = "1.1.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b70e7a7df205e92a1a4cd9aaae7898dac0aa555503cc0a649494d0d60e7651d"
+dependencies = [
+ "cc",
+ "libc",
+ "pkg-config",
+ "vcpkg",
 ]
 
 [[package]]
@@ -6491,9 +6528,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-common"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "825f7a9bf022738ebd46b3f903c96de90720a845f4a992fff41555564d5c063a"
+checksum = "1c875a4abde2096144094202ad5a9f3c505d67adc07cd607a261e459a93435cd"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -6509,9 +6546,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-v1"
-version = "0.44.0"
+version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45f52865e743cdaf1465141162816ea70b0327d45021c5288d8ce5dcd3745d2f"
+checksum = "41ab9f9896bb7090f7751dbb0f9ce2e2195644f02147a1b3b3ccb592e0160cb9"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -6527,9 +6564,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.37.1"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3dfa46cbc29e6e4ca2ec258e8cdc4d5520bf6077374ead31fdb4a6504e9c16f"
+checksum = "0bd2c36655a65b3fdab006faa0565b190340d988de3d30fff3deccf0f81d6f5c"
 dependencies = [
  "bincode 2.0.1",
  "chrono",
@@ -6585,9 +6622,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling"
-version = "0.39.0"
+version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbef39f6dce89b1811aede97c4d0cb13b0942fcc02bd84c68521d0a41951d91b"
+checksum = "6b4575a67fdc08cb775f3643d9bf8b49427409fa1fabf5c64d471941a356ac46"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
@@ -6601,14 +6638,14 @@ dependencies = [
 
 [[package]]
 name = "opentalk-version"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9bc696ab6ed740156a13bc86d96454d682a90cde44a473278a3d10ddf61badc"
+checksum = "69187d486998b989a25cb2a0336c95aac6f10c80bf15648c4c267b8ac1ec8857"
 dependencies = [
  "anyhow",
  "clap",
  "vergen",
- "vergen-gix",
+ "vergen-git2",
 ]
 
 [[package]]
@@ -7348,7 +7385,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.11.0",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -7361,7 +7398,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9120690fafc389a67ba3803df527d0ec9cbbc9cc45e4cc20b332996dfb672425"
 dependencies = [
  "anyhow",
- "itertools 0.11.0",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -10191,6 +10228,21 @@ dependencies = [
  "rustc_version",
  "rustversion",
  "time",
+ "vergen-lib",
+]
+
+[[package]]
+name = "vergen-git2"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f6ee511ec45098eabade8a0750e76eec671e7fb2d9360c563911336bea9cac1"
+dependencies = [
+ "anyhow",
+ "derive_builder",
+ "git2",
+ "rustversion",
+ "time",
+ "vergen",
  "vergen-lib",
 ]
 
