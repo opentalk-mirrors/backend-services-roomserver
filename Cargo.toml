@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Wolfgang Silbermayr <w.silbermayr@opentalk.eu>
 
 [workspace]
+default-members = ["opentalk-roomserver"]
 members = [
   "modules/*/module",
   "modules/*/types",
