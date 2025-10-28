@@ -72,7 +72,7 @@ impl ModuleAssetStorage {
 #[derive(Debug)]
 pub enum StorageError {
     /// The quota was reached before the current upload
-    QuotaReached,
+    QuotaExceeded,
 
     /// Error while uploading to the storage backend
     Internal(anyhow::Error),

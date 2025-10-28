@@ -83,7 +83,7 @@ impl AssetStorageProvider for ControllerAssetStorage {
 
         if status == ApiError::storage_quota_exceeded().status {
             tracing::debug!("Asset upload failed due to exceeded storage quota");
-            return Err(StorageError::QuotaReached);
+            return Err(StorageError::QuotaExceeded);
         }
         if !status.is_success() {
             let body_str = match std::str::from_utf8(&body) {
@@ -283,7 +283,7 @@ mod tests {
 
         mock.assert_async().await;
 
-        assert!(matches!(upload_result, Err(StorageError::QuotaReached)));
+        assert!(matches!(upload_result, Err(StorageError::QuotaExceeded)));
     }
 
     #[test_log::test(tokio::test)]

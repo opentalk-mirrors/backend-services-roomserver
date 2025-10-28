@@ -66,7 +66,7 @@ impl ModuleError for WhiteboardError {}
 impl From<StorageError> for WhiteboardError {
     fn from(err: StorageError) -> Self {
         match err {
-            StorageError::QuotaReached => Self::StorageExceeded,
+            StorageError::QuotaExceeded => Self::StorageExceeded,
             StorageError::Internal(..) | StorageError::ReadAsset(..) => Self::InternalStorage,
         }
     }

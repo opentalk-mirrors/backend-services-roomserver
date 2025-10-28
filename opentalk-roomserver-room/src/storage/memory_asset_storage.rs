@@ -60,7 +60,7 @@ impl AssetStorageProvider for MemoryAssetStorage {
             .map(|q| q == 0)
             .unwrap_or(false)
         {
-            return Err(StorageError::QuotaReached);
+            return Err(StorageError::QuotaExceeded);
         }
 
         let mut data = Vec::new();
@@ -175,7 +175,7 @@ mod test {
             .upload_asset(asset.boxed(), name, &storage_context)
             .await;
 
-        assert!(matches!(produced, Err(StorageError::QuotaReached)));
+        assert!(matches!(produced, Err(StorageError::QuotaExceeded)));
     }
 
     #[tokio::test]
