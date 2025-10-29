@@ -287,7 +287,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
  "x11rb",
 ]
 
@@ -1788,7 +1788,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2247,7 +2247,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3187,7 +3187,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "tokio",
  "tower-service",
  "tracing",
@@ -3226,7 +3226,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.61.2",
+ "windows-core 0.58.0",
 ]
 
 [[package]]
@@ -3896,9 +3896,9 @@ dependencies = [
 
 [[package]]
 name = "libwebrtc"
-version = "0.3.18"
+version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9feea991aae5863ab139df2e6e08861724e91d0e10a09761a82f53840c22c2c"
+checksum = "2621fee81c55f30be507744b6220b14fdbf5bf78f8f35919a77b66f5ab31a9dd"
 dependencies = [
  "cxx",
  "jni",
@@ -3999,9 +3999,9 @@ checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
 name = "livekit"
-version = "0.7.23"
+version = "0.7.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b124a50a3c7128d726f18c87359fcb4b74e815d2a2d328fe46d02784eb98871"
+checksum = "a8b36003aba39f355eeb8ff363fd57215787b5c01907be00a9d1601e5e7c78ef"
 dependencies = [
  "bmrng",
  "bytes",
@@ -4402,7 +4402,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6558,7 +6558,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash 2.1.1",
  "rustls 0.23.34",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -6595,9 +6595,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7070,7 +7070,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7866,7 +7866,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9606,23 +9606,24 @@ dependencies = [
 
 [[package]]
 name = "webrtc-sys"
-version = "0.3.15"
+version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c17db85e934a5b28e4863af9960d76d4636285baa0608c6713773948e4e29229"
+checksum = "96fa109636ee0a2aeb84988208f266335ab7480dcdd2881234d795866773e529"
 dependencies = [
  "cc",
  "cxx",
  "cxx-build",
  "glob",
  "log",
+ "pkg-config",
  "webrtc-sys-build",
 ]
 
 [[package]]
 name = "webrtc-sys-build"
-version = "0.3.10"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88925bc43722f8e9dbf316534f561a9b0e0d3b9a4f04f87fb08c7666eb454ed7"
+checksum = "0acd1d2d3b5df7badd0fb0c2aec1efbbc3a09993c7aa0821bcf43412e2ee5772"
 dependencies = [
  "anyhow",
  "fs2",
@@ -9812,7 +9813,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
