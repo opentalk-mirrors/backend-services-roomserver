@@ -9,7 +9,7 @@ info:
   license:
     name: EUPL-1.2
     identifier: EUPL-1.2
-  version: 0.0.12-dev
+  version: 0.0.12
 servers:
   - url: /v1
 paths:
