@@ -46,7 +46,7 @@ impl CreateReplica<RaiseHandsEvent> for RaiseHandsCommand {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use std::collections::BTreeSet;
 
     use insta::assert_snapshot;

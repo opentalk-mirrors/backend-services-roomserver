@@ -61,7 +61,7 @@ impl CreateReplica<SubroomAudioEvent> for SubroomAudioCommand {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use std::collections::BTreeSet;
 
     use opentalk_types_signaling::ParticipantId;

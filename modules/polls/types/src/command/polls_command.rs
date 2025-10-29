@@ -60,7 +60,7 @@ impl From<Vote> for PollsCommand {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use std::{collections::BTreeSet, time::Duration};
 
     use pretty_assertions::assert_eq;

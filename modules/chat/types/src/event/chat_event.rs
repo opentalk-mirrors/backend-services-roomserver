@@ -103,7 +103,7 @@ impl From<ChatError> for ChatEvent {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use std::str::FromStr;
 
     use insta::assert_snapshot;

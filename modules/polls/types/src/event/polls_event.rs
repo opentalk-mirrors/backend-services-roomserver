@@ -54,7 +54,7 @@ impl From<Error> for PollsEvent {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use std::{collections::BTreeSet, time::Duration};
 
     use pretty_assertions::assert_eq;

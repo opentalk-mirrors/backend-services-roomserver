@@ -85,6 +85,12 @@ impl CreateReplica<AutomodEvent> for AutomodCommand {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
+    use opentalk_types_signaling::ParticipantId;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
+
     use super::*;
     use crate::config::{Parameter, SelectionStrategy};
 
@@ -120,18 +126,6 @@ mod tests {
 
         assert!(!r#yield.requires_moderator_privileges());
     }
-}
-
-#[cfg(test)]
-mod serde_tests {
-    use std::time::Duration;
-
-    use opentalk_types_signaling::ParticipantId;
-    use pretty_assertions::assert_eq;
-    use serde_json::json;
-
-    use super::*;
-    use crate::config::{Parameter, SelectionStrategy};
 
     #[test]
     fn start_command() {

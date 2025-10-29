@@ -93,7 +93,7 @@ impl From<StorageError> for MeetingNotesError {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use insta::assert_snapshot;
     use pretty_assertions::assert_eq;
     use serde_json::{self, json};

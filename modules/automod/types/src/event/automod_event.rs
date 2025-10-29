@@ -75,7 +75,7 @@ impl From<AutomodError> for AutomodEvent {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;

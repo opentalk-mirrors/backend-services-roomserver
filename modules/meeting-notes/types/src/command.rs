@@ -37,7 +37,7 @@ impl CreateReplica<MeetingNotesEvent> for MeetingNotesCommand {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use insta::assert_snapshot;
     use pretty_assertions::assert_eq;
     use serde_json::json;
