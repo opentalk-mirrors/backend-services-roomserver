@@ -26,7 +26,7 @@ use opentalk_types_common::{
     rooms::RoomId,
     tariffs::{QuotaType, TariffId, TariffModuleResource, TariffResource},
 };
-use tokio::sync::watch;
+use tokio::{sync::watch, task::JoinHandle};
 use url::Url;
 
 use super::participant::{MockParticipantJoined, MockParticipantJoining, ReceiveError};
@@ -186,6 +186,7 @@ impl Default for TestRoomBuilder {
 pub struct TestRoom {
     room_id: RoomId,
     pub room_handle: RoomTaskHandle<MockSocket>,
+    pub join_handle: JoinHandle<()>,
     _settings: Arc<Settings>,
     _app_state_tx: watch::Sender<ApplicationState>,
 }
@@ -206,7 +207,7 @@ impl TestRoom {
 
         let module_resources = Arc::new(MemoryModuleResourceStorage::new());
 
-        let (room_handle, _) = RoomTask::spawn(
+        let (room_handle, future_room) = RoomTask::setup(
             room_id,
             room_parameters.into(),
             Arc::new(module_registry),
@@ -215,10 +216,11 @@ impl TestRoom {
             rx,
             Duration::from_secs(10),
         );
-
+        let join_handle = tokio::spawn(future_room);
         Self {
             room_id,
             room_handle,
+            join_handle,
             _settings: settings,
             _app_state_tx: app_state_tx,
         }

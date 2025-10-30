@@ -3,16 +3,12 @@
 
 use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
-use futures::{StreamExt as _, stream::FuturesOrdered};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::storage::module_resources::provider::ModuleResourceProvider;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
 use opentalk_types_common::rooms::RoomId;
-use tokio::{
-    sync::{RwLock, watch},
-    task::JoinHandle,
-};
+use tokio::sync::{Notify, RwLock, watch};
 
 use super::signaling::module_initializer::ModuleRegistry;
 use crate::{
@@ -23,15 +19,13 @@ use crate::{
     },
 };
 
-type PendingRoomTasks = FuturesOrdered<Pin<Box<dyn Future<Output = ()> + Send + Sync>>>;
-
 /// The room task registry
 ///
 /// Holds a list over all active rooms and their [`RoomTaskHandle`].
 #[derive(Default, Debug)]
 pub struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
     inner: Arc<RwLock<HashMap<RoomId, RoomTaskHandle<Socket>>>>,
-    pending_room_tasks: Arc<RwLock<PendingRoomTasks>>,
+    room_removed: Arc<Notify>,
     idle_timeout: Duration,
 }
 
@@ -41,7 +35,7 @@ impl<Socket: SignalingSocket> Clone for RoomTaskRegistry<Socket> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
-            pending_room_tasks: self.pending_room_tasks.clone(),
+            room_removed: self.room_removed.clone(),
             idle_timeout: self.idle_timeout,
         }
     }
@@ -52,7 +46,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     pub fn new(idle_timeout: Duration) -> Self {
         Self {
             inner: Arc::default(),
-            pending_room_tasks: Arc::default(),
+            room_removed: Arc::default(),
             idle_timeout,
         }
     }
@@ -82,7 +76,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 
         let module_resources = create_module_storage_provider();
 
-        let (task_handle, join_handle) = RoomTask::spawn(
+        let (task_handle, future_room) = RoomTask::setup(
             room_id,
             room_parameters,
             module_registry,
@@ -92,7 +86,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             self.idle_timeout,
         );
 
-        self.insert(room_id, registry, &task_handle, join_handle)
+        self.insert(room_id, registry, &task_handle, future_room)
             .await;
 
         Ok((RoomAction::Created, task_handle))
@@ -103,17 +97,16 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         room_id: RoomId,
         mut registry: tokio::sync::RwLockWriteGuard<'_, HashMap<RoomId, RoomTaskHandle<Socket>>>,
         task_handle: &RoomTaskHandle<Socket>,
-        join_handle: JoinHandle<()>,
+        future_room: Pin<Box<dyn Future<Output = ()> + Send>>,
     ) {
-        registry.insert(room_id, task_handle.clone());
         let this = self.clone();
-        self.pending_room_tasks
-            .write()
-            .await
-            .push_front(Box::pin(async move {
-                let _ = join_handle.await;
-                this.remove_room(room_id).await;
-            }));
+
+        tokio::spawn(async move {
+            future_room.await;
+            this.remove_room(room_id).await;
+        });
+
+        registry.insert(room_id, task_handle.clone());
     }
 
     /// Spawns a new room task if it does not already exists
@@ -134,7 +127,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 
         let module_resources = create_module_storage_provider();
 
-        let (task_handle, join_handle) = RoomTask::spawn(
+        let (task_handle, join_handle) = RoomTask::setup(
             room_id,
             room_parameters,
             module_registry,
@@ -174,21 +167,115 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     /// Removes the room from the registry
     ///
     /// This will also destroy the related [`RoomTask`]
-    pub async fn remove_room(&self, room_id: RoomId) {
+    async fn remove_room(&self, room_id: RoomId) {
+        tracing::trace!("Remove room task handle from registry: {room_id}");
         let mut room_list = self.inner.write().await;
 
-        tracing::trace!("Remove room task handle from registry: {room_id}");
         room_list.remove(&room_id);
+        self.room_removed.notify_waiters();
     }
 
+    /// Wait until all pending room task have finished.
+    ///
+    /// ## Warning
+    ///
+    /// Use this function with care, as this will acquire a lock for `pending_room_tasks`.
+    /// This will block new tasks from being added to the pending tasks.
     pub async fn wait_for_room_closed(&self) {
         // Wait for all room tasks to finish, acquire the lock in every iteration to not cause a
         // deadlock
-        while self.pending_room_tasks.write().await.next().await.is_some() {}
+        while !self.inner.read().await.is_empty() {
+            tracing::trace!(
+                "Wait for room task removal, remaining tasks: {}",
+                self.inner.read().await.len()
+            );
+            self.room_removed.notified().await;
+        }
     }
 }
 
 // TODO: this function will be replaced once a real module storage provider has been implemented
 fn create_module_storage_provider() -> Arc<dyn ModuleResourceProvider> {
     Arc::new(MemoryModuleResourceStorage::new())
+}
+
+#[cfg(test)]
+#[cfg(feature = "mock")]
+mod tests {
+    use std::time::Duration;
+
+    use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
+    use opentalk_roomserver_types::room_parameters::RoomParameters;
+    use opentalk_roomserver_web_api::v1::RoomAction;
+    use opentalk_types_common::{rooms::RoomId, utils::ExampleData as _};
+
+    use crate::{ModuleRegistry, RoomTaskRegistry, mocking::socket::MockSocket};
+
+    #[test_log::test(tokio::test)]
+    async fn room_is_removed_after_idle_timeout() {
+        let registry = RoomTaskRegistry::<MockSocket>::new(Duration::from_secs(0));
+        let (_app_state_sender, app_state) = tokio::sync::watch::channel(ApplicationState::Running);
+
+        let room_id = RoomId::from_u128(1);
+        // build room parameter without any modules
+        let mut parameter = RoomParameters::example_data();
+        parameter.module_settings.retain(|_, _| false);
+        parameter.tariff.modules.clear();
+
+        let (action, ..) = registry
+            .put_room(
+                room_id,
+                parameter.into(),
+                ModuleRegistry::new().into(),
+                Settings::test_settings("secret".to_string()).into(),
+                app_state,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(RoomAction::Created, action);
+
+        tokio::time::timeout(Duration::from_millis(500), registry.wait_for_room_closed())
+            .await
+            .unwrap();
+
+        let handle = registry.get_task_handle(&room_id).await;
+        assert!(handle.is_none());
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn room_is_removed_after_shutdown() {
+        // use a high RoomTask idle timeout to prevent stopping because of the timeout.
+        let registry = RoomTaskRegistry::<MockSocket>::new(Duration::from_secs(99999));
+        let (app_state_sender, app_state) = tokio::sync::watch::channel(ApplicationState::Running);
+
+        let room_id = RoomId::from_u128(1);
+        // build room parameter without any modules
+        let mut parameter = RoomParameters::example_data();
+        parameter.module_settings.retain(|_, _| false);
+        parameter.tariff.modules.clear();
+
+        let (action, ..) = registry
+            .put_room(
+                room_id,
+                parameter.into(),
+                ModuleRegistry::new().into(),
+                Settings::test_settings("secret".to_string()).into(),
+                app_state,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(RoomAction::Created, action);
+        app_state_sender
+            .send(ApplicationState::ShuttingDown)
+            .unwrap();
+
+        tokio::time::timeout(Duration::from_millis(500), registry.wait_for_room_closed())
+            .await
+            .unwrap();
+
+        let handle = registry.get_task_handle(&room_id).await;
+        assert!(handle.is_none());
+    }
 }
