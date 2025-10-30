@@ -5,6 +5,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     net::Ipv6Addr,
     sync::Arc,
+    time::Duration,
 };
 
 use anyhow::Context as _;
@@ -212,6 +213,7 @@ impl TestRoom {
             module_resources,
             Arc::clone(&settings),
             rx,
+            Duration::from_secs(10),
         );
 
         Self {

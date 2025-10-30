@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashMap, pin::Pin, sync::Arc};
+use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
 use futures::{StreamExt as _, stream::FuturesOrdered};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
@@ -32,6 +32,7 @@ type PendingRoomTasks = FuturesOrdered<Pin<Box<dyn Future<Output = ()> + Send + 
 pub struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
     inner: Arc<RwLock<HashMap<RoomId, RoomTaskHandle<Socket>>>>,
     pending_room_tasks: Arc<RwLock<PendingRoomTasks>>,
+    idle_timeout: Duration,
 }
 
 // Manually implementing clone so that we don't require [`Socket`] to be
@@ -41,16 +42,18 @@ impl<Socket: SignalingSocket> Clone for RoomTaskRegistry<Socket> {
         Self {
             inner: self.inner.clone(),
             pending_room_tasks: self.pending_room_tasks.clone(),
+            idle_timeout: self.idle_timeout,
         }
     }
 }
 
 impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     /// Creates a new [`RoomTaskRegistry`] wi th default values
-    pub fn new() -> Self {
+    pub fn new(idle_timeout: Duration) -> Self {
         Self {
             inner: Arc::default(),
             pending_room_tasks: Arc::default(),
+            idle_timeout,
         }
     }
 
@@ -86,6 +89,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             module_resources,
             settings,
             app_state,
+            self.idle_timeout,
         );
 
         self.insert(room_id, registry, &task_handle, join_handle)
@@ -137,6 +141,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             module_resources,
             settings,
             app_state,
+            self.idle_timeout,
         );
 
         self.insert(room_id, registry, &task_handle, join_handle)

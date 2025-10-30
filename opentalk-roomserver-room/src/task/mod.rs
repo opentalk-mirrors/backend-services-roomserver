@@ -133,12 +133,6 @@ pub enum RoomTaskApiError {
     Closing,
 }
 
-/// The timeout for an empty room
-///
-/// Should be higher than the lifetime of the signaling token from the token store to ensure that
-/// the room doesn't expire before the signaling token does.
-const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
-
 /// The [`RoomTask`] manages the conference state and signaling.
 ///
 /// An idle [`Timeout`] starts when a room has no participants in it. When the idle timeout is
@@ -185,37 +179,16 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
-    /// Spawns a new [`RoomTask`]
-    #[tracing::instrument(level = "debug", skip_all, fields(opentalk.room_id = %room_id))]
-    pub fn spawn(
-        room_id: RoomId,
-        room_parameters: Arc<RoomParameters>,
-        module_registry: Arc<ModuleRegistry>,
-        module_resources: Arc<dyn ModuleResourceProvider>,
-        settings: Arc<Settings>,
-        app_state: watch::Receiver<ApplicationState>,
-    ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
-        Self::spawn_with_timeout(
-            room_id,
-            room_parameters,
-            app_state,
-            module_registry,
-            module_resources,
-            settings,
-            IDLE_TIMEOUT,
-        )
-    }
-
     /// Spawns a new [`RoomTask`] with a specific timeout
     #[tracing::instrument(level = "info", skip_all, fields(opentalk.room_id = %room_id))]
     #[allow(clippy::too_many_arguments)]
-    pub fn spawn_with_timeout(
+    pub fn spawn(
         room_id: RoomId,
         mut room_parameters: Arc<RoomParameters>,
-        app_state: watch::Receiver<ApplicationState>,
         module_registry: Arc<ModuleRegistry>,
         module_resources: Arc<dyn ModuleResourceProvider>,
         settings: Arc<Settings>,
+        app_state: watch::Receiver<ApplicationState>,
         timeout: Duration,
     ) -> (RoomTaskHandle<Socket>, JoinHandle<()>) {
         let (tx, rx) = mpsc::channel(20);

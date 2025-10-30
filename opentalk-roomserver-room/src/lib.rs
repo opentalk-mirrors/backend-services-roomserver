@@ -72,13 +72,13 @@ mod tests {
         let module_resources = Arc::new(MemoryModuleResourceStorage::new());
 
         (
-            RoomTask::spawn_with_timeout(
+            RoomTask::spawn(
                 id,
                 params,
-                state,
                 module_registry,
                 module_resources,
                 settings,
+                state,
                 TIMEOUT,
             )
             .0,

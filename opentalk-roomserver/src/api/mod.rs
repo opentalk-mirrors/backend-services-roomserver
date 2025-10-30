@@ -129,7 +129,7 @@ where
     let app_state_subscriber = app_state.subscribe();
 
     let module_registry = setup_registry();
-    let room_registry = RoomTaskRegistry::new();
+    let room_registry = RoomTaskRegistry::new(settings.conference.room_idle_timeout);
 
     let ctx = Context {
         settings: Arc::clone(&settings),
@@ -357,7 +357,7 @@ impl RoomBackend for Context {
 
 #[cfg(test)]
 mod test {
-    use std::{borrow::Cow, sync::Arc};
+    use std::{borrow::Cow, sync::Arc, time::Duration};
 
     use axum::http::StatusCode;
     use opentalk_roomserver_types::{
@@ -384,7 +384,7 @@ mod test {
 
         Context {
             settings: settings.clone(),
-            room_tasks: RoomTaskRegistry::new(),
+            room_tasks: RoomTaskRegistry::new(Duration::from_secs(10)),
             token_store: Arc::new(Mutex::new(TokenStore::new())),
             module_registry: Arc::new(ModuleRegistry::new()),
             app_state,
