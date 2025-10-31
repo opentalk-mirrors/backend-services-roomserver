@@ -65,3 +65,98 @@ impl PollsState {
         self.remaining().is_none()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use insta::assert_snapshot;
+    use opentalk_types_common::time::Timestamp;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
+
+    use super::PollsState;
+    use crate::{Choice, ChoiceId, PollId};
+
+    #[test]
+    fn serialize_polls_state() {
+        let polls_state = PollsState {
+            id: PollId::nil(),
+            topic: "A or B?".to_string(),
+            live: true,
+            multiple_choice: false,
+            choices: vec![
+                Choice {
+                    id: ChoiceId::from_u32(0),
+                    content: "A".to_string(),
+                },
+                Choice {
+                    id: ChoiceId::from_u32(1),
+                    content: "B".to_string(),
+                },
+            ],
+            started: Timestamp::unix_epoch(),
+            duration: Duration::from_mins(5),
+        };
+
+        let produced = serde_json::to_string_pretty(&polls_state).unwrap();
+        assert_snapshot!(produced, @r#"
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "topic": "A or B?",
+          "live": true,
+          "multiple_choice": false,
+          "choices": [
+            {
+              "id": 0,
+              "content": "A"
+            },
+            {
+              "id": 1,
+              "content": "B"
+            }
+          ],
+          "started": "1970-01-01T00:00:00Z",
+          "duration": 300
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_polls_state() {
+        let produced: PollsState = serde_json::from_value(json!({
+            "id": "00000000-0000-0000-0000-000000000000",
+            "topic": "A or B?",
+            "live": true,
+            "multiple_choice": false,
+            "choices": [
+                {"id": 0, "content": "A"},
+                {"id": 1, "content": "B"}
+            ],
+            "started": "1970-01-01T00:00:00Z",
+            "duration": 300
+        }))
+        .unwrap();
+
+        let expected = PollsState {
+            id: PollId::nil(),
+            topic: "A or B?".to_string(),
+            live: true,
+            multiple_choice: false,
+            choices: vec![
+                Choice {
+                    id: ChoiceId::from_u32(0),
+                    content: "A".to_string(),
+                },
+                Choice {
+                    id: ChoiceId::from_u32(1),
+                    content: "B".to_string(),
+                },
+            ],
+            started: Timestamp::unix_epoch(),
+            duration: Duration::from_mins(5),
+        };
+
+        assert_eq!(produced, expected);
+    }
+}
