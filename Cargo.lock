@@ -5473,6 +5473,7 @@ version = "0.0.13-dev"
 dependencies = [
  "chrono",
  "derive_more",
+ "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",

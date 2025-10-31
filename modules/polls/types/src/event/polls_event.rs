@@ -57,8 +57,7 @@ impl From<Error> for PollsEvent {
 mod tests {
     use std::{collections::BTreeSet, time::Duration};
 
-    use pretty_assertions::assert_eq;
-    use serde_json::json;
+    use insta::assert_snapshot;
 
     use super::*;
     use crate::{Choice, ChoiceId, Item, PollId, command::Choices};
@@ -83,26 +82,28 @@ mod tests {
             duration: Duration::from_millis(10000),
         };
 
-        assert_eq!(
-            serde_json::to_value(started).unwrap(),
-            json!({
-                "message": "started",
-                "id": "00000000-0000-0000-0000-000000000000",
-                "topic": "polling",
-                "live": true,
-                "multiple_choice": false,
-                "choices": [
-                    {
-                        "id": 0,
-                        "content": "yes"
-                    },
-                    {
-                        "id": 1,
-                        "content": "no"
-                    }
-                ],
-                "duration": 10
-            })
+        assert_snapshot!(
+            serde_json::to_string_pretty(&started).unwrap(),
+            @r#"
+        {
+          "message": "started",
+          "id": "00000000-0000-0000-0000-000000000000",
+          "topic": "polling",
+          "live": true,
+          "multiple_choice": false,
+          "choices": [
+            {
+              "id": 0,
+              "content": "yes"
+            },
+            {
+              "id": 1,
+              "content": "no"
+            }
+          ],
+          "duration": 10
+        }
+        "#
         );
     }
 
@@ -122,22 +123,24 @@ mod tests {
             ],
         });
 
-        assert_eq!(
-            serde_json::to_value(live_update).unwrap(),
-            json!({
-                "message": "live_update",
-                "id": "00000000-0000-0000-0000-000000000000",
-                "results": [
-                    {
-                        "id": 0,
-                        "count": 32
-                    },
-                    {
-                        "id": 1,
-                        "count": 64
-                    }
-                ]
-            })
+        assert_snapshot!(
+            serde_json::to_string_pretty(&live_update).unwrap(),
+            @r#"
+        {
+          "message": "live_update",
+          "id": "00000000-0000-0000-0000-000000000000",
+          "results": [
+            {
+              "id": 0,
+              "count": 32
+            },
+            {
+              "id": 1,
+              "count": 64
+            }
+          ]
+        }
+        "#
         );
     }
 
@@ -150,13 +153,18 @@ mod tests {
             },
         });
 
-        assert_eq!(
-            serde_json::to_value(voted).unwrap(),
-            json!({
-                "message": "voted",
-                "poll_id": "00000000-0000-0000-0000-000000000000",
-                "choice_ids": [0, 1],
-            })
+        assert_snapshot!(
+            serde_json::to_string_pretty(&voted).unwrap(),
+            @r#"
+        {
+          "message": "voted",
+          "poll_id": "00000000-0000-0000-0000-000000000000",
+          "choice_ids": [
+            0,
+            1
+          ]
+        }
+        "#
         )
     }
 
@@ -176,22 +184,24 @@ mod tests {
             ],
         });
 
-        assert_eq!(
-            serde_json::to_value(done).unwrap(),
-            json!({
-                "message": "done",
-                "id": "00000000-0000-0000-0000-000000000000",
-                "results": [
-                    {
-                        "id": 0,
-                        "count": 32
-                    },
-                    {
-                        "id": 1,
-                        "count": 64
-                    }
-                ]
-            })
+        assert_snapshot!(
+            serde_json::to_string_pretty(&done).unwrap(),
+            @r#"
+        {
+          "message": "done",
+          "id": "00000000-0000-0000-0000-000000000000",
+          "results": [
+            {
+              "id": 0,
+              "count": 32
+            },
+            {
+              "id": 1,
+              "count": 64
+            }
+          ]
+        }
+        "#
         );
     }
 }
