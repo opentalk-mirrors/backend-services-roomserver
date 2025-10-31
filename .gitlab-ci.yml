@@ -237,8 +237,10 @@ test:cargo_test:
   # this uses region for coverage summary
   coverage: /TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/
   script:
-    - cargo llvm-cov nextest --profile ci --workspace
-    - cargo llvm-cov report --cobertura --output-path target/llvm-cov-target/cobertura.xml
+    - cargo +nightly llvm-cov nextest --no-report --profile ci --workspace
+    - cargo +nightly llvm-cov --no-report --doc --workspace
+    - cargo +nightly llvm-cov report --doctests --cobertura --output-path target/llvm-cov-target/cobertura.xml
+    - cargo +nightly llvm-cov report --summary-only
   variables:
     # etherpad api key used in the etherpad service and the cargo tests
     EP_APIKEY: secret123
