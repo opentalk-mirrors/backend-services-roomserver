@@ -98,7 +98,7 @@ impl CreateReplica<ModerationEvent> for ModerationCommand {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use insta::assert_snapshot;
     use opentalk_types_common::users::DisplayName;
     use opentalk_types_signaling::ParticipantId;

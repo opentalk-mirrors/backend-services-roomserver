@@ -35,7 +35,7 @@ impl CreateReplica<MeetingReportEvent> for MeetingReportCommand {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

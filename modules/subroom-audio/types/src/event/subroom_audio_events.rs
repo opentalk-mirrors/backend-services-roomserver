@@ -72,7 +72,7 @@ impl From<SubroomAudioError> for SubroomAudioEvent {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use std::collections::BTreeMap;
 
     use opentalk_types_signaling::ParticipantId;

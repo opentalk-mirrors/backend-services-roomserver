@@ -37,7 +37,7 @@ impl CreateReplica<TimerEvent> for TimerCommand {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

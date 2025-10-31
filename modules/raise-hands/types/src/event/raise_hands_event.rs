@@ -56,7 +56,7 @@ impl From<RaiseHandsError> for RaiseHandsEvent {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use insta::assert_snapshot;
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;

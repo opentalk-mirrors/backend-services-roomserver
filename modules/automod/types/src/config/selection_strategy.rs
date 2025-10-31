@@ -36,6 +36,9 @@ impl SelectionStrategy {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
+
     use super::*;
 
     #[test]
@@ -71,14 +74,6 @@ mod tests {
 
         assert!(!playlist.uses_allow_list());
     }
-}
-
-#[cfg(test)]
-mod serde_tests {
-    use pretty_assertions::assert_eq;
-    use serde_json::json;
-
-    use super::*;
 
     #[test]
     fn selection_strategy_none() {

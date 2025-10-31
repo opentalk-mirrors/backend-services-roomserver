@@ -73,7 +73,7 @@ impl CreateReplica<ChatEvent> for ChatCommand {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use insta::assert_snapshot;
     use opentalk_types_common::{time::Timestamp, users::GroupName};
     use opentalk_types_signaling::ParticipantId;

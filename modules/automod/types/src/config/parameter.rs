@@ -59,7 +59,7 @@ mod duration_millis {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use std::time::Duration;
 
     use pretty_assertions::assert_eq;

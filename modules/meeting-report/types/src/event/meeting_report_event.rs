@@ -39,7 +39,7 @@ impl From<MeetingReportError> for MeetingReportEvent {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use opentalk_types_common::assets::AssetId;
     use serde_json::json;
 

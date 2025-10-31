@@ -96,7 +96,7 @@ impl From<ModerationError> for ModerationEvent {
 }
 
 #[cfg(test)]
-mod serde_tests {
+mod tests {
     use insta::assert_snapshot;
     use opentalk_roomserver_types::client_parameters::Role;
     use opentalk_types_signaling::ParticipantId;
