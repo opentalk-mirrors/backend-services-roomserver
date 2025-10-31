@@ -35,7 +35,7 @@ async fn can_not_start_second_poll() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -56,7 +56,7 @@ async fn can_not_start_second_poll() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -82,7 +82,7 @@ async fn non_moderator_cant_start_poll() {
             live: false,
             multiple_choice: false,
             choices: vec!["a".into(), "b".into()],
-            duration: Duration::from_secs(300),
+            duration: Duration::from_mins(5),
         },
         None,
     )
@@ -109,7 +109,7 @@ async fn can_not_start_poll_with_invalid_duration() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(60 * 60 * 24 * 30), // 30 days
+                duration: Duration::from_hours(24 * 30), // 30 days
             },
             None,
         )
@@ -135,7 +135,7 @@ async fn can_not_start_poll_with_invalid_topic_length() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -161,7 +161,7 @@ async fn can_not_start_polls_with_invalid_choice_count() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -181,7 +181,7 @@ async fn can_not_start_polls_with_invalid_choice_count() {
                 live: false,
                 multiple_choice: false,
                 choices: iter::repeat_n("a".into(), 65).collect(),
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -207,7 +207,7 @@ async fn can_not_start_poll_with_invalid_option_length() {
                 live: false,
                 multiple_choice: false,
                 choices: vec![iter::repeat_n("a", 101).collect(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -252,7 +252,7 @@ async fn can_not_vote_on_wrong_poll() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -298,7 +298,7 @@ async fn can_not_give_multiple_choices_on_single_choice_poll() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -343,7 +343,7 @@ async fn can_not_vote_on_invalid_choice() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -390,7 +390,7 @@ async fn non_moderator_can_not_finish_poll() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -427,7 +427,7 @@ async fn can_not_finish_poll_with_invalid_id() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -471,7 +471,7 @@ async fn receiving_live_update_when_enabled() {
                 live: true,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -540,7 +540,7 @@ async fn not_receiving_live_update_when_disabled() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -592,7 +592,7 @@ async fn single_choice_poll() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -682,7 +682,7 @@ async fn multiple_choice_poll() {
                 live: false,
                 multiple_choice: true,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -770,7 +770,7 @@ async fn can_update_vote() {
                 live: false,
                 multiple_choice: true,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -924,7 +924,7 @@ async fn breakout_scopes() {
                 live: true,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -1042,7 +1042,7 @@ async fn switch_breakout_room_join_module_data() {
                 live: false,
                 multiple_choice: false,
                 choices: vec!["a".into(), "b".into()],
-                duration: Duration::from_secs(300),
+                duration: Duration::from_mins(5),
             },
             None,
         )
@@ -1105,7 +1105,7 @@ async fn switch_breakout_room_join_module_data() {
                 }
             ],
             started: state.started,
-            duration: Duration::from_secs(300),
+            duration: Duration::from_mins(5),
         }
     );
 }

@@ -514,7 +514,9 @@ mod tests {
 
     #[test]
     fn serialize_invalid_duration() {
-        let error = PollsEvent::Error(Error::InvalidDuration { max_duration: 300 });
+        let error = PollsEvent::Error(Error::InvalidDuration {
+            max_duration: Duration::from_mins(5),
+        });
         let produced = serde_json::to_string_pretty(&error).unwrap();
 
         assert_snapshot!(produced, @r#"
@@ -534,7 +536,9 @@ mod tests {
             "max_duration": 300
         }))
         .unwrap();
-        let expected = PollsEvent::Error(Error::InvalidDuration { max_duration: 300 });
+        let expected = PollsEvent::Error(Error::InvalidDuration {
+            max_duration: Duration::from_mins(5),
+        });
 
         assert_eq!(produced, expected);
     }

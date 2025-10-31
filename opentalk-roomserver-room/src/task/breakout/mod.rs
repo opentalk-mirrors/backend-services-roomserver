@@ -35,8 +35,8 @@ use state::BreakoutState;
 use super::RoomTask;
 use crate::signaling::DynBroadcastEvent;
 
-pub const MIN_BREAKOUT_DURATION: Duration = Duration::from_secs(60);
-pub const MAX_BREAKOUT_STOP_DELAY: Duration = Duration::from_secs(86400); // 1 day
+pub const MIN_BREAKOUT_DURATION: Duration = Duration::from_mins(1);
+pub const MAX_BREAKOUT_STOP_DELAY: Duration = Duration::from_hours(24);
 
 pub(crate) mod state;
 
