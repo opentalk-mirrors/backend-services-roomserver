@@ -30,6 +30,7 @@ uuid = { workspace = true, features = ["v4"] }
 [dev-dependencies]
 chrono.workspace = true
 derive_more.workspace = true
+insta.workspace = true
 opentalk-types-common.workspace = true
 pretty_assertions.workspace = true
 serde_json.workspace = true

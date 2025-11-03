@@ -63,6 +63,7 @@ impl From<Vote> for PollsCommand {
 mod tests {
     use std::{collections::BTreeSet, time::Duration};
 
+    use insta::assert_snapshot;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
@@ -70,7 +71,33 @@ mod tests {
     use crate::{ChoiceId, PollId, command::Choices};
 
     #[test]
-    fn start() {
+    fn serialize_start() {
+        let cmd = PollsCommand::Start {
+            topic: "abc".to_string(),
+            live: true,
+            multiple_choice: false,
+            choices: vec!["a".to_string(), "b".to_string()],
+            duration: Duration::from_mins(5),
+        };
+        let raw = serde_json::to_string_pretty(&cmd).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "action": "start",
+          "topic": "abc",
+          "live": true,
+          "multiple_choice": false,
+          "choices": [
+            "a",
+            "b"
+          ],
+          "duration": 300
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_start() {
         let json = json!({
             "action": "start",
             "topic": "abc",
@@ -100,7 +127,26 @@ mod tests {
     }
 
     #[test]
-    fn single_choice_vote() {
+    fn serialize_single_choice_vote() {
+        let cmd = PollsCommand::Vote(Vote {
+            poll_id: PollId::nil(),
+            choices: Choices::Single {
+                choice_id: ChoiceId::from_u32(1),
+            },
+        });
+        let raw = serde_json::to_string_pretty(&cmd).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "action": "vote",
+          "poll_id": "00000000-0000-0000-0000-000000000000",
+          "choice_id": 1
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_single_choice_vote() {
         let json = json!({
            "action": "vote",
            "poll_id": "00000000-0000-0000-0000-000000000000",
@@ -123,7 +169,29 @@ mod tests {
     }
 
     #[test]
-    fn multiple_choice_vote() {
+    fn serialize_multiple_choice_vote() {
+        let cmd = PollsCommand::Vote(Vote {
+            poll_id: PollId::nil(),
+            choices: Choices::Multiple {
+                choice_ids: BTreeSet::from_iter([ChoiceId::from_u32(0), ChoiceId::from_u32(1)]),
+            },
+        });
+        let raw = serde_json::to_string_pretty(&cmd).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "action": "vote",
+          "poll_id": "00000000-0000-0000-0000-000000000000",
+          "choice_ids": [
+            0,
+            1
+          ]
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_multiple_choice_vote() {
         let json = json!({
            "action": "vote",
            "poll_id": "00000000-0000-0000-0000-000000000000",
@@ -146,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn conflicting_choice_vote() {
+    fn serialize_conflicting_choice_vote() {
         let json = json!({
            "action": "vote",
            "poll_id": "00000000-0000-0000-0000-000000000000",
@@ -170,7 +238,7 @@ mod tests {
     }
 
     #[test]
-    fn abstain() {
+    fn deserialize_abstain() {
         let json = json!({
            "action": "vote",
            "poll_id": "00000000-0000-0000-0000-000000000000"
@@ -192,7 +260,20 @@ mod tests {
     }
 
     #[test]
-    fn finish() {
+    fn serialize_finish() {
+        let cmd = PollsCommand::Finish { id: PollId::nil() };
+        let raw = serde_json::to_string_pretty(&cmd).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "action": "finish",
+          "id": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_finish() {
         let json = json!({
             "action": "finish",
             "id": "00000000-0000-0000-0000-000000000000",
