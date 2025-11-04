@@ -31,7 +31,7 @@ use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot::Sender;
 
 /// The maximum allowed duration of a poll
-const MAX_POLL_DURATION: u64 = 86400;
+const MAX_POLL_DURATION: Duration = Duration::from_hours(24);
 /// The maximum number of bytes the topic length is allowed to have
 const MAX_TOPIC_LENGTH: usize = 100;
 /// The minimum number of choices a poll must have
@@ -260,8 +260,7 @@ impl PollsModule {
             return Err(Error::StillRunning.into());
         }
 
-        let max_duration = Duration::from_secs(MAX_POLL_DURATION);
-        if duration > max_duration {
+        if duration > MAX_POLL_DURATION {
             return Err(Error::InvalidDuration {
                 max_duration: MAX_POLL_DURATION,
             }

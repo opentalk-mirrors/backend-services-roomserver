@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::time::Duration;
+
 use opentalk_roomserver_types::signaling::module_error::ModuleError;
 use serde::{Deserialize, Serialize};
 
@@ -39,8 +41,9 @@ pub enum Error {
 
     /// Attempted to perform a command with an invalid duration
     InvalidDuration {
-        /// The maximum allowed duration of a poll
-        max_duration: u64,
+        /// The maximum allowed duration of a poll in seconds
+        #[serde(with = "opentalk_types_common::utils::duration_seconds")]
+        max_duration: Duration,
     },
 
     /// Attempted to perform a command with an invalid topic length
