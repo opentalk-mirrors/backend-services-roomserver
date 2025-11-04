@@ -318,7 +318,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     pub(super) fn participant_limit_reached(mut socket: Socket) -> Result<(), FatalError> {
         const WS_CLOSE_TRY_AGAIN_LATER: u16 = 1013;
-        let event = CoreEvent::JoinBlocked(JoinBlockedReason::ParticipantLimitReached);
+        let event = CoreEvent::JoinBlocked {
+            reason: JoinBlockedReason::ParticipantLimitReached,
+        };
         let msg = serde_json::to_string(&event)
             .context("Failed to serialize `JoinBlocked` event")
             .map_err(FatalError)?;

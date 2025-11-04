@@ -153,7 +153,9 @@ mod tests {
         assert!(
             matches!(
                 event,
-                CoreEvent::JoinBlocked(JoinBlockedReason::ParticipantLimitReached),
+                CoreEvent::JoinBlocked {
+                    reason: JoinBlockedReason::ParticipantLimitReached
+                },
             ),
             "Expected `CoreEvent`, received {event:#?}"
         );
