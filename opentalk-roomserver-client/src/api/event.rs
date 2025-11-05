@@ -30,7 +30,7 @@ pub use {
         Credentials, LIVEKIT_MODULE_ID, LiveKitError, LiveKitEvent, LiveKitState,
     },
     opentalk_roomserver_types_shared_folder::{
-        event::{SharedFolder, SharedFolderError},
+        event::SharedFolder,
         {SHARED_FOLDER_MODULE_ID, event::SharedFolderEvent},
     },
 };

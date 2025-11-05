@@ -14,6 +14,8 @@
 //!
 //! [`RoomParameters::module_settings`]: opentalk_roomserver_types::room_parameters::RoomParameters::module_settings
 
+use std::convert::Infallible;
+
 pub use internal::UpdateSharedFolder;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
@@ -24,10 +26,7 @@ use opentalk_roomserver_types::{
     signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_shared_folder::{
-    SHARED_FOLDER_MODULE_ID,
-    command::SharedFolderCommand,
-    event::{SharedFolderError, SharedFolderEvent},
-    internal,
+    SHARED_FOLDER_MODULE_ID, command::SharedFolderCommand, event::SharedFolderEvent, internal,
 };
 use opentalk_types_common::{modules::ModuleId, shared_folders::SharedFolder};
 use opentalk_types_signaling::ParticipantId;
@@ -51,7 +50,7 @@ impl SignalingModule for SharedFolderModule {
 
     type PeerJoinInfo = ();
 
-    type Error = SharedFolderError;
+    type Error = Infallible;
 
     fn init(init_data: SignalingModuleInitData) -> Option<Self> {
         let shared_folder_state = init_data
