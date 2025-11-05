@@ -32,7 +32,7 @@ pub enum CoreEvent {
     },
 
     /// Joining the room failed
-    JoinBlocked(JoinBlockedReason),
+    JoinBlocked { reason: JoinBlockedReason },
 
     /// Broadcast message sent to all participants when a participant disconnected
     ParticipantDisconnected {
@@ -268,15 +268,15 @@ mod tests {
 
     #[test]
     fn serialize_join_blocked() {
-        let produced = serde_json::to_string_pretty(&CoreEvent::JoinBlocked(
-            super::JoinBlockedReason::ParticipantLimitReached,
-        ))
+        let produced = serde_json::to_string_pretty(&CoreEvent::JoinBlocked {
+            reason: super::JoinBlockedReason::ParticipantLimitReached,
+        })
         .unwrap();
 
         assert_snapshot!(produced, @r#"
         {
           "message": "join_blocked",
-          "participant_limit_reached": null
+          "reason": "participant_limit_reached"
         }
         "#);
     }
