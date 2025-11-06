@@ -5558,7 +5558,6 @@ name = "opentalk-roomserver-types-shared-folder"
 version = "0.0.13-dev"
 dependencies = [
  "opentalk-roomserver-signaling",
- "opentalk-roomserver-types",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
