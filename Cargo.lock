@@ -3336,6 +3336,7 @@ checksum = "13acbb8371917fc971be86fc8057c41a64b521c184808a698c02acc242dbf637"
 dependencies = [
  "displaydoc",
  "litemap 0.7.5",
+ "serde",
  "tinystr 0.7.6",
  "writeable 0.5.5",
  "zerovec 0.10.4",
@@ -5626,9 +5627,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-common"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c875a4abde2096144094202ad5a9f3c505d67adc07cd607a261e459a93435cd"
+checksum = "531fe07df75592a0d6209d31e3f2aac2b39e9d4e1b39b5be5ccc3d965701886c"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -5644,9 +5645,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-v1"
-version = "0.45.0"
+version = "0.46.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41ab9f9896bb7090f7751dbb0f9ce2e2195644f02147a1b3b3ccb592e0160cb9"
+checksum = "2fdb8399dd20b6204b40cd2eca16c9dc44fbf370ee23ff8a0fd7a1344a259948"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -5662,9 +5663,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.38.0"
+version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bd2c36655a65b3fdab006faa0565b190340d988de3d30fff3deccf0f81d6f5c"
+checksum = "c3a86cb15d8ce223f88ec06f80e1aa1f013ab2f77cf6b9b3fac20401b9d99399"
 dependencies = [
  "bincode 2.0.1",
  "chrono",
@@ -5672,6 +5673,7 @@ dependencies = [
  "derive_more",
  "diesel",
  "email_address",
+ "icu_locid",
  "itertools 0.14.0",
  "opentalk-diesel-newtype",
  "opentalk-types-common-identifiers",
@@ -5720,9 +5722,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling"
-version = "0.40.0"
+version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b4575a67fdc08cb775f3643d9bf8b49427409fa1fabf5c64d471941a356ac46"
+checksum = "d662261a58a13e1ce5b776b69e0fb5bce610b1f7d8d72e63c8bf85063407037b"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
