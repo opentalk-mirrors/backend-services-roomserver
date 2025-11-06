@@ -40,6 +40,7 @@ impl Timeout {
     ///
     /// Discards the current timeout if one was running
     pub(super) fn restart(&mut self) {
+        tracing::debug!("Idle timer restarted with duration: {:?}", self.duration);
         self.timeout = Some(Box::pin(tokio::time::sleep(self.duration)));
     }
 
@@ -54,6 +55,7 @@ impl Timeout {
 
     /// Stops the timeout
     pub(super) fn stop(&mut self) {
+        tracing::debug!("Idle timer stopped");
         self.timeout = None;
     }
 

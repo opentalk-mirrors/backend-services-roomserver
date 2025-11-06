@@ -71,21 +71,19 @@ mod tests {
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
         let module_resources = Arc::new(MemoryModuleResourceStorage::new());
 
-        (
-            RoomTask::spawn_with_timeout(
-                id,
-                params,
-                state,
-                module_registry,
-                module_resources,
-                settings,
-                TIMEOUT,
-            )
-            .0,
-            sender,
-        )
+        let (task_handle, future_room) = RoomTask::setup(
+            id,
+            params,
+            module_registry,
+            module_resources,
+            settings,
+            state,
+            TIMEOUT,
+        );
+        tokio::spawn(future_room);
+        (task_handle, sender)
     }
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn timeout() {
         let (handle, _sender) = create_room_task();
         sleep(TIMEOUT - Duration::from_millis(100)).await;
@@ -94,7 +92,7 @@ mod tests {
         handle.refresh_idle_timeout().await.unwrap_err();
     }
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn accept_signaling_socket() {
         let (handle, _sender) = create_room_task();
         let (socket, _) = create_participant_connection();

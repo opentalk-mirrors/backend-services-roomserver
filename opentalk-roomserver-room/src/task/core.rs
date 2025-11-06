@@ -644,6 +644,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         reason: RoomCloseReason,
     ) -> Result<(), FatalError> {
+        tracing::trace!("Broadcasting close notification to participants");
         let event = CoreEvent::Closing { reason };
         self.message_router.conference.serialize_and_broadcast(
             CORE_MODULE_ID,

@@ -9,4 +9,7 @@ use crate::settings::signaling_salt::SignalingSalt;
 pub struct Conference {
     #[serde(default)]
     pub signaling_salt: SignalingSalt,
+
+    #[serde(default)]
+    pub room_idle_timeout: Option<u64>,
 }

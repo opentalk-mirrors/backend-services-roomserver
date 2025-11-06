@@ -18,6 +18,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.cancel_loopback_guard();
 
+        tracing::trace!("broadcast closing event to modules");
         let action_result = self
             .broadcast_event_to_modules(
                 EventOrigin::Internal,
@@ -30,6 +31,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         loop {
+            tracing::trace!("Remaining loopback tasks: {}", self.loopback_futures.len());
             tokio::select! {
                 msg = self.api_rx.recv() => {
                     let Some(msg) = msg else {
@@ -49,6 +51,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     if let Some(msg) = msg {
                         self.handle_loopback(msg)?;
                     } else {
+                        tracing::trace!("All loopback tasks finished");
                         break;
                     }
                 },
@@ -59,6 +62,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     fn cancel_loopback_guard(&mut self) {
+        tracing::trace!("Cancel loopback guard");
         if let Some(loopback_cancel_tx) = self.loopback_cancel_tx.take()
             && loopback_cancel_tx.send(()).is_err()
         {
