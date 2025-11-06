@@ -123,7 +123,7 @@ impl SpacedeckClient {
     pub(crate) async fn download_pdf(
         &self,
         pdf_url: Url,
-    ) -> anyhow::Result<impl Stream<Item = reqwest::Result<Bytes>> + Unpin> {
+    ) -> anyhow::Result<impl Stream<Item = reqwest::Result<Bytes>> + Unpin + use<>> {
         let response = self.client.get(pdf_url).send().await?;
 
         if !response.status().is_success() {

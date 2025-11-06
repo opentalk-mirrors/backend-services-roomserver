@@ -4,32 +4,31 @@
 use std::{fmt::Debug, sync::Arc};
 
 use async_trait::async_trait;
-use opentalk_types_common::assets::AssetId;
+use bytes::Bytes;
+use futures::stream::BoxStream;
 
-use crate::storage::assets::{AssetMetaData, StorageContext, StorageError, UploadResult};
+use crate::storage::assets::{AssetMetaData, StorageContext, UploadResult};
+
+pub type AssetStream = BoxStream<'static, Result<Bytes, AssetLoadError>>;
+
+#[derive(Debug)]
+pub struct AssetLoadError {
+    pub source: Box<dyn std::error::Error + Send + Sync>,
+}
+
+// this is is required to transform the AssetStream into a reqwest Body.
+impl From<AssetLoadError> for Box<dyn std::error::Error + Send + Sync> {
+    fn from(err: AssetLoadError) -> Self {
+        err.source
+    }
+}
 
 #[async_trait]
 pub trait AssetStorageProvider: Send + Sync + Debug {
-    /// Uploads a file to the storage backend
-    async fn upload_file(
+    /// Uploads an asset to the storage backend
+    async fn upload_asset(
         &self,
-        file: Vec<u8>,
-        metadata: AssetMetaData,
-        context: &StorageContext,
-    ) -> UploadResult;
-
-    /// Uploads a chunk of data to the storage backend
-    async fn upload_chunk(
-        &self,
-        id: AssetId,
-        chunk: &[u8],
-        context: &StorageContext,
-    ) -> Result<(), StorageError>;
-
-    /// Finalizes an upload of one or multiple chunks
-    async fn finalize_upload(
-        &self,
-        id: AssetId,
+        asset: AssetStream,
         metadata: AssetMetaData,
         context: &StorageContext,
     ) -> UploadResult;

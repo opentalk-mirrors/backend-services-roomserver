@@ -121,10 +121,34 @@ paths:
 components:
   schemas:
     AssetStorageConfig:
-      type: string
-      enum:
-        - in_memory
-      example: in_memory
+      oneOf:
+        - type: object
+          required:
+            - type
+          properties:
+            type:
+              type: string
+              enum:
+                - in_memory
+        - type: object
+          required:
+            - url
+            - secret
+            - type
+          properties:
+            secret:
+              type: string
+            type:
+              type: string
+              enum:
+                - controller
+            url:
+              type: string
+              format: uri
+      example:
+        secret: secret
+        type: controller
+        url: "https://localhost:11411/"
     CallInId:
       $ref: "#/components/schemas/NumericId"
       description: The id of a call-in participation
@@ -438,7 +462,10 @@ components:
         waiting_room:
           type: boolean
       example:
-        asset_storage: in_memory
+        asset_storage:
+          secret: secret
+          type: controller
+          url: "https://localhost:11411/"
         call_in:
           id: "1234567890"
           password: "0987654321"
@@ -686,7 +713,10 @@ components:
             title: ""
           role: moderator
         room_parameters:
-          asset_storage: in_memory
+          asset_storage:
+            secret: secret
+            type: controller
+            url: "https://localhost:11411/"
           call_in:
             id: "1234567890"
             password: "0987654321"

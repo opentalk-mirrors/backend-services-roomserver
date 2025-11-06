@@ -37,7 +37,10 @@ use crate::{
     signaling_module::SignalingModule,
     storage::{
         StorageContext,
-        assets::{AssetMetaData, ModuleAssetStorage, UploadResult, provider::AssetStorageProvider},
+        assets::{
+            AssetMetaData, ModuleAssetStorage, UploadResult,
+            provider::{AssetStorageProvider, AssetStream},
+        },
         module_resources::{ModuleResourceStorage, provider::ModuleResourceProvider},
     },
     waiting_participant::WaitingParticipant,
@@ -559,6 +562,7 @@ where
         StorageContext {
             room_id: self.room_id,
             namespace: M::NAMESPACE,
+            event: self.room_task_info.room.event.clone(),
         }
     }
 }
@@ -570,13 +574,13 @@ where
     M: SignalingModule,
     M::Loopback: From<UploadResult>,
 {
-    pub fn upload_file(&self, file: Vec<u8>, metadata: AssetMetaData) {
+    pub fn upload_file(&self, asset: AssetStream, metadata: AssetMetaData) {
         let storage_context = self.storage_context();
         let storage = Arc::clone(&self.storage);
 
         self.spawn(async move {
             storage
-                .upload_file(file, metadata, &storage_context)
+                .upload_asset(asset, metadata, &storage_context)
                 .await
                 .into()
         });

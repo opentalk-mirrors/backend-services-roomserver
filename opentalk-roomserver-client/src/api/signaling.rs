@@ -31,7 +31,7 @@ impl SignalingConnection {
     pub async fn connect(roomserver_url: Url, token: Token) -> Result<Self, SignalingError> {
         let uri = build_signaling_socket_url(&roomserver_url, &token)?;
 
-        log::debug!("connect signaling to url: {uri}");
+        tracing::debug!("connect signaling to url: {uri}");
         let builder = ClientRequestBuilder::new(uri);
         let (socket, _response) = connect_async(builder)
             .await
@@ -53,7 +53,7 @@ impl SignalingConnection {
     }
 
     pub async fn send_raw_message(&mut self, message: &str) -> Result<(), SignalingError> {
-        log::trace!("send text message: {message:?}");
+        tracing::trace!("send text message: {message:?}");
         self.socket
             .send(Message::Text(message.into()))
             .await
@@ -68,7 +68,7 @@ impl SignalingConnection {
         };
         let msg = msg.context("receive error")?;
 
-        log::trace!("received message: {msg:?}");
+        tracing::trace!("received message: {msg:?}");
 
         match msg {
             Message::Text(utf8_bytes) => Ok(Some(utf8_bytes.to_string())),

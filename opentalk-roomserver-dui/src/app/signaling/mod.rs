@@ -22,6 +22,7 @@ use crate::{
             breakout::BreakoutPlugin,
             filtered_vec::FilteredVec,
             livekit::LiveKitPlugin,
+            moderator_tools::ModeratorToolsPlugin,
             plugin::{Received, SignalingPlugin},
             spam_amount::SpamAmountPlugin,
             timer::TimerPlugin,
@@ -36,6 +37,7 @@ use crate::{
 mod breakout;
 pub mod filtered_vec;
 mod livekit;
+mod moderator_tools;
 mod plugin;
 pub mod spam_amount;
 mod timer;
@@ -93,6 +95,7 @@ impl SignalingView {
                 (false, Box::new(TimerPlugin::new())),
                 (false, Box::new(SpamAmountPlugin::new())),
                 (false, Box::new(WaitingRoomPlugin::new())),
+                (false, Box::new(ModeratorToolsPlugin::new())),
             ],
         }
     }

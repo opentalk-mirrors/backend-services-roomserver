@@ -80,6 +80,7 @@ pub struct Client {
 }
 
 impl Client {
+    #[tracing::instrument(skip_all, fields(base_url = %base_url))]
     pub fn new(base_url: Url, api_token: &str) -> Result<Client, InvalidApiTokenError> {
         let reqwest_client = ReqwestClient::new();
 
@@ -91,6 +92,7 @@ impl Client {
         })
     }
 
+    #[tracing::instrument(skip(parameters))]
     pub async fn put_room(
         &self,
         room_id: RoomId,
@@ -113,6 +115,7 @@ impl Client {
         ))
     }
 
+    #[tracing::instrument(skip(client_parameters, room_parameters))]
     pub async fn request_token(
         &self,
         room_id: RoomId,
@@ -144,7 +147,7 @@ impl Client {
 
         if success {
             let result = serde_json::from_slice(&bytes).map_err(|_| {
-                log::error!(
+                tracing::error!(
                     "Received unexpected response from RoomServer: {}",
                     String::from_utf8_lossy(&bytes)
                 );
@@ -163,7 +166,7 @@ impl Client {
         match serde_json::from_slice::<ApiError<E>>(bytes) {
             Ok(err) => Error::ApiError(err),
             Err(_) => {
-                log::error!(
+                tracing::error!(
                     "Received unexpected error response from RoomServer: {}",
                     String::from_utf8_lossy(bytes)
                 );
@@ -172,6 +175,7 @@ impl Client {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn open_signaling_connection(
         &self,
         url: Url,

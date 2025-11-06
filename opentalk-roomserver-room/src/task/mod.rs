@@ -106,7 +106,9 @@ use super::{
 use crate::{
     message_router::{MessageEnvelope, MessageRouter, ScopedRouter, SignalingMessage},
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
-    storage::memory_file_storage::MemoryAssetStorage,
+    storage::{
+        controller_asset_storage::ControllerAssetStorage, memory_asset_storage::MemoryAssetStorage,
+    },
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
         timeout::Timeout,
@@ -1095,5 +1097,10 @@ fn create_storage_provider(
 ) -> Arc<dyn AssetStorageProvider> {
     match config {
         AssetStorageConfig::InMemory => Arc::new(MemoryAssetStorage::new(quota)),
+        AssetStorageConfig::Controller { url, secret } => Arc::new(ControllerAssetStorage::new(
+            url.clone(),
+            secret.clone(),
+            quota,
+        )),
     }
 }

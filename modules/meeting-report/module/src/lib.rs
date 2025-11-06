@@ -98,27 +98,20 @@ impl SignalingModule for MeetingReportModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match event {
-            Ok(uploaded) => {
-                tracing::debug!(
-                    "Generated meeting attendance report: {}({})",
-                    uploaded.filename,
-                    uploaded.id
-                );
-                ctx.send_ws_message(
-                    ctx.participants.connected().ids(),
-                    MeetingReportEvent::PdfAsset {
-                        filename: uploaded.filename,
-                        asset_id: uploaded.id,
-                    },
-                )?;
-                Ok(())
-            }
-            Err(err) => {
-                tracing::error!("Failed to upload meeting report: {err:?}");
-                Err(err)
-            }
-        }
+        let uploaded = event?;
+        tracing::debug!(
+            "Generated meeting attendance report: {}({})",
+            uploaded.filename,
+            uploaded.id
+        );
+        ctx.send_ws_message(
+            ctx.participants.connected().ids(),
+            MeetingReportEvent::PdfAsset {
+                filename: uploaded.filename,
+                asset_id: uploaded.id,
+            },
+        )?;
+        Ok(())
     }
 }
 
@@ -222,7 +215,7 @@ impl MeetingReportModule {
         )?;
 
         let upload = storage
-            .upload_file(
+            .upload_asset_vec(
                 report,
                 AssetMetaData {
                     kind: ASSET_FILE_KIND,
@@ -231,7 +224,10 @@ impl MeetingReportModule {
                 },
             )
             .await
-            .map_err(MeetingReportError::from)?;
+            .map_err(|e| {
+                tracing::error!("Failed to upload meeting report: {e:?}");
+                MeetingReportError::from(e)
+            })?;
         Ok(upload)
     }
 }
