@@ -329,7 +329,7 @@ impl TestRoom {
         self.room_id
     }
 
-    pub async fn stored_file(&self, id: AssetId) -> Option<Vec<u8>> {
+    pub async fn stored_asset(&self, id: AssetId) -> Option<Vec<u8>> {
         let storage = self.downcast_storage();
         storage.asset(id).await
     }

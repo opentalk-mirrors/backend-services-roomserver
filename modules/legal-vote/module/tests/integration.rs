@@ -518,7 +518,7 @@ async fn pseudonymous() {
 
     assert_eq!(room.file_count().await, 1);
 
-    let pdf = room.stored_file(asset_id).await.unwrap();
+    let pdf = room.stored_asset(asset_id).await.unwrap();
     let content = pdf_extract::extract_text_from_mem(&pdf).unwrap();
     insta::with_settings!({filters => vec![
         (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "[timestamp]"),
@@ -773,7 +773,7 @@ async fn public() {
     let asset_id = receive_pdf(&mut alice).await;
 
     assert_eq!(room.file_count().await, 1);
-    let pdf = room.stored_file(asset_id).await.unwrap();
+    let pdf = room.stored_asset(asset_id).await.unwrap();
     let content = pdf_extract::extract_text_from_mem(&pdf).unwrap();
     insta::with_settings!({filters => vec![
         (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "[timestamp]"),
@@ -1088,7 +1088,7 @@ async fn stop() {
     // Alice is notified that a pdf has been created
     let asset_id = receive_pdf(&mut alice).await;
 
-    let pdf = room.stored_file(asset_id).await.unwrap();
+    let pdf = room.stored_asset(asset_id).await.unwrap();
     let content = pdf_extract::extract_text_from_mem(&pdf).unwrap();
     insta::with_settings!({filters => vec![
         (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "[timestamp]"),
@@ -1361,7 +1361,7 @@ async fn report_issue() {
     // Alice is notified that a pdf has been created
     let asset_id = receive_pdf(&mut alice).await;
 
-    let pdf = room.stored_file(asset_id).await.unwrap();
+    let pdf = room.stored_asset(asset_id).await.unwrap();
     let content = pdf_extract::extract_text_from_mem(&pdf).unwrap();
     insta::with_settings!({filters => vec![
         (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "[timestamp]"),
@@ -1544,7 +1544,7 @@ async fn generate_pdf() {
 
     let asset_id = receive_pdf(&mut alice).await;
 
-    let pdf = room.stored_file(asset_id).await.unwrap();
+    let pdf = room.stored_asset(asset_id).await.unwrap();
     let content = pdf_extract::extract_text_from_mem(&pdf).unwrap();
     insta::with_settings!({filters => vec![
         (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "[timestamp]"),
@@ -1745,7 +1745,7 @@ async fn reconnect_during_vote() {
     // The pdf contains Bobs disconnect and reconnect events
     let asset_id = receive_pdf(&mut alice).await;
 
-    let pdf = room.stored_file(asset_id).await.unwrap();
+    let pdf = room.stored_asset(asset_id).await.unwrap();
     let content = pdf_extract::extract_text_from_mem(&pdf).unwrap();
     let alice_token = tokens[&alice_id].unwrap();
     insta::with_settings!({filters => vec![
