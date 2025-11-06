@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.13] - 2025-11-06
+
+[0.0.13]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.12...v0.0.13
+
+### 🚀 New features
+
+- Allow for the room idle timeout to be configurable ([!680](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/680))
+- (dui) Add moderator tools plugin ([!617](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/617))
+- Add controller asset storage ([!617](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/617))
+
+### 🐛 Bug fixes
+
+- Remove rooms from the registry when they are done ([!680](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/680))
+
+### 🔨 Refactor
+
+- (test) Rename all `serde_tests` modules to `tests` ([!678](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/678))
+- Replace `Duration::from_secs` with `from_mins`/`from_hours` where it makes sense ([!683](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/683))
+- Join blocked event to include reason field ([!690](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/690))
+- (shared-folder) Remove event error variant ([!691](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/691))
+- (signaling) Keep consistent wording in asset API ([!617](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/617))
+- Replace chunk uploading with stream implementation ([!617](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/617))
+- Rename `StorageError::QuotaReached` to `QuotaExceeded` ([!617](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/617))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate livekit to v0.7.24 ([!658](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/658))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.19.2 ([!674](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/674))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.19.3 ([!676](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/676))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.19.4 ([!679](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/679))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.91.0 ([!682](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/682))
+- (deps) Update livekit/livekit-server docker tag to v1.9.3 ([!685](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/685))
+- (deps) Lock file maintenance ([!687](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/687))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.19.5 ([!689](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/689))
+- (deps) Update opentalk ([!692](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/692))
+
+### ⚙ Miscellaneous
+
+- (shared-folder) Adhere to module directory naming convention ([!691](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/691))
+- (client) Add additional tracing spans to improve error tracking ([!617](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/617))
+- (meeting-report) Log errors before loosing context ([!617](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/617))
+
+### Ci
+
+- Add doctests ([!681](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/681))
+
+### Test
+
+- (polls) Migrate polls serialization tests to insta ([!684](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/684))
+- (polls) Add missing (de)serialization tests ([!684](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/684))
+- Cover ControllerAssetStorage ([!617](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/617))
+
 ## [0.0.12] - 2025-10-29
 
 [0.0.12]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.11...v0.0.12
