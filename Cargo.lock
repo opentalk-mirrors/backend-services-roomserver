@@ -5168,7 +5168,6 @@ dependencies = [
  "pretty_assertions",
  "test-log",
  "tokio",
- "tracing",
 ]
 
 [[package]]

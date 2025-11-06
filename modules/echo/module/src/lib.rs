@@ -29,7 +29,7 @@ impl SignalingModule for EchoModule {
 
     type JoinInfo = ();
 
-    type PeerJoinInfo = String;
+    type PeerJoinInfo = ();
 
     type Error = Infallible;
 
@@ -39,30 +39,20 @@ impl SignalingModule for EchoModule {
 
     fn on_participant_joined(
         &mut self,
-        ctx: &mut ModuleContext<'_, Self>,
-        participant_id: ParticipantId,
+        _ctx: &mut ModuleContext<'_, Self>,
+        _participant_id: ParticipantId,
         _connection_id: ConnectionId,
         _is_first_connection: bool,
     ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
-        tracing::info!("Participant {participant_id} connected");
-        let mut join_info = ModuleJoinData::default();
-
-        for (participant_id, ..) in ctx.participants.connected().iter() {
-            join_info
-                .peer_events
-                .insert(*participant_id, format!("Hello {participant_id}"))?;
-        }
-
-        Ok(join_info)
+        Ok(ModuleJoinData::default())
     }
 
     fn on_participant_disconnected(
         &mut self,
         _ctx: &mut ModuleContext<'_, Self>,
-        participant_id: ParticipantId,
+        _participant_id: ParticipantId,
         _connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        tracing::info!("Participant {participant_id} disconnected");
         Ok(())
     }
 
