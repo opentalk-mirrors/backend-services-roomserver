@@ -11,6 +11,9 @@ name = "opentalk-roomserver-types-e2ee"
 repository.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 bytes = { workspace = true, features = ["serde"] }
 opentalk-roomserver-signaling.workspace = true

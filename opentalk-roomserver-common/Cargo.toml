@@ -11,6 +11,9 @@ name = "opentalk-roomserver-common"
 repository.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 anyhow.workspace = true
 cidr.workspace = true

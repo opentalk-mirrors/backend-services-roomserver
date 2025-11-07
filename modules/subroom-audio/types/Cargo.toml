@@ -11,6 +11,9 @@ name = "opentalk-roomserver-types-subroom-audio"
 repository.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 derive_more = { workspace = true, features = [
   "as_ref",
