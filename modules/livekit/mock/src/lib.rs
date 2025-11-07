@@ -162,20 +162,26 @@ pub async fn publish_audio(
 
     let audio_track =
         LocalAudioTrack::create_audio_track("file", RtcAudioSource::Native(source.clone()));
-    room.local_participant()
-        .publish_track(
+    // The LiveKit server does not respond when the user is not allowed to publish audio, instead
+    // the LiveKit SDK waits for a 10 second timeout, which slows down the tests. Assume that if the
+    // publish does not complete in 1 second, it has failed.
+    tokio::time::timeout(
+        Duration::from_secs(1),
+        room.local_participant().publish_track(
             LocalTrack::Audio(audio_track.clone()),
             TrackPublishOptions {
                 source: TrackSource::Microphone,
                 ..Default::default()
             },
-        )
-        .await?;
-    tracing::info!("Try capture audio frame");
+        ),
+    )
+    .await
+    .context("Publishing track timed out. The user might not be allowed to publish audio.")?
+    .context("Publishing track failed")?;
 
+    tracing::info!("Try capture audio frame");
     let audio_frame = AudioFrame::new(SAMPLE_RATE, NUM_CHANNELS, SAMPLES_PER_CHANNEL);
     source.capture_frame(&audio_frame).await?;
-
     tracing::info!("Audio frame captured");
 
     loop {
