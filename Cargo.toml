@@ -38,6 +38,7 @@ opentalk-roomserver-module-automod = { path = "modules/automod/module", version 
 opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.14-dev" }
 opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.14-dev" }
 opentalk-roomserver-module-echo = { path = "modules/echo/module", version = "0.0.14-dev" }
+opentalk-roomserver-module-legal-vote = { path = "modules/legal-vote/module", version = "0.0.14-dev" }
 opentalk-roomserver-module-livekit = { path = "modules/livekit/module", version = "0.0.14-dev" }
 opentalk-roomserver-module-meeting-notes = { path = "modules/meeting-notes/module", version = "0.0.14-dev" }
 opentalk-roomserver-module-meeting-report = { path = "modules/meeting-report/module", version = "0.0.14-dev" }
@@ -58,6 +59,7 @@ opentalk-roomserver-types-automod = { path = "modules/automod/types", version = 
 opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.14-dev" }
 opentalk-roomserver-types-e2ee = { path = "modules/e2ee/types", version = "0.0.14-dev" }
 opentalk-roomserver-types-echo = { path = "modules/echo/types", version = "0.0.14-dev" }
+opentalk-roomserver-types-legal-vote = { path = "modules/legal-vote/types", version = "0.0.14-dev" }
 opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = "0.0.14-dev" }
 opentalk-roomserver-types-meeting-notes = { path = "modules/meeting-notes/types", version = "0.0.14-dev" }
 opentalk-roomserver-types-meeting-report = { path = "modules/meeting-report/types", version = "0.0.14-dev" }
@@ -80,6 +82,7 @@ anyhow = "1"
 async-trait = "0.1"
 axum = { version = "0.8.1" }
 axum-prometheus = "0.9.0"
+basen = "=0.1.0"
 blake3 = "1.8"
 bytes = "1.10.1"
 chrono = "0.4"

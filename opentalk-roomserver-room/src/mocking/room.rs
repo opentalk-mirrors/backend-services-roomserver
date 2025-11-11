@@ -13,7 +13,9 @@ use opentalk_roomserver_common::{
     application_state::ApplicationState,
     settings::{Http, Settings},
 };
-use opentalk_roomserver_signaling::signaling_module::SignalingModule;
+use opentalk_roomserver_signaling::{
+    signaling_module::SignalingModule, storage::module_resources::provider::ModuleResourceProvider,
+};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
     core::CoreEvent,
@@ -188,6 +190,7 @@ pub struct TestRoom {
     room_id: RoomId,
     pub room_handle: RoomTaskHandle<MockSocket>,
     pub join_handle: JoinHandle<()>,
+    pub module_resources: Arc<dyn ModuleResourceProvider>,
     _settings: Arc<Settings>,
     _app_state_tx: watch::Sender<ApplicationState>,
 }
@@ -206,13 +209,14 @@ impl TestRoom {
         let settings = Arc::new(settings);
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
 
-        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
+        let module_resources: Arc<dyn ModuleResourceProvider> =
+            Arc::new(MemoryModuleResourceStorage::new());
 
         let (room_handle, future_room) = RoomTask::setup(
             room_id,
             room_parameters.into(),
             Arc::new(module_registry),
-            module_resources,
+            Arc::clone(&module_resources),
             Arc::clone(&settings),
             rx,
             Duration::from_secs(10),
@@ -222,6 +226,7 @@ impl TestRoom {
             room_id,
             room_handle,
             join_handle,
+            module_resources,
             _settings: settings,
             _app_state_tx: app_state_tx,
         }

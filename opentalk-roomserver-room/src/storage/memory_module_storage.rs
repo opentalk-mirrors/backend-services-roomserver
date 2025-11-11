@@ -472,6 +472,41 @@ mod tests {
     }
 
     #[test_log::test(tokio::test)]
+    async fn patch_add_root() {
+        let resource_id = ModuleResourceId::from_u128(1);
+        let data = json!({"foo": 1});
+
+        let resources = [ResourceBuilder::new().id(resource_id).data(data.clone())];
+
+        let storage = test_storage(resources).await;
+
+        // Ensure the initial json value is correct
+        let response = storage
+            .get(InternalModuleResourceFilter::default().id(resource_id))
+            .await
+            .unwrap();
+        assert_eq!(response.len(), 1);
+        assert_eq!(response[0].data, data);
+
+        // Replace the entire document with a new one
+        let id_filter = InternalModuleResourceFilter::default().id(resource_id);
+        let operations = vec![ModuleResourceOperation::Add {
+            path: "".into(),
+            value: json!({"bar": 2, "baz": 3}),
+        }];
+        let response = storage.patch(id_filter, operations).await.unwrap();
+
+        assert_eq!(response.len(), 1);
+        assert_eq!(
+            response[0].data,
+            json!({
+                "bar": 2,
+                "baz": 3,
+            })
+        );
+    }
+
+    #[test_log::test(tokio::test)]
     async fn patch_remove() {
         let resource_id = ModuleResourceId::from_u128(1);
         let data = json!({

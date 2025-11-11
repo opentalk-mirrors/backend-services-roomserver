@@ -7,7 +7,7 @@ use opentalk_roomserver_client::api::event::SignalingEvent;
 use crate::settings::DuiSettings;
 
 pub enum Received {
-    SignalingEvent(SignalingEvent),
+    SignalingEvent(Box<SignalingEvent>),
     Invalid,
 }
 

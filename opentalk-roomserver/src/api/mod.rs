@@ -14,6 +14,7 @@ use opentalk_roomserver_module_automod::AutomodModule;
 use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_module_e2ee::E2eeModule;
 use opentalk_roomserver_module_echo::EchoModule;
+use opentalk_roomserver_module_legal_vote::LegalVoteModule;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_meeting_notes::MeetingNotesModule;
 use opentalk_roomserver_module_meeting_report::MeetingReportModule;
@@ -213,6 +214,7 @@ fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<AutomodModule>();
     module_registry.add_module::<ChatModule>();
     module_registry.add_module::<E2eeModule>();
+    module_registry.add_module::<LegalVoteModule>();
     module_registry.add_module::<LiveKitModule>();
     module_registry.add_module::<MeetingNotesModule>();
     module_registry.add_module::<MeetingReportModule>();

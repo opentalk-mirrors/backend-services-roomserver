@@ -89,22 +89,22 @@ pub trait ToReportDateTime {
 
     /// Convert to the [`Self::Output`] type based on the timezone that should
     /// be used in the report generation.
-    fn to_report_date_time(&self, report_tz: &Tz) -> Self::Output;
+    fn into_report_date_time(self, report_tz: &Tz) -> Self::Output;
 }
 
 impl<TZ: TimeZone> ToReportDateTime for DateTime<TZ> {
     type Output = ReportDateTime;
 
-    fn to_report_date_time(&self, report_tz: &Tz) -> Self::Output {
-        ReportDateTime::from_date_time_for_tz(self.clone(), report_tz)
+    fn into_report_date_time(self, report_tz: &Tz) -> Self::Output {
+        ReportDateTime::from_date_time_for_tz(self, report_tz)
     }
 }
 
 impl<TZ: TimeZone> ToReportDateTime for Option<DateTime<TZ>> {
     type Output = Option<ReportDateTime>;
 
-    fn to_report_date_time(&self, report_tz: &Tz) -> Self::Output {
-        self.clone().map(|dt| dt.to_report_date_time(report_tz))
+    fn into_report_date_time(self, report_tz: &Tz) -> Self::Output {
+        self.map(|dt| dt.into_report_date_time(report_tz))
     }
 }
 
@@ -169,7 +169,10 @@ mod tests {
             .parse()
             .expect("value must be parsable as ReportDateTime");
 
-        assert_eq!(expected, dt.to_report_date_time(&chrono_tz::Europe::Berlin));
+        assert_eq!(
+            expected,
+            dt.into_report_date_time(&chrono_tz::Europe::Berlin)
+        );
     }
 
     #[test]
@@ -182,14 +185,17 @@ mod tests {
             .parse()
             .expect("value must be parsable as ReportDateTime");
 
-        assert_eq!(expected, dt.to_report_date_time(&chrono_tz::Europe::Berlin));
+        assert_eq!(
+            expected,
+            dt.into_report_date_time(&chrono_tz::Europe::Berlin)
+        );
     }
 
     #[test]
     fn to_report_date_time_option_none() {
         let dt: Option<DateTime<Utc>> = None;
 
-        assert_eq!(None, dt.to_report_date_time(&chrono_tz::Europe::Berlin));
+        assert_eq!(None, dt.into_report_date_time(&chrono_tz::Europe::Berlin));
     }
 
     #[test]
@@ -206,6 +212,9 @@ mod tests {
                 .expect("value must be parsable as ReportDateTime"),
         );
 
-        assert_eq!(expected, dt.to_report_date_time(&chrono_tz::Europe::Berlin));
+        assert_eq!(
+            expected,
+            dt.into_report_date_time(&chrono_tz::Europe::Berlin)
+        );
     }
 }

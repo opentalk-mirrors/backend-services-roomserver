@@ -3,6 +3,7 @@
 
 use opentalk_types_common::{
     roomserver::DeviceSecret,
+    time::TimeZone,
     users::{DisplayName, UserId, UserInfo},
     utils::ExampleData,
 };
@@ -103,6 +104,15 @@ impl ClientKind {
             ClientKind::Recorder => ParticipationKind::Recorder,
             ClientKind::CallIn { .. } => ParticipationKind::CallIn,
             ClientKind::RegisteredCallIn { .. } => ParticipationKind::RegisteredCallIn,
+        }
+    }
+
+    pub fn time_zone(&self) -> Option<TimeZone> {
+        match self {
+            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
+                Some(profile.timezone)
+            }
+            ClientKind::Recorder | ClientKind::CallIn { .. } | ClientKind::Guest { .. } => None,
         }
     }
 }

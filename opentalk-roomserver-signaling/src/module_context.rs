@@ -16,7 +16,7 @@ use opentalk_roomserver_types::{
     shared_raw_json::SharedRawJson,
     signaling::module_error::FatalError,
 };
-use opentalk_types_common::{rooms::RoomId, time::Timestamp};
+use opentalk_types_common::{rooms::RoomId, time::Timestamp, users::UserId};
 use opentalk_types_signaling::ParticipantId;
 use serde_json::value::RawValue;
 use tokio::{
@@ -531,6 +531,11 @@ where
 
     pub fn participant_role(&self, participant_id: ParticipantId) -> Option<Role> {
         self.participant_state(participant_id).map(|p| p.role)
+    }
+
+    pub fn user_id(&self, participant_id: ParticipantId) -> Option<UserId> {
+        self.participant_state(participant_id)
+            .and_then(|state| state.kind.user_id())
     }
 
     pub fn is_moderator(&self, participant_id: ParticipantId) -> bool {
