@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use chrono_tz::Tz;
-use opentalk_roomserver_report_generation::{ReportDateTime, ToReportDateTime as _};
+use opentalk_report_generation::{ReportDateTime, ToReportDateTime as _};
 use opentalk_types_common::{
     events::{EventDescription, EventTitle},
     time::{TimeZone, Timestamp},
@@ -40,8 +40,8 @@ impl ReportTemplateParameter {
         Self {
             title,
             description,
-            start: start.into_report_date_time(&report_time_zone),
-            end: end.into_report_date_time(&report_time_zone),
+            start: start.to_report_date_time(&report_time_zone),
+            end: end.to_report_date_time(&report_time_zone),
             report_timezone: report_time_zone,
             participants,
             checkpoints: checkpoints
@@ -68,11 +68,11 @@ impl ReportCheckpoint {
         report_tz: &Tz,
     ) -> Self {
         Self {
-            timestamp: timestamp.into_report_date_time(report_tz),
+            timestamp: timestamp.to_report_date_time(report_tz),
             presence: presence
                 .iter()
                 .map(|(participant, timestamp)| {
-                    (*participant, timestamp.into_report_date_time(report_tz))
+                    (*participant, timestamp.to_report_date_time(report_tz))
                 })
                 .collect(),
         }

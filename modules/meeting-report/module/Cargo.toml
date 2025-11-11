@@ -14,7 +14,7 @@ version.workspace = true
 
 [dependencies]
 chrono-tz.workspace = true
-opentalk-roomserver-report-generation.workspace = true
+opentalk-report-generation.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true

@@ -10,7 +10,6 @@ members = [
   "opentalk-roomserver",
   "opentalk-roomserver-client",
   "opentalk-roomserver-dui",
-  "opentalk-roomserver-report-generation",
   "opentalk-roomserver-room",
   "opentalk-roomserver-types",
   "opentalk-roomserver-web-api",
@@ -112,6 +111,7 @@ mockito = "1.7.0"
 opentalk-etherpad-client = { version = "0.4", default-features = false, features = [
   "rustls-tls-native-roots",
 ] }
+opentalk-report-generation = "0.2"
 opentalk-version = "0.3.0"
 opentelemetry = "0.31.0"
 opentelemetry-otlp = { version = "0.31.0", features = ["grpc-tonic"] }

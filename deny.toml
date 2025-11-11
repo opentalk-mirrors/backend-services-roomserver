@@ -95,13 +95,13 @@ exceptions = [
   ], name = "opentalk-etherpad-client" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-report-generation" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-client" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-common" },
-  { allow = [
-    "EUPL-1.2",
-  ], name = "opentalk-roomserver-report-generation" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-signaling" },
