@@ -152,6 +152,9 @@ exceptions = [
   ], name = "opentalk-roomserver-types-timer" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-training-participation-report" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-whiteboard" },
   { allow = [
     "EUPL-1.2",
