@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.14] - 2025-11-12
+
+[0.0.14]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.13...v0.0.14
+
+### 🚀 New features
+
+- Add legal vote signaling module ([!632](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/632), [#74](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/74))
+- Accept waiting participants when disabling the waiting room ([!700](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/700), [#162](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/162))
+- (training-participation-report) Add training-participantion-report signaling module ([!645](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/645), [#81](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/81))
+
+### 🐛 Bug fixes
+
+- (echo) Remove unnecessary `PeerJoinInfo` and logs ([!695](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/695))
+- (ci) `lint-mod-file` wrongfully complains about directories ending in 'rs' ([!632](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/632))
+
+### 🔨 Refactor
+
+- (room) Expose user id in `ModuleContext` ([!632](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/632))
+- (mock) Rename `TestRoom::stored_file()` to `stored_asset()` ([!645](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/645))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate opentalk-types-common to v0.39.1 ([!696](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/696))
+- (deps) Lock file maintenance ([!699](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/699))
+- (deps) Update rust crate service-probe to 0.3.0 ([!698](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/698))
+
+### Test
+
+- (livekit) Fix slow livekit tests ([!694](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/694))
+- (core) Add test for patching the root element of a module resource ([!632](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/632))
+- (mock) Expose module resource storage for tests ([!632](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/632))
+- (mock) Allow retrieving all files from a `TestRoom` ([!645](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/645))
+
 ## [0.0.13] - 2025-11-06
 
 [0.0.13]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.12...v0.0.13
