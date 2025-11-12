@@ -5,6 +5,7 @@ pub mod data;
 
 use data::ReportData;
 pub use error::Error;
+use opentalk_report_generation::GenerateOptions;
 use opentalk_types_common::users::{DisplayName, UserId};
 
 mod error;
@@ -31,15 +32,19 @@ pub(crate) fn generate(
 }
 
 fn generate_from_template(template: String, parameter: &ReportData) -> Result<Vec<u8>, Error> {
-    Ok(opentalk_roomserver_report_generation::generate_pdf_report(
+    Ok(opentalk_report_generation::generate_pdf_report(
         template,
         BTreeMap::from_iter([(
             Path::new("data.json"),
-            serde_json::to_string_pretty(parameter)
-                .unwrap()
-                .into_bytes()
-                .into(),
+            (
+                None,
+                serde_json::to_string_pretty(parameter)
+                    .unwrap()
+                    .into_bytes()
+                    .into(),
+            ),
         )]),
+        &GenerateOptions::default(),
     )?)
 }
 

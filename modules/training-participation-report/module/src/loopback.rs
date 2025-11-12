@@ -3,6 +3,7 @@
 
 use std::{collections::BTreeMap, path::Path};
 
+use opentalk_report_generation::GenerateOptions;
 use opentalk_roomserver_signaling::{
     module_context::ChannelDroppedError,
     storage::assets::{AssetMetaData, AssetUploaded, ModuleAssetStorage},
@@ -59,9 +60,10 @@ async fn create_report_inner(
         .map_err(|_| TrainingParticipationReportError::Generate)?
         .into_bytes()
         .into();
-    let report = opentalk_roomserver_report_generation::generate_pdf_report(
+    let report = opentalk_report_generation::generate_pdf_report(
         REPORT_TEMPLATE.to_owned(),
-        BTreeMap::from_iter([(Path::new("data.json"), serialized)]),
+        BTreeMap::from_iter([(Path::new("data.json"), (None, serialized))]),
+        &GenerateOptions::default(),
     )
     .map_err(|_| TrainingParticipationReportError::Generate)?;
 

@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use chrono_tz::Tz;
-use opentalk_roomserver_report_generation::ToReportDateTime as _;
+use opentalk_report_generation::ToReportDateTime as _;
 use opentalk_types_common::users::{DisplayName, UserId};
 
 use super::StopInfo;
@@ -64,7 +64,7 @@ impl VoteData {
                 })?
                 .clone(),
             id: start.parameters.legal_vote_id,
-            start_time: start.parameters.start_time.into_report_date_time(&timezone),
+            start_time: start.parameters.start_time.to_report_date_time(&timezone),
             participant_count: start.parameters.max_votes,
             duration: start.parameters.inner.duration,
             enable_abstain: start.parameters.inner.enable_abstain,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_report_generation::ReportDateTime;
+use opentalk_report_generation::ReportDateTime;
 use serde::Serialize;
 
 use crate::report::data::StopReason;

@@ -4960,6 +4960,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-report-generation"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5519806c4b4214d669a7259e527a39df1a69a379f8ef5a1817fcecb5e9b07c60"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "ecow",
+ "glob",
+ "log",
+ "serde",
+ "snafu",
+ "typst",
+ "typst-kit",
+ "typst-pdf",
+]
+
+[[package]]
 name = "opentalk-roomserver"
 version = "0.0.15-dev"
 dependencies = [
@@ -5189,7 +5207,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "insta",
- "opentalk-roomserver-report-generation",
+ "opentalk-report-generation",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5257,7 +5275,7 @@ version = "0.0.15-dev"
 dependencies = [
  "chrono-tz",
  "insta",
- "opentalk-roomserver-report-generation",
+ "opentalk-report-generation",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5392,7 +5410,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "insta",
- "opentalk-roomserver-report-generation",
+ "opentalk-report-generation",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5428,23 +5446,6 @@ dependencies = [
  "testcontainers",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "opentalk-roomserver-report-generation"
-version = "0.0.15-dev"
-dependencies = [
- "chrono",
- "chrono-tz",
- "ecow",
- "pretty_assertions",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tracing",
- "typst",
- "typst-kit",
- "typst-pdf",
 ]
 
 [[package]]

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_report_generation::ReportDateTime;
+use opentalk_report_generation::ReportDateTime;
 use opentalk_roomserver_types_legal_vote::vote::VoteOption;
 use opentalk_types_common::users::DisplayName;
 use serde::{Deserialize, Serialize};

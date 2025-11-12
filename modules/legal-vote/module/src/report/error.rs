@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_report_generation::ReportGenerationError;
+use opentalk_report_generation::ReportGenerationError;
 use opentalk_types_common::users::UserId;
 use thiserror::Error;
 

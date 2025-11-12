@@ -4,7 +4,7 @@
 use std::{collections::BTreeMap, path::Path};
 
 use chrono_tz::Tz;
-use opentalk_roomserver_report_generation::ToReportDateTime;
+use opentalk_report_generation::{GenerateOptions, ToReportDateTime};
 use opentalk_roomserver_room::{AssetUploaded, ModuleAssetStorage};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
@@ -142,8 +142,8 @@ impl MeetingReportModule {
                     .flatten()
                     .map(String::from)
                     .unwrap_or_default(),
-                joined_at: state.joined_at.into_report_date_time(&tz),
-                left_at: state.left_at.into_report_date_time(&tz),
+                joined_at: state.joined_at.to_report_date_time(&tz),
+                left_at: state.left_at.to_report_date_time(&tz),
             })
             .collect();
 
@@ -164,9 +164,10 @@ impl MeetingReportModule {
             .map_err(|_| MeetingReportError::Generate)?
             .into_bytes()
             .into();
-        let report = opentalk_roomserver_report_generation::generate_pdf_report(
+        let report = opentalk_report_generation::generate_pdf_report(
             template,
-            BTreeMap::from_iter([(Path::new("data.json"), serialized)]),
+            BTreeMap::from_iter([(Path::new("data.json"), (None, serialized))]),
+            &GenerateOptions::default(),
         )
         .map_err(|_| MeetingReportError::Generate)?;
 
@@ -190,10 +191,10 @@ impl MeetingReportModule {
         let event = event.as_ref();
         let starts_at = event
             .and_then(|event| event.starts_at)
-            .into_report_date_time(&tz);
+            .to_report_date_time(&tz);
         let ends_at = event
             .and_then(|event| event.ends_at)
-            .into_report_date_time(&tz);
+            .to_report_date_time(&tz);
         let title = event.map_or_else(
             || EventTitle::from_str_lossy(""),
             |event| event.title.clone(),

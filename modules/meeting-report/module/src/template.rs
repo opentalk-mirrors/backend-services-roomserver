@@ -6,7 +6,7 @@
 // IMPORTANT: when changing the structs below, make sure to update the following documentation:
 // * docs/admin/core/meeting_reports.md
 
-use opentalk_roomserver_report_generation::ReportDateTime;
+use opentalk_report_generation::ReportDateTime;
 use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
 use opentalk_types_common::{
     events::{EventDescription, EventTitle},

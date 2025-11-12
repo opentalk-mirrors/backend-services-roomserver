@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use chrono_tz::Tz;
-use opentalk_roomserver_report_generation::{ReportDateTime, ToReportDateTime as _};
+use opentalk_report_generation::{ReportDateTime, ToReportDateTime as _};
 use opentalk_roomserver_types_legal_vote::{
     cancel::CancelReason, issue::Issue, parameters::Parameters, token::Token, vote::VoteOption,
 };
@@ -39,7 +39,7 @@ impl Builder {
         timezone: Tz,
     ) -> Result<ReportData, Error> {
         for ProtocolEntry { timestamp, event } in protocol {
-            let time = timestamp.into_report_date_time(&timezone);
+            let time = timestamp.to_report_date_time(&timezone);
             self.handle_event(event, time)?;
         }
 
