@@ -4984,6 +4984,7 @@ dependencies = [
  "opentalk-roomserver-module-shared-folder",
  "opentalk-roomserver-module-subroom-audio",
  "opentalk-roomserver-module-timer",
+ "opentalk-roomserver-module-training-participation-report",
  "opentalk-roomserver-module-whiteboard",
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
@@ -5032,6 +5033,7 @@ dependencies = [
  "opentalk-roomserver-types-shared-folder",
  "opentalk-roomserver-types-subroom-audio",
  "opentalk-roomserver-types-timer",
+ "opentalk-roomserver-types-training-participation-report",
  "opentalk-roomserver-types-whiteboard",
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -5383,6 +5385,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-module-training-participation-report"
+version = "0.0.14-dev"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "chrono-tz",
+ "insta",
+ "opentalk-roomserver-report-generation",
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-training-participation-report",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pdf-extract",
+ "rand 0.9.2",
+ "serde",
+ "serde_json",
+ "test-log",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "opentalk-roomserver-module-whiteboard"
 version = "0.0.14-dev"
 dependencies = [
@@ -5682,6 +5708,20 @@ name = "opentalk-roomserver-types-timer"
 version = "0.0.14-dev"
 dependencies = [
  "chrono",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-training-participation-report"
+version = "0.0.14-dev"
+dependencies = [
+ "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",

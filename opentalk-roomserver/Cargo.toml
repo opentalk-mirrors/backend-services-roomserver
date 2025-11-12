@@ -35,6 +35,7 @@ opentalk-roomserver-module-raise-hands.workspace = true
 opentalk-roomserver-module-shared-folder.workspace = true
 opentalk-roomserver-module-subroom-audio.workspace = true
 opentalk-roomserver-module-timer.workspace = true
+opentalk-roomserver-module-training-participation-report.workspace = true
 opentalk-roomserver-module-whiteboard.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true

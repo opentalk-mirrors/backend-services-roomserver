@@ -18,6 +18,9 @@ use opentalk_roomserver_types_polls::{POLLS_MODULE_ID, event::PollsEvent};
 use opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, event::RaiseHandsEvent};
 use opentalk_roomserver_types_subroom_audio::{SUBROOM_AUDIO_MODULE_ID, event::SubroomAudioEvent};
 use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
+use opentalk_roomserver_types_training_participation_report::{
+    TRAINING_PARTICIPATION_REPORT_MODULE_ID, TrainingParticipationReportEvent,
+};
 use opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardEvent};
 use opentalk_types_common::{
     modules::{CORE_MODULE_ID, ModuleId},
@@ -75,6 +78,7 @@ pub enum SignalingModuleEvent {
     MeetingNotes(MeetingNotesEvent),
     Whiteboard(WhiteboardEvent),
     LegalVote(LegalVoteEvent),
+    TrainingParticipationReport(TrainingParticipationReportEvent),
 }
 
 impl SignalingModuleEvent {
@@ -97,6 +101,7 @@ impl SignalingModuleEvent {
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
             Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
+            Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
         }
     }
 }
@@ -133,6 +138,7 @@ mod tests {
         state::{WhisperGroup, WhisperState},
     };
     use opentalk_roomserver_types_timer::TimerEvent;
+    use opentalk_roomserver_types_training_participation_report::TrainingParticipationReportEvent;
     use opentalk_roomserver_types_whiteboard::WhiteboardEvent;
     use opentalk_types_common::{assets::AssetId, modules::ModuleId, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
@@ -547,6 +553,28 @@ mod tests {
             "vote_option": "yes",
             "issuer": "00000000-0000-0000-0000-000000000002",
             "consumed_token": "11111111114"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_training_participation_report() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
+            payload: SignalingModuleEvent::TrainingParticipationReport(
+                TrainingParticipationReportEvent::PresenceConfirmationLogged,
+            ),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "timestamp": "1970-01-01T00:00:00Z",
+          "namespace": "training_participation_report",
+          "payload": {
+            "message": "presence_confirmation_logged"
           }
         }
         "#);

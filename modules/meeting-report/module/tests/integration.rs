@@ -40,7 +40,7 @@ async fn generate_meeting_report() {
         panic!("Expected PdfAsset event, got {event:#?}");
     };
 
-    let file = room.stored_file(asset_id).await.unwrap();
+    let file = room.stored_asset(asset_id).await.unwrap();
     // Title, details, start & end are missing because they do not exist in the
     // TestRoom
     assert_snapshot!(pdf_extract::extract_text_from_mem(&file).unwrap(), @r"
