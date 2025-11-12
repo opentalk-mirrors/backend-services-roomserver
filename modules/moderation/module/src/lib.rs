@@ -128,11 +128,12 @@ impl SignalingModule for ModerationModule {
                 new_role,
             } => Self::update_participant_role(ctx, sender, participant_id, new_role),
             ModerationCommand::Debrief(kick_scope) => Self::debrief(ctx, sender, kick_scope),
-            ModerationCommand::EnableWaitingRoom => Self::enable_waiting_room(ctx, sender, true),
+            ModerationCommand::EnableWaitingRoom => Self::enable_waiting_room(ctx, sender),
             ModerationCommand::Accept { target } => {
-                Self::accept_waiting_room_participant(ctx, sender, target)
+                Self::accept_waiting_participant(ctx, sender, target)
             }
-            ModerationCommand::DisableWaitingRoom => Self::enable_waiting_room(ctx, sender, false),
+            ModerationCommand::DisableWaitingRoom => Self::disable_waiting_room(ctx, sender),
+
             ModerationCommand::SendToWaitingRoom { target } => {
                 Self::send_to_waiting_room(ctx, sender, target)
             }
@@ -215,7 +216,7 @@ impl ModerationModule {
         }
 
         if !ctx.room_task_info.room.waiting_room {
-            Self::set_waiting_room_enabled(ctx, true)?;
+            Self::set_waiting_room_state(ctx, true)?;
         }
 
         ctx.send_ws_message([target], ModerationEvent::Kicked)?;
@@ -381,7 +382,7 @@ impl ModerationModule {
         )?;
 
         if !ctx.room_task_info.room.waiting_room {
-            Self::set_waiting_room_enabled(ctx, true)?;
+            Self::set_waiting_room_state(ctx, true)?;
         }
 
         ctx.send_ws_message(kicked.clone(), ModerationEvent::Kicked)?;
@@ -393,13 +394,34 @@ impl ModerationModule {
     fn enable_waiting_room(
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
-        enabled: bool,
     ) -> Result<(), SignalingModuleError<ModerationError>> {
         if !ctx.is_moderator(sender) {
             return Err(ModerationError::InsufficientPermissions.into());
         }
 
-        Self::set_waiting_room_enabled(ctx, enabled)?;
+        Self::set_waiting_room_state(ctx, true)?;
+
+        Ok(())
+    }
+
+    /// Disable the waiting room, if the sender has moderator permissions.
+    ///
+    /// This will accept all waiting participants.
+    fn disable_waiting_room(
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        // we need to collect here since two references to `ctx` are not allowed
+        let waiting_participants: Vec<_> = ctx.waiting_participants.keys().copied().collect();
+        for p in waiting_participants {
+            Self::accept_waiting_participant_unchecked(ctx, p)?;
+        }
+
+        Self::set_waiting_room_state(ctx, false)?;
 
         Ok(())
     }
@@ -422,7 +444,9 @@ impl ModerationModule {
         (kicked, not_kicked)
     }
 
-    fn accept_waiting_room_participant(
+    /// Accept the waiting participant and allow them to join the meeting.
+    /// Ensures that the sender of the command has moderator permissions.
+    fn accept_waiting_participant(
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         target: ParticipantId,
@@ -432,6 +456,13 @@ impl ModerationModule {
             return Err(ModerationError::InsufficientPermissions.into());
         }
 
+        Self::accept_waiting_participant_unchecked(ctx, target)
+    }
+
+    fn accept_waiting_participant_unchecked(
+        ctx: &mut ModuleContext<'_, Self>,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
         let Some(participant) = ctx.waiting_participants.get_mut(&target) else {
             tracing::debug!(
                 "Failed to send `accept` to waiting participant: participant not known ({target})"
@@ -454,7 +485,8 @@ impl ModerationModule {
         Ok(())
     }
 
-    fn set_waiting_room_enabled(
+    /// Set the waiting room state without checking permissions.
+    fn set_waiting_room_state(
         ctx: &mut ModuleContext<'_, Self>,
         enabled: bool,
     ) -> Result<(), FatalError> {
@@ -481,7 +513,7 @@ impl ModerationModule {
         }
 
         if !ctx.room_task_info.room.waiting_room {
-            Self::set_waiting_room_enabled(ctx, true)?;
+            Self::set_waiting_room_state(ctx, true)?;
         }
 
         ctx.send_ws_message([target], ModerationEvent::SentToWaitingRoom)?;
