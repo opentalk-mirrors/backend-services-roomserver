@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.91.0-alpine AS builder
+
+RUN mkdir /opentalk-roomserver
+WORKDIR /opentalk-roomserver
+
+ADD . /opentalk-roomserver
+
+RUN apk --no-cache add curl
+
+RUN cargo build --release --locked -p opentalk-roomserver
+
+FROM scratch
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+WORKDIR /opentalk-roomserver
+
+COPY --from=builder /opentalk-roomserver/target/release/opentalk-roomserver .
+
+USER $USERID:$GROUPID
+
+EXPOSE 11333
+ENTRYPOINT [ "./opentalk-roomserver" ]
