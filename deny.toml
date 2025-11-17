@@ -247,6 +247,7 @@ skip = [
   { name = "float-cmp", version = "0.9" },
   { name = "foldhash", version = "0.1" },
   { name = "getrandom", version = "0.2" },
+  { name = "gif", version = "0.13" },
   { name = "hashbrown", version = "0.15" },
   { name = "heck", version = "0.4.1" },
   { name = "http", version = "0.2.12" },
@@ -293,6 +294,8 @@ skip = [
   { name = "zerovec", version = "0.10" },
   { name = "zerovec-derive", version = "0.10" },
   { name = "zip", version = "0.6" },
+  { name = "zune-core", version = "0.4" },
+  { name = "zune-jpeg", version = "0.4" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
