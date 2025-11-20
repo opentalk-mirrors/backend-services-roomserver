@@ -9,6 +9,7 @@ use opentalk_roomserver_client::{Client, Error, RequestTokenError};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
+use opentalk_service_auth::ApiKey;
 use opentalk_types_common::{rooms::RoomId, utils::ExampleData};
 use testcontainers::{
     ContainerAsync, GenericImage, ImageExt,
@@ -18,13 +19,16 @@ use testcontainers::{
 use url::Url;
 
 const ROOMSERVER_PORT: u16 = 11333;
-const ROOMSERVER_API_TOKEN: &str = "secret";
+
+fn api_key() -> ApiKey {
+    ApiKey::new("roomserver", "secret")
+}
 
 #[test_log::test(tokio::test)]
 #[ignore = "Requires an up-to-date roomserver container"]
 async fn put_room() {
     let (_container, base_url) = spawn_roomserver().await;
-    let client = Client::new(base_url, ROOMSERVER_API_TOKEN).unwrap();
+    let client = Client::new(base_url, api_key());
 
     client
         .put_room(RoomId::from_u128(0x1), RoomParameters::example_data())
@@ -36,7 +40,7 @@ async fn put_room() {
 #[ignore = "Requires an up-to-date roomserver container"]
 async fn request_token() {
     let (_container, base_url) = spawn_roomserver().await;
-    let client = Client::new(base_url, ROOMSERVER_API_TOKEN).unwrap();
+    let client = Client::new(base_url, api_key());
 
     let access = client
         .request_token(
@@ -64,7 +68,7 @@ async fn request_token() {
 #[ignore = "Requires an up-to-date roomserver container"]
 async fn request_token_without_room_params() {
     let (_container, base_url) = spawn_roomserver().await;
-    let client = Client::new(base_url, ROOMSERVER_API_TOKEN).unwrap();
+    let client = Client::new(base_url, api_key());
 
     let error = client
         .request_token(

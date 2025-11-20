@@ -4,6 +4,7 @@
 pub mod legacy;
 pub mod v1;
 
+use opentalk_service_auth::ApiKey;
 use opentalk_types_common::rooms::RoomId;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -31,7 +32,7 @@ pub fn default() -> DuiSettings {
     DuiSettings {
         theme: DuiTheme::default(),
         roomserver_url: Url::parse("http://localhost:11333").expect("Static URL must be valid"),
-        roomserver_api_token: "secret".to_string(),
+        roomserver_api_key: ApiKey::new("roomserver", ""),
         event_widget_layout: EventWidgetLayout::new(),
         is_default: true,
         history: MessageHistory::default(),

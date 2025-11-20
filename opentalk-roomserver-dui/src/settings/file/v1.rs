@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use opentalk_service_auth::ApiKey;
 use opentalk_types_common::rooms::RoomId;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -28,8 +29,8 @@ pub struct DuiSettingsV1 {
     pub roomserver_url: Url,
 
     /// API token for the room server.
-    #[serde(default)]
-    pub roomserver_api_token: String,
+    #[serde(default = "empty_api_key")]
+    pub roomserver_api_key: ApiKey,
 
     /// Layout of the event widget.
     #[serde(default)]
@@ -61,6 +62,10 @@ pub struct DuiSettingsV1 {
 
     #[serde(default)]
     pub livekit: LiveKitSettings,
+}
+
+fn empty_api_key() -> ApiKey {
+    ApiKey::new("roomserver", "")
 }
 
 impl DuiSettingsV1 {

@@ -72,6 +72,7 @@ allow = [
   "MIT",
   "MPL-2.0",
   "OFL-1.1",
+  "OpenSSL",
   "Ubuntu-font-1.0",
   "Unicode-3.0",
   "Zlib",
@@ -159,6 +160,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-web-api" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-service-auth" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-api-common" },
@@ -258,6 +262,7 @@ skip = [
   { name = "imagesize", version = "0.13" },
   { name = "itertools", version = "0.11" },
   { name = "itertools", version = "0.12" },
+  { name = "jsonwebtoken", version = "9.3" },
   { name = "kurbo", version = "0.11" },
   { name = "linux-raw-sys", version = "0.4" },
   { name = "litemap", version = "0.7" },
@@ -286,6 +291,7 @@ skip = [
   { name = "toml_datetime", version = "0.6.11" },
   { name = "toml_edit", version = "0.22" },
   { name = "tungstenite", version = "0.20" },
+  { name = "untrusted", version = "0.7" },
   { name = "webpki-roots", version = "0.25" },
   { name = "writeable", version = "0.5" },
   { name = "yoke", version = "0.7" },

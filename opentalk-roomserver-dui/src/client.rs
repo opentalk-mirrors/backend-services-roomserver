@@ -9,6 +9,7 @@ use opentalk_roomserver_client::{
 use opentalk_roomserver_types::{
     api::RoomServerAccess, client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
+use opentalk_service_auth::ApiKey;
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use tokio::{
     runtime::Runtime,
@@ -27,7 +28,7 @@ pub enum RunnerCommand {
     RoomServerAccess {
         response_tx: tokio::sync::oneshot::Sender<RunnerResponse<()>>,
         url: Url,
-        secret: String,
+        api_key: ApiKey,
     },
 
     QueryRoom {
@@ -118,13 +119,13 @@ impl RoomServerRunner {
         runtime: &Runtime,
         egui_ctx: egui::Context,
         roomserver_url: Url,
-        api_token: String,
+        api_key: ApiKey,
     ) -> anyhow::Result<(
         mpsc::UnboundedReceiver<RunnerEvent>,
         mpsc::UnboundedSender<RunnerCommand>,
         watch::Receiver<SignalingState>,
     )> {
-        let client = Client::new(roomserver_url, &api_token)?;
+        let client = Client::new(roomserver_url, api_key);
 
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         let (command_tx, command_rx) = mpsc::unbounded_channel();
@@ -239,14 +240,10 @@ impl RoomServerRunner {
             RunnerCommand::RoomServerAccess {
                 response_tx,
                 url,
-                secret,
+                api_key,
             } => {
                 self.disconnect().await?;
-                let Ok(client) = Client::new(url, &secret) else {
-                    log::info!("Invalid roomserver secret");
-                    let _ = response_tx.send(Err(anyhow::anyhow!("Invalid roomserver secret")));
-                    return Ok(());
-                };
+                let client = Client::new(url, api_key);
                 self.client = client;
                 let _ = response_tx.send(Ok(()));
             }

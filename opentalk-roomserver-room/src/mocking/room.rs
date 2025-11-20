@@ -23,6 +23,7 @@ use opentalk_roomserver_types::{
     public_user_profile::PublicUserProfile,
     room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
 };
+use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use opentalk_types_common::{
     assets::AssetId,
     rooms::RoomId,
@@ -68,11 +69,12 @@ impl From<ReceiveError> for Error {
 fn settings() -> Settings {
     let port = 11333;
     let public_url = Url::parse(&format!("http://localhost:{port}")).unwrap();
+
     Settings {
         http: Http {
             address: std::net::IpAddr::V6(Ipv6Addr::LOCALHOST),
             port,
-            api_token: "Secret".to_string(),
+            api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]),
             disable_openapi: true,
             public_url,
         },

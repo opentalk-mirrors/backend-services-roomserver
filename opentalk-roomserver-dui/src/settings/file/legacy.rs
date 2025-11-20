@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use opentalk_service_auth::ApiKey;
 use opentalk_types_common::rooms::RoomId;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -102,7 +103,7 @@ impl From<DuiSettingsLegacy> for DuiSettings {
             is_default: false,
             theme: value.theme,
             roomserver_url: value.roomserver_url,
-            roomserver_api_token: value.roomserver_api_token,
+            roomserver_api_key: ApiKey::new("roomserver", value.roomserver_api_token),
             event_widget_layout: value.event_widget_layout,
             history: value.history,
             room_ids: value.room_ids,

@@ -3,6 +3,7 @@
 
 use std::{net::IpAddr, path::Path};
 
+use anyhow::Context;
 use eframe::CreationContext;
 use egui::ThemePreference;
 use opentalk_roomserver_common::settings::{Settings, SettingsFile};
@@ -59,10 +60,13 @@ pub fn load(
             roomserver_settings.http.address,
             roomserver_settings.http.port,
         )?;
-        let roomserver_api_token = roomserver_settings.http.api_token;
+        let roomserver_api_token = roomserver_settings.http.api_keys;
 
         log::info!("Overwrite roomserver URL and API token");
-        settings.roomserver_api_token = roomserver_api_token;
+        settings.roomserver_api_key = roomserver_api_token
+            .into_inner()
+            .pop()
+            .context("Missing api key in roomserver config")?;
         settings.roomserver_url = roomserver_url;
 
         settings.mark_custom();
@@ -110,6 +114,7 @@ fn build_url(host: IpAddr, port: u16) -> anyhow::Result<Url> {
 
 #[cfg(test)]
 mod tests {
+    use opentalk_service_auth::ApiKey;
     use serde_json::json;
 
     use super::*;
@@ -124,7 +129,7 @@ mod tests {
             serde_json::from_value(json_data).expect("Deserialization failed");
         assert_eq!(settings.theme, DuiTheme::System);
         assert_eq!(settings.roomserver_url.as_str(), "http://example.com/");
-        assert_eq!(settings.roomserver_api_token, "");
+        assert_eq!(settings.roomserver_api_key, ApiKey::new("roomserver", ""));
     }
 
     #[test]
@@ -137,6 +142,6 @@ mod tests {
             serde_json::from_value(json_data).expect("Deserialization failed");
         assert_eq!(settings.theme, DuiTheme::System);
         assert_eq!(settings.roomserver_url.as_str(), "http://example.com/");
-        assert_eq!(settings.roomserver_api_token, "");
+        assert_eq!(settings.roomserver_api_key, ApiKey::new("roomserver", ""));
     }
 }

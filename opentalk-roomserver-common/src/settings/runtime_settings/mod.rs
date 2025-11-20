@@ -6,6 +6,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use conference::Conference;
 use defaults::Defaults;
 use http::Http;
+use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use telemetry::{Metrics, Monitoring, Tracing};
 use url::Url;
 
@@ -44,7 +45,7 @@ impl Settings {
             http: Http {
                 address: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
                 port,
-                api_token,
+                api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", api_token)]),
                 disable_openapi: false,
                 public_url,
             },

@@ -58,9 +58,14 @@ impl SettingsView {
             ui.add(edit).labelled_by(name_label.id);
             ui.end_row();
 
-            let name_label = ui.label("Api Token: ");
-            ui.text_edit_singleline(&mut settings.roomserver_api_token)
+            let name_label = ui.label("Api key id: ");
+            ui.text_edit_singleline(&mut settings.roomserver_api_key.id.0)
                 .labelled_by(name_label.id);
+
+            let name_label = ui.label("Api secret: ");
+            ui.text_edit_singleline(&mut settings.roomserver_api_key.secret.0)
+                .labelled_by(name_label.id);
+
             ui.end_row();
         });
     }

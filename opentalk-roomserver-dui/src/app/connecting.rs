@@ -138,7 +138,7 @@ impl ConnectingView {
                 command_tx.send(RunnerCommand::RoomServerAccess {
                     response_tx,
                     url: roomserver_url.clone(),
-                    secret: settings.roomserver_api_token.clone(),
+                    api_key: settings.roomserver_api_key.clone(),
                 })?;
                 self.progress.push_server_settings =
                     SetupProgress::Ongoing((roomserver_url, response_rx));

@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use async_trait::async_trait;
 use axum::{
     extract::MatchedPath,
@@ -141,8 +141,14 @@ where
         app_state,
     };
 
+    let auth_middleware = settings
+        .http
+        .api_keys
+        .auth_middleware()
+        .context("Invalid API key configuration")?;
+
     let mut router = Router::new()
-        .nest("/v1", v1::routes(settings.http.api_token.clone()))
+        .nest("/v1", v1::routes(auth_middleware))
         .with_state(ctx)
         .layer(
             TraceLayer::new_for_http()
