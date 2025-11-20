@@ -119,6 +119,13 @@ api_keys = [{ id = "roomserver", secret = "secret" }]
 #[reports.typst]
 # The location where typst looks for packages.
 #packages_path = "/usr/share/typst/packages"
+
+# Optional orchestrator configuration
+#[orchestrator]
+# The API key of the orchestrator
+#api_key = { id = "orchestrator", secret = "secret" }
+# The orchestrator URL
+#url = "http://127.0.0.1:11222"
 ```
 
 <!-- end:fromfile:example/roomserver.toml.md -->

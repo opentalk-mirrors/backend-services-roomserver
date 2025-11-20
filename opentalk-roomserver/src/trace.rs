@@ -19,7 +19,8 @@ use tracing_subscriber::{
 };
 use uuid::Uuid;
 
-const DEFAULT_LOGGING_DIRECTIVES: &str = "warn,opentalk_roomserver=info";
+const DEFAULT_LOGGING_DIRECTIVES: &str =
+    "warn,opentalk_roomserver=info,opentalk_orchestrator_client=info";
 
 pub fn init(settings: Option<&Tracing>) -> anyhow::Result<()> {
     // Layer which acts as filter of traces and spans.

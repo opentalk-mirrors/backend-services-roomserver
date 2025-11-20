@@ -13,10 +13,12 @@ use clap::Parser;
 use cli::{Args, SubCommand};
 use futures::TryFutureExt;
 use metrics::MetricHandle;
+use opentalk_orchestrator_client::OrchestratorClient;
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
     settings::{Monitoring, Settings, SettingsFile},
 };
+use opentalk_roomserver_room::{RoomTaskRegistry, orchestrator_metrics::OrchestratorStateProvider};
 use service_probe::{ServiceState, start_probe, stop_probe};
 use tokio::{
     signal,
@@ -99,9 +101,44 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
         })?
         .collect();
 
+    let room_registry = if let Some(orchestrator_config) = &settings.orchestrator {
+        let roomserver_key_ids = settings
+            .http
+            .api_keys
+            .inner()
+            .iter()
+            .map(|key| key.id.clone());
+
+        let (client, handle) =
+            OrchestratorClient::create(orchestrator_config.clone(), roomserver_key_ids).await;
+
+        let room_registry =
+            RoomTaskRegistry::new(settings.conference.room_idle_timeout, Some(handle));
+
+        let state_provider = OrchestratorStateProvider::new(room_registry.clone());
+
+        let client_address = settings.http.service_url.clone();
+
+        set.spawn(client.run(
+            client_address,
+            state_provider,
+            wait_shutdown(app_state.subscribe()),
+        ));
+
+        room_registry
+    } else {
+        RoomTaskRegistry::new(settings.conference.room_idle_timeout, None)
+    };
+
     set.spawn(
-        api::run_web_server(settings, addresses, app_state.clone(), metric_layer)
-            .map_err(decorate_error("API server exited with error")),
+        api::run_web_server(
+            settings,
+            addresses,
+            room_registry,
+            app_state.clone(),
+            metric_layer,
+        )
+        .map_err(decorate_error("API server exited with error")),
     );
 
     match set.join_next().await {

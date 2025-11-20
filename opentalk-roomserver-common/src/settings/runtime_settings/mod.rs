@@ -4,6 +4,7 @@
 use conference::Conference;
 use defaults::Defaults;
 use http::Http;
+use opentalk_orchestrator_client::OrchestratorConfig;
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use reports::Reports;
 use telemetry::{Metrics, Monitoring, Tracing};
@@ -22,6 +23,8 @@ pub mod telemetry;
 pub struct Settings {
     /// HTTP web server settings
     pub http: Http,
+
+    pub orchestrator: Option<OrchestratorConfig>,
 
     pub monitoring: Option<Monitoring>,
 
@@ -55,6 +58,7 @@ impl Settings {
                 service_url,
                 public_url,
             },
+            orchestrator: None,
             monitoring: None,
             metrics: None,
             tracing: None,
@@ -74,6 +78,7 @@ impl TryFrom<SettingsFile> for Settings {
     fn try_from(value: SettingsFile) -> Result<Self, Self::Error> {
         Ok(Settings {
             http: value.http.try_into()?,
+            orchestrator: value.orchestrator,
             monitoring: value.monitoring.map(Into::into),
             metrics: value.metrics.map(Into::into),
             tracing: value.tracing.map(Into::into),
