@@ -72,9 +72,9 @@ opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0
 opentalk-roomserver-types-training-participation-report = { path = "modules/training-participation-report/types", version = "0.0.15-dev" }
 opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.0.15-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.15-dev" }
-opentalk-types-api-v1 = { version = "0.46.0", features = ["axum"] }
-opentalk-types-common = { version = "0.39.0", features = ["serde", "utoipa"] }
-opentalk-types-signaling = { version = "0.41.0", features = [
+opentalk-types-api-v1 = { version = "0.47.0", features = ["axum"] }
+opentalk-types-common = { version = "0.40.0", features = ["serde", "utoipa"] }
+opentalk-types-signaling = { version = "0.42.0", features = [
   "serde",
   "utoipa",
 ] }
