@@ -4989,7 +4989,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5039,7 +5039,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-client"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "bytes",
@@ -5080,7 +5080,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-common"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "config",
@@ -5094,7 +5094,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-dui"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5126,7 +5126,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-mocking-livekit"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "livekit",
@@ -5141,7 +5141,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-automod"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-mocking-livekit",
@@ -5162,7 +5162,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-chat"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-room",
@@ -5180,7 +5180,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-e2ee"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "bytes",
  "opentalk-roomserver-room",
@@ -5196,7 +5196,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-echo"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
@@ -5211,7 +5211,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-legal-vote"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5236,7 +5236,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-livekit"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "futures",
@@ -5258,7 +5258,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-meeting-notes"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5281,7 +5281,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-meeting-report"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "chrono-tz",
  "insta",
@@ -5303,7 +5303,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-moderation"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "livekit",
@@ -5329,7 +5329,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-polls"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "opentalk-roomserver-room",
@@ -5345,7 +5345,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-raise-hands"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "insta",
  "opentalk-roomserver-room",
@@ -5361,7 +5361,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-shared-folder"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
@@ -5377,7 +5377,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-subroom-audio"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "livekit-api",
@@ -5397,7 +5397,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-timer"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5414,7 +5414,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-training-participation-report"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5438,7 +5438,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-module-whiteboard"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "bytes",
@@ -5460,7 +5460,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-room"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5494,7 +5494,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-signaling"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5515,7 +5515,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5534,7 +5534,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-automod"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5547,7 +5547,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-chat"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "derive_more",
  "insta",
@@ -5563,7 +5563,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-e2ee"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "bytes",
  "opentalk-roomserver-signaling",
@@ -5577,7 +5577,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-echo"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-types-common",
@@ -5586,7 +5586,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-legal-vote"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "basen",
  "chrono",
@@ -5606,7 +5606,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-livekit"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5618,7 +5618,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-meeting-notes"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "insta",
  "opentalk-roomserver-signaling",
@@ -5633,7 +5633,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-meeting-report"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -5645,7 +5645,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-moderation"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "chrono",
  "insta",
@@ -5661,7 +5661,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-polls"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "chrono",
  "derive_more",
@@ -5678,7 +5678,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-raise-hands"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "insta",
  "opentalk-roomserver-signaling",
@@ -5692,7 +5692,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-shared-folder"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-types-common",
@@ -5702,7 +5702,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-subroom-audio"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "derive_more",
  "opentalk-roomserver-signaling",
@@ -5716,7 +5716,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-timer"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "chrono",
  "opentalk-roomserver-signaling",
@@ -5730,7 +5730,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-training-participation-report"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "insta",
  "opentalk-roomserver-signaling",
@@ -5744,7 +5744,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-whiteboard"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "insta",
  "opentalk-roomserver-signaling",
@@ -5759,7 +5759,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-web-api"
-version = "0.0.15-dev"
+version = "0.0.15"
 dependencies = [
  "async-trait",
  "axum",
