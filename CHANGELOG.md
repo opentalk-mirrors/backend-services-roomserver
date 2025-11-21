@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.15] - 2025-11-21
+
+[0.0.15]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.14...v0.0.15
+
+### 🐛 Bug fixes
+
+- (training-participation-report) Publish training participation report types ([!704](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/704))
+
+### 🔨 Refactor
+
+- Use `opentalk-report-generation` instead of a custom crate ([!701](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/701))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!713](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/713))
+- (deps) Update opentalk-types ([!723](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/723))
+
+### Ci
+
+- Add from scratch image ([!706](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/706))
+
 ## [0.0.14] - 2025-11-12
 
 [0.0.14]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.13...v0.0.14
