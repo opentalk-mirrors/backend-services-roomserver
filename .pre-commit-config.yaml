@@ -85,7 +85,7 @@ repos:
       - id: commitlint
         stages: [commit-msg]
   - repo: https://github.com/daveshanley/vacuum
-    rev: v0.19.5
+    rev: v0.20.2
     hooks:
       - id: vacuum
         files: ^api/.*\.(json|ya?ml)$
