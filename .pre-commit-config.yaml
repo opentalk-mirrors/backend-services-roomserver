@@ -37,7 +37,7 @@ repos:
           - --workspace
           - --no-deps
   - repo: https://github.com/EmbarkStudios/cargo-deny
-    rev: 0.18.5
+    rev: 0.18.6
     hooks:
       - id: cargo-deny
         args:
