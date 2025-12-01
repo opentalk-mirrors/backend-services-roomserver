@@ -3,6 +3,7 @@
 
 use std::net::{IpAddr, Ipv4Addr};
 
+use opentalk_service_auth::service::ApiKeys;
 use serde::Deserialize;
 use url::Url;
 
@@ -21,8 +22,8 @@ pub struct Http {
     #[serde(default = "default_public_url")]
     pub public_url: Url,
 
-    /// The API token for service endpoints
-    pub api_token: String,
+    /// The configured API token for service endpoints
+    pub api_keys: ApiKeys,
 
     // Disable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
     // swagger endpoint under `/swagger`.

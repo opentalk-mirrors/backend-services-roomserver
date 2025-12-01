@@ -3,6 +3,8 @@
 
 use std::net::IpAddr;
 
+use opentalk_service_auth::service::ApiKeys;
+
 use crate::settings::settings_file;
 
 /// Settings for the HTTP server
@@ -17,8 +19,8 @@ pub struct Http {
     /// The publicly reachable URL of this server
     pub public_url: url::Url,
 
-    /// The API token for service endpoints
-    pub api_token: String,
+    /// The API keys for service endpoints
+    pub api_keys: ApiKeys,
 
     // Disable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
     // swagger endpoint under `/swagger`.
@@ -31,7 +33,7 @@ impl From<settings_file::http::Http> for Http {
             address: value.address,
             port: value.port,
             public_url: value.public_url,
-            api_token: value.api_token,
+            api_keys: value.api_keys,
             disable_openapi: value.disable_openapi,
         }
     }

@@ -7,12 +7,13 @@
 
 use api::signaling::{SignalingConnection, SignalingError};
 use bytes::Bytes;
-use http::{HeaderValue, header::InvalidHeaderValue};
+use http::{HeaderValue, StatusCode, header::InvalidHeaderValue};
 use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
 };
+use opentalk_service_auth::{ApiKey, EncodingError};
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use reqwest::{Client as ReqwestClient, Response, header::AUTHORIZATION};
 use serde::Deserialize;
@@ -21,24 +22,26 @@ use url::Url;
 
 pub mod api;
 
-/// The API token is invalid
 #[derive(Debug, Error)]
-#[error("invalid API token")]
-pub struct InvalidApiTokenError {
-    #[from]
-    source: InvalidHeaderValue,
+pub enum InvalidApiToken {
+    #[error("Failed to encode JSON web token: {0:?}")]
+    EncodingError(#[from] EncodingError),
+    #[error("Failed to create authorization header {0:?} ")]
+    ParsingError(#[from] InvalidHeaderValue),
 }
 
 #[derive(Debug, Error)]
 pub enum Error<T> {
+    #[error("Failed to set authorization header: {0}")]
+    TokenError(#[from] InvalidApiToken),
     #[error("Failed to parse URL: {0}")]
     UrlParse(#[from] url::ParseError),
     #[error("Reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("RoomServer returned an error: {0:#?}")]
     ApiError(#[from] ApiError<T>),
-    #[error("RoomServer returned an unexpected response")]
-    Unexpected,
+    #[error("RoomServer returned an unexpected response:\nstatus: {status}\nbody: {body}")]
+    Unexpected { status: StatusCode, body: String },
 }
 
 #[derive(Debug, Deserialize)]
@@ -52,7 +55,7 @@ pub struct ApiError<T> {
 #[serde(rename_all = "snake_case")]
 pub enum PutRoomError {
     #[error("The provided API token is invalid")]
-    Unauthorized,
+    InvalidApiToken,
     #[error("The room already exists, but is shutting down")]
     NotFound,
     #[error("An internal server error occurred")]
@@ -63,7 +66,7 @@ pub enum PutRoomError {
 #[serde(rename_all = "snake_case")]
 pub enum RequestTokenError {
     #[error("The provided API token is invalid")]
-    Unauthorized,
+    InvalidApiToken,
     #[error("The requested room does not exist and no room parameters were provided")]
     RoomParametersMissing,
     #[error("An internal server error occurred")]
@@ -76,23 +79,25 @@ pub enum RequestTokenError {
 pub struct Client {
     reqwest_client: ReqwestClient,
     base_url: Url,
-    api_token: HeaderValue,
+    api_key: ApiKey,
 }
 
 impl Client {
-    #[tracing::instrument(skip_all, fields(base_url = %base_url))]
-    pub fn new(base_url: Url, api_token: &str) -> Result<Client, InvalidApiTokenError> {
+    pub fn new(base_url: Url, api_key: ApiKey) -> Client {
         let reqwest_client = ReqwestClient::new();
 
-        let api_token = format!("bearer {api_token}").parse()?;
-        Ok(Self {
+        Self {
             reqwest_client,
             base_url,
-            api_token,
-        })
+            api_key,
+        }
     }
 
-    #[tracing::instrument(skip(parameters))]
+    fn auth_header(&self) -> Result<HeaderValue, InvalidApiToken> {
+        Ok(format!("Bearer {}", self.api_key.generate_jwt()?).parse()?)
+    }
+
+    #[tracing::instrument(skip(self, parameters))]
     pub async fn put_room(
         &self,
         room_id: RoomId,
@@ -102,7 +107,7 @@ impl Client {
         let response = self
             .reqwest_client
             .put(url)
-            .header(AUTHORIZATION, self.api_token.clone())
+            .header(AUTHORIZATION, self.auth_header()?)
             .json(&parameters)
             .send()
             .await?;
@@ -110,12 +115,14 @@ impl Client {
         if response.status().is_success() {
             return Ok(());
         }
+
         Err(Self::parse_api_error::<PutRoomError>(
+            response.status(),
             &response.bytes().await?,
         ))
     }
 
-    #[tracing::instrument(skip(client_parameters, room_parameters))]
+    #[tracing::instrument(skip(self, client_parameters, room_parameters))]
     pub async fn request_token(
         &self,
         room_id: RoomId,
@@ -126,7 +133,7 @@ impl Client {
         let response = self
             .reqwest_client
             .post(url)
-            .header(AUTHORIZATION, self.api_token.clone())
+            .header(AUTHORIZATION, &self.auth_header()?)
             .json(&TokenRequestBody {
                 client_parameters,
                 room_parameters,
@@ -142,35 +149,41 @@ impl Client {
         T: for<'de> Deserialize<'de>,
         E: for<'de> Deserialize<'de>,
     {
-        let success = response.status().is_success();
-        let bytes = response.bytes().await?;
+        let status = response.status();
+        let body = response.bytes().await?;
 
-        if success {
-            let result = serde_json::from_slice(&bytes).map_err(|_| {
+        if status.is_success() {
+            let result = serde_json::from_slice(&body).map_err(|_| {
                 tracing::error!(
                     "Received unexpected response from RoomServer: {}",
-                    String::from_utf8_lossy(&bytes)
+                    String::from_utf8_lossy(&body)
                 );
-                Error::Unexpected
+                Error::Unexpected {
+                    status,
+                    body: String::from_utf8_lossy(&body).into(),
+                }
             })?;
             return Ok(result);
         }
 
-        Err(Self::parse_api_error::<E>(&bytes))
+        Err(Self::parse_api_error::<E>(status, &body))
     }
 
-    fn parse_api_error<E>(bytes: &Bytes) -> Error<E>
+    fn parse_api_error<E>(status: StatusCode, body: &Bytes) -> Error<E>
     where
         E: for<'de> Deserialize<'de>,
     {
-        match serde_json::from_slice::<ApiError<E>>(bytes) {
+        match serde_json::from_slice::<ApiError<E>>(body) {
             Ok(err) => Error::ApiError(err),
             Err(_) => {
                 tracing::error!(
                     "Received unexpected error response from RoomServer: {}",
-                    String::from_utf8_lossy(bytes)
+                    String::from_utf8_lossy(body)
                 );
-                Error::Unexpected
+                Error::Unexpected {
+                    status,
+                    body: String::from_utf8_lossy(body).into(),
+                }
             }
         }
     }

@@ -73,7 +73,7 @@ impl RoomServerApp {
             &runtime,
             cc.egui_ctx.clone(),
             settings.roomserver_url.clone(),
-            settings.roomserver_api_token.clone(),
+            settings.roomserver_api_key.clone(),
         )?;
 
         // Open the settings dialog if there where no settings provided

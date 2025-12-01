@@ -30,6 +30,7 @@ opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-chat.workspace = true
 opentalk-roomserver-types-moderation.workspace = true
 opentalk-roomserver-types-timer.workspace = true
+opentalk-service-auth.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 opentalk-version.workspace = true

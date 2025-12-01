@@ -3,19 +3,18 @@
 
 use super::Router;
 
-mod middleware;
 pub mod rooms;
 pub mod signaling;
 
-use middleware::api_token::ServiceAuthLayer;
+use opentalk_service_auth::service::ApiKeyAuthorization;
 pub use rooms::{RoomAction, RoomBackend};
 use signaling::SignalingBackend;
 
 pub trait Backend: Send + Sync + Clone + Sized + RoomBackend + SignalingBackend {}
 
-pub fn routes<B: Backend + 'static>(api_token: String) -> Router<B> {
+pub fn routes<B: Backend + 'static>(auth_middleware: ApiKeyAuthorization) -> Router<B> {
     Router::<B>::new()
         .merge(rooms::routes())
-        .layer(ServiceAuthLayer { api_token })
+        .layer(auth_middleware)
         .merge(signaling::routes())
 }
