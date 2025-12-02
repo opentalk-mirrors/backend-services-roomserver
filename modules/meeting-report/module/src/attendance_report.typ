@@ -40,17 +40,22 @@
 
 #if "starts_at" in data {
   metadata_table_content.push((
-    [Start],
+    [Planned start],
     [ #parse_datetime(data.starts_at).display(datetime_format) ],
   ))
 }
 
 #if "ends_at" in data {
   metadata_table_content.push((
-    [End],
+    [Planned end],
     [ #parse_datetime(data.ends_at).display(datetime_format) ],
   ))
 }
+
+#metadata_table_content.push((
+  [Report created at],
+  [ #parse_datetime(data.report_created_at).display(datetime_format) ],
+))
 
 #metadata_table_content.push((
   [Report timezone],

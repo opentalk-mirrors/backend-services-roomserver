@@ -43,21 +43,28 @@ async fn generate_meeting_report() {
     let file = room.stored_asset(asset_id).await.unwrap();
     // Title, details, start & end are missing because they do not exist in the
     // TestRoom
-    assert_snapshot!(pdf_extract::extract_text_from_mem(&file).unwrap(), @r"
-    Attendance Report
-     Meeting :
+    let content = pdf_extract::extract_text_from_mem(&file).unwrap();
+    insta::with_settings!({filters => vec![
+        (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", "[timestamp]")
+    ]}, {
+        assert_snapshot!(content, @r"
+        Attendance Report
+         Meeting :
 
-    Report timezone : Europe/Berlin
+        Report created at : [timestamp]
 
-    Participants
-     Nr Name Role
+        Report timezone : Europe/Berlin
 
-    1 Alice the angry Moderator
+        Participants
+         Nr Name Role
 
-    2 Bob the bold User
+        1 Alice the angry Moderator
 
-    3 Gustav the great Guest
-    ");
+        2 Bob the bold User
+
+        3 Gustav the great Guest
+        ")
+    });
 }
 
 #[test_log::test(tokio::test)]

@@ -13,6 +13,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+chrono.workspace = true
 chrono-tz.workspace = true
 opentalk-report-generation.workspace = true
 opentalk-roomserver-room.workspace = true
@@ -26,7 +27,7 @@ serde_json.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-insta.workspace = true
+insta = { workspace = true, features = ["filters"] }
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pdf-extract.workspace = true
 pretty_assertions.workspace = true

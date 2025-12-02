@@ -3,6 +3,7 @@
 
 use std::{collections::BTreeMap, path::Path};
 
+use chrono::Local;
 use chrono_tz::Tz;
 use opentalk_report_generation::{GenerateOptions, ToReportDateTime};
 use opentalk_roomserver_room::{AssetUploaded, ModuleAssetStorage};
@@ -203,6 +204,8 @@ impl MeetingReportModule {
             || EventDescription::from_str_lossy(""),
             |event| event.description.clone(),
         );
+        let current_time = Local::now();
+        let report_created_at = current_time.to_report_date_time(&tz);
         let report = Self::generate_pdf_report_from_template(
             DEFAULT_TEMPLATE.to_string(),
             &ReportTemplateParameter {
@@ -210,6 +213,7 @@ impl MeetingReportModule {
                 description,
                 starts_at,
                 ends_at,
+                report_created_at,
                 report_timezone,
                 participants,
             },
@@ -251,79 +255,94 @@ mod tests {
 
     #[test]
     fn generate_report_small() {
-        assert_snapshot!(generate(&crate::template::tests::example_small()), @r"
-        Attendance Report
-         Meeting : Testmeeting
+        insta::with_settings!({filters => vec![
+            (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", "[timestamp]")
+        ]}, {
+            assert_snapshot!(generate(&crate::template::tests::example_small()), @r"
+            Attendance Report
+             Meeting : Testmeeting
 
-        Report timezone : Europe/Berlin
+            Report created at : [timestamp]
 
-        Participants
-         Nr Name Role
+            Report timezone : Europe/Berlin
 
-        1 Alice Adams Moderator
-        ");
+            Participants
+             Nr Name Role
+
+            1 Alice Adams Moderator
+            ")
+        });
     }
 
     #[test]
     fn generate_report_medium() {
-        assert_snapshot!(
-            generate(
-                &crate::template::tests::example_medium()
-            ),
-            @r"
-        Attendance Report
-         Meeting : Testmeeting
+        insta::with_settings!({filters => vec![
+            (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", "[timestamp]")
+        ]}, {
+            assert_snapshot!(generate(&crate::template::tests::example_medium()), @r"
+            Attendance Report
+             Meeting : Testmeeting
 
-        Details : A medium sized test meeting
+            Details : A medium sized test meeting
 
-        Start : 2025-02-06 08:18
+            Planned start : [timestamp]
 
-        End : 2025-02-06 11:25
+            Planned end : [timestamp]
 
-        Report timezone : Europe/Berlin
+            Report created at : [timestamp]
 
-        Participants
-         Nr Name Role
+            Report timezone : Europe/Berlin
 
-        1 Alice Adams Moderator
+            Participants
+             Nr Name Role
 
-        2 Charlie Cooper User
+            1 Alice Adams Moderator
 
-        3 Bob Burton User
-        "
-        );
+            2 Charlie Cooper User
+
+            3 Bob Burton User
+            ")
+        });
     }
 
     #[test]
     fn generate_report_large() {
-        assert_snapshot!(generate(&crate::template::tests::example_large()), @r"
-        Attendance Report
-         Meeting : Large Testmeeting
+        insta::with_settings!({filters => vec![
+            (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", "[timestamp]")
+        ]}, {
+            assert_snapshot!(generate(&crate::template::tests::example_large()), @r"
 
-        Details : The large test meeting
 
-        Start : 2025-02-06 08:18
+            Attendance Report
+             Meeting : Large Testmeeting
 
-        End : 2025-02-06 11:25
+            Details : The large test meeting
 
-        Report timezone : Europe/Berlin
+            Planned start : [timestamp]
 
-        Participants
-         Nr Name Role
+            Planned end : [timestamp]
 
-        1 Alice Adams Moderator
+            Report created at : [timestamp]
 
-        2 Franz Fischer User
+            Report timezone : Europe/Berlin
 
-        3 Recorder User
+            Participants
+             Nr Name Role
 
-        4 Charlie Cooper User
+            1 Alice Adams Moderator
 
-        5 Bob Burton User
+            2 Franz Fischer User
 
-        6 Erin Guest
+            3 Recorder User
 
-        7 Dave Dunn Guest
-        ");
+            4 Charlie Cooper User
+
+            5 Bob Burton User
+
+            6 Erin Guest
+
+            7 Dave Dunn Guest
+            ")
+        });
     }
 }

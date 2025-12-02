@@ -5367,6 +5367,7 @@ dependencies = [
 name = "opentalk-roomserver-module-meeting-report"
 version = "0.0.17-dev"
 dependencies = [
+ "chrono",
  "chrono-tz",
  "insta",
  "opentalk-report-generation",
