@@ -422,7 +422,7 @@ package:read-trivy-ignore-file:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
   script:
     - FILE=$CI_PROJECT_DIR/.trivyignore-$FLAVOR
-    - STR=$([[ -f "$FILE" ]] && cat "$FILE" | sed -e '/^#/d' -e '/^$/d')
+    - STR=$(if [[ -f "$FILE" ]]; then sed -e '/^#/d' -e '/^$/d' "$FILE"; fi)
     - echo "TRIVY_IGNORE_FILE_STR_$FLAVOR=$STR" >> package.env
   artifacts:
     reports:
