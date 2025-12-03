@@ -4,6 +4,7 @@
 use std::{fmt::Debug, str::FromStr};
 
 use chrono::{DateTime, Duration, TimeDelta, Utc};
+use icu_locid::{LanguageIdentifier, langid};
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventDescription, EventId, EventTitle},
@@ -61,6 +62,15 @@ pub struct RoomParameters {
 
     /// Configuration for storing room assets (e.g., meeting reports).
     pub asset_storage: AssetStorageConfig,
+
+    /// The preferred language of the room.
+    #[cfg_attr(feature = "utoipa", schema(value_type = String, example = "de"))]
+    pub preferred_language: LanguageIdentifier,
+
+    /// Fallback language to be used for localization purposes when the default language is not
+    /// available.
+    #[cfg_attr(feature = "utoipa", schema(value_type = String, example = "en"))]
+    pub fallback_language: LanguageIdentifier,
 }
 
 impl RoomParameters {
@@ -108,6 +118,8 @@ impl ExampleData for RoomParameters {
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
             asset_storage: AssetStorageConfig::example_data(),
+            preferred_language: langid!("de"),
+            fallback_language: langid!("en"),
         }
     }
 }
@@ -247,7 +259,9 @@ mod tests {
                     "public_url": "http://localhost:7880",
                     "service_url": "http://localhost:7880"
                 }
-            }
+            },
+            "preferred_language": "de",
+            "fallback_language": "en",
         });
 
         // serialization

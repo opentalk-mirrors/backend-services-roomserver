@@ -526,6 +526,8 @@ async fn pseudonymous() {
         (&format!("{alice_token}|{bob_token}"), "[token]"),
     ]}, {
         assert_snapshot!(content, @r"
+
+
         OpenTalk Vote Report
          Title : Vote
 
@@ -556,16 +558,16 @@ async fn pseudonymous() {
         Results
          Vote Count
 
-        Yes 1
+        Approval 1
 
-        No 1
+        Disapproval 1
 
         Recorded votes
          Name Token Vote Timestamp
 
-        Hidden [token] Yes —
+        Hidden [token] Approval —
 
-        Hidden [token] No —
+        Hidden [token] Disapproval —
 
         Event log
          Name Timestamp Event
@@ -781,6 +783,8 @@ async fn public() {
         (&format!("{alice_token}|{bob_token}"), "[token]"),
     ]}, {
         assert_snapshot!(content, @r"
+
+
         OpenTalk Vote Report
          Title : Vote
 
@@ -811,16 +815,16 @@ async fn public() {
         Results
          Vote Count
 
-        Yes 1
+        Approval 1
 
-        No 1
+        Disapproval 1
 
         Recorded votes
          Name Token Vote Timestamp
 
-        Alice Aal [token] Yes [timestamp]
+        Alice Aal [token] Approval [timestamp]
 
-        Bob Barsch [token] No [timestamp]
+        Bob Barsch [token] Disapproval [timestamp]
 
         Event log
          Name Timestamp Event
@@ -1095,49 +1099,7 @@ async fn stop() {
         (r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "[legal_vote_id]"),
         (&alice_token.to_string(), "[token]"),
     ]}, {
-        assert_snapshot!(content, @r"
-        OpenTalk Vote Report
-         Title : Vote
-
-        Pseudonymous : Yes
-
-        Referendum leader : Alice Aal
-
-        Vote id : [legal_vote_id]
-
-        Start : [timestamp]
-
-        End : [timestamp]
-
-        Report timezone : Europe/Berlin
-
-        Participant count : 2
-
-        Scheduled duration : Unlimited
-
-        Abstention : Disallowed
-
-        Automatic close : Enabled
-
-        Vote ended due to : User  Alice Aal  ended the vote
-
-        Number of votes : 1
-
-        Results
-         Vote Count
-
-        Yes 1
-
-        No 0
-
-        Recorded votes
-         Name Token Vote Timestamp
-
-        Hidden [token] Yes —
-
-        Event log
-         Name Timestamp Event
-        ");
+        assert_snapshot!(content);
     });
 }
 
@@ -1368,51 +1330,7 @@ async fn report_issue() {
         (r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "[legal_vote_id]"),
         (&alice_token.to_string(), "[token]"),
     ]}, {
-        assert_snapshot!(content, @r"
-        OpenTalk Vote Report
-         Title : Vote
-
-        Pseudonymous : Yes
-
-        Referendum leader : Alice Aal
-
-        Vote id : [legal_vote_id]
-
-        Start : [timestamp]
-
-        End : [timestamp]
-
-        Report timezone : Europe/Berlin
-
-        Participant count : 2
-
-        Scheduled duration : Unlimited
-
-        Abstention : Disallowed
-
-        Automatic close : Enabled
-
-        Vote ended due to : User  Alice Aal  ended the vote
-
-        Number of votes : 1
-
-        Results
-         Vote Count
-
-        Yes 1
-
-        No 0
-
-        Recorded votes
-         Name Token Vote Timestamp
-
-        Hidden [token] Yes —
-
-        Event log
-         Name Timestamp Event
-
-        Anonymous [timestamp] Reports an audio issue
-        ");
+        assert_snapshot!(content);
     });
 }
 
@@ -1551,47 +1469,7 @@ async fn generate_pdf() {
         (r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "[legal_vote_id]"),
         (&alice_token.to_string(), "[token]"),
     ]}, {
-        assert_snapshot!(content, @r"
-        OpenTalk Vote Report
-         Title : Vote
-
-        Pseudonymous : Yes
-
-        Referendum leader : Alice Aal
-
-        Vote id : [legal_vote_id]
-
-        Start : [timestamp]
-
-        End : [timestamp]
-
-        Report timezone : Europe/Berlin
-
-        Participant count : 1
-
-        Scheduled duration : Unlimited
-
-        Abstention : Disallowed
-
-        Automatic close : Enabled
-
-        Vote ended due to : User  Alice Aal  ended the vote
-
-        Number of votes : 0
-
-        Results
-         Vote Count
-
-        Yes 0
-
-        No 0
-
-        Recorded votes
-         Name Token Vote Timestamp
-
-        Event log
-         Name Timestamp Event
-        ");
+        assert_snapshot!(content);
     });
 }
 
@@ -1753,53 +1631,7 @@ async fn reconnect_during_vote() {
         (r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "[legal_vote_id]"),
         (&format!("{alice_token}|{bob_token}"), "[token]"),
     ]}, {
-        assert_snapshot!(content, @r"
-        OpenTalk Vote Report
-         Title : Vote
-
-        Pseudonymous : Yes
-
-        Referendum leader : Alice Aal
-
-        Vote id : [legal_vote_id]
-
-        Start : [timestamp]
-
-        End : [timestamp]
-
-        Report timezone : Europe/Berlin
-
-        Participant count : 2
-
-        Scheduled duration : Unlimited
-
-        Abstention : Disallowed
-
-        Automatic close : Enabled
-
-        Vote ended due to : User  Alice Aal  ended the vote
-
-        Number of votes : 1
-
-        Results
-         Vote Count
-
-        Yes 0
-
-        No 1
-
-        Recorded votes
-         Name Token Vote Timestamp
-
-        Hidden [token] No —
-
-        Event log
-         Name Timestamp Event
-
-        [timestamp] User left
-
-        [timestamp] User joined
-        ");
+        assert_snapshot!(content);
     });
 }
 

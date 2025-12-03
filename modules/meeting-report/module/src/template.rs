@@ -6,6 +6,7 @@
 // IMPORTANT: when changing the structs below, make sure to update the following documentation:
 // * docs/admin/core/meeting_reports.md
 
+use icu_locid::LanguageIdentifier;
 use opentalk_report_generation::ReportDateTime;
 use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
 use opentalk_types_common::{
@@ -17,6 +18,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReportTemplateParameter {
+    pub available_languages: Vec<LanguageIdentifier>,
+
     pub title: EventTitle,
 
     pub description: EventDescription,
@@ -34,6 +37,9 @@ pub struct ReportTemplateParameter {
 
     /// The timezone in which the timestamps in this report are represented.
     pub report_timezone: TimeZone,
+
+    /// The language in which the report should be created.
+    pub report_language: LanguageIdentifier,
 
     /// The participants in the meeting.
     pub participants: Vec<ReportParticipant>,
@@ -75,15 +81,17 @@ pub struct ReportParticipant {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use icu_locid::langid;
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::{ReportParticipant, ReportTemplateParameter};
-    use crate::template::ReportRole;
+    use crate::{AVAILABLE_LANGUAGES, template::ReportRole};
 
     pub fn example_small() -> ReportTemplateParameter {
         ReportTemplateParameter {
+            available_languages: AVAILABLE_LANGUAGES.to_vec(),
             title: "Testmeeting"
                 .parse()
                 .expect("value must be parsable as EventTitle"),
@@ -98,6 +106,7 @@ pub(crate) mod tests {
             report_timezone: "Europe/Berlin"
                 .parse()
                 .expect("value must be parsable as TimeZone"),
+            report_language: langid!("en"),
             participants: vec![ReportParticipant {
                 id: ParticipantId::from_u128(0x263e256d_adf8_4548_bf77_9262959cd124),
                 name: "Alice Adams".into(),
@@ -113,10 +122,12 @@ pub(crate) mod tests {
 
     fn example_small_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "title": "Testmeeting",
             "description": "",
             "report_created_at": "2025-02-06T09:16:47",
             "report_timezone": "Europe/Berlin",
+            "report_language": "en",
             "participants": [
                 {
                     "id":"263e256d-adf8-4548-bf77-9262959cd124",
@@ -131,6 +142,7 @@ pub(crate) mod tests {
 
     pub fn example_medium() -> ReportTemplateParameter {
         ReportTemplateParameter {
+            available_languages: AVAILABLE_LANGUAGES.to_vec(),
             title: "Testmeeting"
                 .parse()
                 .expect("value must be parsable as EventTitle"),
@@ -153,6 +165,7 @@ pub(crate) mod tests {
             report_timezone: "Europe/Berlin"
                 .parse()
                 .expect("value must be parsable as Timezone"),
+            report_language: langid!("en"),
             participants: vec![
                 ReportParticipant {
                     id: ParticipantId::from_u128(0x31acc6f2_dba2_4236_96c7_2c5faf0bda93),
@@ -194,12 +207,14 @@ pub(crate) mod tests {
 
     fn example_medium_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "title": "Testmeeting",
             "description": "A medium sized test meeting",
             "starts_at": "2025-02-06T08:18:23",
             "ends_at": "2025-02-06T11:25:00",
             "report_created_at": "2025-02-06T09:16:47",
             "report_timezone": "Europe/Berlin",
+            "report_language": "en",
             "participants": [
                 {
                     "id":"31acc6f2-dba2-4236-96c7-2c5faf0bda93",
@@ -229,6 +244,7 @@ pub(crate) mod tests {
 
     pub fn example_large() -> ReportTemplateParameter {
         ReportTemplateParameter {
+            available_languages: AVAILABLE_LANGUAGES.to_vec(),
             title: "Large Testmeeting"
                 .parse()
                 .expect("value must be parsable as EventTitle"),
@@ -251,7 +267,7 @@ pub(crate) mod tests {
             report_timezone: "Europe/Berlin"
                 .parse()
                 .expect("value must be parsable as Timezone"),
-
+            report_language: langid!("en"),
             participants: vec![
                 ReportParticipant {
                     id: ParticipantId::from_u128(0xe3524b19_503d_4d79_844b_803b1ecd3115),
@@ -329,12 +345,14 @@ pub(crate) mod tests {
 
     fn example_large_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "title": "Large Testmeeting",
             "description": "The large test meeting",
             "starts_at": "2025-02-06T08:18:23",
             "ends_at": "2025-02-06T11:25:00",
             "report_created_at": "2025-02-06T09:16:47",
             "report_timezone": "Europe/Berlin",
+            "report_language": "en",
             "participants": [
                 {
                     "id": "e3524b19-503d-4d79-844b-803b1ecd3115",

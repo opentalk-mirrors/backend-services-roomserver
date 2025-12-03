@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 
 use chrono_tz::Tz;
+use icu_locid::LanguageIdentifier;
 use opentalk_report_generation::ToReportDateTime as _;
 use opentalk_types_common::users::{DisplayName, UserId};
 
@@ -11,7 +12,7 @@ use super::StopInfo;
 use crate::{
     protocol::v1::FinalResults,
     report::{
-        Error,
+        AVAILABLE_LANGUAGES, Error,
         data::{ReportData, ResolvedVote, Summary, TimedEvent},
         report_data_builder::start::Start,
     },
@@ -31,6 +32,7 @@ impl VoteData {
         self,
         user_names: &BTreeMap<UserId, DisplayName>,
         timezone: Tz,
+        report_language: LanguageIdentifier,
     ) -> Result<ReportData, Error> {
         let VoteData {
             start,
@@ -77,9 +79,11 @@ impl VoteData {
         };
 
         Ok(ReportData {
+            available_languages: AVAILABLE_LANGUAGES.to_vec(),
             summary,
             votes,
             events,
+            report_language,
         })
     }
 }

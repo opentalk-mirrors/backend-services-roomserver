@@ -18,6 +18,7 @@ async-trait.workspace = true
 blake3.workspace = true
 chrono.workspace = true
 futures.workspace = true
+icu_locid = { workspace = true, optional = true }
 json-patch.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-signaling.workspace = true
@@ -48,4 +49,4 @@ tokio = { workspace = true, features = ["macros", "rt"] }
 tokio-util.workspace = true
 
 [features]
-mock = ["dep:tokio-util"]
+mock = ["dep:icu_locid", "dep:tokio-util"]

@@ -51,3 +51,7 @@ api_keys = [{ id = "roomserver", secret = "secret" }]
 # When true, participants can't share their screens unless permission is granted by a moderator.
 # Moderators can always share their screen.
 # screen_share_requires_permission = true
+
+#[reports.typst]
+# The location where typst looks for packages.
+#packages_path = "/usr/share/typst/packages"

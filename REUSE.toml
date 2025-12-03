@@ -16,6 +16,7 @@ SPDX-FileCopyrightText = [
 SPDX-License-Identifier = "EUPL-1.2"
 path = [
   "**/README.md",
+  "**/snapshots/**.snap",
   ".commitlintrc.json",
   "CHANGELOG.md",
   "Cargo.lock",

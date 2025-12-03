@@ -8,6 +8,7 @@ use conference::Conference;
 use config::{Config, Environment, File, FileFormat};
 use defaults::Defaults;
 use http::Http;
+use reports::Reports;
 use serde::Deserialize;
 use telemetry::{Metrics, Monitoring, Tracing};
 use thiserror::Error;
@@ -16,6 +17,8 @@ pub mod conference;
 pub mod defaults;
 pub mod http;
 pub mod livekit;
+pub mod reports;
+pub mod reports_typst;
 pub mod telemetry;
 
 #[derive(Debug, Error)]
@@ -44,6 +47,9 @@ pub struct SettingsFile {
 
     #[serde(default)]
     pub(crate) defaults: Option<Defaults>,
+
+    #[serde(default)]
+    pub(crate) reports: Option<Reports>,
 }
 
 impl SettingsFile {

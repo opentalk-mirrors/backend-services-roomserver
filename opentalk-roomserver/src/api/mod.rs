@@ -370,6 +370,7 @@ mod test {
     use std::{borrow::Cow, sync::Arc, time::Duration};
 
     use axum::http::StatusCode;
+    use icu_locid::langid;
     use opentalk_roomserver_types::{
         client_parameters::{ClientKind, Role},
         module_settings::ModuleSettings,
@@ -445,6 +446,8 @@ mod test {
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
             asset_storage: AssetStorageConfig::example_data(),
+            preferred_language: langid!("en"),
+            fallback_language: langid!("en"),
         }
     }
 

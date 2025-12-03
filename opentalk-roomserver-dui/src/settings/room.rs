@@ -3,6 +3,7 @@
 
 use std::collections::BTreeMap;
 
+use icu_locid::langid;
 use opentalk_roomserver_client::api::{
     command::{
         AUTOMOD_MODULE_ID, CHAT_MODULE_ID, ECHO_MODULE_ID, LEGAL_VOTE_MODULE_ID,
@@ -123,6 +124,8 @@ pub fn default_room_parameters() -> RoomParameters {
         e2e_encryption: false,
         module_settings: ModuleSettings::example_data(),
         asset_storage: AssetStorageConfig::InMemory,
+        preferred_language: langid!("en"),
+        fallback_language: langid!("en"),
     }
 }
 

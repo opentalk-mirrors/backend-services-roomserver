@@ -19,6 +19,10 @@ You can execute it using:
 just run-dui
 ```
 
+## Typst Packages
+
+Some modules require the [linguify](https://github.com/typst-community/linguify) typst package for localized report generation. This package is included in the container of the RoomServer. For some tests, it is also necessary to have this package present locally. It can be obtained/updated by running `just install-latest-typst-packages`.
+
 ## Documentation
 
 Documentation for the RoomServer is build in [the unified documentation project](https://git.opentalk.dev/opentalk/backend/docs).

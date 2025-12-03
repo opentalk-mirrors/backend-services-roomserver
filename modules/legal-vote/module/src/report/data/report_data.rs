@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
+use icu_locid::LanguageIdentifier;
 use serde::{Deserialize, Serialize};
 
 use super::{ResolvedVote, Summary, TimedEvent};
@@ -8,13 +9,16 @@ use super::{ResolvedVote, Summary, TimedEvent};
 /// The data used to generate a report with typst
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReportData {
+    pub available_languages: Vec<LanguageIdentifier>,
     pub summary: Summary,
     pub votes: Vec<ResolvedVote>,
     pub events: Vec<TimedEvent>,
+    pub report_language: LanguageIdentifier,
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use icu_locid::langid;
     use opentalk_roomserver_types_legal_vote::{
         cancel::{CancelReason, CustomCancelReason},
         issue::{Issue, TechnicalIssueKind},
@@ -34,6 +38,7 @@ pub(crate) mod tests {
 
     pub(crate) fn example_public() -> ReportData {
         ReportData {
+            available_languages: vec![langid!("en"), langid!("de")],
             summary: Summary {
                 title: "Weather Vote".into(),
                 subtitle: Some("Another one of these weather votes".into()),
@@ -170,11 +175,13 @@ pub(crate) mod tests {
                     },
                 },
             }],
+            report_language: langid!("en"),
         }
     }
 
     fn example_public_json() -> serde_json::Value {
         json!({
+            "available_languages": ["en", "de"],
             "summary": {
                 "title": "Weather Vote",
                 "subtitle": "Another one of these weather votes",
@@ -249,6 +256,7 @@ pub(crate) mod tests {
                     "time": "2025-01-02T03:04:18",
                 },
             ],
+            "report_language": "en",
         })
     }
 
@@ -277,8 +285,31 @@ pub(crate) mod tests {
         report_data
     }
 
+    pub(crate) fn initiator_left_public() -> ReportData {
+        let mut report_data = example_public();
+        report_data.summary.final_results = None;
+        report_data.summary.stop_reason = StopReason::Canceled(ResolvedCancel {
+            user: DisplayName::from_str_lossy("Alice Aal"),
+            reason: CancelReason::InitiatorLeft,
+        });
+
+        report_data
+    }
+
+    pub(crate) fn room_destroyed_public() -> ReportData {
+        let mut report_data = example_public();
+        report_data.summary.final_results = None;
+        report_data.summary.stop_reason = StopReason::Canceled(ResolvedCancel {
+            user: DisplayName::from_str_lossy("Alice Aal"),
+            reason: CancelReason::RoomDestroyed,
+        });
+
+        report_data
+    }
+
     pub(crate) fn example_pseudonymous() -> ReportData {
         ReportData {
+            available_languages: vec![langid!("en"), langid!("de")],
             summary: Summary {
                 title: "Example Pseudonymous Vote".into(),
                 subtitle: None,
@@ -338,6 +369,7 @@ pub(crate) mod tests {
                 },
             ],
             events: vec![],
+            report_language: langid!("en"),
         }
     }
 }

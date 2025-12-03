@@ -524,7 +524,7 @@ async fn stop_presence_logging_manual() {
         Training end: [date] [time]
 
         Participation checkpoints
-         № Participant [time]
+         № Person [time]
 
         1 Alice the angry [time]
 
@@ -616,7 +616,7 @@ async fn stop_presence_logging_auto() {
         Training end: [date] [time]
 
         Participation checkpoints
-         № Participant [time]
+         № Person [time]
 
         1 Alice the angry —
         ");

@@ -16,6 +16,7 @@ version.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 chrono-tz.workspace = true
+icu_locid.workspace = true
 insta.workspace = true
 opentalk-report-generation.workspace = true
 opentalk-roomserver-signaling.workspace = true
@@ -32,6 +33,7 @@ tracing.workspace = true
 
 [dev-dependencies]
 insta = { workspace = true, features = ["filters", "json", "redactions"] }
+opentalk-roomserver-common.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pdf-extract.workspace = true
 test-log.workspace = true

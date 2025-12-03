@@ -126,3 +126,21 @@ generate-deps-graph: _check_cargo_depgraph _check_dot
 
 test-coverage:
     cargo llvm-cov nextest --lcov --output-path lcov.info
+
+install-latest-typst-packages:
+    #!/usr/bin/env bash
+    # pull the image with the typst packages
+    docker pull git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:scratch-dev
+    # create a new container
+    # sh is necessary because creating containers without entry point is not possible
+    CONTAINER_NAME=typst-plugins
+    docker create --name "$CONTAINER_NAME" git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:scratch-dev sh >/dev/null 2>&1 || true
+    # create the typst package directory
+    TYPST_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/typst/packages/preview/
+    mkdir -p "$TYPST_DIR"
+    # remove existing package
+    rm -r "$TYPST_DIR/linguify" >/dev/null 2>&1 || true
+    # copy the typst packages from the container
+    docker cp typst-plugins:/usr/share/typst/packages/preview/linguify/ "$TYPST_DIR"
+    # delete the container
+    docker container rm "$CONTAINER_NAME"

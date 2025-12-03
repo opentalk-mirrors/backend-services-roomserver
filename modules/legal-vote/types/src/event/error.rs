@@ -38,6 +38,9 @@ pub enum LegalVoteError {
     /// The requesting user has insufficient permissions.
     InsufficientPermissions,
 
+    /// Internal error while generating the report
+    GenerateReport,
+
     /// The requesting user has exceeded their storage.
     StorageExceeded,
 
@@ -175,6 +178,25 @@ mod test {
         };
 
         assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_generate_error() {
+        let produced = serde_json::to_value(LegalVoteError::GenerateReport).unwrap();
+        let raw = serde_json::to_string_pretty(&produced).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "error": "generate_report"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_generate_error() {
+        let produced: LegalVoteError =
+            serde_json::from_value(json!({"error": "generate_report"})).unwrap();
+        assert_eq!(produced, LegalVoteError::GenerateReport);
     }
 
     #[test]

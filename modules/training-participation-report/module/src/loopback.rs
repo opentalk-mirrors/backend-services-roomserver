@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 
 use opentalk_report_generation::GenerateOptions;
 use opentalk_roomserver_signaling::{
@@ -16,7 +19,9 @@ use opentalk_types_common::{
 
 use crate::ReportTemplateParameter;
 
-const REPORT_TEMPLATE: &str = include_str!("training_participation_report.typ");
+const REPORT_TEMPLATE: &str = include_str!("../templates/training_participation_report.typ");
+const FTL_EN: &str = include_str!("../templates/l10n/en.ftl");
+const FTL_DE: &str = include_str!("../templates/l10n/de.ftl");
 
 pub enum TrainingParticipationReportLoopback {
     CheckpointReached(Timestamp),
@@ -43,8 +48,9 @@ impl From<TrainingParticipationReportError> for TrainingParticipationReportLoopb
 pub(super) async fn create_report(
     storage: ModuleAssetStorage,
     template_parameter: ReportTemplateParameter,
+    typst_package_path: PathBuf,
 ) -> TrainingParticipationReportLoopback {
-    create_report_inner(storage, template_parameter)
+    create_report_inner(storage, template_parameter, &typst_package_path)
         .await
         .unwrap_or_else(Into::into)
 }
@@ -52,18 +58,27 @@ pub(super) async fn create_report(
 async fn create_report_inner(
     storage: ModuleAssetStorage,
     template_parameter: ReportTemplateParameter,
+    typst_package_path: &Path,
 ) -> Result<TrainingParticipationReportLoopback, TrainingParticipationReportError> {
     const ASSET_FILE_KIND: AssetFileKind = asset_file_kind!("training_participation_report");
+
+    let mut generate_options = GenerateOptions::default();
+    generate_options.packages_path = Some(typst_package_path);
 
     let serialized = serde_json::to_string(&template_parameter)
         .inspect_err(|e| tracing::error!("Serializing parameters failed: {e}"))
         .map_err(|_| TrainingParticipationReportError::Generate)?
         .into_bytes()
         .into();
+    let files = [
+        (Path::new("data.json"), (None, serialized)),
+        (Path::new("l10n/de.ftl"), (None, FTL_DE.as_bytes().into())),
+        (Path::new("l10n/en.ftl"), (None, FTL_EN.as_bytes().into())),
+    ];
     let report = opentalk_report_generation::generate_pdf_report(
         REPORT_TEMPLATE.to_owned(),
-        BTreeMap::from_iter([(Path::new("data.json"), (None, serialized))]),
-        &GenerateOptions::default(),
+        BTreeMap::from_iter(files),
+        &generate_options,
     )
     .map_err(|_| TrainingParticipationReportError::Generate)?;
 
