@@ -4,6 +4,7 @@
 
 use chrono::{DateTime, Utc};
 use opentalk_roomserver_signaling::waiting_participant::WaitingParticipant;
+use opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
@@ -30,6 +31,9 @@ pub struct WaitingParticipantPeerData {
     /// The id of the participant
     pub participant_id: ParticipantId,
 
+    /// The connection ids of the participant
+    pub connections: Vec<ConnectionId>,
+
     /// Whether the participant was accepted to enter the meeting
     pub accepted: bool,
 
@@ -47,6 +51,7 @@ impl From<(&ParticipantId, &WaitingParticipant)> for WaitingParticipantPeerData 
     fn from(value: (&ParticipantId, &WaitingParticipant)) -> Self {
         Self {
             participant_id: *value.0,
+            connections: value.1.connections.keys().copied().collect(),
             accepted: value.1.accepted,
             joined_at: value.1.joined_at,
             display_name: value.1.kind.display_name().clone(),
