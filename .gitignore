@@ -56,3 +56,7 @@ fabric.properties
 # Rust insta pending snapshots should not be committed
 **/*.snap.new
 **/*.pending-snap
+
+# mk-docs
+.cache
+site

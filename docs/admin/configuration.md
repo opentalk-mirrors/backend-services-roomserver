@@ -2,9 +2,9 @@
 title: Configuration
 ---
 
-# Configuring OpenTalk-RoomServer
+# Configuring {{ product_name }} RoomServer
 
-The RoomServer can be configured using environment variables and a configuration file.
+The {{ product_name }} RoomServer can be configured using environment variables and a configuration file.
 Environment variables take precedence over the configuration file.
 
 ## Environment variables
