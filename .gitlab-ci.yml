@@ -302,11 +302,14 @@ build:docs:
   script:
     - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
 
-build:create-pages:
+build:pages:
   stage: build
-  image: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
   pages:
     publish: site
+  needs: []
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
   before_script: []
