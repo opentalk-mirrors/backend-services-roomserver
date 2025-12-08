@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.16] - 2025-12-08
+
+[0.0.16]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.15...v0.0.16
+
+### 🚀 New features
+
+- (api) Use opentalk-service-auth for authorization ([!725](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/725))
+- (moderation) Include connection ids of waiting participants in moderator join info ([!751](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/751), [#171](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/171))
+- (docs) Prepare documentation for mkdocs-material ([!753](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/753))
+
+### 🐛 Bug fixes
+
+- (ci) Assume that no CVEs should be ignored when .trivyignore-$FLAVOR does not exist ([!710](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/710))
+- (ci) `read-trivy-ignore-file` fails when no trivy ignore file exist ([!741](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/741))
+- Update the api key section in the example config ([!743](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/743))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!726](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/726))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.20.2 ([!714](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/714))
+- (deps) Lock file maintenance ([!737](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/737))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.6 ([!727](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/727))
+- (deps) Update pre-commit hook markdownlint/markdownlint to v0.15.0 ([!730](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/730))
+- (deps) Update rust crate testcontainers to 0.26.0 ([!738](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/738))
+- (deps) Update livekit/livekit-server docker tag to v1.9.6 ([!712](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/712))
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.20.4 ([!739](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/739))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.7 ([!740](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/740))
+- (deps) Update rust crate log to v0.4.29 ([!746](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/746))
+- (deps) Update rust crate derive_more to v2.1.0 ([!745](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/745))
+- (deps) Update rust crate opentalk-types-api-v1 to 0.48.0 ([!744](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/744))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.8 ([!747](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/747))
+- (deps) Update typst to v0.14.1 ([!748](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/748))
+- (deps) Update alpine docker tag to v3.23 ([!749](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/749))
+- (deps) Update rust crate opentalk-types-common to v0.40.1 ([!750](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/750))
+
+### Ci
+
+- Host pages for main branch ([!754](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/754))
+- Pages could not be build ([!755](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/755))
+
 ## [0.0.15] - 2025-11-21
 
 [0.0.15]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.14...v0.0.15
