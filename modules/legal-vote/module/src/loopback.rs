@@ -138,7 +138,7 @@ pub(super) async fn generate_pdf(
     report_language: LanguageIdentifier,
     typst_package_path: PathBuf,
 ) -> LegalVoteLoopback {
-    genrate_pdf_inner(
+    generate_pdf_inner(
         storage,
         legal_vote_id,
         msg_target,
@@ -154,7 +154,7 @@ pub(super) async fn generate_pdf(
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn genrate_pdf_inner(
+async fn generate_pdf_inner(
     storage: ModuleAssetStorage,
     legal_vote_id: LegalVoteId,
     msg_target: ParticipantId,
