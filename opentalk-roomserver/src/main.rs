@@ -74,6 +74,7 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
             metrics::run_metric_server(
                 settings.http.address,
                 metric.port,
+                metric.allowlist.clone(),
                 metric_handle,
                 app_state.subscribe(),
             )
@@ -218,4 +219,24 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{net::SocketAddr, time::Duration};
+
+    use tokio::net::TcpStream;
+
+    pub async fn wait_for_server(addr: SocketAddr) {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                if TcpStream::connect(addr).await.is_ok() {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .expect("metrics server did not become ready in time");
+    }
 }

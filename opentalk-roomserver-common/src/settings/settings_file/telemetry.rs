@@ -9,6 +9,8 @@ use serde::Deserialize;
 pub(crate) struct Metrics {
     #[serde(default = "default_metrics_port")]
     pub port: u16,
+    #[serde(default)]
+    pub allowlist: Vec<cidr::IpInet>,
 }
 
 const fn default_metrics_port() -> u16 {

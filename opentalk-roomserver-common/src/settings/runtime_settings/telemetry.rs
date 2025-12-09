@@ -8,11 +8,15 @@ use crate::settings::settings_file;
 #[derive(Debug, Clone)]
 pub struct Metrics {
     pub port: u16,
+    pub allowlist: Vec<cidr::IpInet>,
 }
 
 impl From<settings_file::telemetry::Metrics> for Metrics {
     fn from(value: settings_file::telemetry::Metrics) -> Self {
-        Self { port: value.port }
+        Self {
+            port: value.port,
+            allowlist: value.allowlist,
+        }
     }
 }
 
