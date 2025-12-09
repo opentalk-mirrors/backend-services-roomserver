@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.17] - 2025-12-09
+
+[0.0.17]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.16...v0.0.17
+
+### 🚀 New features
+
+- Add report creation date to attendance reports ([!742](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/742))
+- (l10n) Generate pdf reports in the language of the room owner ([!742](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/742))
+
+### 🐛 Bug fixes
+
+- (legal-vote) Typo in function name ([!742](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/742))
+
+### 📦 Dependencies
+
+- (deps) Update livekit/livekit-server docker tag to v1.9.7 ([!752](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/752))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.9 ([!758](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/758))
+
+### Test
+
+- (legal-vote) Remove duplicate test ([!742](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/742))
+
 ## [0.0.16] - 2025-12-08
 
 [0.0.16]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.15...v0.0.16
