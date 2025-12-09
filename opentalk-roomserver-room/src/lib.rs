@@ -12,6 +12,7 @@
 //! [`task::RoomTask`] gets destroyed, it removes itself from the [`RoomTaskRegistry`].
 
 pub mod message_router;
+pub mod metrics;
 #[cfg(any(test, feature = "mock"))]
 pub mod mocking;
 pub mod registry;

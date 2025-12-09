@@ -15,6 +15,7 @@ version.workspace = true
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
+axum-prometheus.workspace = true
 blake3.workspace = true
 chrono.workspace = true
 futures.workspace = true

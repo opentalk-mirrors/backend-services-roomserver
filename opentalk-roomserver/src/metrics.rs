@@ -16,6 +16,10 @@ use axum_prometheus::{
     utils::SECONDS_DURATION_BUCKETS,
 };
 use cidr::IpInet;
+use opentalk_roomserver_room::metrics::{
+    CONNECTION_MEETING_TIME, CONNECTION_MEETING_TIME_BUCKETS, ROOM_LIFE_TIME,
+    ROOM_LIFE_TIME_BUCKETS,
+};
 use tokio::sync::watch;
 
 use crate::{ApplicationState, wait_shutdown};
@@ -27,9 +31,6 @@ pub(super) fn build_prometheus_layer<'a>() -> (
     PrometheusMetricLayerBuilder::new()
         .with_prefix("api")
         .enable_response_body_size(true)
-        // Using with_metrics_from instead of with_default_metrics because
-        // with_default_metrics crashes when port 9000 is already in use,
-        // see https://github.com/Ptrskay3/axum-prometheus/issues/66
         .with_metrics_from_fn(|| {
             PrometheusBuilder::new()
                 .set_buckets_for_metric(
@@ -37,6 +38,16 @@ pub(super) fn build_prometheus_layer<'a>() -> (
                     SECONDS_DURATION_BUCKETS,
                 )
                 .expect("Setting prometheus buckets failed")
+                .set_buckets_for_metric(
+                    Matcher::Full(CONNECTION_MEETING_TIME.to_string()),
+                    CONNECTION_MEETING_TIME_BUCKETS,
+                )
+                .expect("Setting prometheus meeting time buckets failed")
+                .set_buckets_for_metric(
+                    Matcher::Full(ROOM_LIFE_TIME.to_string()),
+                    ROOM_LIFE_TIME_BUCKETS,
+                )
+                .expect("Setting prometheus room life time buckets failed")
                 .install_recorder()
                 .expect("Installing prometheus recorder failed")
         })
@@ -61,7 +72,6 @@ where
     let router = Router::<MetricContext<H>>::new()
         .route("/metrics", get(metrics))
         .with_state(ctx);
-
     let listener = tokio::net::TcpListener::bind((address, port))
         .await
         .context(format!("Failed to bind metrics to port {port}"))?;
