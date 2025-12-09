@@ -176,6 +176,18 @@ pub enum ParticipationKind {
     RegisteredCallIn,
 }
 
+impl From<&ClientKind> for ParticipationKind {
+    fn from(value: &ClientKind) -> Self {
+        match value {
+            ClientKind::Registered { .. } => Self::Registered,
+            ClientKind::Guest { .. } => Self::Guest,
+            ClientKind::Recorder => Self::Recorder,
+            ClientKind::CallIn { .. } => Self::CallIn,
+            ClientKind::RegisteredCallIn { .. } => Self::RegisteredCallIn,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use opentalk_types_common::{roomserver::DeviceSecret, users::DisplayName, utils::ExampleData};
