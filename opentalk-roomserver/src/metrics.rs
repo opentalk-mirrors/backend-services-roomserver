@@ -10,10 +10,38 @@ use axum::{
     http::StatusCode,
     routing::get,
 };
+use axum_prometheus::{
+    AXUM_HTTP_REQUESTS_DURATION_SECONDS, GenericMetricLayer, PrometheusMetricLayerBuilder,
+    metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle},
+    utils::SECONDS_DURATION_BUCKETS,
+};
 use cidr::IpInet;
 use tokio::sync::watch;
 
 use crate::{ApplicationState, wait_shutdown};
+
+pub(super) fn build_prometheus_layer<'a>() -> (
+    GenericMetricLayer<'a, PrometheusHandle, axum_prometheus::Handle>,
+    PrometheusHandle,
+) {
+    PrometheusMetricLayerBuilder::new()
+        .with_prefix("api")
+        .enable_response_body_size(true)
+        // Using with_metrics_from instead of with_default_metrics because
+        // with_default_metrics crashes when port 9000 is already in use,
+        // see https://github.com/Ptrskay3/axum-prometheus/issues/66
+        .with_metrics_from_fn(|| {
+            PrometheusBuilder::new()
+                .set_buckets_for_metric(
+                    Matcher::Full(AXUM_HTTP_REQUESTS_DURATION_SECONDS.to_string()),
+                    SECONDS_DURATION_BUCKETS,
+                )
+                .expect("Setting prometheus buckets failed")
+                .install_recorder()
+                .expect("Installing prometheus recorder failed")
+        })
+        .build_pair()
+}
 
 pub(crate) async fn run_metric_server<H>(
     address: IpAddr,
