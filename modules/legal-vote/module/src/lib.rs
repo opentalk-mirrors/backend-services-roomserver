@@ -45,14 +45,18 @@
 //! run with `debug` or `trace` level [`tracing`] enabled to ensure votes remain pseudonymous and
 //! cannot be correlated with participants.
 
-use std::collections::{
-    BTreeMap, HashMap,
-    hash_map::{Entry, OccupiedEntry},
+use std::{
+    collections::{
+        BTreeMap, HashMap,
+        hash_map::{Entry, OccupiedEntry},
+    },
+    path::PathBuf,
 };
 
-use anyhow::{Context, bail};
+use anyhow::{Context, anyhow, bail};
 use chrono::Utc;
 use opentalk_roomserver_signaling::{
+    localization,
     module_context::ModuleContext,
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
@@ -98,6 +102,7 @@ mod vote;
 pub struct LegalVoteModule {
     active_votes: HashMap<RoomKind, ActiveVote>,
     history: HashMap<LegalVoteId, Vec<proto::ProtocolEntry>>,
+    typst_package_path: PathBuf,
 }
 
 impl SignalingModule for LegalVoteModule {
@@ -117,10 +122,12 @@ impl SignalingModule for LegalVoteModule {
 
     type Error = LegalVoteError;
 
-    fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
+    fn init(init_data: SignalingModuleInitData) -> Option<Self> {
+        let typst_package_path = init_data.settings.reports.typst.packages_path.clone();
         Some(Self {
             active_votes: HashMap::new(),
             history: HashMap::new(),
+            typst_package_path,
         })
     }
 
@@ -338,7 +345,8 @@ impl SignalingModule for LegalVoteModule {
 
     fn on_closing(&mut self, ctx: &mut ModuleContext<'_, Self>) -> Result<(), anyhow::Error> {
         let votes = self.active_votes.drain().map(|(_, v)| v).collect();
-        self.cancel_votes(ctx, votes, CancelReason::RoomDestroyed)?;
+        self.cancel_votes(ctx, votes, CancelReason::RoomDestroyed)
+            .map_err(|e| anyhow!("Cancelling vote failed: {e:?}"))?;
 
         Ok(())
     }
@@ -567,13 +575,19 @@ impl LegalVoteModule {
         self.history.insert(legal_vote_id, protocol.clone());
 
         if parameters.inner.create_pdf {
-            Self::create_pdf(
+            self.create_pdf(
                 ctx,
                 legal_vote_id,
                 parameters.initiator_id,
                 protocol.clone(),
                 parameters.inner.timezone,
-            );
+            )
+            .or_else(|e| {
+                ctx.send_ws_message(
+                    ctx.participants.in_room(ctx.room).connected().ids(),
+                    LegalVoteEvent::Error(e),
+                )
+            })?;
         }
 
         Self::save_protocol_resource(ctx, legal_vote_id, protocol);
@@ -623,7 +637,7 @@ impl LegalVoteModule {
         issuer: UserId,
         msg_target: ParticipantId,
         reason: CancelReason,
-    ) -> Result<(), FatalError> {
+    ) -> Result<(), SignalingModuleError<LegalVoteError>> {
         let id = active_vote.id();
         let CanceledVote {
             parameters,
@@ -644,7 +658,7 @@ impl LegalVoteModule {
         )?;
 
         if parameters.inner.create_pdf {
-            Self::create_pdf(ctx, id, msg_target, protocol, parameters.inner.timezone);
+            self.create_pdf(ctx, id, msg_target, protocol, parameters.inner.timezone)?;
         }
 
         Ok(())
@@ -655,7 +669,7 @@ impl LegalVoteModule {
         ctx: &mut ModuleContext<'_, Self>,
         votes: Vec<ActiveVote>,
         reason: CancelReason,
-    ) -> Result<(), FatalError> {
+    ) -> Result<(), SignalingModuleError<LegalVoteError>> {
         for active_vote in votes {
             let initiator_participant_id = active_vote.parameters().initiator_id;
             let initiator_user_id = ctx
@@ -707,18 +721,19 @@ impl LegalVoteModule {
             return Err(LegalVoteError::InvalidVoteId.into());
         };
 
-        Self::create_pdf(ctx, id, sender, protocol, time_zone);
+        self.create_pdf(ctx, id, sender, protocol, time_zone)?;
 
         Ok(())
     }
 
     fn create_pdf(
+        &self,
         ctx: &mut ModuleContext<'_, Self>,
         legal_vote_id: LegalVoteId,
         msg_target: ParticipantId,
         protocol: Vec<proto::ProtocolEntry>,
         explicit_time_zone: Option<TimeZone>,
-    ) {
+    ) -> Result<(), LegalVoteError> {
         // Fall back to the following time zones in order:
         // 1. `explicit_time_zone` (from parameters or the `GeneratePdf` command)
         // 2. Time zone of the participant (command sender or vote issuer)
@@ -745,6 +760,9 @@ impl LegalVoteModule {
             })
             .collect::<BTreeMap<_, _>>();
 
+        let report_language = localization::negotiate_languages(ctx, report::AVAILABLE_LANGUAGES)
+            .ok_or(LegalVoteError::GenerateReport)?;
+        let typst_package_path = self.typst_package_path.clone();
         ctx.spawn(loopback::generate_pdf(
             ctx.storage(),
             legal_vote_id,
@@ -753,7 +771,11 @@ impl LegalVoteModule {
             ctx.timestamp,
             protocol,
             user_names,
+            report_language,
+            typst_package_path,
         ));
+
+        Ok(())
     }
 
     /// Get the active vote in a specific `room` with a specified `id`.

@@ -3,12 +3,15 @@
 
 use std::{
     collections::{HashMap, HashSet},
+    path::PathBuf,
     time::Duration,
 };
 
 use anyhow::Context as _;
 use chrono::TimeDelta;
+use icu_locid::{LanguageIdentifier, langid};
 use opentalk_roomserver_signaling::{
+    localization,
     module_context::ModuleContext,
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
@@ -53,6 +56,8 @@ const DEFAULT_INITIAL_WITHIN: Duration = Duration::from_mins(20);
 const DEFAULT_INTERVAL_AFTER: Duration = Duration::from_mins(60 + 45); // 1 hour 45 minutes
 const DEFAULT_INTERVAL_WITHIN: Duration = Duration::from_mins(30);
 
+const AVAILABLE_LANGUAGES: &[LanguageIdentifier] = &[langid!("en"), langid!("de")];
+
 struct TrainingSession {
     initial_delay: TimeRange,
     interval: TimeRange,
@@ -75,6 +80,7 @@ pub struct TrainingParticipationReportModule {
     description: EventDescription,
     autostart: Option<TrainingParticipationReportParameterSet>,
     sessions: HashMap<RoomKind, TrainingSession>,
+    typst_package_path: PathBuf,
 }
 
 impl SignalingModule for TrainingParticipationReportModule {
@@ -109,12 +115,14 @@ impl SignalingModule for TrainingParticipationReportModule {
             .ok()
             .flatten()
             .and_then(|settings| settings.autostart);
+        let typst_package_path = init_data.settings.reports.typst.packages_path.clone();
 
         Some(Self {
             sessions: HashMap::new(),
             title,
             autostart,
             description,
+            typst_package_path,
         })
     }
 
@@ -163,7 +171,9 @@ impl SignalingModule for TrainingParticipationReportModule {
         let sessions: Vec<TrainingSession> =
             self.sessions.drain().map(|(_, session)| session).collect();
         for session in sessions {
-            self.stop_presence_logging(ctx, session);
+            _ = self
+                .stop_presence_logging(ctx, session)
+                .inspect_err(|e| tracing::error!("Error while stopping presence logging: {e:?}"));
         }
 
         Ok(())
@@ -274,7 +284,9 @@ impl SignalingModule for TrainingParticipationReportModule {
             .collect();
 
         for session in sessions {
-            self.stop_presence_logging(ctx, session);
+            _ = self
+                .stop_presence_logging(ctx, session)
+                .inspect_err(|e| tracing::error!("Error while stopping presence logging {e:?}"));
         }
 
         Ok(())
@@ -285,7 +297,9 @@ impl SignalingModule for TrainingParticipationReportModule {
             self.sessions.drain().map(|(_, session)| session).collect();
 
         for session in sessions {
-            self.stop_presence_logging(ctx, session);
+            _ = self
+                .stop_presence_logging(ctx, session)
+                .inspect_err(|e| tracing::error!("Error while stopping presence logging: {e:?}"));
         }
 
         Ok(())
@@ -425,7 +439,9 @@ impl TrainingParticipationReportModule {
             return Err(TrainingParticipationReportError::PresenceLoggingNotEnabled.into());
         };
 
-        self.stop_presence_logging(ctx, session);
+        self.stop_presence_logging(ctx, session).or_else(|e| {
+            ctx.send_ws_message([sender], TrainingParticipationReportEvent::Error(e))
+        })?;
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
@@ -437,7 +453,11 @@ impl TrainingParticipationReportModule {
         Ok(())
     }
 
-    fn stop_presence_logging(&self, ctx: &ModuleContext<'_, Self>, session: TrainingSession) {
+    fn stop_presence_logging(
+        &self,
+        ctx: &ModuleContext<'_, Self>,
+        session: TrainingSession,
+    ) -> Result<(), TrainingParticipationReportError> {
         let TrainingSession {
             started_at,
             participants,
@@ -454,8 +474,10 @@ impl TrainingParticipationReportModule {
         }
 
         if !checkpoints.is_empty() {
-            self.generate_report(ctx, started_at, participants, checkpoints);
+            self.generate_report(ctx, started_at, participants, checkpoints)?;
         }
+
+        Ok(())
     }
 
     #[tracing::instrument(skip(self, ctx), level = "debug")]
@@ -528,7 +550,7 @@ impl TrainingParticipationReportModule {
         started_at: Timestamp,
         participants: HashSet<ParticipantId>,
         checkpoints: Vec<Checkpoint>,
-    ) {
+    ) -> Result<(), TrainingParticipationReportError> {
         let participant_names: HashMap<ParticipantId, Option<DisplayName>> = participants
             .into_iter()
             .map(|id| {
@@ -539,16 +561,26 @@ impl TrainingParticipationReportModule {
                 )
             })
             .collect();
+        let report_language = localization::negotiate_languages(ctx, AVAILABLE_LANGUAGES)
+            .ok_or(TrainingParticipationReportError::Generate)?;
         let template_parameter = ReportTemplateParameter::new(
             self.title.clone(),
             self.description.clone(),
             ctx.room_task_info.room.created_by.timezone,
+            report_language,
             started_at,
             ctx.timestamp,
             participant_names,
             checkpoints,
         );
-        ctx.spawn(loopback::create_report(ctx.storage(), template_parameter));
+        let typst_package_path = self.typst_package_path.clone();
+        ctx.spawn(loopback::create_report(
+            ctx.storage(),
+            template_parameter,
+            typst_package_path,
+        ));
+
+        Ok(())
     }
 
     /// Find the connected participant in the current (breakout) room that is the room owner, if

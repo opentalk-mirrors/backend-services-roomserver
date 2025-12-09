@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+#import "@preview/linguify:0.4.2": *
+
 #set page(
   paper: "a4",
 )
@@ -9,20 +11,24 @@
 )
 
 #let data = json("data.json")
+
+#set-database(eval(load_ftl_data("./l10n", data.available_languages)))
+#set text(lang: data.report_language)
+
 #let parse_datetime(s) = toml(bytes("date = " + s)).date
 #let time_format = "[hour]:[minute]"
 #let datetime_format = "[year]-[month]-[day] [hour]:[minute]"
 
-= Training participation report
+= #linguify("training_participation_report")
 
 #table(
   stroke: none,
   columns: 2,
-  [*Meeting:*], [#data.title],
-  [*Description:*], if data.description.len() > 0 [#data.description] else [—],
-  [*Report timezone:*], [#data.report_timezone],
-  [*Training start:*], [#parse_datetime(data.start).display(datetime_format)],
-  [*Training end:*], [#parse_datetime(data.end).display(datetime_format)],
+  [*#linguify("header_meeting")*], [#data.title],
+  [*#linguify("header_description")*], if data.description.len() > 0 [#data.description] else [—],
+  [*#linguify("header_report_timezone")*], [#data.report_timezone],
+  [*#linguify("header_training_start")*], [#parse_datetime(data.start).display(datetime_format)],
+  [*#linguify("header_training_end")*], [#parse_datetime(data.end).display(datetime_format)],
 )
 
 #let checkpoints_per_table = 8
@@ -56,7 +62,7 @@
   s.split(" ").map(word => insert_zero_width_space_after(word, after: after)).join(" ")
 }
 
-== Participation checkpoints
+== #linguify("participation_checkpoints")
 
 #for i in range(0, chunks) {
   let offset = i * checkpoints_per_table
@@ -68,8 +74,8 @@
   let checkpoints = data.checkpoints.slice(offset, count: chunk_size)
   let column_count = checkpoints.len()
   let header = (
-    align(end)[*№*],
-    [*Participant*],
+    align(end)[*#linguify("nr")*],
+    [*#linguify("person")*],
     ..checkpoints.map(checkpoint => [
       #align(center)[*#parse_datetime(checkpoint.timestamp).display(time_format)*]
     ]),
@@ -84,7 +90,7 @@
     let row = (
       align(end)[#number],
       if name == none [
-        _Unknown_
+        _#linguify("unknown")_
       ] else [
         *#make_long_words_breakable(name, after: 15)*
       ],

@@ -22,6 +22,7 @@ egui_extras = { workspace = true, features = ["syntect"] }
 egui_json_tree.workspace = true
 env_logger.workspace = true
 futures.workspace = true
+icu_locid.workspace = true
 livekit = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 log.workspace = true
 opentalk-roomserver-client.workspace = true

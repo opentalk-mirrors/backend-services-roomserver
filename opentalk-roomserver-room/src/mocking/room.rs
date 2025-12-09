@@ -9,9 +9,16 @@ use std::{
 };
 
 use anyhow::Context as _;
+use icu_locid::langid;
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
-    settings::{Http, Settings},
+    settings::{
+        Http, Settings,
+        runtime_settings::{
+            reports::Reports,
+            reports_typst::{ReportsTypst, reports_typst_packages_test_path},
+        },
+    },
 };
 use opentalk_roomserver_signaling::{
     signaling_module::SignalingModule, storage::module_resources::provider::ModuleResourceProvider,
@@ -69,6 +76,7 @@ impl From<ReceiveError> for Error {
 fn settings() -> Settings {
     let port = 11333;
     let public_url = Url::parse(&format!("http://localhost:{port}")).unwrap();
+    let packages_path = reports_typst_packages_test_path();
 
     Settings {
         http: Http {
@@ -83,6 +91,9 @@ fn settings() -> Settings {
         tracing: Default::default(),
         conference: Default::default(),
         defaults: Default::default(),
+        reports: Reports {
+            typst: ReportsTypst { packages_path },
+        },
     }
 }
 
@@ -115,6 +126,8 @@ impl TestRoomBuilder {
                 e2e_encryption: false,
                 module_settings: ModuleSettings::new(),
                 asset_storage: AssetStorageConfig::InMemory,
+                preferred_language: langid!("en"),
+                fallback_language: langid!("en"),
             },
             module_registry: ModuleRegistry::new(),
         }

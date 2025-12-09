@@ -7,6 +7,7 @@ use conference::Conference;
 use defaults::Defaults;
 use http::Http;
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
+use reports::Reports;
 use telemetry::{Metrics, Monitoring, Tracing};
 use url::Url;
 
@@ -15,6 +16,8 @@ use super::{settings_file::SettingsFile, signaling_salt::SignalingSalt};
 pub mod conference;
 pub mod defaults;
 pub mod http;
+pub mod reports;
+pub mod reports_typst;
 pub mod telemetry;
 
 #[derive(Debug, Clone)]
@@ -31,6 +34,8 @@ pub struct Settings {
     pub conference: Conference,
 
     pub defaults: Option<Defaults>,
+
+    pub reports: Reports,
 }
 
 impl Settings {
@@ -57,6 +62,7 @@ impl Settings {
                 room_idle_timeout: conference::DEFAULT_IDLE_TIMEOUT,
             },
             defaults: None,
+            reports: Default::default(),
         }
     }
 }
@@ -70,6 +76,7 @@ impl From<SettingsFile> for Settings {
             tracing: value.tracing.map(Into::into),
             conference: value.conference.into(),
             defaults: value.defaults.map(Into::into),
+            reports: value.reports.unwrap_or_default().into(),
         }
     }
 }

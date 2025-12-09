@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+#import "@preview/linguify:0.4.2": *
+
 #set page(
   paper: "a4",
 )
@@ -9,12 +11,16 @@
 )
 
 #let data = json("data.json")
+
+#set-database(eval(load_ftl_data("./l10n", data.available_languages)))
+#set text(lang: data.report_language)
+
 #let parse_datetime(s) = toml.decode("date = " + s).date
 #let datetime_format = "[year]-[month]-[day] [hour]:[minute]"
 #let role_label = (
-  moderator: "Moderator",
-  user: "User",
-  guest: "Guest",
+  moderator: linguify("moderator"),
+  user: linguify("user"),
+  guest: linguify("guest"),
 )
 #let role_order = (
   moderator: 0,
@@ -22,38 +28,43 @@
   guest: 2,
 )
 
-= Attendance Report
+= #linguify("attendance_report")
 
 #let metadata_table_content = (
   (
-    [Meeting],
+    linguify("meeting"),
     data.title,
   ),
 )
 
 #if data.description.len() > 0 {
   metadata_table_content.push((
-    [Details],
+    linguify("details"),
     data.description,
   ))
 }
 
 #if "starts_at" in data {
   metadata_table_content.push((
-    [Start],
-    [ #parse_datetime(data.starts_at).display(datetime_format) ],
+    linguify("planned_start"),
+    parse_datetime(data.starts_at).display(datetime_format),
   ))
 }
 
 #if "ends_at" in data {
   metadata_table_content.push((
-    [End],
-    [ #parse_datetime(data.ends_at).display(datetime_format) ],
+    linguify("planned_end"),
+    parse_datetime(data.ends_at).display(datetime_format),
   ))
 }
 
 #metadata_table_content.push((
-  [Report timezone],
+  linguify("report_created_at"),
+  parse_datetime(data.report_created_at).display(datetime_format),
+))
+
+#metadata_table_content.push((
+  linguify("report_timezone"),
   data.report_timezone,
 ))
 
@@ -66,14 +77,14 @@
   }
 )
 
-== Participants
+== #linguify("participants")
 
 #set table.hline(stroke: 0.5pt + rgb("bfbfbf"))
 
 #table(
   stroke: none,
   columns: (auto, auto, 1fr),
-  table.header([*Nr*], [*Name*], [*Role*]),
+  table.header([*#linguify("nr")*], [*#linguify("name")*], [*#linguify("role")*]),
   table.hline(y: 0),
   table.hline(y: 1),
   ..for (i, participant) in data.participants.sorted(key: p => role_order.at(p.role)).enumerate(start: 1) {

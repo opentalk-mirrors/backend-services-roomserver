@@ -12,6 +12,7 @@ pub mod instruction;
 /// The [`internal_module_message`] module is intended for internal use only
 #[doc(hidden)]
 pub mod internal_module_message;
+pub mod localization;
 /// The [`loopback`] module is intended for internal use only
 #[doc(hidden)]
 pub mod loopback;

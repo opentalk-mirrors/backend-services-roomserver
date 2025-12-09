@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, anyhow};
+use icu_locid::LanguageIdentifier;
 use opentalk_roomserver_signaling::{
     module_context::ChannelDroppedError,
     storage::{
@@ -122,6 +126,7 @@ pub(super) async fn upload_results(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) async fn generate_pdf(
     storage: ModuleAssetStorage,
     legal_vote_id: LegalVoteId,
@@ -130,8 +135,10 @@ pub(super) async fn generate_pdf(
     timestamp: Timestamp,
     protocol: Vec<ProtocolEntry>,
     user_names: BTreeMap<UserId, DisplayName>,
+    report_language: LanguageIdentifier,
+    typst_package_path: PathBuf,
 ) -> LegalVoteLoopback {
-    genrate_pdf_inner(
+    generate_pdf_inner(
         storage,
         legal_vote_id,
         msg_target,
@@ -139,12 +146,15 @@ pub(super) async fn generate_pdf(
         timestamp,
         protocol,
         user_names,
+        report_language,
+        &typst_package_path,
     )
     .await
     .unwrap_or_else(Into::into)
 }
 
-async fn genrate_pdf_inner(
+#[allow(clippy::too_many_arguments)]
+async fn generate_pdf_inner(
     storage: ModuleAssetStorage,
     legal_vote_id: LegalVoteId,
     msg_target: ParticipantId,
@@ -152,11 +162,19 @@ async fn genrate_pdf_inner(
     timestamp: Timestamp,
     protocol: Vec<ProtocolEntry>,
     user_names: BTreeMap<UserId, DisplayName>,
+    report_language: LanguageIdentifier,
+    typst_package_path: &Path,
 ) -> Result<LegalVoteLoopback, SignalingModuleError<LegalVoteError>> {
     const ASSET_FILE_KIND: AssetFileKind = asset_file_kind!("vote_protocol");
 
-    let bytes = report::generate(user_names, protocol, time_zone.into())
-        .map_err(|err| anyhow!("Failed to generate legal vote report: {err}"))?;
+    let bytes = report::generate(
+        user_names,
+        protocol,
+        time_zone.into(),
+        report_language,
+        typst_package_path,
+    )
+    .map_err(|err| anyhow!("Failed to generate legal vote report: {err}"))?;
     let metadata = AssetMetaData {
         kind: ASSET_FILE_KIND,
         timestamp,

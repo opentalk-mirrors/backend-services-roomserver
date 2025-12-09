@@ -59,6 +59,7 @@ uuid = { workspace = true, features = ["v4"] }
 yaml-rust2.workspace = true
 
 [dev-dependencies]
+icu_locid.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }

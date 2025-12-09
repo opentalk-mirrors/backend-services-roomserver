@@ -219,9 +219,25 @@ lint:docs-generated-parts:
         exit 1
       fi
 
+test:load_typst_plugins:
+  stage: test
+  <<: *default_job_condition
+  needs: []
+  artifacts:
+    paths:
+      - target/typst
+    expire_in: 1 day
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:alpine-dev
+    pull_policy: if-not-present
+  script:
+    - mkdir -p target
+    - cp -r /usr/share/typst target/typst
+
 test:cargo_test:
   stage: test
-  needs: []
+  needs:
+    - test:load_typst_plugins
   rules:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
       when: never
@@ -242,6 +258,7 @@ test:cargo_test:
     - cargo +nightly llvm-cov report --doctests --cobertura --output-path target/llvm-cov-target/cobertura.xml
     - cargo +nightly llvm-cov report --summary-only
   variables:
+    TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
     # etherpad api key used in the etherpad service and the cargo tests
     EP_APIKEY: secret123
     # etherpad port and host used in the cargo tests
