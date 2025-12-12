@@ -71,7 +71,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let joined_at;
         let display_name = client_parameters.kind.display_name();
         let avatar_url = client_parameters.kind.avatar_url().map(str::to_string);
-        match self.waiting_participants.entry(participant_id) {
+        let connection_ids = match self.waiting_participants.entry(participant_id) {
             Entry::Occupied(mut occupied_entry) => {
                 // The user joins with a second device. The client parameter (e.g. username, role)
                 // could have changed since the last connect. If the participant is
@@ -80,6 +80,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 let state = occupied_entry.get_mut();
                 state.connections.insert(connection_id, device_id);
                 joined_at = state.joined_at;
+
+                state.connections.keys().copied().collect()
             }
             Entry::Vacant(vacant_entry) => {
                 joined_at = Utc::now();
@@ -90,8 +92,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     accepted: false,
                     joined_at,
                 });
+
+                vec![connection_id]
             }
-        }
+        };
 
         self.message_router.waiting_room.serialize_and_send(
             [connection_id],
@@ -111,7 +115,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             None,
             CoreEvent::JoinedWaitingRoom {
                 participant_id,
-                connection_ids: vec![connection_id],
+                connection_ids,
                 joined_at,
                 display_name,
                 avatar_url,

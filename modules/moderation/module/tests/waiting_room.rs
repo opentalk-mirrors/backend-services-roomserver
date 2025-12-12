@@ -26,7 +26,8 @@ async fn join_info() {
         .register_module::<ModerationModule>()
         .waiting_room(true)
         .spawn();
-    let bob = room.waiting_room_bob(0).await;
+    let bob_0 = room.waiting_room_bob(0).await;
+    let bob_1 = room.waiting_room_bob(1).await;
     let alice = room.join_alice_moderator(0).await;
 
     let moderator_data = alice
@@ -43,8 +44,17 @@ async fn join_info() {
     assert!(matches!(
         waiting_bob,
         WaitingParticipantPeerData { participant_id, accepted, .. }
-            if *participant_id == bob.id() && !accepted
+            if *participant_id == bob_0.id() && !accepted
     ));
+
+    assert_eq!(
+        waiting_bob
+            .connections
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from_iter([bob_0.connection_id(), bob_1.connection_id()])
+    );
 }
 
 async fn accept_participant(
@@ -120,17 +130,33 @@ async fn join_via_waiting_room() {
 
     let mut bob_0 = room.waiting_room_bob(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == bob_0.id()
-    ));
+    let CoreEvent::JoinedWaitingRoom {
+        participant_id,
+        connection_ids,
+        ..
+    } = event.payload
+    else {
+        panic!("Expected JoinedWaitingRoom event, got: {:?}", event.payload);
+    };
+    assert_eq!(participant_id, bob_0.id());
+    assert_eq!(connection_ids, vec![bob_0.connection_id()]);
 
     let mut bob_1 = room.waiting_room_bob(1).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::JoinedWaitingRoom{ participant_id, .. } if participant_id == bob_1.id()
-    ));
+    let CoreEvent::JoinedWaitingRoom {
+        participant_id,
+        connection_ids,
+        ..
+    } = event.payload
+    else {
+        panic!("Expected JoinedWaitingRoom event, got: {:?}", event.payload);
+    };
+
+    assert_eq!(participant_id, bob_0.id());
+    assert_eq!(
+        connection_ids.into_iter().collect::<BTreeSet<_>>(),
+        BTreeSet::from_iter([bob_0.connection_id(), bob_1.connection_id()])
+    );
 
     assert!(bob_0.received_nothing());
     assert!(bob_1.received_nothing());
