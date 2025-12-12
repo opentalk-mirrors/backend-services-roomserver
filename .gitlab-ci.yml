@@ -236,6 +236,7 @@ test:load_typst_plugins:
 
 test:cargo_test:
   stage: test
+  <<: *default_job_condition
   needs:
     - test:load_typst_plugins
   rules:
