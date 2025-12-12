@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.18] - 2025-12-12
+
+[0.0.18]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.17...v0.0.18
+
+### 🚀 New features
+
+- (metrics) Restrict access to the metrics endpoint by ip address ([!764](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/764), [#169](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/169))
+
+### 🐛 Bug fixes
+
+- (ci) Add default job condition for `cargo_test` ([!773](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/773))
+- (ci) Don't run tests on main ([!774](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/774))
+
+### 📚 Documentation
+
+- Add defaults docs ([!771](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/771))
+- Add meeting report docs ([!772](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/772))
+- Add cli docs ([!769](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/769))
+
+### 📦 Dependencies
+
+- (deps) Update pre-commit hook daveshanley/vacuum to v0.20.5 ([!766](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/766))
+- (deps) Update rust crate tower-http to v0.6.8 ([!759](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/759))
+- (deps) Update rust crate reqwest to v0.12.25 ([!761](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/761))
+- (deps) Update opentalk-types ([!770](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/770))
+
 ## [0.0.17] - 2025-12-09
 
 [0.0.17]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.16...v0.0.17
