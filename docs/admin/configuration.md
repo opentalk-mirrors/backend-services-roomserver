@@ -17,6 +17,10 @@ this:
 OT_ROOMSERVER_<field>__<nested-field>…
 ```
 
+## Sections in the configuration file
+
+- [Defaults](defaults.md)
+
 ## Example configuration file
 
 This file can be found in the source code distribution under `example/roomserver.toml`
