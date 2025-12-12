@@ -40,6 +40,11 @@ api_keys = [{ id = "roomserver", secret = "secret" }]
 
 # Metrics is optional and disabled by default
 #port = 11412
+# IP addresses allowed to access the metrics endpoint
+#allowlist = []
+
+# Allow access from localhost
+#allowlist = ["127.0.0.0/24", "::ffff:0:0/96"]
 
 #[tracing]
 # Tracing settings
