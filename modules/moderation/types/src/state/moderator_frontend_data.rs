@@ -48,14 +48,14 @@ pub struct WaitingParticipantPeerData {
 }
 
 impl From<(&ParticipantId, &WaitingParticipant)> for WaitingParticipantPeerData {
-    fn from(value: (&ParticipantId, &WaitingParticipant)) -> Self {
+    fn from((&participant_id, state): (&ParticipantId, &WaitingParticipant)) -> Self {
         Self {
-            participant_id: *value.0,
-            connections: value.1.connections.keys().copied().collect(),
-            accepted: value.1.accepted,
-            joined_at: value.1.joined_at,
-            display_name: value.1.kind.display_name().clone(),
-            avatar_url: value.1.kind.avatar_url().map(String::from),
+            participant_id,
+            connections: state.connections.keys().copied().collect(),
+            accepted: state.accepted,
+            joined_at: state.joined_at,
+            display_name: state.kind.display_name().clone(),
+            avatar_url: state.kind.avatar_url().map(String::from),
         }
     }
 }
