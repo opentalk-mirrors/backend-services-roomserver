@@ -277,7 +277,7 @@ test:cargo_test:
       pull_policy: if-not-present
       alias: livekit
       command: [--dev, --bind, 0.0.0.0]
-    - name: registry.opencode.de/opentalk/spacedeck:v2.0.2
+    - name: registry.opencode.de/opentalk/spacedeck:v3.0.2
       pull_policy: if-not-present
       alias: spacedeck
 
