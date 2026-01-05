@@ -108,7 +108,7 @@ insta = "1.43.1"
 json-patch = "4.0"
 livekit = "0.7"
 livekit-api = "0.4"
-livekit-protocol = "0.5.0"
+livekit-protocol = "0.6"
 livekit-runtime = { version = "0.4", default-features = false }
 log = "0.4.22"
 mockito = "1.7.0"
