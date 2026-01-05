@@ -19,6 +19,9 @@ OT_ROOMSERVER_<field>__<nested-field>…
 
 ## Sections in the configuration file
 
+- [Monitoring](observability/monitoring.md)
+- [Metrics](observability/metrics.md)
+- [Tracing](observability/tracing.md)
 - [Defaults](defaults.md)
 
 ## Example configuration file
