@@ -18,7 +18,7 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum StateMachineOutput {
+pub enum SpeakerSelectionOutput {
     ContinueWith { update: Option<SpeakerUpdate> },
     End,
 }
