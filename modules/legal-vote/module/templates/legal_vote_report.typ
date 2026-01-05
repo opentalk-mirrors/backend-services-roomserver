@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-#import "@preview/linguify:0.4.2": *
+#import "@preview/linguify:0.5.0": *
 
 #set page(
   paper: "a4",
@@ -12,7 +12,7 @@
 
 #let data = json("data.json")
 
-#set-database(eval(load_ftl_data("./l10n", data.available_languages)))
+#set-database(eval(load-ftl-data("./l10n", data.available_languages)))
 #set text(lang: data.report_language)
 
 #let parse_datetime(s) = toml(bytes("date = " + s)).date
