@@ -105,6 +105,7 @@ use super::{
 };
 use crate::{
     message_router::{MessageEnvelope, MessageRouter, ScopedRouter, SignalingMessage},
+    metrics::Metrics,
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
     storage::{
         controller_asset_storage::ControllerAssetStorage, memory_asset_storage::MemoryAssetStorage,
@@ -176,6 +177,8 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 
     /// Timeout for the room time limit quota
     quota_timeout: Timeout,
+
+    metrics: Metrics,
 }
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
@@ -261,6 +264,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 waiting_participants: HashMap::new(),
                 banned_participants: HashMap::new(),
                 quota_timeout: Timeout::new(Duration::from_secs(time_limit)),
+                metrics: Metrics::new(),
             };
 
             room_task.run().await;
@@ -958,9 +962,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         }
 
-        if let Err(err) =
-            self.participant_joined(participant_id, connection_id, device_id, client_kind, role)
-        {
+        if let Err(err) = self.participant_joined(
+            participant_id,
+            connection_id,
+            device_id,
+            client_kind.clone(),
+            role,
+        ) {
             tracing::error!("failed to add participant to conference {err:#?}");
 
             self.disconnect_participant(
@@ -969,7 +977,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 connection_id,
                 CloseReason::InternalError,
             )?;
+        } else {
+            self.metrics
+                .record_participant_joined(connection_id, (&client_kind).into());
         }
+
         Ok(())
     }
 
@@ -1001,6 +1013,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .conference
             .remove_connection(connection_id);
+
+        self.metrics.record_participant_left(connection_id);
 
         let room = state.room;
         self.participant_disconnected(origin, participant_id, connection_id, room, reason.into())?;

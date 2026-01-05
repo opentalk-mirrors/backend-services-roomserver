@@ -166,7 +166,7 @@ impl Role {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum ParticipationKind {
     Registered,
@@ -174,6 +174,18 @@ pub enum ParticipationKind {
     Recorder,
     CallIn,
     RegisteredCallIn,
+}
+
+impl From<&ClientKind> for ParticipationKind {
+    fn from(value: &ClientKind) -> Self {
+        match value {
+            ClientKind::Registered { .. } => Self::Registered,
+            ClientKind::Guest { .. } => Self::Guest,
+            ClientKind::Recorder => Self::Recorder,
+            ClientKind::CallIn { .. } => Self::CallIn,
+            ClientKind::RegisteredCallIn { .. } => Self::RegisteredCallIn,
+        }
+    }
 }
 
 #[cfg(test)]

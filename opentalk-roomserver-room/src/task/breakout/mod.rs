@@ -218,6 +218,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )?;
         }
 
+        self.metrics
+            .increment_created_breakout_rooms_counter(breakout_rooms.len() as u64);
+
         actions.handle_requested_messages(self)?;
 
         Ok(())
@@ -423,7 +426,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         }
 
-        self.breakout_config = None;
+        let breakout_state = self.breakout_config.take();
+
+        let room_count = breakout_state
+            .map(|state| state.config.rooms.len() as u64)
+            .unwrap_or_default();
+        self.metrics
+            .increment_destroyed_breakout_rooms_counter(room_count);
 
         self.message_router.conference.serialize_and_broadcast(
             BREAKOUT_MODULE_ID,

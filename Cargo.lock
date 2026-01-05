@@ -5700,6 +5700,7 @@ version = "0.0.19-dev"
 dependencies = [
  "anyhow",
  "async-trait",
+ "axum-prometheus",
  "blake3",
  "bytes",
  "chrono",
