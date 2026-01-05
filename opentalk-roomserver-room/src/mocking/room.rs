@@ -3,7 +3,6 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    net::Ipv6Addr,
     sync::Arc,
     time::Duration,
 };
@@ -80,7 +79,7 @@ fn settings() -> Settings {
 
     Settings {
         http: Http {
-            address: std::net::IpAddr::V6(Ipv6Addr::LOCALHOST),
+            address: None,
             port,
             api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]),
             disable_openapi: true,

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::net::{IpAddr, Ipv4Addr};
-
 use conference::Conference;
 use defaults::Defaults;
 use http::Http;
@@ -48,7 +46,7 @@ impl Settings {
 
         Settings {
             http: Http {
-                address: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+                address: None,
                 port,
                 api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", api_token)]),
                 disable_openapi: false,
