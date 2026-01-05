@@ -5,12 +5,12 @@
 use opentalk_roomserver_types_automod::config::{Parameter, SelectionStrategy};
 use rand::{Rng, seq::IndexedRandom};
 
-use crate::{Session, speaker_selection::StateMachineOutput};
+use crate::{Session, speaker_selection::SpeakerSelectionOutput};
 
 /// Depending on the config will select a random participant to be speaker. This may be used when
 /// the `selection_strategy` ist `random` or a moderator issues a `Select::Random` command.
 #[tracing::instrument(skip(rng), level = "debug")]
-pub fn select_random<R: Rng>(session: &mut Session, rng: &mut R) -> StateMachineOutput {
+pub fn select_random<R: Rng>(session: &mut Session, rng: &mut R) -> SpeakerSelectionOutput {
     let participant = match &session.parameter {
         Parameter {
             selection_strategy:
@@ -47,11 +47,11 @@ pub fn select_random<R: Rng>(session: &mut Session, rng: &mut R) -> StateMachine
     if participant.is_none() {
         // When determining a random speaker failed, the list of options is empty.
         // This means the session is over.
-        return StateMachineOutput::End;
+        return SpeakerSelectionOutput::End;
     }
 
     let update = super::select_unchecked(session, participant);
-    StateMachineOutput::ContinueWith { update }
+    SpeakerSelectionOutput::ContinueWith { update }
 }
 
 #[cfg(test)]
@@ -93,7 +93,7 @@ mod test {
         // === SELECT FIRST
         assert!(matches!(
             select_random(&mut session, &mut rng),
-            StateMachineOutput::ContinueWith { .. }
+            SpeakerSelectionOutput::ContinueWith { .. }
         ));
 
         let history: Vec<ParticipantId> = session.participant_history().collect();
@@ -104,7 +104,7 @@ mod test {
         // === SELECT SECOND
         assert!(matches!(
             select_random(&mut session, &mut rng),
-            StateMachineOutput::ContinueWith { .. }
+            SpeakerSelectionOutput::ContinueWith { .. }
         ));
 
         let second = session.speaker.unwrap();
@@ -122,7 +122,7 @@ mod test {
         // === SELECT THIRD
         assert!(matches!(
             select_random(&mut session, &mut rng),
-            StateMachineOutput::ContinueWith { .. }
+            SpeakerSelectionOutput::ContinueWith { .. }
         ));
 
         let third = session.speaker.unwrap();
@@ -159,7 +159,7 @@ mod test {
 
         assert!(matches!(
             select_random(&mut session, &mut rng),
-            StateMachineOutput::ContinueWith { .. }
+            SpeakerSelectionOutput::ContinueWith { .. }
         ));
 
         let speaker = session.speaker.unwrap();
@@ -201,7 +201,7 @@ mod test {
         // === SELECT FIRST
         assert!(matches!(
             select_random(&mut session, &mut rng),
-            StateMachineOutput::ContinueWith { .. }
+            SpeakerSelectionOutput::ContinueWith { .. }
         ));
 
         let speaker = session.speaker.unwrap();
@@ -212,7 +212,7 @@ mod test {
         // === SELECT SECOND
         assert!(matches!(
             select_random(&mut session, &mut rng),
-            StateMachineOutput::ContinueWith { .. }
+            SpeakerSelectionOutput::ContinueWith { .. }
         ));
 
         let speaker = session.speaker.unwrap();
@@ -223,7 +223,7 @@ mod test {
         // === SELECT THIRD
         assert!(matches!(
             select_random(&mut session, &mut rng),
-            StateMachineOutput::ContinueWith { .. }
+            SpeakerSelectionOutput::ContinueWith { .. }
         ));
 
         let speaker = session.speaker.unwrap();
@@ -234,7 +234,7 @@ mod test {
         // === SELECT LAST MUST BE NONE
         assert!(matches!(
             select_random(&mut session, &mut rng),
-            StateMachineOutput::End
+            SpeakerSelectionOutput::End
         ));
     }
 
@@ -275,7 +275,7 @@ mod test {
         for _ in 0..4 {
             assert!(matches!(
                 select_random(&mut session, &mut rng),
-                StateMachineOutput::ContinueWith { .. }
+                SpeakerSelectionOutput::ContinueWith { .. }
             ));
 
             let speaker = session.speaker.unwrap();

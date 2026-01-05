@@ -90,7 +90,7 @@ use tokio::sync::oneshot;
 
 use crate::{
     session::Session,
-    speaker_selection::{SpeakerUpdate, StateMachineOutput},
+    speaker_selection::{SpeakerSelectionOutput, SpeakerUpdate},
 };
 
 pub(crate) mod history_entry;
@@ -409,7 +409,7 @@ impl AutomodModule {
         let time_limit = session.parameter.time_limit;
         self.handle_speaker_update(
             ctx,
-            StateMachineOutput::ContinueWith { update },
+            SpeakerSelectionOutput::ContinueWith { update },
             time_limit,
             previous_speaker,
         )?;
@@ -493,7 +493,7 @@ impl AutomodModule {
     fn handle_speaker_update(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        output: StateMachineOutput,
+        output: SpeakerSelectionOutput,
         time_limit: Option<Duration>,
         previous_speaker: Option<ParticipantId>,
     ) -> Result<(), FatalError> {
@@ -512,8 +512,8 @@ impl AutomodModule {
         ctx.recv_loopback(rx, AutomodLoopback::ParticipantsMuted);
 
         let update = match output {
-            StateMachineOutput::ContinueWith { update } => update,
-            StateMachineOutput::End => {
+            SpeakerSelectionOutput::ContinueWith { update } => update,
+            SpeakerSelectionOutput::End => {
                 return self.stop_session(ctx, StoppedReason::SessionFinished);
             }
         };

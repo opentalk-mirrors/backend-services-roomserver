@@ -9,7 +9,7 @@ use opentalk_roomserver_types_automod::{
 use opentalk_types_signaling::ParticipantId;
 use rand::Rng;
 
-use crate::{Session, speaker_selection::StateMachineOutput};
+use crate::{Session, speaker_selection::SpeakerSelectionOutput};
 
 /// Depending on the session parameters, inspect/change the `session`s state to select the next
 /// user to be speaker.
@@ -18,7 +18,7 @@ pub fn select_next<R: Rng>(
     session: &mut Session,
     user_selected: Option<ParticipantId>,
     rng: &mut R,
-) -> Result<StateMachineOutput, AutomodError> {
+) -> Result<SpeakerSelectionOutput, AutomodError> {
     let participant = match session.parameter {
         Parameter {
             selection_strategy: SelectionStrategy::None,
@@ -31,7 +31,7 @@ pub fn select_next<R: Rng>(
         } => {
             if session.remaining.is_empty() {
                 super::select_unchecked(session, None);
-                return Ok(StateMachineOutput::End);
+                return Ok(SpeakerSelectionOutput::End);
             }
             Some(session.remaining.remove(0))
         }
@@ -52,18 +52,18 @@ pub fn select_next<R: Rng>(
     };
 
     let update = super::select_unchecked(session, participant);
-    Ok(StateMachineOutput::ContinueWith { update })
+    Ok(SpeakerSelectionOutput::ContinueWith { update })
 }
 
 pub fn select_specific(
     session: &mut Session,
     user_selected: Option<ParticipantId>,
     allow_double_selection: bool,
-) -> Result<StateMachineOutput, AutomodError> {
+) -> Result<SpeakerSelectionOutput, AutomodError> {
     let participant = select_next_nomination(session, user_selected, allow_double_selection)?;
     let update = super::select_unchecked(session, participant);
 
-    Ok(StateMachineOutput::ContinueWith { update })
+    Ok(SpeakerSelectionOutput::ContinueWith { update })
 }
 
 /// Returns the next (if any) participant to be selected inside a `Nomination` selection strategy.
@@ -169,7 +169,7 @@ mod test {
 
         assert_eq!(
             next,
-            StateMachineOutput::ContinueWith {
+            SpeakerSelectionOutput::ContinueWith {
                 update: Some(SpeakerUpdate {
                     speaker: Some(p1),
                     history: Some(vec![p1, p1]),
@@ -190,7 +190,7 @@ mod test {
         let next = select_next(&mut session, Some(p1), &mut rng).unwrap();
         assert_eq!(
             next,
-            StateMachineOutput::ContinueWith {
+            SpeakerSelectionOutput::ContinueWith {
                 update: Some(SpeakerUpdate {
                     speaker: Some(p1),
                     history: Some(vec![p1, p1, p1]),
@@ -248,7 +248,7 @@ mod test {
 
         assert_eq!(
             next,
-            StateMachineOutput::ContinueWith {
+            SpeakerSelectionOutput::ContinueWith {
                 update: Some(SpeakerUpdate {
                     speaker: Some(p1),
                     history: Some(vec![p1]),
@@ -307,7 +307,7 @@ mod test {
 
         assert_eq!(session.speaker, None);
 
-        assert_eq!(next, StateMachineOutput::ContinueWith { update: None });
+        assert_eq!(next, SpeakerSelectionOutput::ContinueWith { update: None });
     }
 
     /// Test next when selection_strategy is Nomination but no nomination was given but the
@@ -334,7 +334,7 @@ mod test {
 
         // select_next with empty history
         let next = select_next(&mut session, None, &mut rng).unwrap();
-        assert_eq!(next, StateMachineOutput::ContinueWith { update: None });
+        assert_eq!(next, SpeakerSelectionOutput::ContinueWith { update: None });
 
         let history: Vec<ParticipantId> = session.participant_history().collect();
         assert_eq!(history, Vec::new());
@@ -348,8 +348,8 @@ mod test {
 
         // select_next with non-empty history
         let update = match select_next(&mut session, None, &mut rng).unwrap() {
-            StateMachineOutput::ContinueWith { update } => update.unwrap(),
-            StateMachineOutput::End => panic!("Expected ContinueWith output, got End"),
+            SpeakerSelectionOutput::ContinueWith { update } => update.unwrap(),
+            SpeakerSelectionOutput::End => panic!("Expected ContinueWith output, got End"),
         };
 
         assert!(update.speaker.is_none());
@@ -397,7 +397,7 @@ mod test {
 
         assert_eq!(session.speaker, None);
 
-        assert_eq!(next, StateMachineOutput::ContinueWith { update: None });
+        assert_eq!(next, SpeakerSelectionOutput::ContinueWith { update: None });
 
         // Add current speaker
         session.history.push(HistoryEntry::start(p1));
@@ -418,7 +418,7 @@ mod test {
 
         assert_eq!(
             next,
-            StateMachineOutput::ContinueWith {
+            SpeakerSelectionOutput::ContinueWith {
                 update: Some(SpeakerUpdate {
                     speaker: None,
                     history: Some(vec![p1]),
@@ -459,7 +459,7 @@ mod test {
 
         assert_eq!(session.speaker, None);
 
-        assert_eq!(next, StateMachineOutput::End);
+        assert_eq!(next, SpeakerSelectionOutput::End);
 
         // Create playlist
         session.remaining = vec![p2, p1, p3];
@@ -476,7 +476,7 @@ mod test {
 
         assert_eq!(
             next,
-            StateMachineOutput::ContinueWith {
+            SpeakerSelectionOutput::ContinueWith {
                 update: Some(SpeakerUpdate {
                     speaker: Some(p2),
                     history: Some(vec![p2]),
@@ -504,7 +504,7 @@ mod test {
 
         assert_eq!(
             next,
-            StateMachineOutput::ContinueWith {
+            SpeakerSelectionOutput::ContinueWith {
                 update: Some(SpeakerUpdate {
                     speaker: Some(p1),
                     history: Some(vec![p2, p1]),
@@ -517,7 +517,7 @@ mod test {
         let next = select_next(&mut session, None, &mut rng).unwrap();
         assert_eq!(
             next,
-            StateMachineOutput::ContinueWith {
+            SpeakerSelectionOutput::ContinueWith {
                 update: Some(SpeakerUpdate {
                     speaker: Some(p3),
                     history: Some(vec![p2, p1, p3]),
@@ -557,6 +557,6 @@ mod test {
 
         assert_eq!(session.speaker, None);
 
-        assert_eq!(next, StateMachineOutput::End);
+        assert_eq!(next, SpeakerSelectionOutput::End);
     }
 }
