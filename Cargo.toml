@@ -73,7 +73,7 @@ opentalk-roomserver-types-training-participation-report = { path = "modules/trai
 opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.0.19-dev" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.19-dev" }
 opentalk-service-auth = { version = "0.1", features = ["axum"] }
-opentalk-types-api-v1 = { version = "0.49.0", features = ["axum"] }
+opentalk-types-api-v1 = { version = "0.50.0", features = ["axum"] }
 opentalk-types-common = { version = "0.41.0", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.43.0", features = [
   "serde",
