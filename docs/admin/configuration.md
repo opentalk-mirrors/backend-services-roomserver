@@ -46,7 +46,7 @@ This file can be found in the source code distribution under `example/roomserver
 #address = "::1"
 
 # The publicly reachable URL of this server
-# public_url = "http://localhost:11333"
+public_url = "http://localhost:11333"
 
 # The api keys for internal service endpoints
 #
