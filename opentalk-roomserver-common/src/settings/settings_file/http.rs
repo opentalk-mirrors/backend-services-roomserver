@@ -17,7 +17,6 @@ pub struct Http {
     pub port: u16,
 
     /// The publicly reachable URL of this server
-    #[serde(default = "default_public_url")]
     pub public_url: Url,
 
     /// The configured API token for service endpoints
@@ -31,9 +30,4 @@ pub struct Http {
 
 const fn default_port() -> u16 {
     11333
-}
-
-fn default_public_url() -> Url {
-    let port = default_port();
-    Url::parse(&format!("http://localhost:{port}")).unwrap()
 }
