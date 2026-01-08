@@ -22,8 +22,9 @@ OT_ROOMSERVER_<field>__<nested-field>…
 - [Monitoring](observability/monitoring.md)
 - [Metrics](observability/metrics.md)
 - [Tracing](observability/tracing.md)
-- [Defaults](defaults.md)
 - [Conference](conference.md)
+- [Defaults](defaults.md)
+- [Reports](reports.md)
 
 ## Example configuration file
 
