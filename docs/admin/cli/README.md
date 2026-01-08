@@ -1,5 +1,5 @@
 ---
-title: Command-Line usage
+title: Command-Line Usage
 ---
 
 # Command-Line Usage of `opentalk-roomserver`
