@@ -3,6 +3,7 @@
 
 use std::net::{Ipv4Addr, Ipv6Addr, TcpListener};
 
+use anyhow::Context;
 use opentalk_service_auth::service::ApiKeys;
 
 use crate::settings::settings_file;
@@ -16,6 +17,9 @@ pub struct Http {
     /// The port that the HTTP server should use
     pub port: u16,
 
+    /// The URL that is reachable by internal services
+    pub service_url: url::Url,
+
     /// The publicly reachable URL of this server
     pub public_url: url::Url,
 
@@ -27,8 +31,22 @@ pub struct Http {
     pub enable_openapi: bool,
 }
 
-impl From<settings_file::http::Http> for Http {
-    fn from(value: settings_file::http::Http) -> Self {
+impl TryFrom<settings_file::http::Http> for Http {
+    type Error = anyhow::Error;
+    fn try_from(value: settings_file::http::Http) -> Result<Self, Self::Error> {
+        let service_url = match value.service_url {
+            Some(url) => url,
+            None => {
+                let service_url_address = match &value.address {
+                    Some(address) => address,
+                    None => &Ipv4Addr::UNSPECIFIED.to_string(),
+                };
+
+                url::Url::parse(&format!("http://{service_url_address}:{}", value.port))
+                    .context("Failed to build service url from configured address")?
+            }
+        };
+
         let address = match value.address {
             Some(address) => address,
             None => {
@@ -40,13 +58,14 @@ impl From<settings_file::http::Http> for Http {
             }
         };
 
-        Self {
+        Ok(Self {
             address,
             port: value.port,
+            service_url,
             public_url: value.public_url,
             api_keys: value.api_keys,
             enable_openapi: value.enable_openapi,
-        }
+        })
     }
 }
 

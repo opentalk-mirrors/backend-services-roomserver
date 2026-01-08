@@ -57,6 +57,9 @@ This file can be found in the source code distribution under `example/roomserver
 #address = "127.0.0.1"
 #address = "::1"
 
+# The URL of the roomserver that is reachable by internal services
+# service_url = "http://localhost:13333"
+
 # The publicly reachable URL of this server
 public_url = "http://localhost:11333"
 

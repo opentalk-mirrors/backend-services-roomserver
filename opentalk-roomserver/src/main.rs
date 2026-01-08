@@ -47,7 +47,7 @@ pub fn decorate_error(decoration: &'static str) -> impl Fn(anyhow::Error) -> any
 
 async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
     let (app_state, _) = watch::channel(ApplicationState::Running);
-    let settings: Arc<Settings> = Arc::new(SettingsFile::load(config_file_path)?.into());
+    let settings: Arc<Settings> = Arc::new(SettingsFile::load(config_file_path)?.try_into()?);
     let mut set = JoinSet::new();
 
     set.spawn(
