@@ -5,7 +5,13 @@
 //! This crate builds an executable that runs the RoomServer. It implements the
 //! [_OpenTalk RoomServer Web API_](opentalk_roomserver_web_api).
 
-use std::{path::Path, result, sync::Arc, time::Duration};
+use std::{
+    net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener, ToSocketAddrs as _},
+    path::Path,
+    result,
+    sync::Arc,
+    time::Duration,
+};
 
 use anyhow::Context;
 use axum_prometheus::metrics_exporter_prometheus::PrometheusHandle;
@@ -28,6 +34,7 @@ use tokio::{
 mod api;
 mod cli;
 mod metrics;
+mod tcp_multi_listener;
 
 mod trace;
 
@@ -65,11 +72,11 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
 
     let mut metric_layer = None;
     if let Some(metric) = &settings.metrics {
+        let addresses = determine_socket_address(settings.http.address.as_deref(), metric.port)?;
         let (m_layer, metric_handle) = metrics::build_prometheus_layer();
         set.spawn(
             metrics::run_metric_server(
-                settings.http.address,
-                metric.port,
+                addresses,
                 metric.allowlist.clone(),
                 metric_handle,
                 app_state.subscribe(),
@@ -79,8 +86,9 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
         metric_layer = Some(m_layer);
     }
 
+    let addresses = determine_socket_address(settings.http.address.as_deref(), settings.http.port)?;
     set.spawn(
-        api::run_web_server(settings, app_state.clone(), metric_layer)
+        api::run_web_server(settings, addresses, app_state.clone(), metric_layer)
             .map_err(decorate_error("API server exited with error")),
     );
 
@@ -101,6 +109,24 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+fn determine_socket_address(
+    config_address: Option<&str>,
+    config_port: u16,
+) -> std::io::Result<Vec<SocketAddr>> {
+    let to_socket_addrs = if let Some(addr) = config_address {
+        Vec::from_iter((addr, config_port).to_socket_addrs()?)
+    } else if is_ipv6_available() {
+        Vec::from_iter((Ipv6Addr::UNSPECIFIED, config_port).to_socket_addrs()?)
+    } else {
+        Vec::from_iter((Ipv4Addr::UNSPECIFIED, config_port).to_socket_addrs()?)
+    };
+    Ok(to_socket_addrs)
+}
+
+fn is_ipv6_available() -> bool {
+    TcpListener::bind((Ipv6Addr::UNSPECIFIED, 0)).is_ok()
 }
 
 impl MetricHandle for PrometheusHandle {
@@ -196,9 +222,17 @@ async fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::{net::SocketAddr, time::Duration};
+    use std::{
+        collections::BTreeSet,
+        net::{Ipv4Addr, Ipv6Addr, SocketAddr},
+        time::Duration,
+    };
 
     use tokio::net::TcpStream;
+
+    use crate::{determine_socket_address, is_ipv6_available};
+
+    const PORT: u16 = 11333;
 
     pub async fn wait_for_server(addr: SocketAddr) {
         tokio::time::timeout(Duration::from_secs(5), async {
@@ -211,5 +245,45 @@ mod tests {
         })
         .await
         .expect("metrics server did not become ready in time");
+    }
+
+    #[test]
+    fn localhost_multi_ip_when_v6_available() {
+        let addresses = determine_socket_address(Some("localhost"), PORT).unwrap();
+
+        if is_ipv6_available() {
+            assert_eq!(
+                BTreeSet::from_iter(addresses),
+                BTreeSet::from_iter(vec![
+                    SocketAddr::from((Ipv4Addr::LOCALHOST, PORT)),
+                    SocketAddr::from((Ipv6Addr::LOCALHOST, PORT))
+                ])
+            );
+        } else {
+            assert_eq!(
+                addresses,
+                vec![SocketAddr::from((Ipv4Addr::LOCALHOST, PORT))]
+            );
+        }
+    }
+
+    #[test]
+    fn single_ipv6() {
+        let addresses =
+            determine_socket_address(Some(&Ipv6Addr::LOCALHOST.to_string()), PORT).unwrap();
+        assert_eq!(
+            addresses,
+            vec![SocketAddr::from((Ipv6Addr::LOCALHOST, PORT))]
+        );
+    }
+
+    #[test]
+    fn single_ipv4() {
+        let addresses =
+            determine_socket_address(Some(&Ipv4Addr::LOCALHOST.to_string()), PORT).unwrap();
+        assert_eq!(
+            addresses,
+            vec![SocketAddr::from((Ipv4Addr::LOCALHOST, PORT))]
+        );
     }
 }

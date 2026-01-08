@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::{Context as _, Result};
 use async_trait::async_trait;
 use axum::{
     extract::MatchedPath,
     http::{Request, Response},
+    serve::Listener as _,
 };
 use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_module_automod::AutomodModule;
@@ -47,7 +48,10 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{ApplicationState, api::websocket::WebSocketAdapter, wait_shutdown};
+use crate::{
+    ApplicationState, api::websocket::WebSocketAdapter, tcp_multi_listener::MultiListener,
+    wait_shutdown,
+};
 
 pub(crate) type Router = axum::Router<Context>;
 
@@ -116,6 +120,7 @@ impl utoipa::Modify for SecurityAddon {
 /// Starts the web server
 pub(crate) async fn run_web_server<L>(
     settings: Arc<Settings>,
+    addresses: Vec<SocketAddr>,
     app_state: watch::Sender<ApplicationState>,
     metric_layer: Option<L>,
 ) -> anyhow::Result<()>
@@ -199,10 +204,9 @@ where
         router = router.merge(SwaggerUi::new("/swagger").url("/docs/openapi.json", openapi));
     }
 
-    let listener =
-        tokio::net::TcpListener::bind((settings.http.address, settings.http.port)).await?;
+    let listener = MultiListener::bind(addresses).await?;
 
-    tracing::info!("Listening on http://{}", listener.local_addr()?);
+    tracing::info!("Listening on {}", listener.local_addr()?);
 
     set_service_state(ServiceState::Ready);
     axum::serve(listener, router)

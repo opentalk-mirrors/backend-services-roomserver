@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::net::{IpAddr, Ipv4Addr};
-
 use opentalk_service_auth::service::ApiKeys;
 use serde::Deserialize;
 use url::Url;
@@ -11,8 +9,8 @@ use url::Url;
 #[derive(Debug, Clone, Deserialize)]
 pub struct Http {
     /// The IP address that the HTTP server should bind to
-    #[serde(default = "default_bind_address")]
-    pub address: IpAddr,
+    #[serde(default)]
+    pub address: Option<String>,
 
     /// The port that the HTTP server should use
     #[serde(default = "default_port")]
@@ -29,10 +27,6 @@ pub struct Http {
     // swagger endpoint under `/swagger`.
     #[serde(default)]
     pub disable_openapi: bool,
-}
-
-pub(crate) const fn default_bind_address() -> IpAddr {
-    IpAddr::V4(Ipv4Addr::UNSPECIFIED)
 }
 
 const fn default_port() -> u16 {

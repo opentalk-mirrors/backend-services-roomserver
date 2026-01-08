@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::net::IpAddr;
-
 use opentalk_service_auth::service::ApiKeys;
 
 use crate::settings::settings_file;
@@ -11,7 +9,7 @@ use crate::settings::settings_file;
 #[derive(Debug, Clone)]
 pub struct Http {
     /// The IP address that the HTTP server should bind to
-    pub address: IpAddr,
+    pub address: Option<String>,
 
     /// The port that the HTTP server should use
     pub port: u16,

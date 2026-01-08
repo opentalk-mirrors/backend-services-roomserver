@@ -25,12 +25,16 @@ pub(crate) struct Monitoring {
     pub port: u16,
 
     /// Address which is used to listen for new connections.
-    #[serde(default = "super::http::default_bind_address")]
+    #[serde(default = "default_monitor_addr")]
     pub addr: IpAddr,
 }
 
 const fn default_monitor_port() -> u16 {
     11411
+}
+
+const fn default_monitor_addr() -> IpAddr {
+    IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED)
 }
 
 /// Configure a logging target.

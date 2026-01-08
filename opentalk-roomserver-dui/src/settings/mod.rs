@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{net::IpAddr, path::Path};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    path::Path,
+};
 
 use anyhow::Context;
 use eframe::CreationContext;
@@ -57,7 +60,7 @@ pub fn load(
         let roomserver_settings: Settings = SettingsFile::load_from_path(config)?.into();
 
         let roomserver_url = build_url(
-            roomserver_settings.http.address,
+            roomserver_settings.http.address.as_deref(),
             roomserver_settings.http.port,
         )?;
         let roomserver_api_token = roomserver_settings.http.api_keys;
@@ -102,7 +105,13 @@ impl From<DuiTheme> for ThemePreference {
     }
 }
 
-fn build_url(host: IpAddr, port: u16) -> anyhow::Result<Url> {
+fn build_url(host: Option<&str>, port: u16) -> anyhow::Result<Url> {
+    let host = match host {
+        Some(host) => host
+            .parse::<IpAddr>()
+            .context("Failed to parse host address")?,
+        None => IpAddr::V4(Ipv4Addr::LOCALHOST),
+    };
     let url = if host.is_ipv6() {
         format!("http://[{host}]:{port}")
     } else {
