@@ -298,14 +298,11 @@ impl TimerModule {
         let kind = match kind {
             command::Kind::Stopwatch => Kind::Stopwatch,
             command::Kind::Countdown { duration } => {
-                let signed_duration = duration
-                    .try_into()
-                    .map_err(|_| TimerError::InvalidDuration)?;
                 let ends_at = started_at
-                    .checked_add_signed(chrono::Duration::seconds(signed_duration))
+                    .checked_add_signed(chrono::Duration::seconds(duration.into()))
                     .ok_or(TimerError::InvalidDuration)?;
 
-                let tx = ctx.loopback_after(Duration::from_secs(duration), || {
+                let tx = ctx.loopback_after(Duration::from_secs(duration as u64), || {
                     TimerLoopback::Stopped(Stopped {
                         kind: StopKind::Expired,
                         reason: None,

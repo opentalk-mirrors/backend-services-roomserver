@@ -9,14 +9,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tally {
     /// Vote count for yes.
-    pub yes: u64,
+    pub yes: u32,
 
     /// Vote count for no.
-    pub no: u64,
+    pub no: u32,
 
     /// Vote count for abstain, abstain has to be enabled in the vote parameters.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub abstain: Option<u64>,
+    pub abstain: Option<u32>,
 }
 
 #[cfg(test)]

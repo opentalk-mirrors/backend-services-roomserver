@@ -47,7 +47,7 @@ pub enum TrainingParticipationReportEvent {
 
         /// The remaining storage quota
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        remaining_quota: Option<u64>,
+        remaining_quota: Option<u32>,
     },
 
     /// An error happened when executing a `meeting_report` command

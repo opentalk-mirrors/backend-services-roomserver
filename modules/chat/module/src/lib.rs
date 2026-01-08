@@ -343,15 +343,15 @@ impl ChatModule {
 
     /// Retrieves the latest [`ChatChunk`] from the provided `history`
     fn get_latest_chunk(history: &[StoredMessage]) -> ChatChunk {
-        let message_index = history.len().saturating_sub(1) as u64;
+        let message_index = history.len().saturating_sub(1);
         Self::get_chunk(history, message_index)
     }
 
     /// Retrieves the chunk that starts at the message with index `message_index`
     /// or a default [`ChatChunk`] when `history` is [`None`].
-    fn get_chunk_or_default(history: Option<&Vec<StoredMessage>>, message_index: u64) -> ChatChunk {
+    fn get_chunk_or_default(history: Option<&Vec<StoredMessage>>, message_index: u32) -> ChatChunk {
         if let Some(history) = history {
-            Self::get_chunk(history, message_index)
+            Self::get_chunk(history, message_index as usize)
         } else {
             ChatChunk::default()
         }
@@ -363,7 +363,7 @@ impl ChatModule {
     fn search_history_chunked(
         term: &str,
         history: Option<&Vec<StoredMessage>>,
-        message_index: Option<u64>,
+        message_index: Option<u32>,
     ) -> ChatChunk {
         let Some(history) = history else {
             return ChatChunk::default();
@@ -375,10 +375,12 @@ impl ChatModule {
             .collect();
         // Not using `get_chunk()` here because that would require us to copy all
         // messages matching the search term instead of only those in the chunk.
-        let message_index = message_index.unwrap_or(filtered.len().saturating_sub(1) as u64);
-        let start = message_index.saturating_sub(CHAT_CHUNK_SIZE - 1);
+        let message_index = message_index
+            .map(|m| m as usize)
+            .unwrap_or(filtered.len().saturating_sub(1));
+        let start = message_index.saturating_sub(CHAT_CHUNK_SIZE as usize - 1);
 
-        let Some(messages) = filtered.get(start as usize..=message_index as usize) else {
+        let Some(messages) = filtered.get(start..=message_index) else {
             return ChatChunk::default();
         };
 
@@ -388,20 +390,20 @@ impl ChatModule {
 
         ChatChunk {
             messages: messages.iter().map(|msg| (*msg).clone()).collect(),
-            next_index: start.checked_sub(1),
+            next_index: start.try_into().ok().and_then(|s: u32| s.checked_sub(1)),
         }
     }
 
     /// Retrieves the chunk that starts at the message with index `message_index`.
-    fn get_chunk(history: &[StoredMessage], message_index: u64) -> ChatChunk {
-        let start = message_index.saturating_sub(CHAT_CHUNK_SIZE - 1);
-        let Some(messages) = history.get(start as usize..=message_index as usize) else {
+    fn get_chunk(history: &[StoredMessage], message_index: usize) -> ChatChunk {
+        let start = message_index.saturating_sub(CHAT_CHUNK_SIZE as usize - 1);
+        let Some(messages) = history.get(start..=message_index) else {
             return ChatChunk::default();
         };
 
         ChatChunk {
             messages: messages.to_vec(),
-            next_index: start.checked_sub(1),
+            next_index: start.try_into().ok().and_then(|s: u32| s.checked_sub(1)),
         }
     }
 
@@ -562,7 +564,7 @@ impl ChatModule {
         &self,
         ctx: &ModuleContext<'_, ChatModule>,
         sender: ParticipantId,
-        message_index: u64,
+        message_index: u32,
         scope: Scope,
     ) -> Result<(), SignalingModuleError<ChatError>> {
         if !Self::can_access_scope(ctx, sender, &scope)? {
@@ -623,7 +625,7 @@ impl ChatModule {
         sender: ParticipantId,
         scope: Scope,
         term: &str,
-        message_index: Option<u64>,
+        message_index: Option<u32>,
     ) -> Result<(), SignalingModuleError<ChatError>> {
         if term.len() < MIN_SEARCH_TERM_LENGTH {
             return Err(ChatError::InvalidSearchTermLength {

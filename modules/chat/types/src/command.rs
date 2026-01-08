@@ -32,7 +32,7 @@ pub enum ChatCommand {
     GetHistoryChunk {
         /// Determines which [`ChatChunk`](crate::state::ChatChunk) is requested.
         /// This is always the newest message of the chunk.
-        message_index: u64,
+        message_index: u32,
 
         /// The scope of the chat history
         #[serde(flatten)]
@@ -62,7 +62,7 @@ pub enum ChatCommand {
         /// The message index of the [`ChatChunk`](crate::state::ChatChunk) in the
         /// search history. Retrieves the latest [`ChatChunk`](crate::state::ChatChunk)
         /// when [`None`].
-        message_index: Option<u64>,
+        message_index: Option<u32>,
     },
 }
 

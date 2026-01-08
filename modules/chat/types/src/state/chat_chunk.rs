@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::state::StoredMessage;
 
 /// The maximum number of messages that a [`ChatChunk`] can contain
-pub const CHAT_CHUNK_SIZE: u64 = 100;
+pub const CHAT_CHUNK_SIZE: u32 = 100;
 
 /// A chunk of the chat message history
 ///
@@ -28,7 +28,7 @@ pub struct ChatChunk {
     pub messages: Vec<StoredMessage>,
     /// The message index of the newest message of the next chunk. Must be provided
     /// when requesting the next chunk.
-    pub next_index: Option<u64>,
+    pub next_index: Option<u32>,
 }
 
 #[cfg(test)]
