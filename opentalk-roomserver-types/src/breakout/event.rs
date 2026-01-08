@@ -101,6 +101,8 @@ pub enum BreakoutError {
     /// Invalid selection of assignments when starting the breakout rooms, e.g. a participant is
     /// assigned to multiple rooms
     InvalidSelection,
+    /// Too many breakout rooms were requested
+    TooManyRooms,
     /// Provided an unknown BreakoutId
     UnknownBreakoutId,
     /// The breakout rooms are inactive

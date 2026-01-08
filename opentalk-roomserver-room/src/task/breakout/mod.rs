@@ -37,6 +37,7 @@ use crate::signaling::DynBroadcastEvent;
 
 pub const MIN_BREAKOUT_DURATION: Duration = Duration::from_mins(1);
 pub const MAX_BREAKOUT_STOP_DELAY: Duration = Duration::from_hours(24);
+pub const MAX_BREAKOUT_ROOMS: u32 = 100;
 
 pub(crate) mod state;
 
@@ -155,6 +156,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         if self.breakout_config.is_some() {
             return Err(BreakoutError::AlreadyActive.into());
+        }
+
+        if config.rooms.len() > MAX_BREAKOUT_ROOMS as usize {
+            return Err(BreakoutError::TooManyRooms.into());
         }
 
         let mut assignments = BTreeMap::new();
