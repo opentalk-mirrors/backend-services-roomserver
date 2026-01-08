@@ -982,15 +982,15 @@ async fn room_chat_history_chunks() {
         .expect("Chat state must not be empty")
         .global_history;
 
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
 
     let chunk = get_chunk(&mut alice, Scope::Global, chunk.next_index.unwrap()).await;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(0));
 
     let chunk = get_chunk(&mut alice, Scope::Global, chunk.next_index.unwrap()).await;
-    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.messages.len(), 1);
     assert_eq!(chunk.next_index, None);
 
     // Out of bounds
@@ -1049,15 +1049,15 @@ async fn breakout_chat_history_chunks() {
         .expect("Chat state must not be empty")
         .breakout_room_history
         .expect("Breakout history must not be None");
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
 
     let chunk = get_chunk(&mut alice, scope.clone(), chunk.next_index.unwrap()).await;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(0));
 
     let chunk = get_chunk(&mut alice, scope.clone(), chunk.next_index.unwrap()).await;
-    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.messages.len(), 1);
     assert_eq!(chunk.next_index, None);
 
     // Out of bounds
@@ -1102,16 +1102,16 @@ async fn private_chat_history_chunks() {
         .expect("Chat state must not be empty")
         .private_history[0]
         .history;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
 
     let scope = Scope::Private(bob.id());
     let chunk = get_chunk(&mut alice, scope.clone(), chunk.next_index.unwrap()).await;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(0));
 
     let chunk = get_chunk(&mut alice, scope.clone(), chunk.next_index.unwrap()).await;
-    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.messages.len(), 1);
     assert_eq!(chunk.next_index, None);
 
     // Out of bounds
@@ -1180,7 +1180,7 @@ async fn other_breakout_room_history_chunk() {
 async fn get_chunk(
     participant: &mut MockParticipant<JoinSuccess>,
     scope: Scope,
-    message_index: u64,
+    message_index: u32,
 ) -> ChatChunk {
     participant
         .send_command::<ChatModule>(
@@ -1221,7 +1221,7 @@ async fn fill_messages(
     receivers: &mut [&mut MockParticipant<JoinSuccess>],
     scope: Scope,
     content: &str,
-    message_count: u64,
+    message_count: u32,
 ) {
     for i in 0..message_count {
         sender
@@ -1427,7 +1427,7 @@ async fn search_room_chat_history() {
     assert_eq!(chunk, ChatChunk::default());
 
     let chunk = search(&mut alice, scope.clone(), None, search_term).await;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
     // Check for the correct order
     assert_eq!(
@@ -1439,7 +1439,7 @@ async fn search_room_chat_history() {
     );
 
     let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(0));
     // Check for the correct order
     assert_eq!(
@@ -1450,7 +1450,7 @@ async fn search_room_chat_history() {
     );
 
     let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
-    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.messages.len(), 1);
     assert_eq!(chunk.next_index, None);
 
     // Out of bounds
@@ -1499,7 +1499,7 @@ async fn search_breakout_chat_history() {
     assert_eq!(chunk, ChatChunk::default());
 
     let chunk = search(&mut alice, scope.clone(), None, search_term).await;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
     // Check for the correct order
     assert_eq!(
@@ -1511,7 +1511,7 @@ async fn search_breakout_chat_history() {
     );
 
     let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(0));
     // Check for the correct order
     assert_eq!(
@@ -1522,7 +1522,7 @@ async fn search_breakout_chat_history() {
     );
 
     let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
-    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.messages.len(), 1);
     assert_eq!(chunk.next_index, None);
 
     // Out of bounds
@@ -1568,7 +1568,7 @@ async fn search_private_chat_history() {
     assert_eq!(chunk, ChatChunk::default());
 
     let chunk = search(&mut alice, scope.clone(), None, search_term).await;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(message_count - CHAT_CHUNK_SIZE - 1));
     // Check for the correct order
     assert_eq!(
@@ -1580,7 +1580,7 @@ async fn search_private_chat_history() {
     );
 
     let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
-    assert_eq!(chunk.messages.len() as u64, CHAT_CHUNK_SIZE);
+    assert_eq!(chunk.messages.len() as u32, CHAT_CHUNK_SIZE);
     assert_eq!(chunk.next_index, Some(0));
     // Check for the correct order
     assert_eq!(
@@ -1591,7 +1591,7 @@ async fn search_private_chat_history() {
     );
 
     let chunk = search(&mut alice, scope.clone(), chunk.next_index, search_term).await;
-    assert_eq!(chunk.messages.len() as u64, 1);
+    assert_eq!(chunk.messages.len(), 1);
     assert_eq!(chunk.next_index, None);
 
     // Out of bounds
@@ -1608,7 +1608,7 @@ async fn search_private_chat_history() {
 async fn search(
     participant: &mut MockParticipant<JoinSuccess>,
     search_scope: Scope,
-    message_index: Option<u64>,
+    message_index: Option<u32>,
     term: &str,
 ) -> ChatChunk {
     participant

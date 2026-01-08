@@ -13,6 +13,6 @@ pub enum Kind {
     /// The timer continues to run until its duration expires or if a moderator stops it beforehand.
     Countdown {
         /// The duration of the countdown
-        duration: u64,
+        duration: u32,
     },
 }

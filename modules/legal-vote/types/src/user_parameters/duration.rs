@@ -7,16 +7,16 @@ use std::convert::TryFrom;
 use serde::{Deserialize, Serialize};
 
 /// Minimum allowed length for a [`Duration`].
-pub const MIN_DURATION_LENGTH: u64 = 5;
+pub const MIN_DURATION_LENGTH: u32 = 5;
 
 /// A validated duration with a minimum length constraint.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(try_from = "u64")]
-pub struct Duration(u64);
+#[serde(try_from = "u32")]
+pub struct Duration(u32);
 
 #[derive(Debug)]
 pub struct TooShort {
-    min_length: u64,
+    min_length: u32,
 }
 
 impl fmt::Display for TooShort {
@@ -25,11 +25,11 @@ impl fmt::Display for TooShort {
     }
 }
 
-impl TryFrom<u64> for Duration {
+impl TryFrom<u32> for Duration {
     type Error = TooShort;
 
-    /// Converts a `u64` into a [`Duration`], enforcing the minimum length.
-    fn try_from(value: u64) -> Result<Self, Self::Error> {
+    /// Converts a `u32` into a [`Duration`], enforcing the minimum length.
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value >= MIN_DURATION_LENGTH {
             Ok(Self(value))
         } else {
@@ -42,7 +42,7 @@ impl TryFrom<u64> for Duration {
 
 impl From<Duration> for std::time::Duration {
     fn from(duration: Duration) -> Self {
-        Self::from_secs(duration.0)
+        Self::from_secs(duration.0 as u64)
     }
 }
 

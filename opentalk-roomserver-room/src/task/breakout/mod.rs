@@ -167,7 +167,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let breakout_duration = config.duration.map(|d| d.max(MIN_BREAKOUT_DURATION));
 
         for (id, parameter) in config.rooms.iter().enumerate() {
-            let breakout_id = BreakoutId::from(id as u64);
+            let breakout_id = BreakoutId::from(id as u32);
 
             for participant_id in &parameter.assignments {
                 if !self
@@ -298,7 +298,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             && breakout_config
                 .config
                 .rooms
-                .get(u64::from(id) as usize)
+                .get(u32::from(id) as usize)
                 .is_none()
         {
             return Err(BreakoutError::UnknownBreakoutId.into());
@@ -475,7 +475,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         for (id, room) in breakout_config.config.rooms.iter().enumerate() {
             rooms.push(BreakoutRoom {
-                id: BreakoutId::from(id as u64),
+                id: BreakoutId::from(id as u32),
                 name: room.name.clone(),
             });
         }

@@ -21,4 +21,4 @@ use serde::{Deserialize, Serialize};
     Serialize,
     Deserialize,
 )]
-pub struct BreakoutId(u64);
+pub struct BreakoutId(u32);
