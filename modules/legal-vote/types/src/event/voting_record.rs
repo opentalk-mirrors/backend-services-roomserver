@@ -53,7 +53,7 @@ mod test {
     }
 
     #[test]
-    fn deserialization() {
+    fn deserialize_user_votes_voting_record() {
         let produced: VotingRecord = serde_json::from_value(json!({
             "00000000-0000-0000-0000-000000000001": "no",
         }))
@@ -63,6 +63,38 @@ mod test {
             vec![(ParticipantId::from_u128(1), VoteOption::No)]
                 .into_iter()
                 .collect::<HashMap<ParticipantId, VoteOption>>(),
+        );
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_token_votes_voting_record() {
+        let produced = serde_json::to_value(VotingRecord::TokenVotes(
+            vec![(Token::new(1), VoteOption::No)]
+                .into_iter()
+                .collect::<HashMap<Token, VoteOption>>(),
+        ))
+        .unwrap();
+
+        let expected = json!({
+            "11111111112": "no",
+        });
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn deserialize_token_votes_voting_record() {
+        let produced: VotingRecord = serde_json::from_value(json!({
+            "11111111112": "no",
+        }))
+        .unwrap();
+
+        let expected = VotingRecord::TokenVotes(
+            vec![(Token::new(1), VoteOption::No)]
+                .into_iter()
+                .collect::<HashMap<Token, VoteOption>>(),
         );
 
         assert_eq!(produced, expected);
