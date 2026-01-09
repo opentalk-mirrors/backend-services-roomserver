@@ -1,3 +1,7 @@
+---
+title: Defaults
+---
+
 # Default and Fallback Values
 
 ## Configuration
