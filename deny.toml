@@ -47,6 +47,9 @@ ignore = [
   # └── bollard v0.19.4
   #     └── testcontainers v0.26.0
   "RUSTSEC-2025-0134",
+
+  # Bincode is unmaintained
+  "RUSTSEC-2025-0141",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -281,7 +284,6 @@ skip = [
   { name = "prost", version = "0.12.6" },
   { name = "prost-derive", version = "0.12.6" },
   { name = "prost-types", version = "0.12" },
-  { name = "quick-xml", version = "0.36" },
   { name = "rand", version = "0.8" },
   { name = "rand_chacha", version = "0.3" },
   { name = "rand_core", version = "0.6" },
