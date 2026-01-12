@@ -36,7 +36,7 @@ opentalk-roomserver-types-whiteboard.workspace = true
 opentalk-service-auth.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-reqwest = { workspace = true, default-features = false, features = ["json"] }
+reqwest = { workspace = true, features = ["json"] }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
