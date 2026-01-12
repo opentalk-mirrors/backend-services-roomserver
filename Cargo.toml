@@ -83,7 +83,7 @@ opentalk-types-signaling = { version = "0.43.0", features = [
 anyhow = "1"
 async-trait = "0.1"
 axum = { version = "0.8.1" }
-axum-prometheus = "0.9.0"
+axum-prometheus = "0.10.0"
 basen = "=0.1.0"
 blake3 = "1.8"
 bytes = "1.10.1"
