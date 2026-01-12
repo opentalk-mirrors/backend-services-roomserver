@@ -14,13 +14,13 @@ Services provided:
 
 The section in the [configuration file](./configuration.md) is called `http`.
 
-| Field             | Type                 | Required | Default value | Description                                                        |
-| ----------------- | -------------------- | -------- | ------------- | ------------------------------------------------------------------ |
-| `addr`            | `string`             | no       | -             | IP address or hostname to which to listen for incoming connections |
-| `port`            | `uint`               | no       | `11333`       | TCP port number where the REST API can be reached                  |
-| `public_url`      | `string`             | yes      | -             | The publicly reachable URL of this server                          |
-| `api_keys`        | Key/value pair array | yes      | -             | The api keys for internal service endpoints                        |
-| `disable_openapi` | `bool`               | no       | `false`       | Disable the OpenAPI and the corresponding Swagger endpoints        |
+| Field            | Type                 | Required | Default value | Description                                                        |
+| ---------------- | -------------------- | -------- | ------------- | ------------------------------------------------------------------ |
+| `addr`           | `string`             | no       | -             | IP address or hostname to which to listen for incoming connections |
+| `port`           | `uint`               | no       | `11333`       | TCP port number where the REST API can be reached                  |
+| `public_url`     | `string`             | yes      | -             | The publicly reachable URL of this server                          |
+| `api_keys`       | Key/value pair array | yes      | -             | The api keys for internal service endpoints                        |
+| `enable_openapi` | `bool`               | no       | `false`       | Enable the OpenAPI and the corresponding Swagger endpoints         |
 
 ### Listening address
 
@@ -52,9 +52,9 @@ The RoomServer can have multiple API keys configured that allow external
 services to access its REST API. An API key can be configured as string
 (`"<key_id>:<key_secret>"`) or as key/value pair (`{id = "<key_id>", secret = "<key_secret>"}`).
 
-### Disable OpenAPI
+### Enable OpenAPI
 
-When set to `true`, disables the OpenAPI endpoint under `/docs/openapi.json` and
+When set to `true`, enables the OpenAPI endpoint under `/docs/openapi.json` and
 the corresponding Swagger endpoint under `/swagger`. These endpoints are useful
 for development, but have a heavy negative impact on the performance of all REST API
 requests. It is recommended to disable this in production.

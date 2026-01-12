@@ -82,7 +82,7 @@ fn settings() -> Settings {
             address: None,
             port,
             api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]),
-            disable_openapi: true,
+            enable_openapi: false,
             public_url,
         },
         monitoring: Default::default(),

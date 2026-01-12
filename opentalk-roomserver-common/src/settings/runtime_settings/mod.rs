@@ -49,7 +49,7 @@ impl Settings {
                 address: None,
                 port,
                 api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", api_token)]),
-                disable_openapi: false,
+                enable_openapi: true,
                 public_url,
             },
             monitoring: None,

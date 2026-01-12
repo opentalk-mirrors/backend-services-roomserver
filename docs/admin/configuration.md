@@ -62,7 +62,7 @@ api_keys = [{ id = "roomserver", secret = "secret" }]
 
 # Disable the OpenAPI endpoint under `/docs/openapi.json` and the corresponding
 # swagger endpoint under `/swagger`.
-#disable_openapi = false
+#enable_openapi = false
 
 [monitoring]
 # Monitoring settings
