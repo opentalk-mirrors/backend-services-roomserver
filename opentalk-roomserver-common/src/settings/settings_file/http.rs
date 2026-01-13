@@ -22,10 +22,10 @@ pub struct Http {
     /// The configured API token for service endpoints
     pub api_keys: ApiKeys,
 
-    // Disable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
+    // Enable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
     // swagger endpoint under `/swagger`.
     #[serde(default)]
-    pub disable_openapi: bool,
+    pub enable_openapi: bool,
 }
 
 const fn default_port() -> u16 {

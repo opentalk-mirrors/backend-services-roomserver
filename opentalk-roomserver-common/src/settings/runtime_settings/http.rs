@@ -20,9 +20,9 @@ pub struct Http {
     /// The API keys for service endpoints
     pub api_keys: ApiKeys,
 
-    // Disable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
+    // Enable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
     // swagger endpoint under `/swagger`.
-    pub disable_openapi: bool,
+    pub enable_openapi: bool,
 }
 
 impl From<settings_file::http::Http> for Http {
@@ -32,7 +32,7 @@ impl From<settings_file::http::Http> for Http {
             port: value.port,
             public_url: value.public_url,
             api_keys: value.api_keys,
-            disable_openapi: value.disable_openapi,
+            enable_openapi: value.enable_openapi,
         }
     }
 }

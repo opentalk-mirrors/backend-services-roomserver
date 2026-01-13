@@ -196,7 +196,7 @@ where
         router = router.layer(layer);
     }
 
-    if !settings.http.disable_openapi {
+    if settings.http.enable_openapi {
         // TODO: Having this enabled causes the utoipa schema to be cloned and dropped for each
         // request which increases cost by about ~40%
         let mut openapi = ApiDoc::openapi();
