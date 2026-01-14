@@ -3,7 +3,10 @@
 //! Manages the websocket connection for a single participant
 use std::{pin::Pin, time::Duration};
 
-use futures::{FutureExt, SinkExt as _, StreamExt as _, stream::Peekable};
+use futures::{
+    FutureExt, SinkExt as _, StreamExt as _,
+    stream::{self, Peekable},
+};
 use opentalk_roomserver_common::application_state::ApplicationState;
 use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
 use opentalk_roomserver_types::{
@@ -61,8 +64,8 @@ impl ConnectionHandle {
     ) -> Result<(), mpsc::error::TrySendError<SharedRawJson>> {
         self.connection_task_event_sender
             .try_send(event)
-            .inspect_err(|_| {
-                tracing::debug!("Failed to send event to ConnectionTask, channel full");
+            .inspect_err(|e| {
+                tracing::debug!("Failed to send event to ConnectionTask, {e}");
             })
     }
 
@@ -192,6 +195,8 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
 
     /// Loop over a send/receive select until the command channel is closed.
     async fn message_loop(&mut self) -> ExitReason {
+        let mut buffer = Vec::with_capacity(EVENT_BUFFER_SIZE);
+
         loop {
             let mut stream = Pin::new(&mut self.stream);
 
@@ -212,8 +217,8 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                         return exit_reason;
                     }
                 },
-                event = self.room_task_event_receiver.recv() => {
-                    let Some(event) = event else {
+                count = self.room_task_event_receiver.recv_many(&mut buffer, EVENT_BUFFER_SIZE) => {
+                    if count == 0 {
                         if self.app_state.borrow().is_shutting_down() {
                             return ExitReason::Shutdown;
                         }
@@ -221,11 +226,12 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                         return ExitReason::ClosedByRoomTask;
                     };
 
-                    if let Err(e) = self.send_event_to_websocket(&event).await {
+                    if let Err(e) = self.send_event_to_websocket(&buffer).await {
                         tracing::debug!("Failed to send websocket message: {e}");
 
                         return ExitReason::UnexpectedDisconnection;
                     }
+                    buffer.clear();
                 }
             }
         }
@@ -253,8 +259,10 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         ),
         ExitReason,
     > {
+        // wait until a message arrives
         let _ = stream.as_mut().peek().await;
 
+        // reserve a place in the RoomTask channel
         let Ok(permit) = sender.clone().reserve_owned().await else {
             tracing::debug!("ParticipantConnection closed by room task (channel dropped)");
             return Err(ExitReason::ClosedByRoomTask);
@@ -369,7 +377,15 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
 
     /// Parse the [`SignalingEvent`](opentalk_roomserver_signaling::signaling_event::SignalingEvent)
     /// and send it over the websocket
-    async fn send_event_to_websocket(&mut self, event: &SharedRawJson) -> anyhow::Result<()> {
+    async fn send_event_to_websocket(&mut self, events: &[SharedRawJson]) -> anyhow::Result<()> {
+        let mut messages = stream::iter(events).map(Self::serialize_message);
+
+        self.sink.send_all(&mut messages).await?;
+
+        Ok(())
+    }
+
+    fn serialize_message(event: &SharedRawJson) -> Result<SignalingSocketMessage, Sink::Error> {
         let message = match serde_json::to_string(event) {
             Ok(message) => message,
             Err(e) => {
@@ -383,13 +399,11 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
 
                 tracing::error!("{error_msg}");
 
-                return Ok(());
+                let err: Box<dyn std::error::Error + Send + Sync> = Box::new(e);
+                return Err(err.into());
             }
         };
-
-        self.sink.send(message.into()).await?;
-
-        Ok(())
+        Ok(message.into())
     }
 
     /// Send a close frame, wait for the close response and drop this task.
@@ -453,7 +467,7 @@ async fn wait_close<Stream: SignalingStream>(mut stream: Stream) {
             }
             // Discard all messages, but error and close
             Ok(msg) => {
-                tracing::warn!("Received message after sending close frame: {msg:?}");
+                tracing::debug!("Received message after sending close frame: {msg:?}");
             }
         }
     }
