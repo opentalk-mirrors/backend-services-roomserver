@@ -117,8 +117,21 @@ impl MessageRouter {
 
     /// Receive the next message from any connected participant
     pub async fn recv(&mut self) -> MessageEnvelope<SignalingMessage> {
-        // This should never return `None`, because we push a pending stream into the commands
-        let msg = self.commands.next().await.expect("Command stream ended");
+        // Filter messages from connections that are no longer connected. After
+        // the RoomTask initiated a disconnect, commands from the connection remain
+        // in the command queue.
+        let msg = loop {
+            // This should never return `None`, because we push a pending stream into the commands
+            let msg = self.commands.next().await.expect("Command stream ended");
+            if self.conference.connections.contains_key(&msg.connection_id)
+                || self
+                    .waiting_room
+                    .connections
+                    .contains_key(&msg.connection_id)
+            {
+                break msg;
+            }
+        };
 
         if matches!(msg.message, SignalingMessage::Closed(..)) {
             tracing::debug!(
@@ -210,50 +223,53 @@ impl ScopedRouter {
         participant_connections: impl IntoIterator<Item = ConnectionId>,
         event: SharedRawJson,
     ) {
-        for id in participant_connections {
-            let Entry::Occupied(handle) = self.connections.entry(id) else {
-                if !self.disconnects.contains_key(&id) {
-                    tracing::warn!("Tried to sent message to unknown connection");
+        for connection_id in participant_connections {
+            let Entry::Occupied(handle) = self.connections.entry(connection_id) else {
+                if !self.disconnects.contains_key(&connection_id) {
+                    tracing::debug!("Tried to sent message to unknown connection");
                 }
                 continue;
             };
 
-            if handle.get().send_event(event.clone()).is_err() {
+            if let Err(e) = handle.get().send_event(event.clone()) {
                 let handle = handle.remove();
-                tracing::trace!(
-                    "Failed to send event to ParticipantConnectionTask, disconnecting (connection {id}, participant {})",
-                    handle.participant_id()
+                let participant_id = handle.participant_id();
+
+                tracing::debug!(
+                    connection_id = %connection_id,
+                    participant_id = %participant_id,
+                    "Failed to send event, {e}, removing connection",
                 );
-                self.disconnects.insert(id, handle.participant_id());
+                self.disconnects
+                    .insert(connection_id, handle.participant_id());
             }
         }
     }
 
     /// Send a [`SignalingEvent`] to **all** participants
-    pub fn broadcast_event(&mut self, event: SharedRawJson, excluded_connections: &[ConnectionId]) {
+    fn broadcast_event(&mut self, event: SharedRawJson, excluded_connections: &[ConnectionId]) {
         let mut stale_connections = HashSet::new();
 
-        for (connection_id, connection_handle) in &mut self.connections {
+        // send events to all participants and collect stale connections
+        for (connection_id, handle) in &mut self.connections {
             if excluded_connections.contains(connection_id) {
                 continue;
             }
-
             let cloned_event = event.clone();
 
-            if connection_handle.send_event(cloned_event).is_err() {
+            if let Err(e) = handle.send_event(cloned_event) {
+                tracing::debug!(
+                    connection_id = %connection_id,
+                    participant_id = %handle.participant_id(),
+                    "Failed to broadcast event, {e}, removing connection",
+                );
                 stale_connections.insert(*connection_id);
             }
         }
 
-        // send events to all participants and collect stale connections
-
         // remove all stale connections
         for connection_id in stale_connections {
             if let Some(handle) = self.connections.remove(&connection_id) {
-                tracing::trace!(
-                    "Failed to send event to ParticipantConnectionTask, disconnecting (connection {connection_id}, participant {})",
-                    handle.participant_id(),
-                );
                 self.disconnects
                     .insert(connection_id, handle.participant_id());
             }
