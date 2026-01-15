@@ -247,14 +247,11 @@ impl ScopedRouter {
     }
 
     /// Send a [`SignalingEvent`] to **all** participants
-    fn broadcast_event(&mut self, event: SharedRawJson, excluded_connections: &[ConnectionId]) {
+    fn broadcast_event(&mut self, event: SharedRawJson) {
         let mut stale_connections = HashSet::new();
 
         // send events to all participants and collect stale connections
         for (connection_id, handle) in &mut self.connections {
-            if excluded_connections.contains(connection_id) {
-                continue;
-            }
             let cloned_event = event.clone();
 
             if let Err(e) = handle.send_event(cloned_event) {
@@ -304,7 +301,7 @@ impl ScopedRouter {
         payload: impl Serialize,
     ) -> Result<(), FatalError> {
         let shared_json = Self::serialize_event(namespace, transaction_id, payload)?;
-        self.broadcast_event(shared_json, &[]);
+        self.broadcast_event(shared_json);
 
         Ok(())
     }
@@ -381,7 +378,7 @@ impl ScopedRouter {
             }
         };
 
-        self.broadcast_event(shared_json, &[]);
+        self.broadcast_event(shared_json);
     }
 }
 
