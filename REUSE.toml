@@ -15,6 +15,7 @@ SPDX-FileCopyrightText = [
 ]
 SPDX-License-Identifier = "EUPL-1.2"
 path = [
+  "**/*.json",
   "**/README.md",
   "**/package.json",
   "**/pnpm-lock.yaml",
