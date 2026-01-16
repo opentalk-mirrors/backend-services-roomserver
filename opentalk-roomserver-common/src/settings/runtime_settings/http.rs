@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::net::{Ipv4Addr, Ipv6Addr, TcpListener};
+
 use opentalk_service_auth::service::ApiKeys;
 
 use crate::settings::settings_file;
@@ -9,7 +11,7 @@ use crate::settings::settings_file;
 #[derive(Debug, Clone)]
 pub struct Http {
     /// The IP address that the HTTP server should bind to
-    pub address: Option<String>,
+    pub address: String,
 
     /// The port that the HTTP server should use
     pub port: u16,
@@ -27,12 +29,27 @@ pub struct Http {
 
 impl From<settings_file::http::Http> for Http {
     fn from(value: settings_file::http::Http) -> Self {
+        let address = match value.address {
+            Some(address) => address,
+            None => {
+                if is_ipv6_available() {
+                    Ipv6Addr::UNSPECIFIED.to_string()
+                } else {
+                    Ipv4Addr::UNSPECIFIED.to_string()
+                }
+            }
+        };
+
         Self {
-            address: value.address,
+            address,
             port: value.port,
             public_url: value.public_url,
             api_keys: value.api_keys,
             enable_openapi: value.enable_openapi,
         }
     }
+}
+
+fn is_ipv6_available() -> bool {
+    TcpListener::bind((Ipv6Addr::UNSPECIFIED, 0)).is_ok()
 }

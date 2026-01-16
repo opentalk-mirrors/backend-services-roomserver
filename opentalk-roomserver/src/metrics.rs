@@ -173,15 +173,16 @@ async fn metrics<H: MetricHandle>(
 mod tests {
     use std::{
         net::{IpAddr, Ipv4Addr, SocketAddr},
+        time::Duration,
         vec,
     };
 
     use opentalk_roomserver_common::application_state::ApplicationState;
     use reqwest::StatusCode;
-    use tokio::sync::watch;
+    use tokio::{net::TcpStream, sync::watch};
 
     use super::run_metric_server;
-    use crate::{metrics::MetricHandle, tests::wait_for_server};
+    use crate::metrics::MetricHandle;
 
     const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
     const RESPONSE: &str = "metrics";
@@ -193,6 +194,19 @@ mod tests {
         fn render(&self) -> String {
             RESPONSE.to_string()
         }
+    }
+
+    async fn wait_for_server(addr: SocketAddr) {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                if TcpStream::connect(addr).await.is_ok() {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .expect("metrics server did not become ready in time");
     }
 
     #[test_log::test(tokio::test)]

@@ -42,11 +42,12 @@ impl Settings {
     /// Do not use in production
     pub fn test_settings(api_token: String) -> Settings {
         let port = 11333;
-        let public_url = Url::parse(&format!("http://localhost:{port}")).unwrap();
+        let address = "localhost".into();
+        let public_url = Url::parse(&format!("http://{address}:{port}")).unwrap();
 
         Settings {
             http: Http {
-                address: None,
+                address,
                 port,
                 api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", api_token)]),
                 enable_openapi: true,

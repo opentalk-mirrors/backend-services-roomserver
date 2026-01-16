@@ -1,17 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{
-    net::{IpAddr, Ipv4Addr},
-    path::Path,
-};
+use std::path::Path;
 
 use anyhow::Context;
 use eframe::CreationContext;
 use egui::ThemePreference;
 use opentalk_roomserver_common::settings::{Settings, SettingsFile};
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 use crate::settings::file::{DuiSettingsFile, default};
 
@@ -59,10 +55,11 @@ pub fn load(
         log::debug!("Loading Roomserver Configuration");
         let roomserver_settings: Settings = SettingsFile::load_from_path(config)?.into();
 
-        let roomserver_url = build_url(
-            roomserver_settings.http.address.as_deref(),
-            roomserver_settings.http.port,
-        )?;
+        let host = roomserver_settings.http.address;
+        let port = roomserver_settings.http.port;
+
+        let roomserver_url = format!("http://{host}:{port}").parse()?;
+
         let roomserver_api_token = roomserver_settings.http.api_keys;
 
         log::info!("Overwrite roomserver URL and API token");
@@ -103,22 +100,6 @@ impl From<DuiTheme> for ThemePreference {
             DuiTheme::System => egui::ThemePreference::System,
         }
     }
-}
-
-fn build_url(host: Option<&str>, port: u16) -> anyhow::Result<Url> {
-    let host = match host {
-        Some(host) => host
-            .parse::<IpAddr>()
-            .context("Failed to parse host address")?,
-        None => IpAddr::V4(Ipv4Addr::LOCALHOST),
-    };
-    let url = if host.is_ipv6() {
-        format!("http://[{host}]:{port}")
-    } else {
-        format!("http://{host}:{port}")
-    };
-    let url = url.parse()?;
-    Ok(url)
 }
 
 #[cfg(test)]
