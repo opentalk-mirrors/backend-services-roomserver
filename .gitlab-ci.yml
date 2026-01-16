@@ -237,6 +237,8 @@ test:load_typst_plugins:
 test:cargo_test:
   stage: test
   <<: *default_job_condition
+  tags:
+    - testcontainers
   needs:
     - test:load_typst_plugins
   artifacts:
@@ -254,32 +256,7 @@ test:cargo_test:
     - cargo +nightly llvm-cov report --summary-only --ignore-filename-regex 'opentalk-roomserver-dui/'
   variables:
     TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
-    # etherpad api key used in the etherpad service and the cargo tests
-    EP_APIKEY: secret123
-    # etherpad port and host used in the cargo tests
-    TEST_ETHERPAD_PORT: 9001
-    TEST_ROOMSERVER_ETHERPAD_HOST: etherpad
-    TEST_ROOMSERVER_LIVEKIT_HOST: livekit
-    TEST_ROOMSERVER_LIVEKIT_PORT: 7880
-    LIVEKIT_KEYS: >
-      devkey: devsecret
-    # spacedeck api key used in the spacedeck service and cargo tests
-    SD_API_TOKEN: secret123
-    TEST_ROOMSERVER_SPACEDECK_PORT: 9666
-    TEST_ROOMSERVER_SPACEDECK_HOST: spacedeck
     RUST_LOG: opentalk=trace
-  services:
-    # etherpad container for meeting notes module tests
-    - name: registry.opencode.de/opentalk/etherpad:v2.0.3
-      pull_policy: if-not-present
-      alias: etherpad
-    - name: livekit/livekit-server:v1.9.11
-      pull_policy: if-not-present
-      alias: livekit
-      command: [--dev, --bind, 0.0.0.0]
-    - name: registry.opencode.de/opentalk/spacedeck:v3.0.2
-      pull_policy: if-not-present
-      alias: spacedeck
 
 build:
   stage: build
