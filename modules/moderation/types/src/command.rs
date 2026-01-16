@@ -4,7 +4,7 @@
 
 //! Signaling commands for the `moderation` namespace
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use opentalk_roomserver_types::client_parameters::Role;
@@ -58,6 +58,17 @@ pub enum ModerationCommand {
         /// The participant that will have their name changed
         target: ParticipantId,
     },
+
+    /// Enables the display name restriction state where only the participants that are part of the
+    /// `unrestricted_participants` are allowed to change their own display name. Moderators are
+    /// always allowed to change display names.
+    EnableDisplayNameChangeRestrictions {
+        unrestricted_participants: HashSet<ParticipantId>,
+    },
+
+    /// Disables the display name restriction state which will allow all participants to change
+    /// their own display name again.
+    DisableDisplayNameChangeRestrictions,
 
     /// Accept a participant from the waiting room into the meeting
     Accept {
@@ -275,6 +286,59 @@ mod tests {
             new_name: DisplayName::from_str_lossy("Alice"),
             target: ParticipantId::nil(),
         };
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_enable_display_name_change_restrictions() {
+        let cmd = ModerationCommand::EnableDisplayNameChangeRestrictions {
+            unrestricted_participants: HashSet::from_iter([ParticipantId::nil()]),
+        };
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "enable_display_name_change_restrictions",
+          "unrestricted_participants": [
+            "00000000-0000-0000-0000-000000000000"
+          ]
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_enable_display_name_change_restrictions() {
+        let json = json!({
+            "action": "enable_display_name_change_restrictions",
+            "unrestricted_participants": [
+                "00000000-0000-0000-0000-000000000000"
+            ]
+        });
+        let produced: ModerationCommand = serde_json::from_value(json).unwrap();
+        let expected = ModerationCommand::EnableDisplayNameChangeRestrictions {
+            unrestricted_participants: HashSet::from_iter([ParticipantId::nil()]),
+        };
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_disable_display_name_change_restrictions() {
+        let cmd = ModerationCommand::DisableDisplayNameChangeRestrictions;
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "disable_display_name_change_restrictions"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_disable_display_name_change_restrictions() {
+        let json = json!({
+            "action": "disable_display_name_change_restrictions",
+        });
+        let produced: ModerationCommand = serde_json::from_value(json).unwrap();
+        let expected = ModerationCommand::DisableDisplayNameChangeRestrictions;
 
         assert_eq!(produced, expected);
     }
