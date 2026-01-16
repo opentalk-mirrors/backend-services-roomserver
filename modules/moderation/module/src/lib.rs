@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use std::{
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeSet, HashMap, HashSet},
     mem,
 };
 
@@ -27,13 +27,18 @@ use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
     command::ModerationCommand,
     event::{BannedParticipantInfo, ModerationError, ModerationEvent},
-    state::{ModerationState, ModeratorJoinInfo, WaitingParticipantPeerData},
+    state::{
+        ChangeDisplayNameRestrictionState, ModerationState, ModeratorJoinInfo,
+        WaitingParticipantPeerData,
+    },
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot;
 
-pub struct ModerationModule;
+pub struct ModerationModule {
+    change_display_name_restriction_state: ChangeDisplayNameRestrictionState,
+}
 
 pub enum ModerationLoopback {
     Mute(ParticipantsMuted),
@@ -65,7 +70,9 @@ impl SignalingModule for ModerationModule {
     type Error = ModerationError;
 
     fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
-        Some(Self)
+        Some(Self {
+            change_display_name_restriction_state: ChangeDisplayNameRestrictionState::Disabled,
+        })
     }
 
     #[allow(unused_variables)]
@@ -96,7 +103,12 @@ impl SignalingModule for ModerationModule {
         };
 
         let join_info = ModuleJoinData {
-            join_success: Some(ModerationState { moderator_data }),
+            join_success: Some(ModerationState {
+                moderator_data,
+                display_name_change_restrictions: self
+                    .change_display_name_restriction_state
+                    .clone(),
+            }),
             ..Default::default()
         };
         Ok(join_info)
@@ -133,12 +145,17 @@ impl SignalingModule for ModerationModule {
                 Self::accept_waiting_participant(ctx, sender, target)
             }
             ModerationCommand::DisableWaitingRoom => Self::disable_waiting_room(ctx, sender),
-
             ModerationCommand::SendToWaitingRoom { target } => {
                 Self::send_to_waiting_room(ctx, sender, target)
             }
             ModerationCommand::ChangeDisplayName { new_name, target } => {
-                Self::change_display_name(ctx, sender, new_name, target)
+                self.change_display_name(ctx, sender, new_name, target)
+            }
+            ModerationCommand::EnableDisplayNameChangeRestrictions {
+                unrestricted_participants,
+            } => self.enable_display_name_restrictions(ctx, sender, unrestricted_participants),
+            ModerationCommand::DisableDisplayNameChangeRestrictions => {
+                self.disable_display_name_restrictions(ctx, sender)
             }
             ModerationCommand::Mute { participants } => Self::mute(ctx, sender, participants),
             ModerationCommand::EnableMicrophoneRestrictions {
@@ -523,13 +540,24 @@ impl ModerationModule {
     }
 
     fn change_display_name(
+        &self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         mut new_name: DisplayName,
         target: ParticipantId,
     ) -> Result<(), SignalingModuleError<ModerationError>> {
         if !ctx.is_moderator(sender) {
-            return Err(ModerationError::InsufficientPermissions.into());
+            if target != sender {
+                return Err(ModerationError::InsufficientPermissions.into());
+            }
+
+            if let ChangeDisplayNameRestrictionState::Enabled {
+                unrestricted_participants,
+            } = &self.change_display_name_restriction_state
+                && !unrestricted_participants.contains(&sender)
+            {
+                return Err(ModerationError::InsufficientPermissions.into());
+            }
         }
 
         if new_name.as_str().trim().is_empty() || new_name.len() > 100 {
@@ -556,6 +584,49 @@ impl ModerationModule {
                 old_name,
                 new_name,
             },
+        )?;
+
+        Ok(())
+    }
+
+    fn enable_display_name_restrictions(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        unrestricted_participants: HashSet<ParticipantId>,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        self.change_display_name_restriction_state = ChangeDisplayNameRestrictionState::Enabled {
+            unrestricted_participants: unrestricted_participants.clone(),
+        };
+
+        ctx.send_ws_message(
+            ctx.participants.connected().ids(),
+            ModerationEvent::DisplayNameChangeRestrictionsEnabled {
+                unrestricted_participants,
+            },
+        )?;
+
+        Ok(())
+    }
+
+    fn disable_display_name_restrictions(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        self.change_display_name_restriction_state = ChangeDisplayNameRestrictionState::Disabled;
+
+        ctx.send_ws_message(
+            ctx.participants.connected().ids(),
+            ModerationEvent::DisplayNameChangeRestrictionsDisabled,
         )?;
 
         Ok(())
