@@ -273,7 +273,7 @@ test:cargo_test:
     - name: registry.opencode.de/opentalk/etherpad:v2.0.3
       pull_policy: if-not-present
       alias: etherpad
-    - name: livekit/livekit-server:v1.9.10
+    - name: livekit/livekit-server:v1.9.11
       pull_policy: if-not-present
       alias: livekit
       command: [--dev, --bind, 0.0.0.0]
