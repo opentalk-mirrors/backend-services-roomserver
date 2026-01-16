@@ -60,3 +60,6 @@ fabric.properties
 # mk-docs
 .cache
 site
+
+# load-tests
+**/node_modules

@@ -16,6 +16,8 @@ SPDX-FileCopyrightText = [
 SPDX-License-Identifier = "EUPL-1.2"
 path = [
   "**/README.md",
+  "**/package.json",
+  "**/pnpm-lock.yaml",
   "**/snapshots/**.snap",
   ".commitlintrc.json",
   "CHANGELOG.md",
@@ -26,6 +28,7 @@ path = [
   "docs/**.yml",
   "example/**.json",
   "example/roomserver.toml",
+  "load-test/.prettierignore",
   "renovate.json",
 ]
 precedence = "aggregate"

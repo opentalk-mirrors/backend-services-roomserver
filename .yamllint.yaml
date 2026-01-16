@@ -14,6 +14,8 @@ yaml-files:
 ignore: |
   .cargo
   api/docs/openapi.yml
+  load-test/pnpm-lock.yaml
+  load-test/node_modules/
 
 rules:
   braces: enable
