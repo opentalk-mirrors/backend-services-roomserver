@@ -15,30 +15,9 @@ use url::Url;
 pub const ETHERPAD_PORT: u16 = 9001;
 pub const ETHERPAD_API_KEY: &str = "secret123";
 
-const ENV_ETHERPAD_HOST: &str = "TEST_ROOMSERVER_ETHERPAD_HOST";
-const ENV_ETHERPAD_PORT: &str = "TEST_ETHERPAD_PORT";
 const ENV_ETHERPAD_API_KEY: &str = "EP_APIKEY";
 
-pub async fn build_etherpad_room() -> (Option<ContainerAsync<GenericImage>>, TestRoom) {
-    if let Ok(host) = std::env::var(ENV_ETHERPAD_HOST) {
-        let room = build_room_from_env(&host);
-        (None, room)
-    } else {
-        let (container, room) = build_room_from_test_container().await;
-        (Some(container), room)
-    }
-}
-
-fn build_room_from_env(host: &str) -> TestRoom {
-    let port = std::env::var(ENV_ETHERPAD_PORT)
-        .unwrap()
-        .parse()
-        .unwrap_or_else(|_| panic!("Environment variable {ENV_ETHERPAD_PORT} not valid"));
-    let api_key = std::env::var(ENV_ETHERPAD_API_KEY).unwrap();
-    build_room(host, port, api_key)
-}
-
-async fn build_room_from_test_container() -> (ContainerAsync<GenericImage>, TestRoom) {
+pub async fn build_etherpad_room() -> (ContainerAsync<GenericImage>, TestRoom) {
     // The etherpad container is very slow to shut down. This causes tests to fail when running
     // multiple test serial or in parallel. To avoid this, we use a random port for each test so
     // that multiple containers can run at the same time.
