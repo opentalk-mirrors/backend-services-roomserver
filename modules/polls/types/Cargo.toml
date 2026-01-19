@@ -11,6 +11,9 @@ name = "opentalk-roomserver-types-polls"
 repository.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 chrono.workspace = true
 derive_more = { workspace = true, features = [

@@ -11,6 +11,9 @@ name = "opentalk-roomserver-types-echo"
 repository.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 opentalk-roomserver-signaling.workspace = true
 opentalk-types-common.workspace = true

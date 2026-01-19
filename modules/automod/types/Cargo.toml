@@ -11,6 +11,9 @@ name = "opentalk-roomserver-types-automod"
 repository.workspace = true
 version.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
