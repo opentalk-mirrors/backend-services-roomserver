@@ -17,6 +17,15 @@ this:
 OT_ROOMSERVER_<field>__<nested-field>…
 ```
 
+### Arrays
+
+Some configuration options allow to configure multiple values.
+
+- `OT_ROOMSERVER_METRICS__ALLOWLIST` expects a coma separated list
+    - `172.0.0.0/8,192.168.0.0/16`
+- `OT_ROOMSERVER_HTTP__API_KEYS` expects a coma separated list where key and secret are separated by a colon `:`
+    - `roomserver:secret1,recorder:secret2`
+
 ## Sections in the configuration file
 
 - [Http](http_server.md)
