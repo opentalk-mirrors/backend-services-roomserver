@@ -74,12 +74,13 @@ impl From<ReceiveError> for Error {
 
 fn settings() -> Settings {
     let port = 11333;
-    let public_url = Url::parse(&format!("http://localhost:{port}")).unwrap();
+    let address = "localhost".to_string();
+    let public_url = Url::parse(&format!("http://{address}:{port}")).unwrap();
     let packages_path = reports_typst_packages_test_path();
 
     Settings {
         http: Http {
-            address: None,
+            address,
             port,
             api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]),
             enable_openapi: false,
