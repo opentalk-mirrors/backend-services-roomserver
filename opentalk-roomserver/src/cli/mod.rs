@@ -7,6 +7,7 @@ use build_info::BuildInfo;
 use clap::{Parser, Subcommand};
 use opentalk_version::InfoArgs;
 
+pub(crate) mod health;
 mod license;
 pub(crate) mod openapi;
 
@@ -76,8 +77,10 @@ impl Args {
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(rename_all = "kebab_case")]
-#[allow(clippy::large_enum_variant)]
 pub(crate) enum SubCommand {
+    /// Return the readiness state
+    Health(health::Args),
+
     /// OpenAPI related commands
     #[clap(subcommand)]
     Openapi(openapi::Command),
