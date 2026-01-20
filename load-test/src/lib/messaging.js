@@ -3,10 +3,10 @@
 
 /**
  * Send a command message through the WebSocket connection
- * @param ws The WebSocket connection
- * @param namespace The module namespace (e.g., 'echo', 'core', 'chat')
- * @param payload The command payload
- * @param transactionId Optional transaction ID for tracking responses
+ * @param ws - The WebSocket connection
+ * @param namespace - The module namespace (e.g., 'echo', 'core', 'chat')
+ * @param payload - The command payload
+ * @param transactionId - Optional transaction ID for tracking responses
  */
 export function sendCommand(ws, namespace, payload, transactionId) {
   const command = {

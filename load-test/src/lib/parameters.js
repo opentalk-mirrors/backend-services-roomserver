@@ -3,6 +3,8 @@
 
 /**
  * Create a default room parameter configuration
+ * @param {object} createdBy - The user who creates the room
+ * @return {object} The room parameters
  */
 export function createRoomParameter(createdBy) {
   return {

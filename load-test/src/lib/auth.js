@@ -13,6 +13,7 @@ const JWT_KID = getEnv('JWT_KID', 'roomserver');
 
 /**
  * Generate a JWT token for authentication
+ * @returns {string} The generated JWT token
  */
 export function generateJWT() {
   const now = Math.floor(Date.now() / 1000);
@@ -41,6 +42,10 @@ export function generateJWT() {
 
 /**
  * Request a room token from the API
+ * @param {string} baseUrl - The base URL of the roomserver
+ * @param {string} roomId - The ID of the room to join
+ * @param {object} tokenRequest - The token request payload
+ * @returns {object} The access info containing the token and public URL
  */
 export function requestRoomToken(baseUrl, roomId, tokenRequest) {
   const jwt = generateJWT();
@@ -67,6 +72,7 @@ export function requestRoomToken(baseUrl, roomId, tokenRequest) {
 
 /**
  * Get WebSocket signaling URL from access info
+ * @param {object} accessInfo - The access info returned from the token request
  */
 export function getSignalingUrl(accessInfo) {
   const public_url = accessInfo.public_url.replace(/^http:\/\//i, 'ws://');
