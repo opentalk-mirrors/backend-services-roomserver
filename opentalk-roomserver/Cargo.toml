@@ -51,12 +51,14 @@ opentelemetry.workspace = true
 opentelemetry-otlp.workspace = true
 opentelemetry_sdk.workspace = true
 service-probe.workspace = true
+service-probe-client.workspace = true
 tokio = { workspace = true, features = ["rt", "signal"] }
 tower.workspace = true
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
 tracing-opentelemetry.workspace = true
 tracing-subscriber.workspace = true
+url.workspace = true
 utoipa.workspace = true
 utoipa-swagger-ui.workspace = true
 uuid = { workspace = true, features = ["v4"] }

@@ -3,6 +3,9 @@
 
 use std::net::IpAddr;
 
+use anyhow::Context;
+use url::Url;
+
 use crate::settings::settings_file;
 
 #[derive(Debug, Clone)]
@@ -28,6 +31,14 @@ pub struct Monitoring {
 
     /// Address which is used to listen for new connections.
     pub addr: IpAddr,
+}
+
+impl Monitoring {
+    pub fn url(&self) -> anyhow::Result<Url> {
+        format!("http://{}:{}", self.addr, self.port)
+            .parse()
+            .context("Failed to build endpoint from monitoring settings")
+    }
 }
 
 impl From<settings_file::telemetry::Monitoring> for Monitoring {

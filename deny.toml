@@ -248,7 +248,6 @@ deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
   { name = "base64", version = "0.21" },
-  { name = "bincode", version = "1" },
   { name = "bitflags", version = "1" },
   { name = "calloop", version = "0.13" },
   { name = "calloop-wayland-source", version = "0.3" },

@@ -12,6 +12,7 @@ In addition, some subcommands are available for management tasks.
 
 These subcommands are available:
 
+- [`health`](health.md#opentalk-roomserver-health-subcommand) for fetching the readiness state.
 - [`openapi`](openapi.md#opentalk-roomserver-openapi-subcommand) for exporting the OpenAPI specification.
 - `help` for showing the help output.
 
@@ -27,6 +28,7 @@ OpenTalk RoomServer
 Usage: opentalk-roomserver [OPTIONS] [COMMAND]
 
 Commands:
+  health   Return the readiness state
   openapi  OpenAPI related commands
   help     Print this message or the help of the given subcommand(s)
 

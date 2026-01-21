@@ -208,6 +208,9 @@ async fn main() -> anyhow::Result<()> {
         Some(SubCommand::Openapi(command)) => {
             cli::openapi::handle_command(command)?;
         }
+        Some(SubCommand::Health(command)) => {
+            cli::health::handle_command(command, args.config.as_deref()).await?;
+        }
         None => run_app(args.config.as_deref()).await?,
     }
 

@@ -43,6 +43,7 @@ mkdir -p "$CLI_DIR" "$CONFIG_DIR"
 codify toml < example/roomserver.toml > "$CONFIG_DIR"/roomserver.toml.md
 
 $OPENTALK_ROOMSERVER_CMD help | codify text > "$CLI_DIR"/help.md
+$OPENTALK_ROOMSERVER_CMD health --help | codify text > "$CLI_DIR"/health-help.md
 $OPENTALK_ROOMSERVER_CMD openapi --help | codify text > "$CLI_DIR"/openapi-help.md
 $OPENTALK_ROOMSERVER_CMD openapi dump --help | codify text > "$CLI_DIR"/openapi-dump-help.md
 
