@@ -64,8 +64,9 @@ export function requestRoomToken(baseUrl, roomId, tokenRequest) {
   try {
     return JSON.parse(response.body);
   } catch (error) {
-    console.log(`Token request failed: ${response.body}`);
-    exec.test.abort('token request failed');
+    const msg = `Token response parse error: ${response.body}`;
+    console.error(msg);
+    exec.test.abort(msg);
     throw error;
   }
 }
