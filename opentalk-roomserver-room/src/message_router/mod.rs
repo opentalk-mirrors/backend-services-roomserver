@@ -29,7 +29,7 @@ use serde_json::value::RawValue;
 use tokio::sync::watch;
 use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 
-use crate::message_router::participant_connection::ConnectionHandle;
+use crate::{message_router::participant_connection::ConnectionHandle, metrics::Metrics};
 
 mod message;
 mod participant_connection;
@@ -242,6 +242,8 @@ impl ScopedRouter {
                 );
                 self.disconnects
                     .insert(connection_id, handle.participant_id());
+
+                Metrics::increment_congested_connections(1);
             }
         }
     }
@@ -263,6 +265,8 @@ impl ScopedRouter {
                 stale_connections.insert(*connection_id);
             }
         }
+
+        Metrics::increment_congested_connections(stale_connections.len() as u64);
 
         // remove all stale connections
         for connection_id in stale_connections {
