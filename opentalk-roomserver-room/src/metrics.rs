@@ -157,11 +157,11 @@ impl Metrics {
         histogram!(ROOM_LIFE_TIME, SCOPE_KEY => SCOPE_VALUE).record(life_time);
     }
 
-    pub fn increment_created_breakout_rooms_counter(&self, value: u64) {
+    pub fn increment_created_breakout_rooms_counter(value: u64) {
         counter!(CREATED_BREAKOUT_ROOMS, SCOPE_KEY => SCOPE_VALUE).increment(value);
     }
 
-    pub fn increment_destroyed_breakout_rooms_counter(&self, value: u64) {
+    pub fn increment_destroyed_breakout_rooms_counter(value: u64) {
         counter!(DESTROYED_BREAKOUT_ROOMS, SCOPE_KEY => SCOPE_VALUE).increment(value);
     }
 
