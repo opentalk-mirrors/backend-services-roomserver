@@ -101,6 +101,22 @@ export class Client {
   }
 
   /**
+   * @typedef {import('./chat-scope.js').ChatScope} ChatScope
+   */
+
+  /**
+   * Sends a chat message
+   * @param {string} content The content of the message
+   * @param {ChatScope} scope
+   * @param {number} transactionId The transaction ID of the command
+   * @returns {Promise<any>} The corresponding event send by the RoomServer
+   */
+  sendChatMessage(content, scope, transactionId) {
+    const cmd = { action: 'send_message', content, ...scope };
+    return this.sendCommand('chat', cmd, transactionId);
+  }
+
+  /**
    * Disconnects the client, closing its WebSocket connection
    */
   disconnect() {
