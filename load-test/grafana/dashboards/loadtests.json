@@ -136,7 +136,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "avg(last_over_time(k6_fairness_echo_responses_total{test_name=\"$loadtest\"}[$__range]))",
+          "expr": "avg(last_over_time(k6_fairness_echo_responses_total{test_name=\"$fairness_test\"}[$__range]))",
           "hide": false,
           "instant": true,
           "legendFormat": "average",
@@ -146,7 +146,7 @@
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "last_over_time(k6_fairness_echo_responses_total{test_name=\"$loadtest\"}[$__range])",
+          "expr": "last_over_time(k6_fairness_echo_responses_total{test_name=\"$fairness_test\"}[$__range])",
           "format": "table",
           "instant": true,
           "legendFormat": "total responses",
@@ -288,7 +288,7 @@
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "k6_fairness_echo_rtt_seconds{ test_name=\"$loadtest\" }",
+          "expr": "k6_fairness_echo_rtt_seconds{ test_name=\"$fairness_test\" }",
           "format": "heatmap",
           "fromExploreMetrics": false,
           "instant": false,
@@ -299,6 +299,258 @@
       ],
       "title": "Round Trip Time Heatmap",
       "type": "heatmap"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 7,
+      "panels": [],
+      "title": "Spike",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "k6_vus"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 40
+              },
+              {
+                "id": "unit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "k6_spike_echo_rtt"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "k6_spike_join_echo_rtt{test_name=\"$spike_join_test\"}",
+          "interval": "1",
+          "legendFormat": "echo RTT",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "editorMode": "code",
+          "expr": "k6_vus",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "VUs",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Spike Round Trip Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "description": "Participants that were disconnected due to congestion.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "signaling_congested_connections",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Congested Participants",
+      "type": "timeseries"
     }
   ],
   "preload": false,
@@ -308,11 +560,11 @@
     "list": [
       {
         "current": {
-          "text": "Tue Jan 13 2026 15:53:34 GMT+0000 (UTC)",
-          "value": "Tue Jan 13 2026 15:53:34 GMT+0000 (UTC)"
+          "text": "",
+          "value": ""
         },
         "definition": "label_values(k6_fairness_echo_responses_total,test_name)",
-        "name": "loadtest",
+        "name": "fairness_test",
         "options": [],
         "query": {
           "qryType": 1,
@@ -320,6 +572,23 @@
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "spike_join-15:03:31 GMT+0000 (UTC)",
+          "value": "spike_join-15:03:31 GMT+0000 (UTC)"
+        },
+        "definition": "label_values(k6_spike_join_echo_rtt,test_name)",
+        "name": "spike_join_test",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(k6_spike_join_echo_rtt,test_name)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
         "regex": "",
         "type": "query"
       }
@@ -333,5 +602,5 @@
   "timezone": "browser",
   "title": "Loadtest",
   "uid": "adqw8xd",
-  "version": 1
+  "version": 10
 }
