@@ -39,6 +39,7 @@ pub const CONNECTION_MEETING_TIME_BUCKETS: &[f64] = &[
     3.0 * 60.0 * 60.0, // 3 hours
     8.0 * 60.0 * 60.0, // 8 hours
 ];
+const CONGESTED_CONNECTIONS: &str = "signaling.congested_connections";
 
 static DESCRIBE_ONCE: Once = Once::new();
 
@@ -76,6 +77,11 @@ impl Metrics {
             );
             describe_histogram!(ROOM_LIFE_TIME, Unit::Seconds, "Time rooms were active");
             describe_gauge!(CONNECTIONS_PER_ROOM, Unit::Count, "Connections per room");
+            describe_counter!(
+                CONGESTED_CONNECTIONS,
+                Unit::Count,
+                "Number of connections that were disconnected due to congestion"
+            );
         });
 
         Self::increment_created_rooms_counter();
@@ -157,11 +163,11 @@ impl Metrics {
         histogram!(ROOM_LIFE_TIME, SCOPE_KEY => SCOPE_VALUE).record(life_time);
     }
 
-    pub fn increment_created_breakout_rooms_counter(&self, value: u64) {
+    pub fn increment_created_breakout_rooms_counter(value: u64) {
         counter!(CREATED_BREAKOUT_ROOMS, SCOPE_KEY => SCOPE_VALUE).increment(value);
     }
 
-    pub fn increment_destroyed_breakout_rooms_counter(&self, value: u64) {
+    pub fn increment_destroyed_breakout_rooms_counter(value: u64) {
         counter!(DESTROYED_BREAKOUT_ROOMS, SCOPE_KEY => SCOPE_VALUE).increment(value);
     }
 
@@ -171,6 +177,10 @@ impl Metrics {
 
     pub fn decrement_connection_count(kind: ParticipationKind) {
         Self::connection_count(kind).decrement(1);
+    }
+
+    pub fn increment_congested_connections(value: u64) {
+        counter!(CONGESTED_CONNECTIONS, SCOPE_KEY => SCOPE_VALUE).increment(value);
     }
 
     fn connection_count(kind: ParticipationKind) -> Gauge {

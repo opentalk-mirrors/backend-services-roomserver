@@ -33,7 +33,7 @@ use opentalk_types_signaling::{ModuleData, ParticipantId};
 use state::BreakoutState;
 
 use super::RoomTask;
-use crate::signaling::DynBroadcastEvent;
+use crate::{metrics::Metrics, signaling::DynBroadcastEvent};
 
 pub const MIN_BREAKOUT_DURATION: Duration = Duration::from_mins(1);
 pub const MAX_BREAKOUT_STOP_DELAY: Duration = Duration::from_hours(24);
@@ -223,8 +223,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )?;
         }
 
-        self.metrics
-            .increment_created_breakout_rooms_counter(breakout_rooms.len() as u64);
+        Metrics::increment_created_breakout_rooms_counter(breakout_rooms.len() as u64);
 
         actions.handle_requested_messages(self)?;
 
@@ -436,8 +435,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let room_count = breakout_state
             .map(|state| state.config.rooms.len() as u64)
             .unwrap_or_default();
-        self.metrics
-            .increment_destroyed_breakout_rooms_counter(room_count);
+        Metrics::increment_destroyed_breakout_rooms_counter(room_count);
 
         self.message_router.conference.serialize_and_broadcast(
             BREAKOUT_MODULE_ID,
