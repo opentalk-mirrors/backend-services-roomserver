@@ -22,15 +22,37 @@
   "links": [],
   "panels": [
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 4,
+      "panels": [],
+      "title": "Fairness",
+      "type": "row"
+    },
+    {
       "datasource": {
+        "type": "prometheus",
         "uid": "P1809F7CD0C75ACF3"
       },
+      "description": "Ideally the spread is as little as possible.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 6,
+            "axisSoftMin": 0,
             "fillOpacity": 80,
             "gradientMode": "none",
             "hideFrom": {
@@ -39,9 +61,11 @@
               "viz": false
             },
             "lineWidth": 1,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "area"
             }
           },
           "mappings": [],
@@ -53,52 +77,145 @@
                 "value": 0
               },
               {
-                "color": "red",
-                "value": 80
+                "color": "dark-red",
+                "value": 5
               }
             ]
-          },
-          "unit": "none"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "diffference _abs"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 1
       },
-      "id": 2,
-      "maxDataPoints": 500,
+      "id": 6,
       "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
           "sort": "none"
-        }
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
       "pluginVersion": "12.3.1",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "last_over_time (k6_echo_responses_total { test_name=\"$loadtest\"  }[$__range])",
-          "format": "table",
-          "fromExploreMetrics": false,
+          "expr": "avg(last_over_time(k6_fairness_echo_responses_total{test_name=\"$loadtest\"}[$__range]))",
+          "hide": false,
           "instant": true,
-          "legendFormat": "__auto",
+          "legendFormat": "average",
           "range": false,
-          "refId": "k6_echo_responses_total"
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "last_over_time(k6_fairness_echo_responses_total{test_name=\"$loadtest\"}[$__range])",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "total responses",
+          "range": false,
+          "refId": "A"
         }
       ],
-      "title": "k6_echo_responses_total",
-      "type": "histogram"
+      "title": "Echo response count deviation",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "mode": "inner"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "difference %",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [
+                "Value 2",
+                "average"
+              ],
+              "reducer": "diffperc"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "diffference _abs",
+            "mode": "unary",
+            "reduce": {
+              "reducer": "sum"
+            },
+            "replaceFields": false,
+            "unary": {
+              "fieldName": "difference %",
+              "operator": "abs"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "vu",
+                "diffference _abs"
+              ]
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "diffference _abs"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "barchart"
     },
     {
       "datasource": {
@@ -124,13 +241,13 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 8
+        "x": 12,
+        "y": 1
       },
       "id": 1,
       "maxDataPoints": 500,
       "options": {
-        "calculate": true,
+        "calculate": false,
         "cellGap": 1,
         "cellValues": {
           "unit": "none"
@@ -141,7 +258,7 @@
           "mode": "scheme",
           "reverse": false,
           "scale": "exponential",
-          "scheme": "Spectral",
+          "scheme": "Inferno",
           "steps": 32
         },
         "exemplars": {
@@ -156,8 +273,6 @@
         "rowsFrame": {
           "layout": "auto"
         },
-        "selectionMode": "x",
-        "showValue": "auto",
         "tooltip": {
           "mode": "single",
           "showColorScale": false,
@@ -173,14 +288,16 @@
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "k6_echo_rtt_seconds{ test_name=\"$loadtest\"  }",
+          "expr": "k6_fairness_echo_rtt_seconds{ test_name=\"$loadtest\" }",
           "format": "heatmap",
           "fromExploreMetrics": false,
+          "instant": false,
+          "interval": "",
           "range": true,
           "refId": "k6_echo_rtt_seconds-heatmap"
         }
       ],
-      "title": "k6_echo_rtt_seconds",
+      "title": "Round Trip Time Heatmap",
       "type": "heatmap"
     }
   ],
@@ -194,12 +311,12 @@
           "text": "Tue Jan 13 2026 15:53:34 GMT+0000 (UTC)",
           "value": "Tue Jan 13 2026 15:53:34 GMT+0000 (UTC)"
         },
-        "definition": "label_values(k6_echo_responses_total,test_name)",
+        "definition": "label_values(k6_fairness_echo_responses_total,test_name)",
         "name": "loadtest",
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(k6_echo_responses_total,test_name)",
+          "query": "label_values(k6_fairness_echo_responses_total,test_name)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,

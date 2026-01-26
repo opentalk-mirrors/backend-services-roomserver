@@ -13,9 +13,9 @@ Then follow the steps below:
 cargo run --release
 # navigate into the load-test directory
 cd load-test
-# run a load test, in this case echo-stress.js
+# run a load test, in this case fairness.js
 # this will also automatically start containers for prometheus and grafana
-sudo docker compose run --rm k6 echo-stress.js
+sudo docker compose run --rm k6 fairness.js
 ```
 
 You can view the live results in [Grafana](http://localhost:9000/dashboards).
