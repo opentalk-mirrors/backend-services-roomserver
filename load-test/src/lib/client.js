@@ -89,7 +89,7 @@ export class Client {
     };
 
     ws.onerror = (error) => {
-      console.error(`WebSocket error: ${error.message}`);
+      console.error(`Received error from WebSocket: ${JSON.stringify(error)}`);
     };
   }
 
