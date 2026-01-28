@@ -16,6 +16,7 @@ services:
       # send native histograms to Prometheus
       - K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true
       - LOAD_TEST_BASE_URL=${LOAD_TEST_BASE_URL}
+      - K6_PROMETHEUS_RW_PUSH_INTERVAL=1s
     depends_on:
       - prometheus
       - grafana
