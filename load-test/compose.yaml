@@ -5,7 +5,7 @@
 services:
   k6:
     image: grafana/k6
-    entrypoint: [k6, run, -o, experimental-prometheus-rw]
+    entrypoint: [k6, run, -o, experimental-prometheus-rw, --summary-mode=disabled]
     extra_hosts:
       - host.docker.internal:host-gateway
     working_dir: /load-test/tests
@@ -19,8 +19,6 @@ services:
       - K6_PROMETHEUS_RW_PUSH_INTERVAL=1s
     depends_on:
       - prometheus
-      - grafana
-      - node_exporter
 
   prometheus:
     image: quay.io/prometheus/prometheus:latest
@@ -37,8 +35,6 @@ services:
       - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro,z
     extra_hosts:
       - host.docker.internal:host-gateway
-    depends_on:
-      - node_exporter
     restart: on-failure
 
   grafana:
@@ -50,6 +46,8 @@ services:
       - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro,z
       - ./grafana/dashboards:/dashboards:ro,z
     restart: on-failure
+    depends_on:
+      - prometheus
 
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
