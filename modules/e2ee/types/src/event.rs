@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use crate::{E2eeError, MlsMessages, WelcomeMessage};
@@ -12,10 +10,6 @@ use crate::{E2eeError, MlsMessages, WelcomeMessage};
 pub enum E2eeEvent {
     Welcome(WelcomeMessage),
     MlsMessages(MlsMessages),
-    Disconnect {
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
-    },
     Error(E2eeError),
 }
 
@@ -28,21 +22,11 @@ impl From<E2eeError> for E2eeEvent {
 #[cfg(test)]
 mod tests {
     use bytes::Bytes;
-    use opentalk_roomserver_types::connection_id::ConnectionId;
-    use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::*;
     use crate::{E2eeError, MlsMessages, WelcomeMessage};
-
-    fn sample_participant_id() -> ParticipantId {
-        ParticipantId::from_u128(0x1)
-    }
-
-    fn sample_connection_id() -> ConnectionId {
-        ConnectionId::from_u128(0x2)
-    }
 
     fn sample_welcome_message() -> WelcomeMessage {
         WelcomeMessage {
@@ -81,24 +65,6 @@ mod tests {
                 b"mls1",
                 b"mls2",
             ]
-        });
-        assert_eq!(serde_json::to_value(&event).unwrap(), json_value);
-        assert_eq!(
-            serde_json::from_value::<E2eeEvent>(json_value).unwrap(),
-            event
-        );
-    }
-
-    #[test]
-    fn disconnect() {
-        let event = E2eeEvent::Disconnect {
-            participant_id: sample_participant_id(),
-            connection_id: sample_connection_id(),
-        };
-        let json_value = json!({
-            "message": "disconnect",
-            "participant_id": sample_participant_id(),
-            "connection_id": sample_connection_id(),
         });
         assert_eq!(serde_json::to_value(&event).unwrap(), json_value);
         assert_eq!(

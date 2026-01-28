@@ -5813,7 +5813,6 @@ dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-types-common",
- "opentalk-types-signaling",
  "pretty_assertions",
  "serde",
  "serde_json",
