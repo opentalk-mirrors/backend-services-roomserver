@@ -51,17 +51,10 @@ impl SignalingModule for E2eeModule {
 
     fn on_participant_disconnected(
         &mut self,
-        ctx: &mut ModuleContext<'_, Self>,
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
+        _ctx: &mut ModuleContext<'_, Self>,
+        _participant_id: ParticipantId,
+        _connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        ctx.send_ws_message(
-            ctx.participants.connected().room(ctx.room).ids(),
-            E2eeEvent::Disconnect {
-                participant_id,
-                connection_id,
-            },
-        )?;
         Ok(())
     }
 

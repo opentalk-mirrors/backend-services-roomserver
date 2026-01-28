@@ -182,31 +182,6 @@ async fn invitee_unknown() {
     assert!(bob.received_nothing());
 }
 
-#[test_log::test(tokio::test)]
-async fn disconnect_event_is_sent() {
-    let mut room = TestRoom::builder().register_module::<E2eeModule>().spawn();
-
-    // Alice and Bob join
-    let mut alice = room.join_alice_moderator(0).await;
-    let bob = room.join_bob(0).await;
-    flush_connected_events(&mut [&mut alice]).await;
-
-    // Bob disconnects
-    let bob_id = bob.id();
-    let bob_connection_id = bob.connection_id();
-    bob.disconnect().await.unwrap();
-
-    // Alice should receive a disconnect event for Bob
-    let event = alice.receive_event::<E2eeModule>().await.unwrap().payload;
-    assert_eq!(
-        event,
-        E2eeEvent::Disconnect {
-            participant_id: bob_id,
-            connection_id: bob_connection_id,
-        }
-    );
-}
-
 /// 1. Alice joins twice (alice1 and alice2)
 /// 2. Bob joins
 /// 3. Dave joins and enters a breakout room

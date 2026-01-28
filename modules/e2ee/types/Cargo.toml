@@ -19,7 +19,6 @@ bytes = { workspace = true, features = ["serde"] }
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true
-opentalk-types-signaling.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
