@@ -5173,13 +5173,13 @@ dependencies = [
 
 [[package]]
 name = "opentalk-etherpad-client"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9efaa7dc9640de55d4b4339ccb3b2981212a14772ec7e677287e881f49948685"
+checksum = "e514546dc26b2f9d865149b7322efaab636fff982c8e4383a9bd6e0c700a3fc0"
 dependencies = [
  "bytes",
  "futures",
- "reqwest 0.12.28",
+ "reqwest 0.13.1",
  "serde",
  "serde_json",
  "serde_repr",
@@ -7319,8 +7319,6 @@ checksum = "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147"
 dependencies = [
  "base64 0.22.1",
  "bytes",
- "cookie",
- "cookie_store",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -7344,14 +7342,12 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tokio-rustls 0.26.4",
- "tokio-util",
  "tower",
  "tower-http",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams",
  "web-sys",
  "webpki-roots 1.0.5",
 ]
@@ -7364,6 +7360,8 @@ checksum = "04e9018c9d814e5f30cc16a0f03271aeab3571e609612d9fe78c1aa8d11c2f62"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "cookie",
+ "cookie_store",
  "encoding_rs",
  "futures-core",
  "futures-util",
