@@ -59,7 +59,9 @@ export function requestRoomToken(baseUrl, roomId, tokenRequest) {
     },
   };
 
-  const response = http.post(`${baseUrl}/v1/rooms/${roomId}/token`, payload, params);
+  const response = http.post(`${baseUrl}/v1/rooms/${roomId}/token`, payload, params, {
+    tags: { name: 'requestRoomToken' },
+  });
 
   try {
     return JSON.parse(response.body);

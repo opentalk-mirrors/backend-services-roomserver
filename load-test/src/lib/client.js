@@ -54,38 +54,20 @@ export class ClientBuilder {
   }
 }
 
-class Event {
-  constructor(namespace, transactionId, resolve) {
-    this.namespace = namespace;
-    this.transactionId = transactionId;
-    this.resolve = resolve;
-  }
-
-  /**
-   * Check if the event matches this event's namespace and transaction ID
-   * @param {any} event - The event to compare against
-   * @returns {boolean} - True when the event matches this event's namespace and transaction ID
-   */
-  matches(event) {
-    return event && this.namespace === event.namespace && this.transactionId === event.transaction_id;
-  }
-}
-
 export class Client {
   constructor(ws) {
     this.ws = ws;
-    this.events = [];
+    this.events = new Map();
 
     ws.onmessage = (event) => {
+      if (this.events.size === 0) return;
+
       const message = JSON.parse(event.data);
-      const matchingEvent = this.events.find((e) => e.matches(message));
-      if (matchingEvent) {
-        matchingEvent.resolve(message);
-        this.events = this.events.filter((e) => e !== matchingEvent);
-      } else {
-        // This happens when broadcasts are triggered by other clients
-        console.debug(`Received unmatched message: ${event.data}`);
-      }
+      const resolve = this.events.get(message.transaction_id);
+      if (resolve === undefined) return;
+
+      resolve(message);
+      this.events.delete(message.transaction_id);
     };
 
     ws.onerror = (error) => {
@@ -103,7 +85,7 @@ export class Client {
   sendCommand(namespace, payload, transactionId) {
     const self = this;
     const promise = new Promise((resolve, _reject) => {
-      self.events.push(new Event(namespace, transactionId, resolve));
+      self.events.set(transactionId, resolve);
     });
     sendCommand(this.ws, namespace, payload, transactionId);
     return promise;
@@ -116,6 +98,22 @@ export class Client {
    */
   sendEcho(transactionId) {
     return this.sendCommand('echo', { action: 'ping' }, transactionId);
+  }
+
+  /**
+   * @typedef {import('./chat-scope.js').ChatScope} ChatScope
+   */
+
+  /**
+   * Sends a chat message
+   * @param {string} content The content of the message
+   * @param {ChatScope} scope
+   * @param {number} transactionId The transaction ID of the command
+   * @returns {Promise<any>} The corresponding event send by the RoomServer
+   */
+  sendChatMessage(content, scope, transactionId) {
+    const cmd = { action: 'send_message', content, ...scope };
+    return this.sendCommand('chat', cmd, transactionId);
   }
 
   /**
