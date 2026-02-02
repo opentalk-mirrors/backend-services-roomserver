@@ -35,7 +35,7 @@ use super::message::{CloseReason, MessageEnvelope, SignalingMessage};
 const CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// The buffer size for events sent to the participant.
-const EVENT_BUFFER_SIZE: usize = 32;
+const EVENT_BUFFER_SIZE: usize = 256;
 
 /// Handle to the task that communicates with the participant ([`ParticipantConnectionTask`]).
 ///
