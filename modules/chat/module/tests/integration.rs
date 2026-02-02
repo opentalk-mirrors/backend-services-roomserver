@@ -460,6 +460,39 @@ async fn last_seen_timestamp_should_be_stored() {
     );
 }
 
+#[test_log::test(tokio::test)]
+async fn last_seen_timestamp_is_private() {
+    let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    let timestamp = Timestamp::now();
+    alice
+        .send_command::<ChatModule>(
+            ChatCommand::SetLastSeenTimestamp {
+                scope: Scope::Global,
+                timestamp,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the event
+    let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
+    assert_eq!(
+        event,
+        ChatEvent::SetLastSeenTimestamp {
+            scope: Scope::Global,
+            timestamp,
+        }
+    );
+
+    // Bob does not receive the event
+    assert!(bob.received_nothing());
+}
+
 /// Send a message in the breakout room scope
 ///
 /// Uses the scenario from [start_breakout_scenario]

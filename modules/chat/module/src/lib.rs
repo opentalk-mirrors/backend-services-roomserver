@@ -687,7 +687,7 @@ impl ChatModule {
             .insert(chat_id, Some(timestamp));
 
         ctx.send_ws_message(
-            ctx.participants.connected().ids(),
+            [participant_id],
             ChatEvent::SetLastSeenTimestamp { scope, timestamp },
         )?;
         Ok(())
