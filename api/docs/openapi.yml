@@ -413,6 +413,25 @@ components:
         lastname: Adams
         timezone: Europe/Berlin
         title: ""
+    RateLimitSettings:
+      type: object
+      required:
+        - tokens_per_second
+        - token_bucket_size
+      properties:
+        token_bucket_size:
+          type: integer
+          format: int32
+          description: The maximum amount of tokens that a token bucket can hold at a time
+          minimum: 0
+        tokens_per_second:
+          type: integer
+          format: int32
+          description: The number of tokens that are added to the bucket per second
+          minimum: 0
+      example:
+        token_bucket_size: 50
+        tokens_per_second: 10
     Role:
       type: string
       enum:
@@ -473,6 +492,10 @@ components:
           $ref: "#/components/schemas/TariffResource"
         waiting_room:
           type: boolean
+        ws_rate_limit:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/RateLimitSettings"
       example:
         asset_storage:
           secret: secret
@@ -534,6 +557,9 @@ components:
           quotas:
             max_storage: 50000
         waiting_room: false
+        ws_rate_limit:
+          token_bucket_size: 50
+          tokens_per_second: 10
     RoomPassword:
       type: string
       description: A room password
@@ -787,6 +813,9 @@ components:
             quotas:
               max_storage: 50000
           waiting_room: false
+          ws_rate_limit:
+            token_bucket_size: 50
+            tokens_per_second: 10
     UserId:
       type: string
       format: uuid

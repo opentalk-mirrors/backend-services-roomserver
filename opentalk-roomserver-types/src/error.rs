@@ -26,6 +26,9 @@ pub enum SignalingError {
 
     /// The requested operation is not supported in the current context
     NotSupported,
+
+    /// The client is sending messages too quickly. Slow down.
+    SlowDown,
 }
 
 impl From<serde_json::Error> for SignalingError {
@@ -38,6 +41,8 @@ impl From<serde_json::Error> for SignalingError {
 
 #[cfg(test)]
 mod tests {
+    use insta::assert_snapshot;
+    use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::SignalingError;
@@ -57,5 +62,26 @@ mod tests {
                 "invalid_namespace": "test"
             }),
         );
+    }
+
+    #[test]
+    fn serialize_slow_down() {
+        let raw = serde_json::to_string_pretty(&SignalingError::SlowDown).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "error": "slow_down"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_slow_down() {
+        let produced: SignalingError = serde_json::from_value(json!({
+            "error": "slow_down"
+        }))
+        .unwrap();
+
+        assert_eq!(produced, SignalingError::SlowDown);
     }
 }

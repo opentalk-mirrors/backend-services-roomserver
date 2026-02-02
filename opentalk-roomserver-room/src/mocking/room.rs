@@ -27,7 +27,7 @@ use opentalk_roomserver_types::{
     core::CoreEvent,
     module_settings::{ModuleSettings, SignalingModuleSettings},
     public_user_profile::PublicUserProfile,
-    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
+    room_parameters::{AssetStorageConfig, EventContext, RateLimitSettings, RoomParameters},
 };
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use opentalk_types_common::{
@@ -128,6 +128,7 @@ impl TestRoomBuilder {
                 asset_storage: AssetStorageConfig::InMemory,
                 preferred_language: langid!("en"),
                 fallback_language: langid!("en"),
+                ws_rate_limit: None,
             },
             module_registry: ModuleRegistry::new(),
         }
@@ -135,6 +136,11 @@ impl TestRoomBuilder {
 
     pub fn event(mut self, event: EventContext) -> Self {
         self.room_parameters.event = Some(event);
+        self
+    }
+
+    pub fn ws_rate_limit(mut self, rate_limit_settings: RateLimitSettings) -> Self {
+        self.room_parameters.ws_rate_limit = Some(rate_limit_settings);
         self
     }
 

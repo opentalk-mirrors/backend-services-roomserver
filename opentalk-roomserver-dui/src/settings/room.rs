@@ -126,6 +126,7 @@ pub fn default_room_parameters() -> RoomParameters {
         asset_storage: AssetStorageConfig::InMemory,
         preferred_language: langid!("en"),
         fallback_language: langid!("en"),
+        ws_rate_limit: None,
     }
 }
 
