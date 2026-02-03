@@ -255,7 +255,7 @@ impl RoomServerRunner {
     }
 
     async fn disconnect(&mut self) -> Result<(), FatalError> {
-        if let Some(conn) = self.connection.take() {
+        if let Some(mut conn) = self.connection.take() {
             if let Err(e) = conn.close().await {
                 self.event_tx
                     .send(
