@@ -3,7 +3,6 @@
 
 use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
 use opentalk_roomserver_types_chat::Scope;
-use opentalk_types_common::users::GroupName;
 use opentalk_types_signaling::ParticipantId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -14,9 +13,6 @@ pub enum ChatId {
     /// Breakout scope for chat
     Breakout(BreakoutId),
 
-    /// Group scope for chat
-    Group(GroupName),
-
     /// Private scope for chat
     Private(PrivateChatId),
 }
@@ -26,7 +22,6 @@ impl ChatId {
         match scope {
             Scope::Global => Self::Global,
             Scope::Breakout(breakout_id) => Self::Breakout(breakout_id),
-            Scope::Group(group_name) => Self::Group(group_name),
             Scope::Private(participant_id) => {
                 Self::Private(PrivateChatId::new(source, participant_id))
             }
@@ -98,16 +93,6 @@ mod tests {
         let chat_id = ChatId::from_scope_and_source(scope, source);
 
         assert_eq!(chat_id, ChatId::Global);
-    }
-
-    #[test]
-    fn chat_id_group() {
-        let group_name = GroupName::from("group_name".to_string());
-        let scope = Scope::Group(group_name.clone());
-        let source = ParticipantId::from_u128(0x1);
-        let chat_id = ChatId::from_scope_and_source(scope, source);
-
-        assert_eq!(chat_id, ChatId::Group(group_name));
     }
 
     #[test]

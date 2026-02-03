@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     MessageId, Scope,
     event::ChatError,
-    state::{BreakoutHistory, ChatChunk, GroupHistory, PrivateHistory},
+    state::{BreakoutHistory, ChatChunk, PrivateHistory},
 };
 
 /// A chat event which occurred
@@ -35,9 +35,6 @@ pub enum ChatEvent {
         /// Room chat history chunk
         history: ChatChunk,
     },
-
-    /// A chunk of a groups chat history
-    GroupChatHistoryChunk(GroupHistory),
 
     /// A chunk of a breakout rooms chat history
     BreakoutChatHistoryChunk(BreakoutHistory),
@@ -104,10 +101,8 @@ impl From<ChatError> for ChatEvent {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use insta::assert_snapshot;
-    use opentalk_types_common::{time::Timestamp, users::GroupName};
+    use opentalk_types_common::time::Timestamp;
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -309,60 +304,6 @@ mod tests {
     }
 
     #[test]
-    fn serialize_group_message() {
-        let produced = serde_json::to_value(ChatEvent::MessageSent {
-            id: MessageId::nil(),
-            source: ParticipantId::nil(),
-            content: "Hello managers!".to_string(),
-            scope: Scope::Group(GroupName::from("management".to_owned())),
-        })
-        .unwrap();
-        let expected = json!({
-            "message":"message_sent",
-            "id":"00000000-0000-0000-0000-000000000000",
-            "source":"00000000-0000-0000-0000-000000000000",
-            "content":"Hello managers!",
-            "scope":"group",
-            "target":"management",
-        });
-        assert_eq!(expected, produced);
-    }
-
-    #[test]
-    fn deserialize_group_message() {
-        let json_data = json!(
-            {
-                "message":"message_sent",
-                "id":"00000000-0000-0000-0000-00000000007b",
-                "source":"00000000-0000-0000-0000-000000000003",
-                "content":"Hello, world!",
-                "scope":"group",
-                "target":"test"
-            }
-        );
-
-        let deserialized: ChatEvent =
-            serde_json::from_value(json_data).expect("Deserialization failed");
-        if let ChatEvent::MessageSent {
-            id,
-            source,
-            content,
-            scope,
-        } = deserialized
-        {
-            assert_eq!(id, MessageId::from_u128(123));
-            assert_eq!(source, ParticipantId::from_u128(3));
-            assert_eq!(content, "Hello, world!");
-            assert_eq!(
-                scope,
-                Scope::Group("test".parse().expect("Valid group name"))
-            );
-        } else {
-            panic!("Expected ChatEvent::MessageSent");
-        }
-    }
-
-    #[test]
     fn serialize_private_message() {
         let produced = serde_json::to_value(ChatEvent::MessageSent {
             id: MessageId::nil(),
@@ -475,47 +416,6 @@ mod tests {
         let expected = ChatEvent::RoomChatHistoryChunk {
             history: ChatChunk::default(),
         };
-
-        assert_eq!(expected, produced);
-    }
-
-    #[test]
-    fn serialize_group_chat_history_chunk() {
-        let produced =
-            serde_json::to_string_pretty(&ChatEvent::GroupChatHistoryChunk(GroupHistory {
-                name: GroupName::from_str("group1").unwrap(),
-                history: ChatChunk::default(),
-            }))
-            .expect("Serialization failed");
-
-        assert_snapshot!(produced, @r#"
-        {
-          "message": "group_chat_history_chunk",
-          "name": "group1",
-          "history": {
-            "messages": [],
-            "next_index": null
-          }
-        }
-        "#);
-    }
-
-    #[test]
-    fn deserialize_group_chat_history_chunk() {
-        let json = json!(        {
-          "message": "group_chat_history_chunk",
-          "name": "group1",
-          "history": {
-            "messages": [],
-            "next_index": null
-          }
-        });
-        let produced = serde_json::from_value(json).expect("Deserialization failed");
-
-        let expected = ChatEvent::GroupChatHistoryChunk(GroupHistory {
-            name: GroupName::from_str("group1").unwrap(),
-            history: ChatChunk::default(),
-        });
 
         assert_eq!(expected, produced);
     }
