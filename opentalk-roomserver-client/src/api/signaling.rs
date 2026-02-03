@@ -40,7 +40,7 @@ impl SignalingConnection {
         Ok(Self { socket })
     }
 
-    pub async fn close(mut self) -> Result<(), SignalingError> {
+    pub async fn close(&mut self) -> Result<(), SignalingError> {
         self.socket
             .close(Some(CloseFrame {
                 code: CloseCode::Away,
