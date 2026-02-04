@@ -75,7 +75,7 @@ impl CreateReplica<ChatEvent> for ChatCommand {
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
-    use opentalk_types_common::{time::Timestamp, users::GroupName};
+    use opentalk_types_common::time::Timestamp;
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -216,46 +216,6 @@ mod tests {
                 scope: Scope::Breakout(0.into())
             }
         );
-    }
-
-    #[test]
-    fn serialize_group_message() {
-        let command = ChatCommand::SendMessage {
-            content: "test message".to_string(),
-            scope: Scope::Group("test".parse().expect("Valid group name")),
-        };
-        let serialized = serde_json::to_value(&command).expect("Serialization failed");
-        let expected = json!(
-            {
-                "action":"send_message",
-                "content":"test message",
-                "scope":"group",
-                "target":"test"
-            }
-        );
-        assert_eq!(serialized, expected);
-    }
-
-    #[test]
-    fn deserialize_group_message() {
-        let json = json!({
-            "action": "send_message",
-            "scope": "group",
-            "target": "management",
-            "content": "Hello managers!"
-        });
-
-        let msg: ChatCommand = serde_json::from_value(json).unwrap();
-
-        if let ChatCommand::SendMessage { content, scope } = msg {
-            assert_eq!(
-                scope,
-                Scope::Group(GroupName::from("management".to_owned()))
-            );
-            assert_eq!(content, "Hello managers!");
-        } else {
-            panic!()
-        }
     }
 
     #[test]

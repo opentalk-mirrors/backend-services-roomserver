@@ -10,7 +10,7 @@ use opentalk_types_common::{time::Timestamp, users::GroupName};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::state::{ChatChunk, GroupHistory, PrivateHistory};
+use crate::state::{ChatChunk, PrivateHistory};
 
 /// The state of the `chat` module
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -28,9 +28,6 @@ pub struct ChatState {
     /// Only present when the associated participant is in a breakout room
     #[serde(skip_serializing_if = "Option::is_none")]
     pub breakout_room_history: Option<ChatChunk>,
-
-    /// All group chat history in the room
-    pub groups_history: Vec<GroupHistory>,
 
     /// All private chat history in the room
     pub private_history: Vec<PrivateHistory>,

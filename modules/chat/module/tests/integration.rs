@@ -22,8 +22,7 @@ use opentalk_roomserver_types_chat::{
     command::ChatCommand,
     event::{ChatError, ChatEvent},
     state::{
-        BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, GroupHistory, PrivateHistory,
-        StoredMessage,
+        BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, PrivateHistory, StoredMessage,
     },
 };
 use opentalk_types_common::time::Timestamp;
@@ -1238,9 +1237,6 @@ async fn get_chunk(
             Scope::Breakout(..),
             ChatEvent::BreakoutChatHistoryChunk(BreakoutHistory { history, .. }),
         ) => history,
-        (Scope::Group(..), ChatEvent::GroupChatHistoryChunk(GroupHistory { history, .. })) => {
-            history
-        }
         (
             Scope::Private(..),
             ChatEvent::PrivateChatHistoryChunk(PrivateHistory { history, .. }),

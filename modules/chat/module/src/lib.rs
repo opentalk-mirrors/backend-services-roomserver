@@ -23,8 +23,7 @@ use opentalk_roomserver_types_chat::{
     event::{ChatError, ChatEvent},
     peer_state::ChatPeerState,
     state::{
-        BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, GroupHistory, PrivateHistory,
-        StoredMessage,
+        BreakoutHistory, CHAT_CHUNK_SIZE, ChatChunk, ChatState, PrivateHistory, StoredMessage,
     },
 };
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
@@ -136,12 +135,6 @@ impl SignalingModule for ChatModule {
             ChatCommand::DisableChat => {
                 self.set_chat_state(ctx, participant_id, false)?;
             }
-            ChatCommand::SendMessage {
-                scope: Scope::Group(_),
-                ..
-            } => {
-                tracing::warn!("Ignoring chat message to group");
-            }
             ChatCommand::SendMessage { content, scope } => {
                 self.send_message(ctx, participant_id, connection_id, content, scope)?;
             }
@@ -245,7 +238,6 @@ impl ChatModule {
             enabled: self.enabled,
             global_history,
             breakout_room_history,
-            groups_history: Vec::new(),
             private_history: self.private_chat_histories_latest_chunk(participant),
             last_seen_timestamp_global: self.last_seen_global(participant),
             last_seen_timestamp_breakout,
@@ -534,17 +526,12 @@ impl ChatModule {
                     },
                 )?;
             }
-            ChatId::Group(_) => {}
             ChatId::Private(private_chat_id) => {
                 // Since the Scope is relative to recipient, we need to calculate
                 // individual scopes for each recipient of the message.
                 for recipient in private_chat_id.participants() {
                     ctx.send_ws_message(
                         [recipient],
-                        // ChatEvent::MessageSent(MessageSent {
-                        //     scope: private_chat_id.to_scope(recipient),
-                        //     ..out_message.clone()
-                        // }),
                         ChatEvent::MessageSent {
                             id,
                             source: participant,
@@ -585,15 +572,6 @@ impl ChatModule {
                 correspondent: participant_id,
                 history,
             }),
-            Scope::Group(name) => {
-                // Groups don't exist in the room server. Send an empty history for
-                // backward compatibility.
-                tracing::warn!("Sending empty group history");
-                ChatEvent::GroupChatHistoryChunk(GroupHistory {
-                    name,
-                    history: ChatChunk::default(),
-                })
-            }
         };
 
         ctx.send_ws_message([sender], event)?;

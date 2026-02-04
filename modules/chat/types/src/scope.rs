@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
-use opentalk_types_common::users::GroupName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
@@ -16,9 +15,6 @@ pub enum Scope {
 
     /// Breakout scope for chat
     Breakout(BreakoutId),
-
-    /// Group scope for chat
-    Group(GroupName),
 
     /// Private scope for chat
     Private(ParticipantId),
