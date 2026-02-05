@@ -439,7 +439,15 @@ components:
         - module_settings
         - preferred_language
         - fallback_language
+        - allowed_origins
       properties:
+        allowed_origins:
+          type: array
+          items:
+            type: string
+          description: |-
+            Allowed Origins for Cross-Origin Resource Sharing (CORS) when accessing the roomserver's
+            HTTP API.
         call_in:
           $ref: "#/components/schemas/CallInInfo"
         created_by:
@@ -482,6 +490,8 @@ components:
                 WebSocket rate limit settings of the room. No rate limiting is applied if the field is set
                 to [`None`].
       example:
+        allowed_origins:
+          - "https://example.com"
         call_in:
           id: "1234567890"
           password: "0987654321"
@@ -704,6 +714,8 @@ components:
             title: ""
           role: moderator
         room_parameters:
+          allowed_origins:
+            - "https://example.com"
           call_in:
             id: "1234567890"
             password: "0987654321"

@@ -25,5 +25,6 @@ opentalk-types-api-v1 = { workspace = true, features = ["axum", "http"] }
 opentalk-types-common.workspace = true
 thiserror.workspace = true
 tokio-util.workspace = true
+tower-http = { workspace = true, features = ["cors"] }
 tracing.workspace = true
 utoipa.workspace = true

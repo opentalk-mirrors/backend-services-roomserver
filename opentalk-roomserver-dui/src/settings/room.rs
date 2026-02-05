@@ -128,6 +128,7 @@ pub fn default_room_parameters() -> RoomParameters {
         preferred_language: langid!("en"),
         fallback_language: langid!("en"),
         ws_rate_limit: None,
+        allowed_origins: vec!["*".to_string()],
     }
 }
 

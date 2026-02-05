@@ -168,6 +168,11 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         }
     }
 
+    pub async fn allowed_origins(&self, room_id: RoomId) -> Option<Vec<String>> {
+        let registry = self.inner.read().await;
+        registry.get(&room_id)?.allowed_origins().await
+    }
+
     /// Get the [`RoomTaskHandle`] for the specified [`RoomId`]
     pub async fn get_task_handle(&self, room_id: &RoomId) -> Option<RoomTaskHandle<Socket>> {
         self.inner.read().await.get(room_id).cloned()
