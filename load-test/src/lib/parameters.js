@@ -3,10 +3,11 @@
 
 /**
  * Create a default room parameter configuration
+ * @param {object} rateLimit - The rate limit configuration
  * @param {object} createdBy - The user who creates the room
  * @return {object} The room parameters
  */
-export function createRoomParameter(createdBy) {
+export function createRoomParameter(rateLimit, createdBy) {
   return {
     created_by: createdBy || {
       id: '00000000-0000-0000-0000-0000000a11ce',
@@ -59,6 +60,7 @@ export function createRoomParameter(createdBy) {
     },
     preferred_language: 'de',
     fallback_language: 'de',
+    ws_rate_limit: rateLimit,
   };
 }
 

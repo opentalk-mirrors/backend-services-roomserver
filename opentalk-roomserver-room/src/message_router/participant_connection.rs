@@ -10,8 +10,8 @@ use futures::{
 use opentalk_roomserver_common::application_state::ApplicationState;
 use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
 use opentalk_roomserver_types::{
-    connection_id::ConnectionId, error::SignalingError, shared_raw_json::SharedRawJson,
-    signaling::SignalingCommand,
+    connection_id::ConnectionId, error::SignalingError, room_parameters::RateLimitSettings,
+    shared_raw_json::SharedRawJson, signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
     CloseFrame, SignalingSink, SignalingSocket, SignalingSocketItem, SignalingSocketMessage,
@@ -27,7 +27,10 @@ use tokio::{
     task::JoinHandle,
 };
 
-use super::message::{CloseReason, MessageEnvelope, SignalingMessage};
+use super::{
+    message::{CloseReason, MessageEnvelope, SignalingMessage},
+    rate_limit::RateLimit,
+};
 
 /// The duration the participant has to respond with a close frame after a close
 /// frame is sent by the server. If the participant does not send a close frame
@@ -35,7 +38,7 @@ use super::message::{CloseReason, MessageEnvelope, SignalingMessage};
 const CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// The buffer size for events sent to the participant.
-const EVENT_BUFFER_SIZE: usize = 32;
+const EVENT_BUFFER_SIZE: usize = 256;
 
 /// Handle to the task that communicates with the participant ([`ParticipantConnectionTask`]).
 ///
@@ -120,6 +123,7 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
     connection_id: ConnectionId,
     socket: Socket,
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
+    rate_limit_settings: Option<RateLimitSettings>,
     app_state: watch::Receiver<ApplicationState>,
 ) -> ConnectionHandle {
     tracing::debug!("Creating new participant connection task for participant {participant_id}");
@@ -131,6 +135,7 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
         room_task_command_sender,
         socket,
         event_receiver,
+        rate_limit_settings,
         app_state,
     );
 
@@ -146,10 +151,12 @@ fn spawn<Socket: SignalingSocket + 'static>(
     room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
     socket: Socket,
     room_task_event_receiver: mpsc::Receiver<SharedRawJson>,
+    rate_limit_settings: Option<RateLimitSettings>,
     app_state: watch::Receiver<ApplicationState>,
 ) -> JoinHandle<()> {
     let (sink, stream) = socket.split();
     let stream = stream.peekable();
+    let rate_limit = rate_limit_settings.map(Into::into);
 
     let this = ParticipantConnectionTask {
         participant_id,
@@ -159,6 +166,7 @@ fn spawn<Socket: SignalingSocket + 'static>(
         sink,
         room_task_event_receiver,
         app_state,
+        rate_limit,
     };
 
     tokio::task::spawn(this.run())
@@ -182,6 +190,8 @@ pub(super) struct ParticipantConnectionTask<Stream: SignalingStream, Sink: Signa
     room_task_event_receiver: mpsc::Receiver<SharedRawJson>,
     /// The application state watch
     app_state: watch::Receiver<ApplicationState>,
+    /// Incoming websocket rate limit
+    rate_limit: Option<RateLimit>,
 }
 
 impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Stream, Sink> {
@@ -203,17 +213,26 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             // Build the receive future. We don't bind this to self since this would
             // not allow us to also have a mutable reference in the `self.room_task_event_receiver`
             // (aka send-future).
-            let allocated_receive =
-                Self::allocated_receive(self.room_task_command_sender.clone(), &mut stream);
+            let allocated_receive = Self::allocated_receive(
+                self.room_task_command_sender.clone(),
+                &mut stream,
+                self.rate_limit.as_mut(),
+            );
 
             // branches of this select must NOT block
             tokio::select! {
                 allocated_msg = allocated_receive => {
-                    let (permit, msg) = match allocated_msg {
+                    let InboundMessage {permit, message, should_slow_down} = match allocated_msg {
                         Ok(allocated_msg) => allocated_msg,
                         Err(exit_reason) => return exit_reason,
                     };
-                    if let Err(exit_reason) = self.handle_websocket_frame(msg, permit).await {
+
+                    if should_slow_down
+                        && let Err(exit_reason) = self.send_error(SignalingError::SlowDown, None).await {
+                            return exit_reason;
+                        }
+
+                    if let Err(exit_reason) = self.handle_websocket_frame(message, permit).await {
                         return exit_reason;
                     }
                 },
@@ -252,15 +271,16 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
     async fn allocated_receive(
         sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
         stream: &mut Pin<&mut Peekable<Stream>>,
-    ) -> Result<
-        (
-            OwnedPermit<MessageEnvelope<SignalingMessage>>,
-            SignalingSocketItem,
-        ),
-        ExitReason,
-    > {
+        rate_limit: Option<&mut RateLimit>,
+    ) -> Result<InboundMessage, ExitReason> {
         // wait until a message arrives
         let _ = stream.as_mut().peek().await;
+
+        let mut should_slow_down = false;
+        if let Some(rate_limit) = rate_limit {
+            // apply rate limit before consuming the message to ensure back pressure
+            should_slow_down = rate_limit.wait_for_token().await;
+        }
 
         // reserve a place in the RoomTask channel
         let Ok(permit) = sender.clone().reserve_owned().await else {
@@ -278,7 +298,11 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
             return Err(ExitReason::UnexpectedDisconnection);
         };
 
-        Ok((permit, message))
+        Ok(InboundMessage {
+            message,
+            permit,
+            should_slow_down,
+        })
     }
 
     #[tracing::instrument(skip_all, fields(opentalk.participant_id = %self.participant_id))]
@@ -521,6 +545,12 @@ async fn wait_close<Stream: SignalingStream>(mut stream: Stream) {
     }
 }
 
+struct InboundMessage {
+    message: SignalingSocketItem,
+    permit: OwnedPermit<MessageEnvelope<SignalingMessage>>,
+    should_slow_down: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
@@ -535,7 +565,10 @@ mod tests {
     use tracing::Span;
 
     use crate::{
-        message_router::{MessageEnvelope, participant_connection::ParticipantConnectionTask},
+        message_router::{
+            MessageEnvelope,
+            participant_connection::{InboundMessage, ParticipantConnectionTask},
+        },
         mocking::{participant::create_participant_connection, socket::MockSocket},
     };
 
@@ -573,6 +606,7 @@ mod tests {
         let receive_future = ParticipantConnectionTask::<MockSocket, MockSocket>::allocated_receive(
             command_tx.clone(),
             &mut p1_socket,
+            None,
         );
 
         // Insert a pending message in the socket, that must not get lost when canceling the receive
@@ -596,6 +630,7 @@ mod tests {
             ParticipantConnectionTask::<MockSocket, MockSocket>::allocated_receive(
                 command_tx,
                 &mut p1_socket,
+                None,
             ),
         )
         .await;
@@ -603,13 +638,13 @@ mod tests {
         assert!(
             matches!(
                 receive_future,
-                Ok(Ok((
-                    _,
-                    SignalingSocketItem {
-                        message: SignalingSocketMessage::Text(_),
+                Ok(Ok(InboundMessage {
+                    message: SignalingSocketItem {
+                        message: SignalingSocketMessage::Text(..),
                         ..
-                    }
-                ))),
+                    },
+                    ..
+                })),
             ),
             "Receive expired, but a message should be received"
         )

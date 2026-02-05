@@ -71,6 +71,8 @@ pub struct RoomParameters {
     /// available.
     #[cfg_attr(feature = "utoipa", schema(value_type = String, example = "en"))]
     pub fallback_language: LanguageIdentifier,
+
+    pub ws_rate_limit: Option<RateLimitSettings>,
 }
 
 impl RoomParameters {
@@ -120,6 +122,7 @@ impl ExampleData for RoomParameters {
             asset_storage: AssetStorageConfig::example_data(),
             preferred_language: langid!("de"),
             fallback_language: langid!("en"),
+            ws_rate_limit: Some(RateLimitSettings::example_data()),
         }
     }
 }
@@ -173,6 +176,24 @@ impl ExampleData for AssetStorageConfig {
         Self::Controller {
             url: "https://localhost:11411".parse().unwrap(),
             secret: "secret".to_string(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(RateLimitSettings::example_data())))]
+pub struct RateLimitSettings {
+    /// The number of tokens that are added to the bucket per second
+    pub tokens_per_second: u16,
+    /// The maximum amount of tokens that a token bucket can hold at a time
+    pub token_bucket_size: u16,
+}
+
+impl ExampleData for RateLimitSettings {
+    fn example_data() -> Self {
+        RateLimitSettings {
+            tokens_per_second: 10,
+            token_bucket_size: 50,
         }
     }
 }
@@ -262,6 +283,10 @@ mod tests {
             },
             "preferred_language": "de",
             "fallback_language": "en",
+            "ws_rate_limit": {
+                "tokens_per_second": 10,
+                "token_bucket_size": 50,
+            },
         });
 
         // serialization

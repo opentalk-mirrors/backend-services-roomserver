@@ -16,6 +16,7 @@ use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     error::{self, SignalingError},
+    room_parameters::RateLimitSettings,
     shared_raw_json::SharedRawJson,
     signaling::module_error::FatalError,
 };
@@ -33,6 +34,7 @@ use crate::{message_router::participant_connection::ConnectionHandle, metrics::M
 
 mod message;
 mod participant_connection;
+mod rate_limit;
 
 const WS_CLOSE_ABNORMAL: u16 = 1006;
 /// The size of the command channel buffer for each participant connection
@@ -60,13 +62,16 @@ pub struct MessageRouter {
 
 impl MessageRouter {
     /// Create a new [`MessageRouter`]
-    pub fn new(app_state: watch::Receiver<ApplicationState>) -> Self {
+    pub fn new(
+        app_state: watch::Receiver<ApplicationState>,
+        rate_limit: Option<RateLimitSettings>,
+    ) -> Self {
         let mut commands: SelectAll<CommandStream> = SelectAll::new();
         commands.push(Box::new(stream::pending()));
 
         Self {
-            waiting_room: ScopedRouter::new(app_state.clone()),
-            conference: ScopedRouter::new(app_state),
+            waiting_room: ScopedRouter::new(app_state.clone(), rate_limit),
+            conference: ScopedRouter::new(app_state, rate_limit),
             commands,
         }
     }
@@ -161,16 +166,22 @@ pub struct ScopedRouter {
 
     disconnects: HashMap<ConnectionId, ParticipantId>,
 
+    rate_limit: Option<RateLimitSettings>,
+
     /// The global application state
     app_state: watch::Receiver<ApplicationState>,
 }
 
 impl ScopedRouter {
     /// Create a new [`ScopedRouter`]
-    pub fn new(app_state: watch::Receiver<ApplicationState>) -> Self {
+    pub fn new(
+        app_state: watch::Receiver<ApplicationState>,
+        rate_limit: Option<RateLimitSettings>,
+    ) -> Self {
         Self {
             connections: HashMap::new(),
             disconnects: HashMap::new(),
+            rate_limit,
             app_state,
         }
     }
@@ -205,6 +216,7 @@ impl ScopedRouter {
             connection_id,
             websocket,
             room_task_command_sender,
+            self.rate_limit,
             self.app_state.clone(),
         );
 
@@ -408,7 +420,7 @@ mod tests {
     #[tokio::test]
     async fn participant_lifecycle() {
         let (_app_state_send, app_state_recv) = watch::channel(ApplicationState::Running);
-        let mut router = MessageRouter::new(app_state_recv);
+        let mut router = MessageRouter::new(app_state_recv, None);
         let (p1_socket, p1) = create_participant_connection();
         let p1_id = ParticipantId::from_u128(1);
 

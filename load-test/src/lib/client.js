@@ -10,6 +10,17 @@ import { createClientParameter, createRoomParameter } from './parameters.js';
 
 export class ClientBuilder {
   /**
+   * Configure the RoomServers rate limiting
+   * @param {number} tokensPerSecond
+   * @param {number} tokenBucketSize
+   * @returns {ClientBuilder} The client builder
+   */
+  withRateLimit(tokensPerSecond, tokenBucketSize) {
+    this.rateLimit = { tokens_per_second: tokensPerSecond, token_bucket_size: tokenBucketSize };
+    return this;
+  }
+
+  /**
    * Open a WebSocket connection to the RoomServer and join the specified room
    * @param {string} baseUrl - Base URL of the RoomServer
    * @param {string} roomId - The ID of the room to join
@@ -17,7 +28,7 @@ export class ClientBuilder {
    */
   async connect(baseUrl, roomId) {
     // Create parameters for this virtual user
-    const roomParams = createRoomParameter();
+    const roomParams = createRoomParameter(this.rateLimit);
     const clientParams = createClientParameter(__VU, __ITER);
 
     // Request room token

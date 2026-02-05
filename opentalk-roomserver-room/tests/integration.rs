@@ -10,8 +10,9 @@ use opentalk_roomserver_room::mocking::{
 };
 use opentalk_roomserver_types::{
     client_parameters::Role,
-    core::{CoreEvent, RoomCloseReason},
+    core::{CoreCommand, CoreError, CoreEvent, RoomCloseReason},
     error::SignalingError,
+    room_parameters::RateLimitSettings,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::CloseFrame;
 use opentalk_types_common::{
@@ -129,4 +130,40 @@ async fn participant_receives_same_display_name() {
 
     // But he receives the same display name as before
     assert_eq!(join_success.display_name(), bob_0.display_name());
+}
+
+#[test_log::test(tokio::test)]
+async fn exceeding_rate_limit_sends_slow_down() {
+    let mut room = TestRoom::builder()
+        .ws_rate_limit(RateLimitSettings {
+            tokens_per_second: 1,
+            token_bucket_size: 1,
+        })
+        .spawn();
+
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // First command should pass
+    // Using CoreCommand because it is available in this module, the actual command does not matter.
+    alice
+        .send_core_command(CoreCommand::EnterRoom, None)
+        .await
+        .unwrap();
+
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert!(matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom)));
+
+    // Second command should trigger slow down
+    alice
+        .send_core_command(CoreCommand::EnterRoom, None)
+        .await
+        .unwrap();
+
+    // Alice receives the slow down event first
+    let event = alice.receive::<SignalingError>().await.unwrap().payload;
+    assert_eq!(event, SignalingError::SlowDown);
+
+    // Alice receives the actual response to her command afterwards
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert!(matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom)));
 }

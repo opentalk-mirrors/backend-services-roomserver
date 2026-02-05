@@ -199,7 +199,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) {
         let (tx, rx) = mpsc::channel(20);
 
-        let message_router = MessageRouter::new(app_state.clone());
+        let message_router = MessageRouter::new(app_state.clone(), room_parameters.ws_rate_limit);
         let storage = create_storage_provider(
             &room_parameters.asset_storage,
             room_parameters.tariff.quota(&QuotaType::MaxStorage),

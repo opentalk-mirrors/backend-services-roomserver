@@ -50,7 +50,7 @@ insta = { workspace = true, features = ["json", "redactions"] }
 mockito.workspace = true
 pretty_assertions.workspace = true
 test-log = { workspace = true, features = ["trace"] }
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
 tokio-util.workspace = true
 
 [features]
