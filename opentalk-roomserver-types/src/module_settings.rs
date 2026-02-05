@@ -46,12 +46,35 @@ impl ModuleSettings {
         Ok(())
     }
 
+    /// Insert an empty object for the specified module namespace
+    ///
+    /// This is useful for adding modules that don't require any settings.
+    pub fn insert_empty(&mut self, namespace: ModuleId) {
+        self.0
+            .insert(namespace, serde_json::Value::Object(serde_json::Map::new()));
+    }
+
+    /// Remove the settings for a specified module.
+    pub fn remove(&mut self, namespace: &ModuleId) -> Option<serde_json::Value> {
+        self.0.remove(namespace)
+    }
+
     /// Retains only the entries specified by the predicate
     pub fn retain<F>(&mut self, f: F)
     where
         F: FnMut(&ModuleId, &mut serde_json::Value) -> bool,
     {
         self.0.retain(f);
+    }
+
+    /// Returns an iterator over the module IDs in the settings
+    pub fn ids(&self) -> impl Iterator<Item = &ModuleId> {
+        self.0.keys()
+    }
+
+    /// Checks if specified module id is present in the settings
+    pub fn contains(&self, namespace: ModuleId) -> bool {
+        self.0.contains_key(&namespace)
     }
 }
 

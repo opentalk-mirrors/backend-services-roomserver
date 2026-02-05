@@ -135,7 +135,6 @@ mod tests {
         events::MeetingDetails,
         modules::module_id,
         rooms::RoomId,
-        tariffs::TariffResource,
         users::{DisplayName, UserInfo},
         utils::ExampleData as _,
     };
@@ -146,7 +145,7 @@ mod tests {
     use crate::{
         connection_id::ConnectionId, core::CoreError, device_id::DeviceId,
         disconnect_reason::DisconnectReason, join::join_success::JoinSuccess, room_info::RoomInfo,
-        shared_json::SharedJson,
+        shared_json::SharedJson, tariff_details::TariffDetails,
     };
 
     #[test]
@@ -160,7 +159,8 @@ mod tests {
             avatar_url: None,
             role: Role::Guest,
             closes_at: None,
-            tariff: Box::new(TariffResource::example_data()),
+            tariff: Box::new(TariffDetails::example_data()),
+            enabled_modules: vec![module_id!("test_module")],
             module_data: ModuleData::new(),
             participants: vec![],
             event_info: None,
@@ -194,26 +194,13 @@ mod tests {
             "quotas": {
               "max_storage": 50000
             },
-            "modules": {
-              "chat": {
-                "features": []
-              },
-              "core": {
-                "features": []
-              },
-              "livekit": {
-                "features": []
-              },
-              "moderation": {
-                "features": []
-              },
-              "recording": {
-                "features": [
-                  "record"
-                ]
-              }
-            }
+            "disabled_features": [
+              "recording::record"
+            ]
           },
+          "enabled_modules": [
+            "test_module"
+          ],
           "module_data": {},
           "participants": [],
           "event_info": null,

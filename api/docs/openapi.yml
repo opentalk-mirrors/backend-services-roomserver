@@ -350,6 +350,21 @@ components:
       format: uuid
       description: An invite code
       example: 00000000-0000-0000-0000-0000deadbeef
+    ModuleFeatureId:
+      anyOf:
+        - type: string
+          description: A feature identifier
+          examples:
+            - myfeature
+          maxLength: 255
+          minLength: 1
+          pattern: "^[_0-9a-z]*$"
+        - type: string
+          description: A module feature identifier
+          examples:
+            - "mymodule::myfeature"
+          pattern: "^[_0-9a-z]{1,255}::[_0-9a-z]{1,255}$"
+      example: "mymodule::myfeature"
     ModuleSettings:
       type: object
       description: |-
@@ -489,7 +504,7 @@ components:
           items:
             $ref: "#/components/schemas/StreamingLink"
         tariff:
-          $ref: "#/components/schemas/TariffResource"
+          $ref: "#/components/schemas/TariffDetails"
         waiting_room:
           type: boolean
         ws_rate_limit:
@@ -540,19 +555,9 @@ components:
           - name: My OwnCast Stream
             url: "https://owncast.example.com/mystream"
         tariff:
+          disabled_features:
+            - "recording::record"
           id: 00000000-0000-0000-0000-000000000000
-          modules:
-            chat:
-              features: []
-            core:
-              features: []
-            livekit:
-              features: []
-            moderation:
-              features: []
-            recording:
-              features:
-                - record
           name: Starter tariff
           quotas:
             max_storage: 50000
@@ -634,50 +639,24 @@ components:
       example:
         name: My OwnCast Stream
         url: "https://owncast.example.com/mystream"
-    TariffId:
-      type: string
-      format: uuid
-      description: The id of a tariff
-    TariffModuleResource:
+    TariffDetails:
       type: object
-      description: Tariff information related to a specific module
-      required:
-        - features
-      properties:
-        features:
-          type: array
-          items:
-            $ref: "#/components/schemas/FeatureId"
-          description: Enabled features for the tariff
-          uniqueItems: true
-    TariffResource:
-      type: object
-      description: Information related to a specific tariff
+      description: Tariff information related to a room
       required:
         - id
         - name
         - quotas
-        - modules
+        - disabled_features
       properties:
+        disabled_features:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleFeatureId"
+          description: Disabled module features
+          uniqueItems: true
         id:
           $ref: "#/components/schemas/TariffId"
           description: The ID of the tariff
-        modules:
-          type: object
-          description: "Enabled modules for the tariff, including their enabled features"
-          additionalProperties:
-            $ref: "#/components/schemas/TariffModuleResource"
-          propertyNames:
-            anyOf:
-              - type: string
-                description: A module identifier
-                examples:
-                  - mymodule
-                maxLength: 255
-                minLength: 1
-                pattern: "^[_0-9a-z]*$"
-            default: core
-            example: mymodule
         name:
           type: string
           description: The name of the tariff
@@ -696,22 +675,28 @@ components:
                   - max_storage
             example: max_storage
       example:
+        disabled_features:
+          - "recording::record"
         id: 00000000-0000-0000-0000-000000000000
-        modules:
-          chat:
-            features: []
-          core:
-            features: []
-          livekit:
-            features: []
-          moderation:
-            features: []
-          recording:
-            features:
-              - record
         name: Starter tariff
         quotas:
           max_storage: 50000
+    TariffId:
+      type: string
+      format: uuid
+      description: The id of a tariff
+    TariffModuleResource:
+      type: object
+      description: Tariff information related to a specific module
+      required:
+        - features
+      properties:
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeatureId"
+          description: Enabled features for the tariff
+          uniqueItems: true
     TimeZone:
       type: string
       description: A time zone
@@ -796,19 +781,9 @@ components:
             - name: My OwnCast Stream
               url: "https://owncast.example.com/mystream"
           tariff:
+            disabled_features:
+              - "recording::record"
             id: 00000000-0000-0000-0000-000000000000
-            modules:
-              chat:
-                features: []
-              core:
-                features: []
-              livekit:
-                features: []
-              moderation:
-                features: []
-              recording:
-                features:
-                  - record
             name: Starter tariff
             quotas:
               max_storage: 50000

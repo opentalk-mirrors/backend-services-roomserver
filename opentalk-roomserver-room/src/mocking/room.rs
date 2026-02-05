@@ -29,12 +29,13 @@ use opentalk_roomserver_types::{
     public_user_profile::PublicUserProfile,
     rate_limit::RateLimitSettings,
     room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
+    tariff_details::TariffDetails,
 };
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use opentalk_types_common::{
     assets::AssetId,
     rooms::RoomId,
-    tariffs::{QuotaType, TariffId, TariffModuleResource, TariffResource},
+    tariffs::{QuotaType, TariffId},
 };
 use tokio::{sync::watch, task::JoinHandle};
 use url::Url;
@@ -120,11 +121,11 @@ impl TestRoomBuilder {
                 call_in: None,
                 event: None,
                 invite_code: None,
-                tariff: TariffResource {
+                tariff: TariffDetails {
                     id: TariffId::from_u128(1),
                     name: "Default Tariff".to_string(),
                     quotas: BTreeMap::default(),
-                    modules: BTreeMap::default(),
+                    disabled_features: BTreeSet::default(),
                 },
                 streaming_links: Vec::new(),
                 e2e_encryption: false,
@@ -150,12 +151,12 @@ impl TestRoomBuilder {
 
     pub fn register_module<M: SignalingModule + 'static>(mut self) -> Self {
         self.module_registry.add_module::<M>();
-        self.room_parameters.tariff.modules.insert(
-            M::NAMESPACE,
-            TariffModuleResource {
-                features: BTreeSet::default(),
-            },
-        );
+        // Only add an empty setting if none exist yet, so we don't overwrite what was set before.
+        if !self.room_parameters.module_settings.contains(M::NAMESPACE) {
+            self.room_parameters
+                .module_settings
+                .insert_empty(M::NAMESPACE);
+        }
         self
     }
 
@@ -177,7 +178,7 @@ impl TestRoomBuilder {
         self
     }
 
-    pub fn tariff(mut self, tariff: TariffResource) -> Self {
+    pub fn tariff(mut self, tariff: TariffDetails) -> Self {
         self.room_parameters.tariff = tariff;
         self
     }

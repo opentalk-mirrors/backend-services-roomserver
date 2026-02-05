@@ -87,7 +87,6 @@ pub mod websocket;
                 opentalk_types_common::streaming::StreamingLink,
                 opentalk_types_common::tariffs::TariffId,
                 opentalk_types_common::tariffs::TariffModuleResource,
-                opentalk_types_common::tariffs::TariffResource,
                 opentalk_types_common::users::DisplayName,
                 opentalk_types_common::users::UserId,
                 opentalk_types_common::users::UserTitle,
@@ -380,11 +379,11 @@ mod test {
         module_settings::ModuleSettings,
         public_user_profile::PublicUserProfile,
         room_parameters::AssetStorageConfig,
+        tariff_details::TariffDetails,
     };
     use opentalk_types_api_v1::error::ErrorBody;
     use opentalk_types_common::{
         roomserver::DeviceSecret,
-        tariffs::TariffResource,
         time::TimeZone,
         users::{DisplayName, UserId, UserInfo, UserTitle},
         utils::ExampleData,
@@ -445,7 +444,7 @@ mod test {
             call_in: None,
             event: None,
             invite_code: None,
-            tariff: TariffResource::example_data(),
+            tariff: TariffDetails::example_data(),
             streaming_links: vec![],
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),

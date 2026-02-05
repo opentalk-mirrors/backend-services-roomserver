@@ -36,13 +36,18 @@ pub use crate::{
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, sync::Arc, time::Duration};
+    use std::{
+        collections::{BTreeMap, BTreeSet},
+        sync::Arc,
+        time::Duration,
+    };
 
     use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
     use opentalk_roomserver_types::{
         client_parameters::{self, ClientParameters, Role},
         core::{CoreEvent, JoinBlockedReason},
         room_parameters::RoomParameters,
+        tariff_details::TariffDetails,
     };
     use opentalk_roomserver_web_api::v1::signaling::websocket::{
         CloseFrame, SignalingSocketMessage,
@@ -50,7 +55,7 @@ mod tests {
     use opentalk_types_common::{
         rooms::RoomId,
         roomserver::DeviceSecret,
-        tariffs::{QuotaType, TariffId, TariffResource},
+        tariffs::{QuotaType, TariffId},
         users::DisplayName,
         utils::ExampleData,
     };
@@ -115,11 +120,11 @@ mod tests {
     #[test_log::test(tokio::test)]
     async fn room_participant_limit() {
         let mut room = TestRoom::builder()
-            .tariff(TariffResource {
+            .tariff(TariffDetails {
                 id: TariffId::generate(),
                 name: "Room Participant Limit".into(),
                 quotas: BTreeMap::from_iter([(QuotaType::RoomParticipantLimit, 2)]),
-                modules: BTreeMap::new(),
+                disabled_features: BTreeSet::new(),
             })
             .spawn();
 
