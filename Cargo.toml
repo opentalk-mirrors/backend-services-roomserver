@@ -72,7 +72,7 @@ opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0
 opentalk-roomserver-types-training-participation-report = { path = "modules/training-participation-report/types", version = "0.0.20-alpha" }
 opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.0.20-alpha" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.20-alpha" }
-opentalk-service-auth = { version = "0.1", features = ["axum"] }
+opentalk-service-auth = { version = "0.2", features = ["axum"] }
 opentalk-types-api-v1 = { version = "0.52.0", features = ["axum"] }
 opentalk-types-common = { version = "0.42.0", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.44.0", features = [
@@ -113,7 +113,7 @@ livekit-runtime = { version = "0.4", default-features = false }
 log = "0.4.22"
 mockito = "1.7.0"
 opentalk-etherpad-client = { version = "0.5", default-features = false }
-opentalk-orchestrator-client = { version = "0.2", features = [
+opentalk-orchestrator-client = { version = "0.3", features = [
   "roomserver-service",
 ] }
 opentalk-report-generation = "0.2"
