@@ -8,6 +8,7 @@ use conference::Conference;
 use config::{Config, Environment, File, FileFormat};
 use defaults::Defaults;
 use http::Http;
+use opentalk_orchestrator_client::OrchestratorConfig;
 use reports::Reports;
 use serde::Deserialize;
 use telemetry::{Metrics, Monitoring, Tracing};
@@ -32,6 +33,8 @@ pub struct Error {
 pub struct SettingsFile {
     /// HTTP web server settings
     pub(crate) http: Http,
+
+    pub(crate) orchestrator: Option<OrchestratorConfig>,
 
     #[serde(default)]
     pub(crate) monitoring: Option<Monitoring>,

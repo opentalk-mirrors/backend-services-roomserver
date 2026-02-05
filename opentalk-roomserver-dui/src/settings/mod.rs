@@ -53,7 +53,7 @@ pub fn load(
 
     if let Some(config) = roomserver_config {
         log::debug!("Loading Roomserver Configuration");
-        let roomserver_settings: Settings = SettingsFile::load_from_path(config)?.into();
+        let roomserver_settings: Settings = SettingsFile::load_from_path(config)?.try_into()?;
 
         let host = roomserver_settings.http.address;
         let port = roomserver_settings.http.port;

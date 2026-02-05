@@ -24,6 +24,7 @@ axum-prometheus.workspace = true
 cidr.workspace = true
 clap.workspace = true
 futures.workspace = true
+opentalk-orchestrator-client.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-module-automod.workspace = true
 opentalk-roomserver-module-chat.workspace = true

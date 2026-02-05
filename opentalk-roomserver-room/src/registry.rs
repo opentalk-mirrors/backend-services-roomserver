@@ -1,8 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    pin::Pin,
+    sync::Arc,
+    time::Duration,
+};
 
+use opentalk_orchestrator_client::{RoomServerEvent, client::OrchestratorHandle};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::storage::module_resources::provider::ModuleResourceProvider;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
@@ -27,6 +33,7 @@ pub struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
     inner: Arc<RwLock<HashMap<RoomId, RoomTaskHandle<Socket>>>>,
     room_removed: Arc<Notify>,
     idle_timeout: Duration,
+    orchestrator_handle: Option<OrchestratorHandle>,
 }
 
 // Manually implementing clone so that we don't require [`Socket`] to be
@@ -37,17 +44,19 @@ impl<Socket: SignalingSocket> Clone for RoomTaskRegistry<Socket> {
             inner: self.inner.clone(),
             room_removed: self.room_removed.clone(),
             idle_timeout: self.idle_timeout,
+            orchestrator_handle: self.orchestrator_handle.clone(),
         }
     }
 }
 
 impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     /// Creates a new [`RoomTaskRegistry`] wi th default values
-    pub fn new(idle_timeout: Duration) -> Self {
+    pub fn new(idle_timeout: Duration, orchestrator_handle: Option<OrchestratorHandle>) -> Self {
         Self {
             inner: Arc::default(),
             room_removed: Arc::default(),
             idle_timeout,
+            orchestrator_handle,
         }
     }
 
@@ -173,6 +182,19 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 
         room_list.remove(&room_id);
         self.room_removed.notify_waiters();
+
+        if let Some(handle) = &self.orchestrator_handle
+            && let Err(e) = handle
+                .send_event(RoomServerEvent::RemoveRoom(room_id))
+                .await
+        {
+            tracing::error!("Failed to notify orchestrator about removed room: {e}");
+        }
+    }
+
+    /// Returns all known room ids
+    pub async fn room_ids(&self) -> HashSet<RoomId> {
+        self.inner.read().await.keys().copied().collect()
     }
 
     /// Wait until all pending room task have finished.
@@ -213,7 +235,7 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn room_is_removed_after_idle_timeout() {
-        let registry = RoomTaskRegistry::<MockSocket>::new(Duration::from_secs(0));
+        let registry = RoomTaskRegistry::<MockSocket>::new(Duration::from_secs(0), None);
         let (_app_state_sender, app_state) = tokio::sync::watch::channel(ApplicationState::Running);
 
         let room_id = RoomId::from_u128(1);
@@ -246,7 +268,7 @@ mod tests {
     #[test_log::test(tokio::test)]
     async fn room_is_removed_after_shutdown() {
         // use a high RoomTask idle timeout to prevent stopping because of the timeout.
-        let registry = RoomTaskRegistry::<MockSocket>::new(Duration::from_secs(99999));
+        let registry = RoomTaskRegistry::<MockSocket>::new(Duration::from_secs(99999), None);
         let (app_state_sender, app_state) = tokio::sync::watch::channel(ApplicationState::Running);
 
         let room_id = RoomId::from_u128(1);

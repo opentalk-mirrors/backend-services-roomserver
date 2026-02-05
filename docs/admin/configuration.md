@@ -57,6 +57,9 @@ This file can be found in the source code distribution under `example/roomserver
 #address = "127.0.0.1"
 #address = "::1"
 
+# The URL of the roomserver that is reachable by internal services
+# service_url = "http://localhost:13333"
+
 # The publicly reachable URL of this server
 public_url = "http://localhost:11333"
 
@@ -116,6 +119,13 @@ api_keys = [{ id = "roomserver", secret = "secret" }]
 #[reports.typst]
 # The location where typst looks for packages.
 #packages_path = "/usr/share/typst/packages"
+
+# Optional orchestrator configuration
+#[orchestrator]
+# The API key of the orchestrator
+#api_key = { id = "orchestrator", secret = "secret" }
+# The orchestrator URL
+#url = "http://127.0.0.1:11222"
 ```
 
 <!-- end:fromfile:example/roomserver.toml.md -->

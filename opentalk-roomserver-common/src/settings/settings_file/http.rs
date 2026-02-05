@@ -16,6 +16,9 @@ pub struct Http {
     #[serde(default = "default_port")]
     pub port: u16,
 
+    /// The URL that is reachable by internal services
+    pub service_url: Option<Url>,
+
     /// The publicly reachable URL of this server
     pub public_url: Url,
 

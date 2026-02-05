@@ -24,6 +24,7 @@ chrono.workspace = true
 futures.workspace = true
 icu_locid = { workspace = true, optional = true }
 json-patch.workspace = true
+opentalk-orchestrator-client.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
@@ -35,6 +36,7 @@ opentalk-types-signaling = { workspace = true, features = ["rand"] }
 reqwest = { workspace = true, features = ["query", "stream"] }
 serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
+sysinfo.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "signal"] }
 tokio-stream.workspace = true

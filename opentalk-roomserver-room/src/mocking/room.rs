@@ -76,16 +76,19 @@ fn settings() -> Settings {
     let port = 11333;
     let address = "localhost".to_string();
     let public_url = Url::parse(&format!("http://{address}:{port}")).unwrap();
+    let service_url = public_url.clone();
     let packages_path = reports_typst_packages_test_path();
 
     Settings {
         http: Http {
             address,
             port,
+            service_url,
+            public_url,
             api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]),
             enable_openapi: false,
-            public_url,
         },
+        orchestrator: Default::default(),
         monitoring: Default::default(),
         metrics: Default::default(),
         tracing: Default::default(),

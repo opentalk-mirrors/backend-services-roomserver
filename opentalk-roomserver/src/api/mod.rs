@@ -121,6 +121,7 @@ impl utoipa::Modify for SecurityAddon {
 pub(crate) async fn run_web_server<L>(
     settings: Arc<Settings>,
     addresses: Vec<SocketAddr>,
+    room_registry: RoomTaskRegistry<WebSocketAdapter>,
     app_state: watch::Sender<ApplicationState>,
     metric_layer: Option<L>,
 ) -> anyhow::Result<()>
@@ -136,7 +137,6 @@ where
     let app_state_subscriber = app_state.subscribe();
 
     let module_registry = setup_registry();
-    let room_registry = RoomTaskRegistry::new(settings.conference.room_idle_timeout);
 
     let ctx = Context {
         settings: Arc::clone(&settings),
@@ -399,7 +399,7 @@ mod test {
 
         Context {
             settings: settings.clone(),
-            room_tasks: RoomTaskRegistry::new(Duration::from_secs(10)),
+            room_tasks: RoomTaskRegistry::new(Duration::from_secs(10), None),
             token_store: Arc::new(Mutex::new(TokenStore::new())),
             module_registry: Arc::new(ModuleRegistry::new()),
             app_state,

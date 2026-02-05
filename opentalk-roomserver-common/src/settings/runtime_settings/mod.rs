@@ -4,6 +4,7 @@
 use conference::Conference;
 use defaults::Defaults;
 use http::Http;
+use opentalk_orchestrator_client::OrchestratorConfig;
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use reports::Reports;
 use telemetry::{Metrics, Monitoring, Tracing};
@@ -22,6 +23,8 @@ pub mod telemetry;
 pub struct Settings {
     /// HTTP web server settings
     pub http: Http,
+
+    pub orchestrator: Option<OrchestratorConfig>,
 
     pub monitoring: Option<Monitoring>,
 
@@ -44,6 +47,7 @@ impl Settings {
         let port = 11333;
         let address = "localhost".into();
         let public_url = Url::parse(&format!("http://{address}:{port}")).unwrap();
+        let service_url = public_url.clone();
 
         Settings {
             http: Http {
@@ -51,8 +55,10 @@ impl Settings {
                 port,
                 api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", api_token)]),
                 enable_openapi: true,
+                service_url,
                 public_url,
             },
+            orchestrator: None,
             monitoring: None,
             metrics: None,
             tracing: None,
@@ -66,16 +72,19 @@ impl Settings {
     }
 }
 
-impl From<SettingsFile> for Settings {
-    fn from(value: SettingsFile) -> Self {
-        Settings {
-            http: value.http.into(),
+impl TryFrom<SettingsFile> for Settings {
+    type Error = anyhow::Error;
+
+    fn try_from(value: SettingsFile) -> Result<Self, Self::Error> {
+        Ok(Settings {
+            http: value.http.try_into()?,
+            orchestrator: value.orchestrator,
             monitoring: value.monitoring.map(Into::into),
             metrics: value.metrics.map(Into::into),
             tracing: value.tracing.map(Into::into),
             conference: value.conference.into(),
             defaults: value.defaults.map(Into::into),
             reports: value.reports.unwrap_or_default().into(),
-        }
+        })
     }
 }

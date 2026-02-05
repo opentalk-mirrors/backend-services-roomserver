@@ -18,7 +18,7 @@ pub(crate) async fn handle_command(
     args: Args,
     config_file_path: Option<&Path>,
 ) -> anyhow::Result<()> {
-    let settings: Arc<Settings> = Arc::new(SettingsFile::load(config_file_path)?.into());
+    let settings: Arc<Settings> = Arc::new(SettingsFile::load(config_file_path)?.try_into()?);
     let Args { endpoint } = args;
 
     let endpoint_url = if let Some(endpoint) = endpoint {

@@ -105,6 +105,12 @@ exceptions = [
   ], name = "opentalk-etherpad-client" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-orchestrator-client" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-orchestrator-shared" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-report-generation" },
   { allow = [
     "EUPL-1.2",
@@ -172,6 +178,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-service-auth" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-api-common" },
