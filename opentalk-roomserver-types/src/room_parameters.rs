@@ -72,6 +72,8 @@ pub struct RoomParameters {
     #[cfg_attr(feature = "utoipa", schema(value_type = String, example = "en"))]
     pub fallback_language: LanguageIdentifier,
 
+    /// WebSocket rate limit settings of the room. No rate limiting is applied if the field is set
+    /// to [`None`].
     pub ws_rate_limit: Option<RateLimitSettings>,
 }
 
