@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.20] - 2026-02-06
+
+[0.0.20]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.19...v0.0.20
+
+### 🚀 New features
+
+- (metrics) Track the number of disconnects due to congestion ([!850](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/850), [#180](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/180))
+- (room) Implement websocket rate limiting ([!864](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/864), [#185](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/185))
+- Add service url to http config ([!855](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/855))
+- Add orchestrator client ([!855](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/855))
+
+### 🐛 Bug fixes
+
+- (load) Log correct message when token parsing fails as error ([!845](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/845))
+- (load) Load tests log `undefined` on websocket errors ([!852](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/852))
+- (ci) Scan `dev-$FLAVOR` tags instead of the non existing `latest-$FLAVOR` ([!860](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/860))
+- (client) Avoid leading slashes when joining url paths ([!861](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/861))
+- (chat) `SetLastSeenTimestamp` is sent to all participants ([!866](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/866), [#187](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/187))
+- Increase event buffer size ([!864](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/864), [#185](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/185))
+
+### ⚡ Performance
+
+- (e2ee) Remove the e2ee disconnect event ([!858](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/858))
+- (load) Optimize client memory usage ([!853](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/853))
+- (load) Reduce load test setup memory usage ([!853](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/853))
+
+### 🔨 Refactor
+
+- (metrics) Make breakout counter functions associated ([!850](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/850))
+- (load) Add JSDoc comments to functions ([!845](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/845))
+- (load) Add load testing client ([!845](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/845))
+- Make SignalingConnection::close take self by reference instead of owned ([!871](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/871))
+- (chat) Remove deprecated group scope ([!868](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/868))
+
+### 📦 Dependencies
+
+- (deps) Update dependency prettier to v3.8.1 ([!849](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/849))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.93.0 ([!851](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/851))
+- (deps) Lock file maintenance ([!854](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/854), [!863](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/863))
+- (deps) Update rust crate opentalk-etherpad-client to 0.5 ([!856](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/856))
+- (deps) Update rust crate bytes to v1.11.1 ([!869](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/869))
+- (deps) Update opentalk ([!872](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/872))
+- (deps) Remove @types/k6 dependency ([!874](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/874))
+- (deps) Update service-auth & orchestrator-client ([!877](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/877))
+- (deps) Update rust crate testcontainers to 0.27.0 ([!881](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/881))
+- (deps) Update time crate ([!883](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/883))
+
+### ⚙ Miscellaneous
+
+- (advisory) Remove unencountered RUSTSEC-2025-0134 ([!883](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/883))
+
+### Test
+
+- (load) Remove echo-stress load tests ([!845](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/845))
+- (load) Add fairness load test ([!845](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/845), [#180](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/180))
+- (load) Add join spike test ([!852](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/852), [#180](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/180))
+- (load) Add join and chat break tests ([!853](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/853), [#180](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/180))
+
 ## [0.0.19] - 2026-01-21
 
 [0.0.19]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.18...v0.0.19
