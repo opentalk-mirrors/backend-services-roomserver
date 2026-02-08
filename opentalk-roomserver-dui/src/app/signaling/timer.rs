@@ -3,7 +3,7 @@
 
 use opentalk_roomserver_client::api::command::{SignalingCommand, SignalingModuleCommand};
 use opentalk_roomserver_types_timer::{TimerCommand, command::Kind};
-use rand::RngCore as _;
+use rand::Rng as _;
 
 use super::plugin::Received;
 use crate::app::{shortcuts::TOGGLE_TIMER_WINDOW_SHORTCUT, signaling::plugin::SignalingPlugin};

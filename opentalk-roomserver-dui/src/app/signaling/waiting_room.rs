@@ -21,7 +21,7 @@ use opentalk_roomserver_types_moderation::{
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
-use rand::RngCore as _;
+use rand::Rng as _;
 
 use super::plugin::Received;
 use crate::app::{

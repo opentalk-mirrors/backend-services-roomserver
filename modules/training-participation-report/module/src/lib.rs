@@ -42,7 +42,7 @@ use opentalk_types_common::{
     users::DisplayName,
 };
 use opentalk_types_signaling::ParticipantId;
-use rand::Rng as _;
+use rand::RngExt as _;
 use tokio::sync::oneshot::Sender;
 
 use crate::{loopback::TrainingParticipationReportLoopback, template::ReportTemplateParameter};

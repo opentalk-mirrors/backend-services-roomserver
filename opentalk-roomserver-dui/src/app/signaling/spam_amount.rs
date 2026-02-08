@@ -4,7 +4,7 @@
 use egui::Widget;
 use opentalk_roomserver_client::api::command::{SignalingCommand, SignalingModuleCommand};
 use opentalk_roomserver_types_chat::{Scope, command::ChatCommand};
-use rand::RngCore as _;
+use rand::Rng as _;
 
 use super::plugin::Received;
 use crate::app::{

@@ -18,7 +18,7 @@ use opentalk_roomserver_types::{
     join::join_success::JoinSuccess,
     room_kind::RoomKind,
 };
-use rand::RngCore;
+use rand::Rng;
 
 use super::plugin::Received;
 use crate::app::{shortcuts::TOGGLE_BREAKOUT_WINDOW_SHORTCUT, signaling::plugin::SignalingPlugin};
