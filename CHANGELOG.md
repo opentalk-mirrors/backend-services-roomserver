@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.21] - 2026-02-09
+
+[0.0.21]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.20...v0.0.21
+
+### 🚀 New features
+
+- (types) Add default implementation for `RateLimitSettings` ([!884](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/884))
+
+### 🔨 Refactor
+
+- (types) Move `RateLimitSettings` to a separate module ([!884](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/884))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!887](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/887))
+- (deps) Update livekit ([!888](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/888))
+
 ## [0.0.20] - 2026-02-06
 
 [0.0.20]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.19...v0.0.20
