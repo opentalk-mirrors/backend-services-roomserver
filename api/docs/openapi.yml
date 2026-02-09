@@ -430,7 +430,7 @@ components:
           description: The number of tokens that are added to the bucket per second
           minimum: 0
       example:
-        token_bucket_size: 50
+        token_bucket_size: 30
         tokens_per_second: 10
     Role:
       type: string
@@ -558,7 +558,7 @@ components:
             max_storage: 50000
         waiting_room: false
         ws_rate_limit:
-          token_bucket_size: 50
+          token_bucket_size: 30
           tokens_per_second: 10
     RoomPassword:
       type: string
@@ -814,7 +814,7 @@ components:
               max_storage: 50000
           waiting_room: false
           ws_rate_limit:
-            token_bucket_size: 50
+            token_bucket_size: 30
             tokens_per_second: 10
     UserId:
       type: string

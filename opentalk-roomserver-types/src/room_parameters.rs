@@ -270,7 +270,7 @@ mod tests {
             "fallback_language": "en",
             "ws_rate_limit": {
                 "tokens_per_second": 10,
-                "token_bucket_size": 50,
+                "token_bucket_size": 30,
             },
         });
 
