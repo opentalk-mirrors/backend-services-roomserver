@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use opentalk_roomserver_types::room_parameters::RateLimitSettings;
+use opentalk_roomserver_types::rate_limit::RateLimitSettings;
 use tokio::time::Instant;
 
 /// The interval at which a client is informed to slow down when overstepping the rate limit.

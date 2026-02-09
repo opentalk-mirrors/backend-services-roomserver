@@ -12,7 +12,7 @@ use opentalk_roomserver_types::{
     client_parameters::Role,
     core::{CoreCommand, CoreError, CoreEvent, RoomCloseReason},
     error::SignalingError,
-    room_parameters::RateLimitSettings,
+    rate_limit::RateLimitSettings,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::CloseFrame;
 use opentalk_types_common::{

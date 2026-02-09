@@ -27,7 +27,8 @@ use opentalk_roomserver_types::{
     core::CoreEvent,
     module_settings::{ModuleSettings, SignalingModuleSettings},
     public_user_profile::PublicUserProfile,
-    room_parameters::{AssetStorageConfig, EventContext, RateLimitSettings, RoomParameters},
+    rate_limit::RateLimitSettings,
+    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
 };
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use opentalk_types_common::{

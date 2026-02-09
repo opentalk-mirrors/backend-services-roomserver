@@ -16,7 +16,7 @@ use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     error::{self, SignalingError},
-    room_parameters::RateLimitSettings,
+    rate_limit::RateLimitSettings,
     shared_raw_json::SharedRawJson,
     signaling::module_error::FatalError,
 };
