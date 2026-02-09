@@ -17,7 +17,10 @@ use opentalk_types_common::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{module_settings::ModuleSettings, public_user_profile::PublicUserProfile};
+use crate::{
+    module_settings::ModuleSettings, public_user_profile::PublicUserProfile,
+    rate_limit::RateLimitSettings,
+};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(RoomParameters::example_data())))]
@@ -180,24 +183,6 @@ impl ExampleData for AssetStorageConfig {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(RateLimitSettings::example_data())))]
-pub struct RateLimitSettings {
-    /// The number of tokens that are added to the bucket per second
-    pub tokens_per_second: u16,
-    /// The maximum amount of tokens that a token bucket can hold at a time
-    pub token_bucket_size: u16,
-}
-
-impl ExampleData for RateLimitSettings {
-    fn example_data() -> Self {
-        RateLimitSettings {
-            tokens_per_second: 10,
-            token_bucket_size: 50,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use opentalk_types_common::utils::ExampleData;
@@ -285,7 +270,7 @@ mod tests {
             "fallback_language": "en",
             "ws_rate_limit": {
                 "tokens_per_second": 10,
-                "token_bucket_size": 50,
+                "token_bucket_size": 30,
             },
         });
 

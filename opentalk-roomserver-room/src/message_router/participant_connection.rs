@@ -10,7 +10,7 @@ use futures::{
 use opentalk_roomserver_common::application_state::ApplicationState;
 use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
 use opentalk_roomserver_types::{
-    connection_id::ConnectionId, error::SignalingError, room_parameters::RateLimitSettings,
+    connection_id::ConnectionId, error::SignalingError, rate_limit::RateLimitSettings,
     shared_raw_json::SharedRawJson, signaling::SignalingCommand,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
