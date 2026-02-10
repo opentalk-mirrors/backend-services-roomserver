@@ -11,7 +11,7 @@ use opentalk_types_common::{
     rooms::{RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
     streaming::StreamingLink,
-    tariffs::{QuotaType, TariffResource},
+    tariffs::QuotaType,
     time::Timestamp,
     utils::ExampleData,
 };
@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     module_settings::ModuleSettings, public_user_profile::PublicUserProfile,
-    rate_limit::RateLimitSettings,
+    rate_limit::RateLimitSettings, tariff_details::TariffDetails,
 };
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -53,7 +53,7 @@ pub struct RoomParameters {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub invite_code: Option<InviteCode>,
 
-    pub tariff: TariffResource,
+    pub tariff: TariffDetails,
 
     pub streaming_links: Vec<StreamingLink>,
 
@@ -118,7 +118,7 @@ impl ExampleData for RoomParameters {
             call_in: Some(CallInInfo::example_data()),
             event: Some(EventContext::example_data()),
             invite_code: Some(InviteCode::example_data()),
-            tariff: TariffResource::example_data(),
+            tariff: TariffDetails::example_data(),
             streaming_links: vec![StreamingLink::example_data()],
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
@@ -238,23 +238,7 @@ mod tests {
                 "quotas": {
                     "max_storage": 50000
                 },
-                "modules": {
-                    "chat": {
-                        "features": []
-                    },
-                    "core": {
-                        "features": []
-                    },
-                    "livekit": {
-                        "features": []
-                    },
-                    "moderation": {
-                        "features": []
-                    },
-                    "recording": {
-                        "features": [ "record" ]
-                    }
-                }
+                "disabled_features": ["recording::record"],
             },
             "streaming_links": [{"name": "My OwnCast Stream", "url": "https://owncast.example.com/mystream"}],
             "e2e_encryption": false,

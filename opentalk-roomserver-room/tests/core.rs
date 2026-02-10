@@ -29,12 +29,11 @@ async fn join_success() {
         "id": "00000000-0000-0000-0000-000000000001",
         "name": "Default Tariff",
         "quotas": {},
-        "modules": {
-          "mock": {
-            "features": []
-          }
-        }
+        "disabled_features": []
       },
+      "enabled_modules": [
+        "mock"
+      ],
       "module_data": {
         "mock": "Self: 00000000-0000-0000-0000-0000000a11ce"
       },
@@ -85,12 +84,11 @@ async fn participant_joined() {
         "id": "00000000-0000-0000-0000-000000000001",
         "name": "Default Tariff",
         "quotas": {},
-        "modules": {
-          "mock": {
-            "features": []
-          }
-        }
+        "disabled_features": []
       },
+      "enabled_modules": [
+        "mock"
+      ],
       "module_data": {
         "mock": "Self: 00000000-0000-0000-0000-000000000b0b"
       },

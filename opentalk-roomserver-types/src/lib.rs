@@ -23,3 +23,4 @@ pub mod room_parameters;
 pub mod shared_json;
 pub mod shared_raw_json;
 pub mod signaling;
+pub mod tariff_details;

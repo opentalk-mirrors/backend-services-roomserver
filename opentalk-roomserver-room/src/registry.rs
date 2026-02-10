@@ -242,7 +242,6 @@ mod tests {
         // build room parameter without any modules
         let mut parameter = RoomParameters::example_data();
         parameter.module_settings.retain(|_, _| false);
-        parameter.tariff.modules.clear();
 
         let (action, ..) = registry
             .put_room(
@@ -275,7 +274,6 @@ mod tests {
         // build room parameter without any modules
         let mut parameter = RoomParameters::example_data();
         parameter.module_settings.retain(|_, _| false);
-        parameter.tariff.modules.clear();
 
         let (action, ..) = registry
             .put_room(

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_types_common::{
-    events::MeetingDetails, tariffs::TariffResource, time::Timestamp, users::DisplayName,
+    events::MeetingDetails, modules::ModuleId, time::Timestamp, users::DisplayName,
 };
 use opentalk_types_signaling::{ParticipantId, Role};
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,7 @@ use crate::{
     device_id::DeviceId,
     join::{connection_info::ConnectionInfo, event_info::EventInfo, participant::Participant},
     room_info::RoomInfo,
+    tariff_details::TariffDetails,
 };
 
 /// The data received by a participant upon successfully joining a meeting
@@ -45,7 +46,10 @@ pub struct JoinSuccess {
     pub closes_at: Option<Timestamp>,
 
     /// The tariff of the meeting
-    pub tariff: Box<TariffResource>,
+    pub tariff: Box<TariffDetails>,
+
+    /// The list of enabled modules in the room
+    pub enabled_modules: Vec<ModuleId>,
 
     /// The module data for the participant
     pub module_data: opentalk_types_signaling::ModuleData,

@@ -222,7 +222,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 let mut params = (*room_parameters).clone();
                 for module_id in uninitialized {
                     tracing::debug!("Unable to initialize module {module_id} for room {room_id}");
-                    params.tariff.modules.remove(&module_id);
+                    params.module_settings.remove(&module_id);
                 }
                 room_parameters = Arc::new(params);
             }

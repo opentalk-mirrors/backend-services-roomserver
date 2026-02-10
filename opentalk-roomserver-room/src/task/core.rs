@@ -456,7 +456,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         // Remove the module from the room state
-        self.info.room.tariff.modules.remove(&namespace);
+        self.info.room.module_settings.remove(&namespace);
 
         self.message_router.conference.broadcast_error(
             transaction_id,
@@ -575,6 +575,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             meeting_details,
             is_room_owner,
             module_data,
+            enabled_modules: self.modules.keys().cloned().collect(),
         })
     }
 
@@ -693,12 +694,12 @@ mod tests {
         device_id::DeviceId,
         join::{connection_info::ConnectionInfo, join_success::JoinSuccess},
         room_info::RoomInfo,
+        tariff_details::TariffDetails,
     };
     use opentalk_types_common::{
         events::MeetingDetails,
         modules::{ModuleId, module_id},
         rooms::RoomId,
-        tariffs::TariffResource,
         time::Timestamp,
         users::{DisplayName, UserInfo},
         utils::ExampleData,
@@ -746,7 +747,7 @@ mod tests {
             avatar_url: None,
             role: Role::Guest,
             closes_at: None,
-            tariff: Box::new(TariffResource::example_data()),
+            tariff: Box::new(TariffDetails::example_data()),
             module_data: test_module_data(),
             participants: vec![],
             event_info: None,
@@ -761,6 +762,7 @@ mod tests {
                 streaming_links: vec![],
             },
             is_room_owner: false,
+            enabled_modules: vec![module_id!("test_module")],
         };
         let event = SignalingEvent {
             namespace: CORE_MODULE_ID,
@@ -794,26 +796,13 @@ mod tests {
               "quotas": {
                 "max_storage": 50000
               },
-              "modules": {
-                "chat": {
-                  "features": []
-                },
-                "core": {
-                  "features": []
-                },
-                "livekit": {
-                  "features": []
-                },
-                "moderation": {
-                  "features": []
-                },
-                "recording": {
-                  "features": [
-                    "record"
-                  ]
-                }
-              }
+              "disabled_features": [
+                "recording::record"
+              ]
             },
+            "enabled_modules": [
+              "test_module"
+            ],
             "module_data": {
               "test": {
                 "a": "test",
@@ -863,26 +852,13 @@ mod tests {
                     "quotas": {
                         "max_storage": 50000
                     },
-                    "modules": {
-                        "chat": {
-                            "features": []
-                        },
-                        "core": {
-                            "features": []
-                        },
-                        "livekit": {
-                            "features": []
-                        },
-                        "moderation": {
-                            "features": []
-                        },
-                        "recording": {
-                            "features": [
-                                "record"
-                            ]
-                        }
-                    }
+                    "disabled_features": [
+                        "recording::record"
+                    ],
                 },
+                "enabled_modules": [
+                    "test_module"
+                ],
                 "module_data": {
                     "test": {
                         "a": "test",

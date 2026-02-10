@@ -1,28 +1,30 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use icu_locid::langid;
 use opentalk_roomserver_client::api::{
     command::{
-        AUTOMOD_MODULE_ID, CHAT_MODULE_ID, ECHO_MODULE_ID, LEGAL_VOTE_MODULE_ID,
-        MEETING_NOTES_MODULE_ID, MEETING_REPORT_MODULE_ID, MODERATION_MODULE_ID, POLLS_MODULE_ID,
-        RAISE_HANDS_MODULE_ID, SUBROOM_AUDIO_MODULE_ID, WHITEBOARD_MODULE_ID,
+        AUTOMOD_MODULE_ID, ECHO_MODULE_ID, LEGAL_VOTE_MODULE_ID, MEETING_NOTES_MODULE_ID,
+        MEETING_REPORT_MODULE_ID, RAISE_HANDS_MODULE_ID, SUBROOM_AUDIO_MODULE_ID,
+        WHITEBOARD_MODULE_ID,
     },
-    event::{E2EE_MODULE_ID, LIVEKIT_MODULE_ID, SHARED_FOLDER_MODULE_ID},
+    event::{E2EE_MODULE_ID, SHARED_FOLDER_MODULE_ID},
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
     room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
+    tariff_details::TariffDetails,
 };
-use opentalk_roomserver_types_timer::TIMER_MODULE_ID;
+use opentalk_roomserver_types_chat::CHAT_MODULE_ID;
+use opentalk_roomserver_types_moderation::MODERATION_MODULE_ID;
 use opentalk_types_common::{
     events::EventId,
     shared_folders::{SharedFolder, SharedFolderAccess},
-    tariffs::{TariffId, TariffModuleResource, TariffResource},
+    tariffs::TariffId,
     time::TimeZone,
     users::{UserId, UserInfo},
     utils::ExampleData,
@@ -59,6 +61,22 @@ pub fn bob_profile() -> PublicUserProfile {
 }
 
 pub fn default_room_parameters() -> RoomParameters {
+    let mut module_settings = ModuleSettings::example_data();
+    module_settings.insert_empty(AUTOMOD_MODULE_ID);
+    module_settings.insert_empty(ECHO_MODULE_ID);
+    module_settings.insert_empty(CHAT_MODULE_ID);
+    module_settings.insert_empty(LEGAL_VOTE_MODULE_ID);
+    module_settings.insert_empty(E2EE_MODULE_ID);
+    module_settings.insert_empty(AUTOMOD_MODULE_ID);
+    module_settings.insert_empty(CHAT_MODULE_ID);
+    module_settings.insert_empty(SHARED_FOLDER_MODULE_ID);
+    module_settings.insert_empty(MEETING_REPORT_MODULE_ID);
+    module_settings.insert_empty(MODERATION_MODULE_ID);
+    module_settings.insert_empty(RAISE_HANDS_MODULE_ID);
+    module_settings.insert_empty(SUBROOM_AUDIO_MODULE_ID);
+    module_settings.insert_empty(MEETING_NOTES_MODULE_ID);
+    module_settings.insert_empty(WHITEBOARD_MODULE_ID);
+
     RoomParameters {
         created_by: alice_profile(),
         password: None,
@@ -85,7 +103,7 @@ pub fn default_room_parameters() -> RoomParameters {
             }),
         }),
         invite_code: None,
-        tariff: TariffResource {
+        tariff: TariffDetails {
             id: TariffId::from_u128(0x2da2b825_6db9_4dc4_b9e6_b4fd64e66a16),
             name: "Starter tariff".to_string(),
             quotas: BTreeMap::from([
@@ -102,27 +120,11 @@ pub fn default_room_parameters() -> RoomParameters {
                     60 * 60 * 24, // 24h
                 ),
             ]),
-            modules: BTreeMap::from([
-                (AUTOMOD_MODULE_ID, TariffModuleResource::default()),
-                (ECHO_MODULE_ID, TariffModuleResource::default()),
-                (CHAT_MODULE_ID, TariffModuleResource::default()),
-                (LEGAL_VOTE_MODULE_ID, TariffModuleResource::default()),
-                (LIVEKIT_MODULE_ID, TariffModuleResource::default()),
-                (E2EE_MODULE_ID, TariffModuleResource::default()),
-                (TIMER_MODULE_ID, TariffModuleResource::default()),
-                (POLLS_MODULE_ID, TariffModuleResource::default()),
-                (SHARED_FOLDER_MODULE_ID, TariffModuleResource::default()),
-                (MEETING_REPORT_MODULE_ID, TariffModuleResource::default()),
-                (MODERATION_MODULE_ID, TariffModuleResource::default()),
-                (RAISE_HANDS_MODULE_ID, TariffModuleResource::default()),
-                (SUBROOM_AUDIO_MODULE_ID, TariffModuleResource::default()),
-                (MEETING_NOTES_MODULE_ID, TariffModuleResource::default()),
-                (WHITEBOARD_MODULE_ID, TariffModuleResource::default()),
-            ]),
+            disabled_features: BTreeSet::new(),
         },
         streaming_links: vec![],
         e2e_encryption: false,
-        module_settings: ModuleSettings::example_data(),
+        module_settings,
         asset_storage: AssetStorageConfig::InMemory,
         preferred_language: langid!("en"),
         fallback_language: langid!("en"),

@@ -49,7 +49,7 @@ impl ModuleRegistry {
     ) -> (Modules, Vec<ModuleId>) {
         let mut initializers = Vec::new();
 
-        for module_id in init_data.room_parameters.tariff.modules.keys() {
+        for module_id in init_data.room_parameters.module_settings.ids() {
             if Self::CORE_MODULES.contains(module_id) {
                 // These modules are part of the room task and don't need to be initialized
                 continue;

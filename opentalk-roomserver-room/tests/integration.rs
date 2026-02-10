@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::BTreeMap, str::FromStr};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    str::FromStr,
+};
 
 use opentalk_roomserver_room::mocking::{
     mock_module::{MockCommand, MockModule},
@@ -13,11 +16,12 @@ use opentalk_roomserver_types::{
     core::{CoreCommand, CoreError, CoreEvent, RoomCloseReason},
     error::SignalingError,
     rate_limit::RateLimitSettings,
+    tariff_details::TariffDetails,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::CloseFrame;
 use opentalk_types_common::{
     roomserver::DeviceSecret,
-    tariffs::{QuotaType, TariffId, TariffResource},
+    tariffs::{QuotaType, TariffId},
 };
 use serde_json::json;
 
@@ -85,11 +89,11 @@ async fn room_task_time_limit() {
     // Create a room with a tariff that has a time limit of 0 seconds, so it
     // will immediately trigger the time limit quota elapsed event and close the room
     let mut room = TestRoom::builder()
-        .tariff(TariffResource {
+        .tariff(TariffDetails {
             id: TariffId::generate(),
             name: "Immediately closing room".into(),
             quotas: BTreeMap::from_iter([(QuotaType::RoomTimeLimitSecs, 0)]),
-            modules: BTreeMap::new(),
+            disabled_features: BTreeSet::new(),
         })
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
