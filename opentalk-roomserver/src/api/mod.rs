@@ -378,7 +378,6 @@ mod test {
         client_parameters::{ClientKind, Role},
         module_settings::ModuleSettings,
         public_user_profile::PublicUserProfile,
-        room_parameters::AssetStorageConfig,
         tariff_details::TariffDetails,
     };
     use opentalk_types_api_v1::error::ErrorBody;
@@ -448,7 +447,6 @@ mod test {
             streaming_links: vec![],
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
-            asset_storage: AssetStorageConfig::example_data(),
             preferred_language: langid!("en"),
             fallback_language: langid!("en"),
             ws_rate_limit: None,

@@ -28,7 +28,7 @@ use opentalk_roomserver_types::{
     module_settings::{ModuleSettings, SignalingModuleSettings},
     public_user_profile::PublicUserProfile,
     rate_limit::RateLimitSettings,
-    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
+    room_parameters::{EventContext, RoomParameters},
     tariff_details::TariffDetails,
 };
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
@@ -131,7 +131,6 @@ impl TestRoomBuilder {
                 streaming_links: Vec::new(),
                 e2e_encryption: false,
                 module_settings: ModuleSettings::new(),
-                asset_storage: AssetStorageConfig::InMemory,
                 preferred_language: langid!("en"),
                 fallback_language: langid!("en"),
                 ws_rate_limit: None,
