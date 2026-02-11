@@ -29,6 +29,7 @@ Some configuration options allow to configure multiple values.
 ## Sections in the configuration file
 
 - [Http](http_server.md)
+- [Controller](controller.md)
 - [Monitoring](observability/monitoring.md)
 - [Metrics](observability/metrics.md)
 - [Tracing](observability/tracing.md)
@@ -75,6 +76,17 @@ api_keys = [{ id = "roomserver", secret = "secret" }]
 # Disable the OpenAPI endpoint under `/docs/openapi.json` and the corresponding
 # swagger endpoint under `/swagger`.
 #enable_openapi = false
+
+[controller]
+# Controller settings
+#
+# If not configured, assets and module resources will be saved in memory.
+
+# The URL of the controller
+url = "http://localhost:8000"
+
+# The api key for the controllers service API
+api_key = { "id" = "controller", "secret" = "secret" }
 
 [monitoring]
 # Monitoring settings

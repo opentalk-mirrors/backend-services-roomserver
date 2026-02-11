@@ -12,6 +12,7 @@ use opentalk_roomserver_signaling::storage::{
         provider::{AssetStorageProvider, AssetStream},
     },
 };
+use opentalk_service_auth::ApiKey;
 use opentalk_types_api_v1::{error::ApiError, services::roomserver::PostAssetResponseBody};
 use reqwest::{Body, header::CONTENT_TYPE};
 use tokio::sync::RwLock;
@@ -25,13 +26,13 @@ const MAX_BODY_PREVIEW_LENGTH: usize = 80;
 #[derive(Debug)]
 pub struct ControllerAssetStorage {
     base_url: Url,
-    secret: String,
+    secret: ApiKey,
     client: reqwest::Client,
     quota: RwLock<Option<u64>>,
 }
 
 impl ControllerAssetStorage {
-    pub fn new(base_url: Url, secret: String, quota: Option<u64>) -> Self {
+    pub fn new(base_url: Url, secret: ApiKey, quota: Option<u64>) -> Self {
         Self {
             base_url,
             secret,
@@ -57,6 +58,12 @@ impl AssetStorageProvider for ControllerAssetStorage {
         if let Some(event_title) = context.event.as_ref().map(|e| e.title.as_str()) {
             query.push(("event_title", event_title));
         }
+
+        let token = self
+            .secret
+            .generate_jwt()
+            .context("Failed to generate auth header")?;
+
         let response = self
             .client
             .post(
@@ -67,7 +74,7 @@ impl AssetStorageProvider for ControllerAssetStorage {
                     ))
                     .context("Invalid URL")?,
             )
-            .bearer_auth(&self.secret)
+            .bearer_auth(token)
             .body(Body::wrap_stream(asset))
             .header(CONTENT_TYPE, "application/octet-stream")
             .query(&query)
@@ -140,6 +147,7 @@ mod tests {
     use anyhow::anyhow;
     use bytes::Bytes;
     use futures::{StreamExt, stream};
+    use mockito::Matcher;
     use opentalk_roomserver_signaling::storage::{
         StorageContext,
         assets::{
@@ -147,6 +155,7 @@ mod tests {
             provider::{AssetLoadError, AssetStorageProvider},
         },
     };
+    use opentalk_service_auth::ApiKey;
     use opentalk_types_api_v1::{
         assets::AssetResource, error::ApiError, services::roomserver::PostAssetResponseBody,
     };
@@ -184,7 +193,7 @@ mod tests {
                 "POST",
                 format!("/v1/services/roomserver/room/{room_id}/asset").as_str(),
             )
-            .match_header("authorization", "Bearer secret")
+            .match_header("authorization", Matcher::Regex("^Bearer .*".into()))
             .match_query(mockito::Matcher::AllOf(vec![
                 mockito::Matcher::UrlEncoded("namespace".to_string(), module_id.to_string()),
                 mockito::Matcher::UrlEncoded(
@@ -200,8 +209,11 @@ mod tests {
             .create_async()
             .await;
 
-        let provider =
-            ControllerAssetStorage::new(server.url().parse().unwrap(), "secret".into(), None);
+        let provider = ControllerAssetStorage::new(
+            server.url().parse().unwrap(),
+            ApiKey::new("controller", "secret"),
+            None,
+        );
         let asset_stream =
             stream::once(async { Ok(Bytes::copy_from_slice(r"asdasd".as_bytes())) }).boxed();
 
@@ -246,7 +258,7 @@ mod tests {
                 "POST",
                 format!("/v1/services/roomserver/room/{room_id}/asset").as_str(),
             )
-            .match_header("authorization", "Bearer secret")
+            .match_header("authorization", Matcher::Regex("^Bearer .*".into()))
             .match_query(mockito::Matcher::AllOf(vec![
                 mockito::Matcher::UrlEncoded("namespace".to_string(), module_id.to_string()),
                 mockito::Matcher::UrlEncoded(
@@ -260,8 +272,11 @@ mod tests {
             .create_async()
             .await;
 
-        let provider =
-            ControllerAssetStorage::new(server.url().parse().unwrap(), "secret".into(), None);
+        let provider = ControllerAssetStorage::new(
+            server.url().parse().unwrap(),
+            ApiKey::new("controller", "secret"),
+            None,
+        );
         let asset_stream =
             stream::once(async { Ok(Bytes::copy_from_slice(r"asdasd".as_bytes())) }).boxed();
 
@@ -299,7 +314,7 @@ mod tests {
                 "POST",
                 format!("/v1/services/roomserver/room/{room_id}/asset").as_str(),
             )
-            .match_header("authorization", "Bearer secret")
+            .match_header("authorization", Matcher::Regex("^Bearer .*".into()))
             .match_query(mockito::Matcher::AllOf(vec![
                 mockito::Matcher::UrlEncoded("namespace".to_string(), module_id.to_string()),
                 mockito::Matcher::UrlEncoded(
@@ -313,8 +328,11 @@ mod tests {
             .create_async()
             .await;
 
-        let provider =
-            ControllerAssetStorage::new(server.url().parse().unwrap(), "secret".into(), None);
+        let provider = ControllerAssetStorage::new(
+            server.url().parse().unwrap(),
+            ApiKey::new("controller", "secret"),
+            None,
+        );
 
         let asset_stream = stream::iter(vec![Err(AssetLoadError {
             source: anyhow!("Error").into(),

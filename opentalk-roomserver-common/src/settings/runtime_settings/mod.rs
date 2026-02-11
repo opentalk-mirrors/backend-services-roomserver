@@ -10,7 +10,10 @@ use reports::Reports;
 use telemetry::{Metrics, Monitoring, Tracing};
 use url::Url;
 
-use super::{settings_file::SettingsFile, signaling_salt::SignalingSalt};
+use super::{
+    controller_settings::ControllerConfig, settings_file::SettingsFile,
+    signaling_salt::SignalingSalt,
+};
 
 pub mod conference;
 pub mod defaults;
@@ -23,6 +26,8 @@ pub mod telemetry;
 pub struct Settings {
     /// HTTP web server settings
     pub http: Http,
+
+    pub controller: Option<ControllerConfig>,
 
     pub orchestrator: Option<OrchestratorConfig>,
 
@@ -48,6 +53,10 @@ impl Settings {
         let address = "localhost".into();
         let public_url = Url::parse(&format!("http://{address}:{port}")).unwrap();
         let service_url = public_url.clone();
+        let controller = ControllerConfig {
+            url: Url::parse("http://localhost:8000").unwrap(),
+            api_key: ApiKey::new("controller", "secret"),
+        };
 
         Settings {
             http: Http {
@@ -58,6 +67,7 @@ impl Settings {
                 service_url,
                 public_url,
             },
+            controller: Some(controller),
             orchestrator: None,
             monitoring: None,
             metrics: None,
@@ -78,6 +88,7 @@ impl TryFrom<SettingsFile> for Settings {
     fn try_from(value: SettingsFile) -> Result<Self, Self::Error> {
         Ok(Settings {
             http: value.http.try_into()?,
+            controller: value.controller,
             orchestrator: value.orchestrator,
             monitoring: value.monitoring.map(Into::into),
             metrics: value.metrics.map(Into::into),
