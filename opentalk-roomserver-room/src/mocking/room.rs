@@ -90,6 +90,7 @@ fn settings() -> Settings {
             api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]),
             enable_openapi: false,
         },
+        controller: Default::default(),
         orchestrator: Default::default(),
         monitoring: Default::default(),
         metrics: Default::default(),

@@ -14,6 +14,8 @@ use serde::Deserialize;
 use telemetry::{Metrics, Monitoring, Tracing};
 use thiserror::Error;
 
+use super::controller_settings::ControllerConfig;
+
 pub mod conference;
 pub mod defaults;
 pub mod http;
@@ -33,6 +35,9 @@ pub struct Error {
 pub struct SettingsFile {
     /// HTTP web server settings
     pub(crate) http: Http,
+
+    #[serde(default)]
+    pub(crate) controller: Option<ControllerConfig>,
 
     pub(crate) orchestrator: Option<OrchestratorConfig>,
 

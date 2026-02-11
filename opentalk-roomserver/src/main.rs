@@ -59,6 +59,10 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
 
     trace::init(settings.tracing.as_ref()).context("Failed to initialize tracing")?;
 
+    if settings.controller.is_none() {
+        tracing::warn!("Missing controller config, assets and module resources will not be saved")
+    }
+
     if let Some(monitoring) = &settings.monitoring {
         set.spawn(
             start_service_probe(monitoring.clone(), app_state.subscribe())
