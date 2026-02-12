@@ -145,7 +145,7 @@ tokio = { version = "1", features = [
 tokio-stream = "0.1"
 tokio-tungstenite = "0.28.0"
 tokio-util = "0.7.15"
-toml = "0.9"
+toml = "1.0"
 tower = "0.5"
 tower-http = "0.6.2"
 tracing = "0.1"
