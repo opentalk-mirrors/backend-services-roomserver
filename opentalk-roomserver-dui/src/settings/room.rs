@@ -16,7 +16,7 @@ use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
-    room_parameters::{AssetStorageConfig, EventContext, RoomParameters},
+    room_parameters::{EventContext, RoomParameters},
     tariff_details::TariffDetails,
 };
 use opentalk_roomserver_types_chat::CHAT_MODULE_ID;
@@ -125,7 +125,6 @@ pub fn default_room_parameters() -> RoomParameters {
         streaming_links: vec![],
         e2e_encryption: false,
         module_settings,
-        asset_storage: AssetStorageConfig::InMemory,
         preferred_language: langid!("en"),
         fallback_language: langid!("en"),
         ws_rate_limit: None,

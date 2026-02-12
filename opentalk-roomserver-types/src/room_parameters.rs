@@ -63,9 +63,6 @@ pub struct RoomParameters {
     /// Additional configuration options that are used by modules during initialization.
     pub module_settings: ModuleSettings,
 
-    /// Configuration for storing room assets (e.g., meeting reports).
-    pub asset_storage: AssetStorageConfig,
-
     /// The preferred language of the room.
     #[cfg_attr(feature = "utoipa", schema(value_type = String, example = "de"))]
     pub preferred_language: LanguageIdentifier,
@@ -122,7 +119,6 @@ impl ExampleData for RoomParameters {
             streaming_links: vec![StreamingLink::example_data()],
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
-            asset_storage: AssetStorageConfig::example_data(),
             preferred_language: langid!("de"),
             fallback_language: langid!("en"),
             ws_rate_limit: Some(RateLimitSettings::example_data()),
@@ -166,23 +162,6 @@ impl ExampleData for EventContext {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(AssetStorageConfig::example_data())))]
-#[serde(rename_all = "snake_case", tag = "type")]
-pub enum AssetStorageConfig {
-    InMemory,
-    Controller { url: url::Url, secret: String },
-}
-
-impl ExampleData for AssetStorageConfig {
-    fn example_data() -> Self {
-        Self::Controller {
-            url: "https://localhost:11411".parse().unwrap(),
-            secret: "secret".to_string(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use opentalk_types_common::utils::ExampleData;
@@ -206,11 +185,6 @@ mod tests {
                 "timezone": "Europe/Berlin"
             },
             "password": "1234",
-            "asset_storage": {
-                "type": "controller",
-                "secret": "secret",
-                "url": "https://localhost:11411/",
-            },
             "call_in": {
                 "tel": "+555-123-456-789",
                 "id": "1234567890",
