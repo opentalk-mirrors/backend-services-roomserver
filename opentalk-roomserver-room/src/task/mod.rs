@@ -370,6 +370,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .ok()
                     .context("Failed to respond to IsBanned, response channel dropped")?;
             }
+            Request::AllowedOrigins { response } => response
+                .send(Ok(self.info.room.allowed_origins.clone()))
+                .ok()
+                .context("Failed to respond to AllowedOrigins, response channel dropped")?,
             Request::WsJoin {
                 response,
                 socket,

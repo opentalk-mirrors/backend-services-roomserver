@@ -177,6 +177,20 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Ok(response)
     }
 
+    pub async fn allowed_origins(&self) -> Option<Vec<String>> {
+        let (tx, rx) = oneshot::channel();
+
+        if self
+            .send_request(Request::AllowedOrigins { response: tx })
+            .await
+            .is_err()
+        {
+            return None;
+        }
+
+        Self::receive_response(rx).await.ok()
+    }
+
     pub fn storage(&self) -> Arc<dyn AssetStorageProvider> {
         Arc::clone(&self.storage)
     }
@@ -219,6 +233,10 @@ pub enum Request<Socket: SignalingSocket> {
         user_id: UserId,
     },
 
+    AllowedOrigins {
+        response: ResponseSender<Vec<String>>,
+    },
+
     /// Join the room with a given websocket stream and sink
     WsJoin {
         response: ResponseSender<()>,
@@ -236,6 +254,9 @@ impl<Socket: SignalingSocket> Request<Socket> {
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
             Request::IsBanned { response, .. } => response
+                .send(Err(error))
+                .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
+            Request::AllowedOrigins { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
         }

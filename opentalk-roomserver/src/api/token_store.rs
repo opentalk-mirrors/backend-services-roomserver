@@ -80,6 +80,11 @@ impl TokenStore {
         self.tokens.remove(token)
     }
 
+    pub(crate) fn peek_token(&mut self, token: &Token) -> Option<&SignalingClientContext> {
+        self.remove_expired_entries();
+        self.tokens.get(token)
+    }
+
     fn remove_expired_entries(&mut self) {
         let now = Instant::now();
 

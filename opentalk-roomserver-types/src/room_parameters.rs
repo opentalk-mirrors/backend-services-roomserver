@@ -72,7 +72,13 @@ pub struct RoomParameters {
     #[cfg_attr(feature = "utoipa", schema(value_type = String, example = "en"))]
     pub fallback_language: LanguageIdentifier,
 
+    /// WebSocket rate limit settings of the room. No rate limiting is applied if the field is set
+    /// to [`None`].
     pub ws_rate_limit: Option<RateLimitSettings>,
+
+    /// Allowed Origins for Cross-Origin Resource Sharing (CORS) when accessing the roomserver's
+    /// HTTP API.
+    pub allowed_origins: Vec<String>,
 }
 
 impl RoomParameters {
@@ -122,6 +128,7 @@ impl ExampleData for RoomParameters {
             preferred_language: langid!("de"),
             fallback_language: langid!("en"),
             ws_rate_limit: Some(RateLimitSettings::example_data()),
+            allowed_origins: vec!["https://example.com".to_string()],
         }
     }
 }
@@ -230,6 +237,7 @@ mod tests {
                 "tokens_per_second": 10,
                 "token_bucket_size": 30,
             },
+            "allowed_origins": ["https://example.com"],
         });
 
         // serialization

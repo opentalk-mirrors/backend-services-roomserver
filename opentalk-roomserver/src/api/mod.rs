@@ -152,7 +152,7 @@ where
         .context("Invalid API key configuration")?;
 
     let mut router = Router::new()
-        .nest("/v1", v1::routes(auth_middleware))
+        .nest("/v1", v1::routes(ctx.clone(), auth_middleware))
         .with_state(ctx)
         .layer(
             TraceLayer::new_for_http()
@@ -450,6 +450,7 @@ mod test {
             preferred_language: langid!("en"),
             fallback_language: langid!("en"),
             ws_rate_limit: None,
+            allowed_origins: vec!["*".to_string()],
         }
     }
 

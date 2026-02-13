@@ -19,14 +19,17 @@ use opentalk_roomserver_types::{
     client_parameters::ClientParameters, signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
-use tracing::{Instrument, Span};
+use tracing::{Instrument as _, Span};
 
 use super::Router;
 
+mod cors;
 pub mod websocket;
 
-pub(crate) fn routes<B: SignalingBackend + 'static>() -> Router<B> {
-    Router::new().route("/signaling/{token}", get(open_signaling_socket::<B>))
+pub(crate) fn routes<B: SignalingBackend + 'static>(state: B) -> Router<B> {
+    Router::new()
+        .route("/signaling/{token}", get(open_signaling_socket::<B>))
+        .layer(cors::cors_layer(state))
 }
 
 /// Opens a new signaling websocket connection.
@@ -61,9 +64,11 @@ async fn open_signaling_socket<B: SignalingBackend + 'static>(
     let span = Span::current();
     span.record("opentalk.room_id", room_id.to_string());
 
-    Ok(ws.on_upgrade(move |socket| {
+    let response = ws.on_upgrade(move |socket| {
         handle_socket(socket, ctx, room_id, signaling_context.client_parameters).instrument(span)
-    }))
+    });
+
+    Ok(response)
 }
 
 async fn handle_socket<B: SignalingBackend + 'static>(
@@ -97,6 +102,13 @@ pub trait SignalingBackend: Clone + Send + Sync + std::fmt::Debug {
     ///
     /// Returns an error if the token is does not exist
     async fn consume_token(&self, token: Token) -> Result<SignalingClientContext, Self::Error>;
+
+    /// Resolve the [`RoomId`] from the token without consuming it.
+    ///
+    /// Returns [`None`] if the token does not exist.
+    async fn room_id(&self, token: Token) -> Option<RoomId>;
+
+    async fn allowed_origins(&self, room_id: RoomId) -> Result<Vec<String>, Self::Error>;
 
     /// Accept a client stream and connect it to the room.
     ///

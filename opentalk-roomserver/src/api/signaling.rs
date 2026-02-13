@@ -34,6 +34,21 @@ impl SignalingBackend for Context {
             .ok_or_else(|| ApiError::unauthorized().with_code("invalid_token"))
     }
 
+    async fn room_id(&self, token: Token) -> Option<RoomId> {
+        self.token_store
+            .lock()
+            .await
+            .peek_token(&token)
+            .map(|ctx| ctx.room_id)
+    }
+
+    async fn allowed_origins(&self, room_id: RoomId) -> Result<Vec<String>, Self::Error> {
+        self.room_tasks
+            .allowed_origins(room_id)
+            .await
+            .ok_or_else(|| ApiError::not_found().with_code("invalid_room"))
+    }
+
     async fn accept_client_stream(
         &self,
         socket: WebSocket,
