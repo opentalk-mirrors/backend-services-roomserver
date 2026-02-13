@@ -18,7 +18,8 @@ The section in the [configuration file](./configuration.md) is called `http`.
 | ---------------- | -------------------- | -------- | ------------- | ------------------------------------------------------------------ |
 | `addr`           | `string`             | no       | -             | IP address or hostname to which to listen for incoming connections |
 | `port`           | `uint`               | no       | `11333`       | TCP port number where the REST API can be reached                  |
-| `public_url`     | `string`             | yes      | -             | The publicly reachable URL of this server                          |
+| `service_url`    | `string`             | no       | -             | The URL of the roomserver that is reachable by internal services   |
+| `public_url`     | `string`             | yes      | depends       | The publicly reachable URL of this server                          |
 | `api_keys`       | Key/value pair array | yes      | -             | The api keys for internal service endpoints                        |
 | `enable_openapi` | `bool`               | no       | `false`       | Enable the OpenAPI and the corresponding Swagger endpoints         |
 
@@ -39,6 +40,12 @@ A hostname or fully qualified domain name will bind to whatever the name
 resolution returns, either one or both IP protocols.
 
 An explicit IPv4 or IPv6 address, will bind exactly to the corresponding IP protocol.
+
+### Service URL
+
+The `service_url` value is what internal services (e.g., the recorder) use to reach the RoomServer instance.
+When this value is not provided, the RoomServer tries to use the value of the `public_url`.
+If the `public_url` isn't provided either it falls back to an unspecified IPv4 address (`0.0.0.0`).
 
 ### Public URL
 
