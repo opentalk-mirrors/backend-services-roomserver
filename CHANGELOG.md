@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.23] - 2026-02-13
+
+[0.0.23]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.22...v0.0.23
+
+### 🚀 New features
+
+- Add controller settings ([!891](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/891))
+- (ci) Add release mr creation job ([!902](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/902), [#191](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/191))
+- (room) Restrict CORS based on allowed origins in `RoomParameters` ([!879](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/879), [#167](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/167))
+
+### 📚 Documentation
+
+- (room) Add description to `ws_rate_limit` field in `RoomParameters` ([!879](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/879))
+
+### 🔨 Refactor
+
+- Remove AssetStorageConfig from RoomParameters ([!894](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/894))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate toml to v1 ([!898](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/898))
+
 ## [0.0.22] - 2026-02-10
 
 [0.0.22]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.21...v0.0.22
