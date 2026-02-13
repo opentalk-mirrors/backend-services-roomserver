@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::net::{Ipv4Addr, Ipv6Addr, TcpListener};
+use std::{
+    net::{Ipv4Addr, Ipv6Addr, TcpListener},
+    str::FromStr,
+};
 
 use anyhow::Context;
 use opentalk_service_auth::service::ApiKeys;
@@ -42,7 +45,13 @@ impl TryFrom<settings_file::http::Http> for Http {
                     None => &Ipv4Addr::UNSPECIFIED.to_string(),
                 };
 
-                url::Url::parse(&format!("http://{service_url_address}:{}", value.port))
+                let url = if Ipv6Addr::from_str(service_url_address).is_ok() {
+                    format!("http://[{service_url_address}]:{}", value.port)
+                } else {
+                    format!("http://{service_url_address}:{}", value.port)
+                };
+
+                url::Url::parse(&url)
                     .context("Failed to build service url from configured address")?
             }
         };
