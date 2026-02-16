@@ -17,6 +17,17 @@ pub struct AssetLoadError {
     pub source: Box<dyn std::error::Error + Send + Sync>,
 }
 
+impl<E> From<E> for AssetLoadError
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    fn from(value: E) -> Self {
+        Self {
+            source: Box::new(value),
+        }
+    }
+}
+
 // this is is required to transform the AssetStream into a reqwest Body.
 impl From<AssetLoadError> for Box<dyn std::error::Error + Send + Sync> {
     fn from(err: AssetLoadError) -> Self {

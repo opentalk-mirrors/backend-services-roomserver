@@ -348,9 +348,7 @@ pub(super) async fn generate_pdf(
         .await
         // return an internal if the PDF can't be fetched from etherpad
         .context("Failed to create PDF")?
-        .map_err(|e| AssetLoadError {
-            source: Box::new(e),
-        });
+        .map_err(AssetLoadError::from);
 
     let metadata = AssetMetaData {
         kind: ASSET_FILE_KIND,
