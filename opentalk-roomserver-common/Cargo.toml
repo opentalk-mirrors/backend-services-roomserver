@@ -20,7 +20,9 @@ cidr.workspace = true
 config.workspace = true
 dirs.workspace = true
 opentalk-orchestrator-client.workspace = true
+opentalk-roomserver-types.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
+opentalk-types-common.workspace = true
 rand.workspace = true
 serde.workspace = true
 serde_path_to_error.workspace = true

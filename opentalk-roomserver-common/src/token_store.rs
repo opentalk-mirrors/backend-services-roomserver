@@ -31,7 +31,7 @@ impl TokenExpiry {
 /// Manages the active signaling tokens of the RoomServer
 ///
 /// Expired tokens get cleaned up when the [`TokenStore`] is accessed
-pub(crate) struct TokenStore<V> {
+pub struct TokenStore<V> {
     /// The active tokens
     tokens: HashMap<Token, V>,
     /// A set to track the expiry of each token
@@ -40,12 +40,18 @@ pub(crate) struct TokenStore<V> {
     expiry: Duration,
 }
 
-impl<V> TokenStore<V> {
-    pub(crate) fn new() -> Self {
+impl<V> Default for TokenStore<V> {
+    fn default() -> Self {
         Self::new_with_expiry(DEFAULT_EXPIRY)
     }
+}
 
-    pub(crate) fn new_with_expiry(expiry: Duration) -> Self {
+impl<V> TokenStore<V> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn new_with_expiry(expiry: Duration) -> Self {
         Self {
             tokens: HashMap::new(),
             expiry_set: BTreeSet::new(),
@@ -53,7 +59,7 @@ impl<V> TokenStore<V> {
         }
     }
 
-    pub(crate) fn create_token(&mut self, value: V) -> Token {
+    pub fn create_token(&mut self, value: V) -> Token {
         self.remove_expired_entries();
 
         // loop to avoid the uuid collision error branch
@@ -74,12 +80,12 @@ impl<V> TokenStore<V> {
         token
     }
 
-    pub(crate) fn consume_token(&mut self, token: &Token) -> Option<V> {
+    pub fn consume_token(&mut self, token: &Token) -> Option<V> {
         self.remove_expired_entries();
         self.tokens.remove(token)
     }
 
-    pub(crate) fn peek_token(&mut self, token: &Token) -> Option<&V> {
+    pub fn peek_token(&mut self, token: &Token) -> Option<&V> {
         self.remove_expired_entries();
         self.tokens.get(token)
     }
