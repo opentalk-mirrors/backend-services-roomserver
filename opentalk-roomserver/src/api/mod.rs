@@ -207,7 +207,7 @@ pub(crate) struct Context {
     /// Global list of room tasks and their handles
     room_tasks: RoomTaskRegistry<WebSocketAdapter>,
     // A list of eligible participants and their join tokens
-    token_store: Arc<Mutex<TokenStore>>,
+    token_store: Arc<Mutex<TokenStore<SignalingClientContext>>>,
     module_registry: Arc<ModuleRegistry>,
 
     app_state: watch::Sender<ApplicationState>,
