@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::sync::Arc;
-
 use anyhow::Context as _;
 use async_trait::async_trait;
 use opentalk_roomserver_signaling::storage::{
@@ -132,10 +130,6 @@ impl AssetStorageProvider for ControllerAssetStorage {
 
     async fn remaining_quota(&self, _context: &StorageContext) -> Option<u64> {
         *self.quota.read().await
-    }
-
-    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync> {
-        self
     }
 }
 

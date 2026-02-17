@@ -22,6 +22,7 @@ opentalk-report-generation.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-legal-vote.workspace = true
+opentalk-types-api-internal.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 pretty_assertions.workspace = true

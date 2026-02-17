@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{fmt::Debug, sync::Arc};
+use std::{any::Any, fmt::Debug};
 
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -24,7 +24,7 @@ impl From<AssetLoadError> for Box<dyn std::error::Error + Send + Sync> {
 }
 
 #[async_trait]
-pub trait AssetStorageProvider: Send + Sync + Debug {
+pub trait AssetStorageProvider: Send + Sync + Debug + Any {
     /// Uploads an asset to the storage backend
     async fn upload_asset(
         &self,
@@ -34,6 +34,4 @@ pub trait AssetStorageProvider: Send + Sync + Debug {
     ) -> UploadResult;
 
     async fn remaining_quota(&self, context: &StorageContext) -> Option<u64>;
-
-    fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync>;
 }

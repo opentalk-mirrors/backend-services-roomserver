@@ -19,9 +19,7 @@ use opentalk_roomserver_common::{
         },
     },
 };
-use opentalk_roomserver_signaling::{
-    signaling_module::SignalingModule, storage::module_resources::provider::ModuleResourceProvider,
-};
+use opentalk_roomserver_signaling::signaling_module::SignalingModule;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
     core::CoreEvent,
@@ -217,7 +215,6 @@ pub struct TestRoom {
     room_id: RoomId,
     pub room_handle: RoomTaskHandle<MockSocket>,
     pub join_handle: JoinHandle<()>,
-    pub module_resources: Arc<dyn ModuleResourceProvider>,
     _settings: Arc<Settings>,
     _app_state_tx: watch::Sender<ApplicationState>,
 }
@@ -236,14 +233,10 @@ impl TestRoom {
         let settings = Arc::new(settings);
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
 
-        let module_resources: Arc<dyn ModuleResourceProvider> =
-            Arc::new(MemoryModuleResourceStorage::new());
-
         let (room_handle, future_room) = RoomTask::setup(
             room_id,
             room_parameters.into(),
             Arc::new(module_registry),
-            Arc::clone(&module_resources),
             Arc::clone(&settings),
             rx,
             Duration::from_secs(10),
@@ -253,7 +246,6 @@ impl TestRoom {
             room_id,
             room_handle,
             join_handle,
-            module_resources,
             _settings: settings,
             _app_state_tx: app_state_tx,
         }
@@ -357,25 +349,29 @@ impl TestRoom {
     }
 
     pub async fn stored_asset(&self, id: AssetId) -> Option<Vec<u8>> {
-        let storage = self.downcast_storage();
-        storage.asset(id).await
+        let assets = self.downcast_asset_storage();
+        assets.asset(id).await
     }
 
     pub async fn stored_assets(&self) -> Vec<Vec<u8>> {
-        let storage = self.downcast_storage();
-        storage.all_assets().await
+        let assets = self.downcast_asset_storage();
+        assets.all_assets().await
     }
 
     pub async fn file_count(&self) -> usize {
-        let storage = self.downcast_storage();
-        storage.asset_count().await
+        let assets = self.downcast_asset_storage();
+        assets.asset_count().await
     }
 
-    fn downcast_storage(&self) -> Arc<MemoryAssetStorage> {
-        let storage = self.room_handle.storage().into_any();
-        let storage: Arc<MemoryAssetStorage> =
-            Arc::downcast(storage).expect("The RoomTask must be configured with MemoryStorage.");
-        storage
+    fn downcast_asset_storage(&self) -> Arc<MemoryAssetStorage> {
+        let assets = self.room_handle.assets();
+        Arc::downcast(assets).expect("The RoomTask must be configured with MemoryStorage.")
+    }
+
+    pub fn downcast_module_resource_storage(&self) -> Arc<MemoryModuleResourceStorage> {
+        let module_resources = self.room_handle.module_resources();
+        Arc::downcast(module_resources)
+            .expect("The RoomTask must be configured with MemoryStorage.")
     }
 }
 

@@ -3,20 +3,24 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::Utc;
 use json_patch::{
     AddOperation, CopyOperation, MoveOperation, Patch, PatchOperation, RemoveOperation,
     ReplaceOperation, TestOperation, patch,
 };
 use opentalk_roomserver_signaling::storage::module_resources::{
-    Error, ModuleResource, ModuleResourceOperation,
-    provider::{InternalModuleResourceFilter, ModuleResourceProvider, NewModuleResource},
+    Error, provider::ModuleResourceProvider,
 };
-use opentalk_types_common::{module_resources::ModuleResourceId, tenants::TenantId};
+use opentalk_types_api_internal::module_resources::{
+    ModuleResource, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
+};
+use opentalk_types_common::{
+    module_resources::ModuleResourceId, tenants::TenantId, time::Timestamp,
+};
 use tokio::sync::RwLock;
 
-/// An in-memory implementation for the [`ModuleResourceInterface`]
-pub(crate) struct MemoryModuleResourceStorage {
+/// An in-memory implementation for the [`ModuleResourceProvider`]
+#[derive(Debug, Default)]
+pub struct MemoryModuleResourceStorage {
     module_resources: RwLock<Vec<ModuleResource>>,
 }
 
@@ -39,7 +43,7 @@ impl MemoryModuleResourceStorage {
 impl ModuleResourceProvider for MemoryModuleResourceStorage {
     async fn create(&self, resource: NewModuleResource) -> Result<ModuleResource, Error> {
         let id = ModuleResourceId::generate();
-        let now = Utc::now();
+        let now = Timestamp::now();
 
         let NewModuleResource {
             room_id,
@@ -68,10 +72,7 @@ impl ModuleResourceProvider for MemoryModuleResourceStorage {
         Ok(resource)
     }
 
-    async fn get(
-        &self,
-        filter: InternalModuleResourceFilter,
-    ) -> Result<Vec<ModuleResource>, Error> {
+    async fn get(&self, filter: ModuleResourceFilter) -> Result<Vec<ModuleResource>, Error> {
         let resources = self.module_resources.read().await;
 
         Ok(resources
@@ -83,7 +84,7 @@ impl ModuleResourceProvider for MemoryModuleResourceStorage {
 
     async fn patch(
         &self,
-        filter: InternalModuleResourceFilter,
+        filter: ModuleResourceFilter,
         operations: Vec<ModuleResourceOperation>,
     ) -> Result<Vec<ModuleResource>, Error> {
         let mut resources = self.module_resources.write().await;
@@ -121,10 +122,7 @@ impl ModuleResourceProvider for MemoryModuleResourceStorage {
             .collect())
     }
 
-    async fn delete(
-        &self,
-        filter: InternalModuleResourceFilter,
-    ) -> Result<Vec<ModuleResource>, Error> {
+    async fn delete(&self, filter: ModuleResourceFilter) -> Result<Vec<ModuleResource>, Error> {
         let mut resources = self.module_resources.write().await;
 
         let removed_resources = resources
@@ -167,21 +165,21 @@ fn to_patch_operation(operation: ModuleResourceOperation) -> Result<PatchOperati
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
-    use opentalk_roomserver_signaling::storage::module_resources::{
-        ModuleResource, ModuleResourceOperation,
-        provider::{InternalModuleResourceFilter, ModuleResourceProvider, NewModuleResource},
-    };
+    use opentalk_roomserver_signaling::storage::module_resources::provider::ModuleResourceProvider;
     use opentalk_types_common::{
         module_resources::ModuleResourceId,
         modules::{ModuleId, module_id},
         rooms::RoomId,
         tenants::TenantId,
+        time::Timestamp,
         users::UserId,
     };
     use serde_json::json;
 
-    use super::MemoryModuleResourceStorage;
+    use super::{
+        MemoryModuleResourceStorage, ModuleResource, ModuleResourceFilter, ModuleResourceOperation,
+        NewModuleResource,
+    };
 
     #[derive(Debug, Default)]
     struct ResourceBuilder {
@@ -229,7 +227,7 @@ mod tests {
         }
 
         fn build(self) -> ModuleResource {
-            let now = Utc::now();
+            let now = Timestamp::now();
 
             ModuleResource {
                 id: self.id.unwrap_or(ModuleResourceId::generate()),
@@ -273,7 +271,7 @@ mod tests {
             .unwrap();
 
         let response = storage
-            .get(InternalModuleResourceFilter::default().id(module_resource.id))
+            .get(ModuleResourceFilter::default().id(module_resource.id))
             .await
             .unwrap();
 
@@ -292,7 +290,7 @@ mod tests {
 
         let storage = test_storage(resources).await;
 
-        let id_filter = InternalModuleResourceFilter::default().id(resource_id);
+        let id_filter = ModuleResourceFilter::default().id(resource_id);
 
         let response = storage.get(id_filter).await.unwrap();
 
@@ -318,7 +316,7 @@ mod tests {
         let storage = test_storage(resources).await;
 
         // Get all resources for room 1
-        let room_filter = InternalModuleResourceFilter::default().room_id(room_id);
+        let room_filter = ModuleResourceFilter::default().room_id(room_id);
         let response = storage.get(room_filter).await.unwrap();
 
         assert_eq!(response.len(), 2);
@@ -346,7 +344,7 @@ mod tests {
         let storage = test_storage(resources).await;
 
         // Get all resources for the specific user
-        let room_filter = InternalModuleResourceFilter::default().created_by(user_id);
+        let room_filter = ModuleResourceFilter::default().created_by(user_id);
         let response = storage.get(room_filter).await.unwrap();
 
         assert_eq!(response.len(), 2);
@@ -381,7 +379,7 @@ mod tests {
         let storage = test_storage(resources).await;
 
         // Get resources for room 1 and namespace foo
-        let filter = InternalModuleResourceFilter::new(room_id, namespace_foo.clone());
+        let filter = ModuleResourceFilter::new(room_id, namespace_foo.clone());
         let response = storage.get(filter).await.unwrap();
 
         assert_eq!(response.len(), 2);
@@ -391,7 +389,7 @@ mod tests {
         }
 
         // Get resources for room 2 and namespace bar
-        let filter = InternalModuleResourceFilter::new(room_id2, namespace_bar.clone());
+        let filter = ModuleResourceFilter::new(room_id2, namespace_bar.clone());
         let response = storage.get(filter).await.unwrap();
 
         assert_eq!(response.len(), 1);
@@ -415,24 +413,18 @@ mod tests {
         let storage = test_storage(resources).await;
 
         // Ensure there are two resources in the storage
-        let response = storage
-            .get(InternalModuleResourceFilter::default())
-            .await
-            .unwrap();
+        let response = storage.get(ModuleResourceFilter::default()).await.unwrap();
         assert_eq!(response.len(), 2);
 
         // Delete a resource by id
-        let id_filter = InternalModuleResourceFilter::default().id(resource_id);
+        let id_filter = ModuleResourceFilter::default().id(resource_id);
         let response = storage.delete(id_filter).await.unwrap();
         assert_eq!(response.len(), 1);
         assert_eq!(response[0].id, resource_id);
         assert_eq!(response[0].tag, Some("test_resource".into()));
 
         // Ensure there is only one resource left in the storage
-        let response = storage
-            .get(InternalModuleResourceFilter::default())
-            .await
-            .unwrap();
+        let response = storage.get(ModuleResourceFilter::default()).await.unwrap();
         assert_eq!(response.len(), 1);
     }
 
@@ -447,14 +439,14 @@ mod tests {
 
         // Ensure the initial json value is correct
         let response = storage
-            .get(InternalModuleResourceFilter::default().id(resource_id))
+            .get(ModuleResourceFilter::default().id(resource_id))
             .await
             .unwrap();
         assert_eq!(response.len(), 1);
         assert_eq!(response[0].data, data);
 
         // Add a 'bar' field to the resource
-        let id_filter = InternalModuleResourceFilter::default().id(resource_id);
+        let id_filter = ModuleResourceFilter::default().id(resource_id);
         let operations = vec![ModuleResourceOperation::Add {
             path: "/bar".into(),
             value: json!(2),
@@ -482,14 +474,14 @@ mod tests {
 
         // Ensure the initial json value is correct
         let response = storage
-            .get(InternalModuleResourceFilter::default().id(resource_id))
+            .get(ModuleResourceFilter::default().id(resource_id))
             .await
             .unwrap();
         assert_eq!(response.len(), 1);
         assert_eq!(response[0].data, data);
 
         // Replace the entire document with a new one
-        let id_filter = InternalModuleResourceFilter::default().id(resource_id);
+        let id_filter = ModuleResourceFilter::default().id(resource_id);
         let operations = vec![ModuleResourceOperation::Add {
             path: "".into(),
             value: json!({"bar": 2, "baz": 3}),
@@ -520,14 +512,14 @@ mod tests {
 
         // Ensure the initial json value is correct
         let response = storage
-            .get(InternalModuleResourceFilter::default().id(resource_id))
+            .get(ModuleResourceFilter::default().id(resource_id))
             .await
             .unwrap();
         assert_eq!(response.len(), 1);
         assert_eq!(response[0].data, data);
 
         // Remove the 'bar' field to the resource
-        let id_filter = InternalModuleResourceFilter::default().id(resource_id);
+        let id_filter = ModuleResourceFilter::default().id(resource_id);
         let operations = vec![ModuleResourceOperation::Remove {
             path: "/bar".into(),
         }];
@@ -555,14 +547,14 @@ mod tests {
 
         // Ensure the initial json value is correct
         let response = storage
-            .get(InternalModuleResourceFilter::default().id(resource_id))
+            .get(ModuleResourceFilter::default().id(resource_id))
             .await
             .unwrap();
         assert_eq!(response.len(), 1);
         assert_eq!(response[0].data, data);
 
         // Replace the value of the 'foo' field with  "bar"
-        let id_filter = InternalModuleResourceFilter::default().id(resource_id);
+        let id_filter = ModuleResourceFilter::default().id(resource_id);
         let operations = vec![ModuleResourceOperation::Replace {
             path: "/foo".into(),
             value: json!("bar"),
@@ -592,14 +584,14 @@ mod tests {
 
         // Ensure the initial json value is correct
         let response = storage
-            .get(InternalModuleResourceFilter::default().id(resource_id))
+            .get(ModuleResourceFilter::default().id(resource_id))
             .await
             .unwrap();
         assert_eq!(response.len(), 1);
         assert_eq!(response[0].data, data);
 
         // Remove the 'foo' field and add the 'baz' field
-        let id_filter = InternalModuleResourceFilter::default().id(resource_id);
+        let id_filter = ModuleResourceFilter::default().id(resource_id);
         let operations = vec![
             ModuleResourceOperation::Remove {
                 path: "/foo".into(),
@@ -636,16 +628,13 @@ mod tests {
         let storage = test_storage(resources).await;
 
         // Ensure the initial json value is correct
-        let response = storage
-            .get(InternalModuleResourceFilter::default())
-            .await
-            .unwrap();
+        let response = storage.get(ModuleResourceFilter::default()).await.unwrap();
         assert_eq!(response.len(), 2);
         assert_eq!(response[0].data, data);
         assert_eq!(response[1].data, data);
 
         // Remove the 'foo' field and add the 'baz' field
-        let filter = InternalModuleResourceFilter::default();
+        let filter = ModuleResourceFilter::default();
         let operations = vec![
             ModuleResourceOperation::Remove {
                 path: "/foo".into(),

@@ -140,7 +140,7 @@ impl MeetingReportModule {
             return Err(MeetingReportError::InsufficientPermissions.into());
         }
 
-        let storage = ctx.storage();
+        let storage = ctx.assets();
         let report_timezone = ctx.room_task_info.room.created_by.timezone;
         let language = localization::negotiate_languages(ctx, AVAILABLE_LANGUAGES)
             .ok_or(MeetingReportError::Generate)?;

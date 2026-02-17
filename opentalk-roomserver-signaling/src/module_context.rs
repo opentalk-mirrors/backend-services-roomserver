@@ -77,7 +77,7 @@ where
     pub banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
     pub timestamp: Timestamp,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
-    storage: Arc<dyn AssetStorageProvider>,
+    assets: Arc<dyn AssetStorageProvider>,
     module_resources: Arc<dyn ModuleResourceProvider>,
 
     m: PhantomData<fn() -> M>,
@@ -99,7 +99,7 @@ where
         banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
         timestamp: Timestamp,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
-        storage: Arc<dyn AssetStorageProvider>,
+        assets: Arc<dyn AssetStorageProvider>,
         module_resources: Arc<dyn ModuleResourceProvider>,
     ) -> ModuleContext<'ctx, M> {
         Self {
@@ -113,7 +113,7 @@ where
             banned_participants,
             timestamp,
             loopback_futures,
-            storage,
+            assets,
             module_resources,
             m: PhantomData,
         }
@@ -131,7 +131,7 @@ where
             banned_participants: self.banned_participants,
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
-            storage: Arc::clone(&self.storage),
+            assets: Arc::clone(&self.assets),
             module_resources: Arc::clone(&self.module_resources),
             m: PhantomData,
         }
@@ -555,8 +555,8 @@ where
         user_id == self.room_task_info.room.created_by.id
     }
 
-    pub fn storage(&self) -> ModuleAssetStorage {
-        ModuleAssetStorage::new(Arc::clone(&self.storage), self.storage_context())
+    pub fn assets(&self) -> ModuleAssetStorage {
+        ModuleAssetStorage::new(Arc::clone(&self.assets), self.storage_context())
     }
 
     pub fn module_resources(&self) -> ModuleResourceStorage {
@@ -581,10 +581,10 @@ where
 {
     pub fn upload_file(&self, asset: AssetStream, metadata: AssetMetaData) {
         let storage_context = self.storage_context();
-        let storage = Arc::clone(&self.storage);
+        let assets = Arc::clone(&self.assets);
 
         self.spawn(async move {
-            storage
+            assets
                 .upload_asset(asset, metadata, &storage_context)
                 .await
                 .into()
