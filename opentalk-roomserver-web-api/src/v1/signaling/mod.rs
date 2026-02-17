@@ -12,6 +12,7 @@ use axum::{
         Path, State,
         ws::{WebSocket, WebSocketUpgrade},
     },
+    http::Method,
     response::{IntoResponse, Response},
     routing::any,
 };
@@ -22,14 +23,17 @@ use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 use tracing::{Instrument as _, Span};
 
 use super::Router;
+use crate::v1::cors;
 
-mod cors;
 pub mod websocket;
 
 pub(crate) fn routes<B: SignalingBackend + 'static>(state: B) -> Router<B> {
     Router::new()
         .route("/signaling/{token}", any(open_signaling_socket::<B>))
-        .layer(cors::cors_layer(state))
+        .layer(cors::cors_layer(
+            state,
+            [Method::GET, Method::OPTIONS, Method::HEAD],
+        ))
 }
 
 /// Opens a new signaling websocket connection.

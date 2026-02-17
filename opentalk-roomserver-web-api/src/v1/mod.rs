@@ -7,6 +7,7 @@ use crate::v1::{
     livekit_proxy::LiveKitProxyBackend, signaling::SignalingBackend, user::UserBackend,
 };
 
+pub mod cors;
 pub mod livekit_proxy;
 pub mod rooms;
 pub mod signaling;
