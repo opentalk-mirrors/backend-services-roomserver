@@ -86,7 +86,6 @@ pub mod websocket;
                 opentalk_types_common::shared_folders::SharedFolderAccess,
                 opentalk_types_common::streaming::StreamingLink,
                 opentalk_types_common::tariffs::TariffId,
-                opentalk_types_common::tariffs::TariffModuleResource,
                 opentalk_types_common::users::DisplayName,
                 opentalk_types_common::users::UserId,
                 opentalk_types_common::users::UserTitle,

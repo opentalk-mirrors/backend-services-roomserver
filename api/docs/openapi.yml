@@ -661,18 +661,6 @@ components:
       type: string
       format: uuid
       description: The id of a tariff
-    TariffModuleResource:
-      type: object
-      description: Tariff information related to a specific module
-      required:
-        - features
-      properties:
-        features:
-          type: array
-          items:
-            $ref: "#/components/schemas/FeatureId"
-          description: Enabled features for the tariff
-          uniqueItems: true
     TimeZone:
       type: string
       description: A time zone
