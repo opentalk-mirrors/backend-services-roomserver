@@ -3,13 +3,14 @@
 
 use std::sync::Arc;
 
-use anyhow::Context;
+use anyhow::anyhow;
 use futures::{StreamExt, TryStreamExt as _};
 use opentalk_roomserver_signaling::storage::assets::{
     AssetMetaData, AssetUploaded, ModuleAssetStorage, provider::AssetLoadError,
 };
 use opentalk_roomserver_types::{
-    room_kind::RoomKind, signaling::module_error::SignalingModuleError,
+    room_kind::RoomKind,
+    signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_types_whiteboard::{WhiteboardError, state::SpaceInfo};
 use opentalk_types_common::{
@@ -32,7 +33,10 @@ pub(super) async fn create_space(
     room: RoomKind,
 ) -> Result<WhiteboardLoopback, SignalingModuleError<WhiteboardError>> {
     let name = build_space_name(room_id, room);
-    let response = client.create_space(&name, None).await?;
+    let response = client.create_space(&name, None).await.map_err(|err| {
+        tracing::error!("Failed to create space: {err}");
+        WhiteboardError::InitializationFailed
+    })?;
 
     let url = client
         .base_url
@@ -41,7 +45,7 @@ pub(super) async fn create_space(
             hash = response.edit_hash,
             slug = response.edit_slug
         ))
-        .context("Parsing spacedeck URL failed")?;
+        .map_err(|err| FatalError(anyhow!("Failed to build spacedeck URL: {err}")))?;
 
     Ok(WhiteboardLoopback::SpaceCreated {
         info: SpaceInfo {

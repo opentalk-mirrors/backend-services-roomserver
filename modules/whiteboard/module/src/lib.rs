@@ -135,8 +135,8 @@ impl SignalingModule for WhiteboardModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match event? {
-            WhiteboardLoopback::SpaceCreated { info } => {
+        match event {
+            Ok(WhiteboardLoopback::SpaceCreated { info }) => {
                 tracing::debug!(
                     "Spacedeck space for room {:?} created: {:?}",
                     ctx.room,
@@ -154,13 +154,18 @@ impl SignalingModule for WhiteboardModule {
                     WhiteboardEvent::Initialized { url },
                 )?;
             }
-            WhiteboardLoopback::PdfCreated { asset } => ctx.send_ws_message(
+            Ok(WhiteboardLoopback::PdfCreated { asset }) => ctx.send_ws_message(
                 ctx.participants.in_room(ctx.room).connected().ids(),
                 WhiteboardEvent::PdfCreated {
                     filename: asset.filename,
                     asset_id: asset.id,
                 },
             )?,
+            Err(SignalingModuleError::Module(WhiteboardError::InitializationFailed)) => {
+                self.state.remove(&ctx.room);
+                return Err(WhiteboardError::InitializationFailed.into());
+            }
+            Err(err) => return Err(err),
         };
 
         Ok(())
