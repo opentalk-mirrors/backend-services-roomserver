@@ -175,8 +175,8 @@ impl SignalingModule for MeetingNotesModule {
         ctx: &mut ModuleContext<'_, Self>,
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match event? {
-            MeetingNotesLoopback::Initialized { group_id, results } => {
+        match event {
+            Ok(MeetingNotesLoopback::Initialized { group_id, results }) => {
                 let Some(init_state) = self.etherpad_rooms.get_mut(&ctx.room) else {
                     // This can be the case when the breakout room has been closed while
                     // initialization was in progress In this case the sessions
@@ -191,10 +191,10 @@ impl SignalingModule for MeetingNotesModule {
                 };
                 self.handle_write_access_change(ctx, results)?;
             }
-            MeetingNotesLoopback::WritersUpdated { results } => {
+            Ok(MeetingNotesLoopback::WritersUpdated { results }) => {
                 self.handle_write_access_change(ctx, results)?;
             }
-            MeetingNotesLoopback::PdfGenerated { asset } => {
+            Ok(MeetingNotesLoopback::PdfGenerated { asset }) => {
                 tracing::debug!("Generated meeting notes: {asset:?}");
                 ctx.send_ws_message(
                     ctx.participants.connected().ids(),
@@ -204,6 +204,11 @@ impl SignalingModule for MeetingNotesModule {
                     },
                 )?;
             }
+            Err(SignalingModuleError::Module(MeetingNotesError::FailedInitialization)) => {
+                self.etherpad_rooms.remove(&ctx.room);
+                return Err(MeetingNotesError::FailedInitialization.into());
+            }
+            Err(e) => return Err(e),
         }
 
         Ok(())

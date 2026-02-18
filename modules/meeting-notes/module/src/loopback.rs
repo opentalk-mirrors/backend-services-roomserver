@@ -50,14 +50,17 @@ pub(super) async fn initialize_etherpad(
     mapped_id: String,
     participants: Vec<CreateSession>,
 ) -> Result<MeetingNotesLoopback, SignalingModuleError<MeetingNotesError>> {
-    let group_id = client
-        .create_group_for(mapped_id)
-        .await
-        .map_err(|e| anyhow!("Failed to create group: {e}"))?;
+    let group_id = client.create_group_for(mapped_id).await.map_err(|e| {
+        tracing::error!("Failed to create group: {e}");
+        MeetingNotesError::FailedInitialization
+    })?;
     client
         .create_group_pad(&group_id, PAD_NAME, None)
         .await
-        .map_err(|e| anyhow!("Failed to create pad: {e}"))?;
+        .map_err(|e| {
+            tracing::error!("Failed to create pad: {e}");
+            MeetingNotesError::FailedInitialization
+        })?;
 
     let sessions_expire = expires()?;
     let span = Span::current();
