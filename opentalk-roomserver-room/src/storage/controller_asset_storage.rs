@@ -68,10 +68,7 @@ impl AssetStorageProvider for ControllerAssetStorage {
             .client
             .post(
                 self.base_url
-                    .join(&format!(
-                        "/v1/services/roomserver/room/{}/asset",
-                        context.room_id
-                    ))
+                    .join(&format!("/internal/room/{}/asset", context.room_id))
                     .context("Invalid URL")?,
             )
             .bearer_auth(token)
@@ -189,10 +186,7 @@ mod tests {
 
         let mut server = mockito::Server::new_async().await;
         let mock = server
-            .mock(
-                "POST",
-                format!("/v1/services/roomserver/room/{room_id}/asset").as_str(),
-            )
+            .mock("POST", format!("/internal/room/{room_id}/asset").as_str())
             .match_header("authorization", Matcher::Regex("^Bearer .*".into()))
             .match_query(mockito::Matcher::AllOf(vec![
                 mockito::Matcher::UrlEncoded("namespace".to_string(), module_id.to_string()),
@@ -254,10 +248,7 @@ mod tests {
 
         let mut server = mockito::Server::new_async().await;
         let mock = server
-            .mock(
-                "POST",
-                format!("/v1/services/roomserver/room/{room_id}/asset").as_str(),
-            )
+            .mock("POST", format!("/internal/room/{room_id}/asset").as_str())
             .match_header("authorization", Matcher::Regex("^Bearer .*".into()))
             .match_query(mockito::Matcher::AllOf(vec![
                 mockito::Matcher::UrlEncoded("namespace".to_string(), module_id.to_string()),
@@ -310,10 +301,7 @@ mod tests {
 
         let mut server = mockito::Server::new_async().await;
         let _mock = server
-            .mock(
-                "POST",
-                format!("/v1/services/roomserver/room/{room_id}/asset").as_str(),
-            )
+            .mock("POST", format!("/internal/room/{room_id}/asset").as_str())
             .match_header("authorization", Matcher::Regex("^Bearer .*".into()))
             .match_query(mockito::Matcher::AllOf(vec![
                 mockito::Matcher::UrlEncoded("namespace".to_string(), module_id.to_string()),
