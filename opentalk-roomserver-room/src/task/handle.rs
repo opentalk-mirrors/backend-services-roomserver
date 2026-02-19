@@ -3,7 +3,9 @@
 
 use std::sync::Arc;
 
-use opentalk_roomserver_signaling::storage::assets::provider::AssetStorageProvider;
+use opentalk_roomserver_signaling::storage::{
+    assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
+};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
 };
@@ -71,7 +73,8 @@ impl<Socket: SignalingSocket> RoomTaskHandleError<Socket> {
 /// Is used for communication between the room task and the web server API
 #[derive(Debug)]
 pub struct RoomTaskHandle<Socket: SignalingSocket> {
-    pub(super) storage: Arc<dyn AssetStorageProvider>,
+    pub(super) assets: Arc<dyn AssetStorageProvider>,
+    pub(super) module_resources: Arc<dyn ModuleResourceProvider>,
     pub(super) sender: mpsc::Sender<TaskMessage<Socket>>,
 }
 
@@ -80,8 +83,9 @@ pub struct RoomTaskHandle<Socket: SignalingSocket> {
 impl<Socket: SignalingSocket> Clone for RoomTaskHandle<Socket> {
     fn clone(&self) -> Self {
         Self {
+            assets: Arc::clone(&self.assets),
+            module_resources: Arc::clone(&self.module_resources),
             sender: self.sender.clone(),
-            storage: Arc::clone(&self.storage),
         }
     }
 }
@@ -191,8 +195,12 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Self::receive_response(rx).await.ok()
     }
 
-    pub fn storage(&self) -> Arc<dyn AssetStorageProvider> {
-        Arc::clone(&self.storage)
+    pub fn assets(&self) -> Arc<dyn AssetStorageProvider> {
+        Arc::clone(&self.assets)
+    }
+
+    pub fn module_resources(&self) -> Arc<dyn ModuleResourceProvider> {
+        Arc::clone(&self.module_resources)
     }
 }
 

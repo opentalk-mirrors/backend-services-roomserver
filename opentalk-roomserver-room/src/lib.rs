@@ -64,7 +64,6 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{participant::create_participant_connection, room::TestRoom, socket::MockSocket},
-        storage::memory_module_storage::MemoryModuleResourceStorage,
         task::RoomTask,
     };
 
@@ -76,17 +75,9 @@ mod tests {
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
-        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
 
-        let (task_handle, future_room) = RoomTask::setup(
-            id,
-            params,
-            module_registry,
-            module_resources,
-            settings,
-            state,
-            TIMEOUT,
-        );
+        let (task_handle, future_room) =
+            RoomTask::setup(id, params, module_registry, settings, state, TIMEOUT);
         tokio::spawn(future_room);
         (task_handle, sender)
     }

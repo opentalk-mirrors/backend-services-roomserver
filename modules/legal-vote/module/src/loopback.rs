@@ -6,19 +6,20 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, anyhow};
+use anyhow::Context;
 use icu_locid::LanguageIdentifier;
 use opentalk_roomserver_signaling::{
     module_context::ChannelDroppedError,
     storage::{
         assets::{AssetMetaData, AssetUploaded, ModuleAssetStorage},
-        module_resources::{ModuleResourceOperation, ModuleResourceStorage},
+        module_resources::ModuleResourceStorage,
     },
 };
 use opentalk_roomserver_types::signaling::module_error::{FatalError, SignalingModuleError};
 use opentalk_roomserver_types_legal_vote::{
     event::LegalVoteError, user_parameters::UserParameters, vote::LegalVoteId,
 };
+use opentalk_types_api_internal::module_resources::ModuleResourceOperation;
 use opentalk_types_common::{
     assets::{AssetFileKind, FileExtension, asset_file_kind},
     time::{TimeZone, Timestamp},
@@ -174,7 +175,8 @@ async fn generate_pdf_inner(
         report_language,
         typst_package_path,
     )
-    .map_err(|err| anyhow!("Failed to generate legal vote report: {err}"))?;
+    .context("Failed to generate legal vote report")?;
+
     let metadata = AssetMetaData {
         kind: ASSET_FILE_KIND,
         timestamp,

@@ -576,7 +576,7 @@ impl TrainingParticipationReportModule {
         );
         let typst_package_path = self.typst_package_path.clone();
         ctx.spawn(loopback::create_report(
-            ctx.storage(),
+            ctx.assets(),
             template_parameter,
             typst_package_path,
         ));

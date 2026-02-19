@@ -764,7 +764,7 @@ impl LegalVoteModule {
             .ok_or(LegalVoteError::GenerateReport)?;
         let typst_package_path = self.typst_package_path.clone();
         ctx.spawn(loopback::generate_pdf(
-            ctx.storage(),
+            ctx.assets(),
             legal_vote_id,
             msg_target,
             time_zone,

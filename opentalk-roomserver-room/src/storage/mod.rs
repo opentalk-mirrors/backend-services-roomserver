@@ -2,5 +2,6 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 pub mod controller_asset_storage;
+pub mod controller_module_storage;
 pub mod memory_asset_storage;
 pub mod memory_module_storage;

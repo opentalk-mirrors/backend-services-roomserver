@@ -7,17 +7,13 @@ use opentalk_types_common::users::UserId;
 use thiserror::Error;
 
 pub mod provider;
-pub mod types;
 
-pub use opentalk_types_common::module_resources::ModuleResourceId;
-pub use types::{ModuleResource, ModuleResourceFilter, ModuleResourceOperation};
-
-use crate::storage::{
-    StorageContext,
-    module_resources::provider::{
-        InternalModuleResourceFilter, ModuleResourceProvider, NewModuleResource,
-    },
+use opentalk_types_api_internal::module_resources::{
+    ModuleResource, ModuleResourceFilter, ModuleResourceOperation, NewModuleResource,
 };
+pub use opentalk_types_common::module_resources::ModuleResourceId;
+
+use crate::storage::{StorageContext, module_resources::provider::ModuleResourceProvider};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -70,8 +66,7 @@ impl ModuleResourceStorage {
 
     /// Get a module resource by its id
     pub async fn get(&self, id: ModuleResourceId) -> Result<Option<ModuleResource>, Error> {
-        let filter =
-            InternalModuleResourceFilter::new(self.ctx.room_id, self.ctx.namespace.clone()).id(id);
+        let filter = ModuleResourceFilter::new(self.ctx.room_id, self.ctx.namespace.clone()).id(id);
 
         let mut resources = self.storage_api.get(filter).await?;
 
@@ -83,7 +78,7 @@ impl ModuleResourceStorage {
         &self,
         filter: ModuleResourceFilter,
     ) -> Result<Vec<ModuleResource>, Error> {
-        let filter = InternalModuleResourceFilter::from(filter)
+        let filter = filter
             .room_id(self.ctx.room_id)
             .namespace(self.ctx.namespace.clone());
 
@@ -98,8 +93,7 @@ impl ModuleResourceStorage {
         id: ModuleResourceId,
         operations: Vec<ModuleResourceOperation>,
     ) -> Result<ModuleResource, Error> {
-        let filter =
-            InternalModuleResourceFilter::new(self.ctx.room_id, self.ctx.namespace.clone()).id(id);
+        let filter = ModuleResourceFilter::new(self.ctx.room_id, self.ctx.namespace.clone()).id(id);
 
         let mut resources = self.storage_api.patch(filter, operations).await?;
 
@@ -112,8 +106,7 @@ impl ModuleResourceStorage {
 
     /// Delete a module resource
     pub async fn delete(&self, id: ModuleResourceId) -> Result<ModuleResource, Error> {
-        let filter =
-            InternalModuleResourceFilter::new(self.ctx.room_id, self.ctx.namespace.clone()).id(id);
+        let filter = ModuleResourceFilter::new(self.ctx.room_id, self.ctx.namespace.clone()).id(id);
 
         let mut resources = self.storage_api.delete(filter).await?;
 

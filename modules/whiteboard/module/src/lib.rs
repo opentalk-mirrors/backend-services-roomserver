@@ -208,7 +208,7 @@ impl SignalingModule for WhiteboardModule {
             .collect();
         Self::delete_spaces(
             Arc::clone(&self.client),
-            ctx.storage(),
+            ctx.assets(),
             breakout_rooms,
             ctx.timestamp,
         );
@@ -227,7 +227,7 @@ impl SignalingModule for WhiteboardModule {
             .collect();
         Self::delete_spaces(
             Arc::clone(&self.client),
-            ctx.storage(),
+            ctx.assets(),
             spaces,
             Timestamp::now(),
         );
@@ -290,7 +290,7 @@ impl WhiteboardModule {
         };
         ctx.spawn(loopback::generate_pdf(
             Arc::clone(&self.client),
-            ctx.storage(),
+            ctx.assets(),
             id,
             ctx.timestamp,
         ));

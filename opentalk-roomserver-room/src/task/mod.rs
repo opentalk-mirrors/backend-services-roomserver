@@ -108,7 +108,10 @@ use crate::{
     metrics::Metrics,
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
     storage::{
-        controller_asset_storage::ControllerAssetStorage, memory_asset_storage::MemoryAssetStorage,
+        controller_asset_storage::ControllerAssetStorage,
+        controller_module_storage::ControllerModuleStorage,
+        memory_asset_storage::MemoryAssetStorage,
+        memory_module_storage::MemoryModuleResourceStorage,
     },
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
@@ -189,7 +192,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         room_id: RoomId,
         mut room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
-        module_resources: Arc<dyn ModuleResourceProvider>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
         timeout: Duration,
@@ -204,9 +206,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &settings,
             room_parameters.tariff.quota(&QuotaType::MaxStorage),
         );
+        let module_resources = create_module_resource_storage_provider(&settings);
+
         let room_handle = RoomTaskHandle {
+            assets: Arc::clone(&storage),
+            module_resources: Arc::clone(&module_resources),
             sender: tx,
-            storage: Arc::clone(&storage),
         };
 
         let future_room = Box::pin(async move {
@@ -1120,5 +1125,15 @@ fn create_storage_provider(
             quota,
         )),
         None => Arc::new(MemoryAssetStorage::new(quota)),
+    }
+}
+
+fn create_module_resource_storage_provider(settings: &Settings) -> Arc<dyn ModuleResourceProvider> {
+    match &settings.controller {
+        Some(controller) => Arc::new(ControllerModuleStorage::new(
+            controller.url.clone(),
+            controller.api_key.clone(),
+        )),
+        None => Arc::new(MemoryModuleResourceStorage::new()),
     }
 }

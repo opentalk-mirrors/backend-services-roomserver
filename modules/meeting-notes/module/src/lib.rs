@@ -532,7 +532,7 @@ impl MeetingNotesModule {
 
         ctx.spawn(loopback::generate_pdf(
             Arc::clone(&self.etherpad),
-            ctx.storage(),
+            ctx.assets(),
             pad_id,
             session_id,
             ctx.timestamp,

@@ -10,19 +10,15 @@ use std::{
 
 use opentalk_orchestrator_client::{RoomServerEvent, client::OrchestratorHandle};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
-use opentalk_roomserver_signaling::storage::module_resources::provider::ModuleResourceProvider;
 use opentalk_roomserver_types::room_parameters::RoomParameters;
 use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
 use opentalk_types_common::rooms::RoomId;
 use tokio::sync::{Notify, RwLock, watch};
 
 use super::signaling::module_initializer::ModuleRegistry;
-use crate::{
-    storage::memory_module_storage::MemoryModuleResourceStorage,
-    task::{
-        RoomTask,
-        handle::{RoomTaskHandle, RoomTaskHandleError},
-    },
+use crate::task::{
+    RoomTask,
+    handle::{RoomTaskHandle, RoomTaskHandleError},
 };
 
 /// The room task registry
@@ -83,13 +79,10 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             return Ok((RoomAction::Updated, task_handle.clone()));
         }
 
-        let module_resources = create_module_storage_provider();
-
         let (task_handle, future_room) = RoomTask::setup(
             room_id,
             room_parameters,
             module_registry,
-            module_resources,
             settings,
             app_state,
             self.idle_timeout,
@@ -134,13 +127,10 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             return;
         }
 
-        let module_resources = create_module_storage_provider();
-
         let (task_handle, join_handle) = RoomTask::setup(
             room_id,
             room_parameters,
             module_registry,
-            module_resources,
             settings,
             app_state,
             self.idle_timeout,
@@ -219,11 +209,6 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             self.room_removed.notified().await;
         }
     }
-}
-
-// TODO: this function will be replaced once a real module storage provider has been implemented
-fn create_module_storage_provider() -> Arc<dyn ModuleResourceProvider> {
-    Arc::new(MemoryModuleResourceStorage::new())
 }
 
 #[cfg(test)]

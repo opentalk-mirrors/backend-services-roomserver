@@ -9,7 +9,7 @@ use opentalk_roomserver_room::mocking::{
     participant::MockParticipantJoined,
     room::{TestRoom, flush_connected_events},
 };
-use opentalk_roomserver_signaling::storage::module_resources::provider::InternalModuleResourceFilter;
+use opentalk_roomserver_signaling::storage::module_resources::provider::ModuleResourceProvider;
 use opentalk_roomserver_types::{
     breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
     core::CoreEvent,
@@ -26,6 +26,7 @@ use opentalk_roomserver_types_legal_vote::{
     user_parameters::{AllowedParticipants, Name, UserParameters},
     vote::{LegalVoteId, VoteOption},
 };
+use opentalk_types_api_internal::module_resources::ModuleResourceFilter;
 use opentalk_types_common::assets::AssetId;
 use opentalk_types_signaling::ParticipantId;
 
@@ -442,9 +443,13 @@ async fn pseudonymous() {
     );
 
     // The protocol is stored as a module resource
-    let filter = InternalModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID)
-        .id(*legal_vote_id.inner());
-    let resources = room.module_resources.get(filter).await.unwrap();
+    let filter =
+        ModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID).id(*legal_vote_id.inner());
+    let resources = room
+        .downcast_module_resource_storage()
+        .get(filter)
+        .await
+        .unwrap();
 
     assert_eq!(resources.len(), 1);
     assert_json_snapshot!(resources[0].data, {
@@ -695,9 +700,13 @@ async fn public() {
     );
 
     // The protocol is stored as a module resource
-    let filter = InternalModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID)
-        .id(*legal_vote_id.inner());
-    let resources = room.module_resources.get(filter).await.unwrap();
+    let filter =
+        ModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID).id(*legal_vote_id.inner());
+    let resources = room
+        .downcast_module_resource_storage()
+        .get(filter)
+        .await
+        .unwrap();
     assert_eq!(resources.len(), 1);
     assert_json_snapshot!(resources[0].data, {
         ".entries[].timestamp" => "[timestamp]",
@@ -1026,9 +1035,13 @@ async fn stop() {
     );
 
     // The protocol is stored as a module resource
-    let filter = InternalModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID)
-        .id(*legal_vote_id.inner());
-    let resources = room.module_resources.get(filter).await.unwrap();
+    let filter =
+        ModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID).id(*legal_vote_id.inner());
+    let resources = room
+        .downcast_module_resource_storage()
+        .get(filter)
+        .await
+        .unwrap();
     assert_eq!(resources.len(), 1);
     assert_json_snapshot!(resources[0].data, {
         ".entries[].timestamp" => "[timestamp]",
@@ -1250,9 +1263,14 @@ async fn report_issue() {
     );
 
     // The protocol is stored as a module resource
-    let filter = InternalModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID)
-        .id(*legal_vote_id.inner());
-    let resources = room.module_resources.get(filter).await.unwrap();
+    let filter =
+        ModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID).id(*legal_vote_id.inner());
+    let resources = room
+        .downcast_module_resource_storage()
+        .get(filter)
+        .await
+        .unwrap();
+
     assert_eq!(resources.len(), 1);
     assert_json_snapshot!(resources[0].data, {
         ".entries[].timestamp" => "[timestamp]",
@@ -1545,9 +1563,13 @@ async fn reconnect_during_vote() {
     );
 
     // The module resource contains Bobs disconnect and reconnect events
-    let filter = InternalModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID)
-        .id(*legal_vote_id.inner());
-    let resources = room.module_resources.get(filter).await.unwrap();
+    let filter =
+        ModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID).id(*legal_vote_id.inner());
+    let resources = room
+        .downcast_module_resource_storage()
+        .get(filter)
+        .await
+        .unwrap();
     assert_eq!(resources.len(), 1);
     assert_json_snapshot!(resources[0].data, {
         ".entries[].timestamp" => "[timestamp]",
