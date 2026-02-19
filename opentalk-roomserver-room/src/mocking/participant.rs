@@ -441,6 +441,14 @@ impl<S> MockParticipant<S> {
         }
     }
 
+    pub fn recorder() -> MockRecorderBuilder {
+        MockRecorderBuilder {
+            profile: (),
+            role: Role::User,
+            secret: DeviceSecret::from_str("Recorder Device Secret").expect("Valid device secret"),
+        }
+    }
+
     async fn static_send_ping(
         sender: &mut mpsc::Sender<Result<SignalingSocketItem, websocket::Error>>,
     ) -> Result<(), SendError> {
@@ -834,6 +842,31 @@ impl MockParticipantBuilder<DisplayName> {
                 display_name: self.profile,
             },
             role: self.role,
+        })
+        .await
+    }
+}
+
+pub type MockRecorderBuilder = MockParticipantBuilder<()>;
+
+impl MockRecorderBuilder {
+    pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
+        room.join_participant(ClientParameters {
+            device_secret: self.secret,
+            kind: ClientKind::Recorder,
+            role: Role::User,
+        })
+        .await
+    }
+
+    pub async fn enter_waiting_room(
+        self,
+        room: &mut TestRoom,
+    ) -> Result<MockParticipantWaiting, room::Error> {
+        room.enter_waiting_room(ClientParameters {
+            device_secret: self.secret,
+            kind: ClientKind::Recorder,
+            role: Role::User,
         })
         .await
     }

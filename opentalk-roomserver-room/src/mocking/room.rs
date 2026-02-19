@@ -316,6 +316,10 @@ impl TestRoom {
         MockParticipantJoining::gustav().join(self).await.unwrap()
     }
 
+    pub async fn join_recorder(&mut self) -> MockParticipantJoined {
+        MockParticipantJoined::recorder().join(self).await.unwrap()
+    }
+
     pub async fn waiting_room_bob(&mut self, device_number: usize) -> MockParticipantWaiting {
         MockParticipantJoining::bob(device_number)
             .enter_waiting_room(self)
@@ -339,6 +343,13 @@ impl TestRoom {
 
     pub async fn waiting_room_gustav_guest(&mut self) -> MockParticipantWaiting {
         MockParticipantJoining::gustav()
+            .enter_waiting_room(self)
+            .await
+            .unwrap()
+    }
+
+    pub async fn waiting_room_recorder(&mut self) -> MockParticipantWaiting {
+        MockParticipantJoined::recorder()
             .enter_waiting_room(self)
             .await
             .unwrap()
