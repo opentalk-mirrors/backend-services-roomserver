@@ -872,6 +872,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let join_waiting_room = self.info.room.waiting_room
             && !role.is_moderator()
+            && !client_parameters.kind.is_service()
             && self
                 .participants
                 .all_unfiltered
