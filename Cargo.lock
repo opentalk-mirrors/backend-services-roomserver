@@ -5332,7 +5332,7 @@ dependencies = [
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
- "opentalk-types-api-v1",
+ "opentalk-types-api-v1 0.53.0",
  "opentalk-types-common",
  "opentalk-version",
  "opentelemetry",
@@ -5815,7 +5815,7 @@ dependencies = [
  "opentalk-roomserver-web-api",
  "opentalk-service-auth",
  "opentalk-types-api-internal",
- "opentalk-types-api-v1",
+ "opentalk-types-api-v1 0.53.0",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
@@ -6111,7 +6111,7 @@ dependencies = [
  "futures",
  "opentalk-roomserver-types",
  "opentalk-service-auth",
- "opentalk-types-api-v1",
+ "opentalk-types-api-v1 0.53.0",
  "opentalk-types-common",
  "thiserror 2.0.18",
  "tokio-util",
@@ -6142,7 +6142,7 @@ version = "0.61.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17cb168c6992b31a795e6bc6e53d668d83a550cb55e5db61eb8553066c09a74c"
 dependencies = [
- "opentalk-types-api-v1",
+ "opentalk-types-api-v1 0.52.4",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-automod",
@@ -6200,6 +6200,22 @@ name = "opentalk-types-api-v1"
 version = "0.52.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0619331a7768b99594de3828ee3871c1dc41e37644e43aae0be994ca71c597f"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "derive_more",
+ "opentalk-types-api-common",
+ "opentalk-types-common",
+ "serde",
+ "serde_with",
+ "url",
+]
+
+[[package]]
+name = "opentalk-types-api-v1"
+version = "0.53.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0e5e7e4fe1354a740dcfbbdd99095ba5528f4ff2fbd9f52fc04596947df047a"
 dependencies = [
  "chrono",
  "chrono-tz",
