@@ -46,7 +46,7 @@ use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
 
 use super::RoomTask;
 use crate::{
-    signaling::{DynBroadcastEvent, dyn_module_context::DynModuleContext},
+    signaling::{CORE_MODULES, DynBroadcastEvent, dyn_module_context::DynModuleContext},
     task::participant_id_from_uuid,
 };
 
@@ -575,7 +575,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             meeting_details,
             is_room_owner,
             module_data,
-            enabled_modules: self.modules.keys().cloned().collect(),
+            enabled_modules: self.modules.keys().cloned().chain(CORE_MODULES).collect(),
         })
     }
 

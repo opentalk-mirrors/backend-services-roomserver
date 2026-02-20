@@ -4,10 +4,10 @@
 use std::{collections::HashMap, marker::PhantomData};
 
 use opentalk_roomserver_signaling::signaling_module::{SignalingModule, SignalingModuleInitData};
-use opentalk_roomserver_types::{breakout::BREAKOUT_MODULE_ID, core::CORE_MODULE_ID};
 use opentalk_types_common::modules::ModuleId;
 
 use super::{ModuleDispatcher, ModuleHandle};
+use crate::signaling::CORE_MODULES;
 
 /// A set of initialized modules that can used through their [`ModuleHandle`]
 pub type Modules = HashMap<ModuleId, Box<dyn ModuleHandle>>;
@@ -17,8 +17,6 @@ pub struct ModuleRegistry {
 }
 
 impl ModuleRegistry {
-    const CORE_MODULES: [ModuleId; 2] = [CORE_MODULE_ID, BREAKOUT_MODULE_ID];
-
     pub fn new() -> Self {
         Self {
             modules: HashMap::new(),
@@ -50,7 +48,7 @@ impl ModuleRegistry {
         let mut initializers = Vec::new();
 
         for module_id in init_data.room_parameters.module_settings.ids() {
-            if Self::CORE_MODULES.contains(module_id) {
+            if CORE_MODULES.contains(module_id) {
                 // These modules are part of the room task and don't need to be initialized
                 continue;
             }
