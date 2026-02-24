@@ -180,3 +180,16 @@ async fn already_in_room() {
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
     assert!(matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom)));
 }
+
+#[test_log::test(tokio::test)]
+async fn recorder_skips_waiting_room() {
+    let mut room = TestRoom::builder().waiting_room(true).spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let recorder = room.join_recorder().await;
+
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert!(
+        matches!(event, CoreEvent::ParticipantConnected { participant_id, connection_id, .. }
+            if participant_id == recorder.id() && connection_id == recorder.connection_id())
+    );
+}

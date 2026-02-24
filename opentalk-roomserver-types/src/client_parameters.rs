@@ -107,6 +107,16 @@ impl ClientKind {
         }
     }
 
+    pub fn is_service(&self) -> bool {
+        match self {
+            ClientKind::Registered { .. }
+            | ClientKind::Guest { .. }
+            | ClientKind::CallIn { .. }
+            | ClientKind::RegisteredCallIn { .. } => false,
+            ClientKind::Recorder => true,
+        }
+    }
+
     pub fn time_zone(&self) -> Option<TimeZone> {
         match self {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
