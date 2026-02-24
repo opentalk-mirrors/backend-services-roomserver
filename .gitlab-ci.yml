@@ -266,10 +266,11 @@ test:cargo_test:
   # this uses region for coverage summary
   coverage: /TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/
   script:
-    - cargo +nightly llvm-cov nextest --no-report --profile ci --workspace
-    - cargo +nightly llvm-cov --no-report --doc --workspace
-    - cargo +nightly llvm-cov report --doctests --cobertura --output-path target/llvm-cov-target/cobertura.xml
-    - cargo +nightly llvm-cov report --summary-only --ignore-filename-regex 'opentalk-roomserver-dui/'
+    - cargo llvm-cov nextest --no-report --profile ci --workspace
+    # code coverage for doctests is unstable, so we run them separately
+    - cargo test --doc --workspace --locked
+    - cargo llvm-cov report --doctests --cobertura --output-path target/llvm-cov-target/cobertura.xml
+    - cargo llvm-cov report --summary-only --ignore-filename-regex 'opentalk-roomserver-dui/'
   variables:
     TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
     RUST_LOG: opentalk=trace
