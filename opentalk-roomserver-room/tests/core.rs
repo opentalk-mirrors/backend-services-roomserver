@@ -2,7 +2,10 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use insta::assert_json_snapshot;
-use opentalk_roomserver_room::mocking::{mock_module::MockModule, room::TestRoom};
+use opentalk_roomserver_room::{
+    mocking::{mock_module::MockModule, room::TestRoom},
+    signaling::CORE_MODULES,
+};
 use opentalk_roomserver_types::core::{CoreCommand, CoreError, CoreEvent};
 
 #[test_log::test(tokio::test)]
@@ -32,7 +35,9 @@ async fn join_success() {
         "disabled_features": []
       },
       "enabled_modules": [
-        "mock"
+        "mock",
+        "core",
+        "breakout"
       ],
       "module_data": {
         "mock": "Self: 00000000-0000-0000-0000-0000000a11ce"
@@ -87,7 +92,9 @@ async fn participant_joined() {
         "disabled_features": []
       },
       "enabled_modules": [
-        "mock"
+        "mock",
+        "core",
+        "breakout"
       ],
       "module_data": {
         "mock": "Self: 00000000-0000-0000-0000-000000000b0b"
@@ -191,5 +198,18 @@ async fn recorder_skips_waiting_room() {
     assert!(
         matches!(event, CoreEvent::ParticipantConnected { participant_id, connection_id, .. }
             if participant_id == recorder.id() && connection_id == recorder.connection_id())
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn join_success_contains_core_modules() {
+    let mut room = TestRoom::builder().spawn();
+    let alice = room.join_alice_moderator(0).await;
+
+    let join_success = alice.join_success();
+    assert!(
+        CORE_MODULES
+            .iter()
+            .all(|id| join_success.enabled_modules.contains(id))
     );
 }

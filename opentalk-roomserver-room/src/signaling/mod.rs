@@ -26,8 +26,9 @@ use opentalk_roomserver_signaling::{
     signaling_module::{CreateReplica, SignalingModule},
 };
 use opentalk_roomserver_types::{
-    breakout::BreakoutRoom,
+    breakout::{BREAKOUT_MODULE_ID, BreakoutRoom},
     connection_id::ConnectionId,
+    core::CORE_MODULE_ID,
     error::SignalingError,
     room_kind::RoomKind,
     shared_json::SharedJson,
@@ -40,6 +41,8 @@ use tracing::{Span, field::Empty};
 
 pub mod dyn_module_context;
 pub(crate) mod module_initializer;
+
+pub const CORE_MODULES: [ModuleId; 2] = [CORE_MODULE_ID, BREAKOUT_MODULE_ID];
 
 /// Abstracted handle to a [`SignalingModule`]
 pub trait ModuleHandle: Send + Sync {
