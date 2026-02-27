@@ -133,6 +133,12 @@ pub enum RoomTaskApiError {
     #[error("This functionality is currently not available")]
     NotImplemented,
 
+    #[error("The patch could not be applied")]
+    FailedToApplyPatch(anyhow::Error),
+
+    #[error("The specified resource could not be found")]
+    NotFound,
+
     /// The room task is shutting down and cannot process the request.
     #[error("The room task is shutting down and cannot process the request")]
     Closing,
@@ -375,6 +381,27 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .send(Err(RoomTaskApiError::NotImplemented))
                     .ok()
                     .context("Failed to respond to UpdateParameter, response channel dropped")?;
+            }
+            Request::PatchParameters {
+                response: response_tx,
+                patch,
+            } => {
+                if let Err(err) = patch.clone().try_apply(&mut self.info.room) {
+                    response_tx
+                        .send(Err(RoomTaskApiError::FailedToApplyPatch(err)))
+                        .ok()
+                        .context("Failed to respond to PatchParameter, response channel dropped")?;
+
+                    return Ok(());
+                }
+
+                self.broadcast_room_parameters_changed_event(*patch)
+                    .context("Failed to broadcast updated room parameters to participants")?;
+
+                response_tx
+                    .send(Ok(()))
+                    .ok()
+                    .context("Failed to respond to PatchParameter, response channel dropped")?;
             }
             Request::IsBanned { response, user_id } => {
                 let participant_id = ParticipantId::from(Uuid::from(user_id));
@@ -645,7 +672,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     #[tracing::instrument(level = "info", skip(self))]
     fn set_parameters(&mut self, room_parameters: RoomParameters) {
         self.info.room = room_parameters
-        // TODO: handle updated values
     }
 
     #[tracing::instrument(level = "info", skip_all)]

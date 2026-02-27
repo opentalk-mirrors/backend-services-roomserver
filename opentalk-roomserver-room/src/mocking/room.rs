@@ -197,6 +197,11 @@ impl TestRoomBuilder {
         self
     }
 
+    pub fn show_meeting_details(mut self, show_meeting_details: bool) -> Self {
+        self.room_parameters.show_meeting_details = show_meeting_details;
+        self
+    }
+
     pub fn spawn(self) -> TestRoom {
         TestRoom::spawn(
             self.room_id,

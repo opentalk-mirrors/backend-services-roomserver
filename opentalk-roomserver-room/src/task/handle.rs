@@ -8,6 +8,7 @@ use opentalk_roomserver_signaling::storage::{
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
+    room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_api_v1::error::ApiError;
@@ -46,6 +47,10 @@ impl<Socket: SignalingSocket> From<RoomTaskHandleError<Socket>> for ApiError {
             RoomTaskHandleError::ApiError(ref room_task_api_error) => match room_task_api_error {
                 RoomTaskApiError::NotImplemented => {
                     ApiError::internal().with_message(error.to_string())
+                }
+                RoomTaskApiError::NotFound => ApiError::not_found().with_message(error.to_string()),
+                RoomTaskApiError::FailedToApplyPatch(inner_err) => {
+                    ApiError::unprocessable_entity().with_message(format!("{error}: {inner_err}"))
                 }
                 RoomTaskApiError::Closing => {
                     ApiError::service_unavailable().with_message(error.to_string())
@@ -148,6 +153,23 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Ok(())
     }
 
+    pub async fn patch_parameters(
+        &self,
+        patch: RoomParametersPatch,
+    ) -> Result<(), RoomTaskHandleError<Socket>> {
+        let (tx, rx) = oneshot::channel();
+
+        self.send_request(Request::PatchParameters {
+            response: tx,
+            patch: Box::new(patch),
+        })
+        .await?;
+
+        Self::receive_response(rx).await?;
+
+        Ok(())
+    }
+
     pub async fn accept_signaling_socket(
         &self,
         socket: Socket,
@@ -235,6 +257,12 @@ pub enum Request<Socket: SignalingSocket> {
         parameters: Box<RoomParameters>,
     },
 
+    /// Partially update the parameters for the room
+    PatchParameters {
+        response: ResponseSender<()>,
+        patch: Box<RoomParametersPatch>,
+    },
+
     /// Check if a user with the given [`UserId`] is banned
     IsBanned {
         response: ResponseSender<bool>,
@@ -258,6 +286,7 @@ impl<Socket: SignalingSocket> Request<Socket> {
         match self {
             Request::RefreshIdleTimeout { response }
             | Request::SetParameters { response, .. }
+            | Request::PatchParameters { response, .. }
             | Request::WsJoin { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),

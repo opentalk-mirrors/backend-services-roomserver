@@ -1,12 +1,21 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::str::FromStr;
+
 use insta::assert_json_snapshot;
 use opentalk_roomserver_room::{
-    mocking::{mock_module::MockModule, room::TestRoom},
+    mocking::{
+        mock_module::MockModule,
+        room::{TestRoom, flush_connected_events},
+    },
     signaling::CORE_MODULES,
 };
-use opentalk_roomserver_types::core::{CoreCommand, CoreError, CoreEvent};
+use opentalk_roomserver_types::{
+    core::{CoreCommand, CoreError, CoreEvent},
+    room_parameters_patch::RoomParametersPatch,
+};
+use opentalk_types_common::rooms::RoomPassword;
 
 #[test_log::test(tokio::test)]
 async fn join_success() {
@@ -214,4 +223,64 @@ async fn join_success_contains_core_modules() {
             .iter()
             .all(|id| join_success.enabled_modules.contains(id))
     );
+}
+
+#[test_log::test(tokio::test)]
+async fn patch_room_parameters_notifies_only_moderators_when_meeting_details_disabled() {
+    let mut room = TestRoom::builder().show_meeting_details(false).spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // The room parameters are patched via a web request
+    let patch = RoomParametersPatch {
+        password: Some(Some(RoomPassword::from_str("new_password").unwrap())),
+        title: None,
+    };
+    room.room_handle
+        .patch_parameters(patch.clone())
+        .await
+        .unwrap();
+
+    // Alice receives the room parameters changed event
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::RoomParametersChanged { change } = event else {
+        panic!("Received wrong event: {event:?}");
+    };
+    assert_eq!(change, patch);
+
+    // Bob does not receive the event because he isn't a moderator
+    assert!(bob.received_nothing());
+}
+
+#[test_log::test(tokio::test)]
+async fn patch_room_parameters_notifies_all_when_meeting_details_enabled() {
+    let mut room = TestRoom::builder().show_meeting_details(true).spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // The room parameters are patched via a web request
+    let patch = RoomParametersPatch {
+        password: Some(Some(RoomPassword::from_str("new_password").unwrap())),
+        title: None,
+    };
+    room.room_handle
+        .patch_parameters(patch.clone())
+        .await
+        .unwrap();
+
+    // Alice receives the room parameters changed event
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::RoomParametersChanged { change } = event else {
+        panic!("Received wrong event: {event:?}");
+    };
+    assert_eq!(change, patch);
+
+    // Bob also receives the event because meeting details are enabled
+    let event = bob.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::RoomParametersChanged { change } = event else {
+        panic!("Received wrong event: {event:?}");
+    };
+    assert_eq!(change, patch);
 }

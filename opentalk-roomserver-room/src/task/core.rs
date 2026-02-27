@@ -30,6 +30,7 @@ use opentalk_roomserver_types::{
     },
     room_info::RoomInfo,
     room_kind::RoomKind,
+    room_parameters_patch::RoomParametersPatch,
     shared_json::SharedJson,
     signaling::{
         SignalingCommand,
@@ -639,6 +640,25 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         peer_data.insert(CORE_MODULE_ID, data);
 
         Ok(())
+    }
+
+    pub(crate) fn broadcast_room_parameters_changed_event(
+        &mut self,
+        change: RoomParametersPatch,
+    ) -> Result<(), FatalError> {
+        tracing::trace!("Broadcasting room parameters changed event");
+        let connections = if self.info.room.show_meeting_details {
+            self.participants.connected().connection_ids()
+        } else {
+            self.participants.moderators().connected().connection_ids()
+        };
+
+        self.message_router.conference.serialize_and_send(
+            connections,
+            CORE_MODULE_ID,
+            None,
+            CoreEvent::RoomParametersChanged { change },
+        )
     }
 
     pub(crate) fn broadcast_closing_event(

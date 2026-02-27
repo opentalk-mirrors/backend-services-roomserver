@@ -32,6 +32,7 @@ use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::ClientParameters,
     room_parameters::{self, RoomParameters},
+    room_parameters_patch::RoomParametersPatch,
     signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
@@ -70,6 +71,7 @@ pub mod websocket;
         ),
         paths(
            v1::rooms::put_room,
+           v1::rooms::patch_room,
            v1::rooms::request_token,
            v1::signaling::open_signaling_socket
         ),
@@ -292,6 +294,20 @@ impl RoomBackend for Context {
                 err
             })?;
         }
+
+        Ok(action)
+    }
+
+    async fn patch_room(
+        &self,
+        room_id: RoomId,
+        patch: RoomParametersPatch,
+    ) -> Result<RoomAction, opentalk_types_api_v1::error::ApiError> {
+        let action = self
+            .room_tasks
+            .patch_room(room_id, patch)
+            .await
+            .inspect_err(|err| tracing::debug!("Failed to patch room {room_id}: {err}"))?;
 
         Ok(action)
     }

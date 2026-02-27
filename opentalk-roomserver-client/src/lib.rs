@@ -12,6 +12,7 @@ use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
+    room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_service_auth::{ApiKey, EncodingError};
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
@@ -60,6 +61,15 @@ pub enum PutRoomError {
     NotFound,
     #[error("An internal server error occurred")]
     InternalServerError,
+}
+
+#[derive(Error, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PatchRoomError {
+    #[error("The provided API token is invalid")]
+    InvalidApiToken,
+    #[error("The room does not exist")]
+    NotFound,
 }
 
 #[derive(Error, Debug, Deserialize, PartialEq, Eq)]
@@ -117,6 +127,31 @@ impl Client {
         }
 
         Err(Self::parse_api_error::<PutRoomError>(
+            response.status(),
+            &response.bytes().await?,
+        ))
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn patch_room(
+        &self,
+        room_id: RoomId,
+        patch: RoomParametersPatch,
+    ) -> Result<(), Error<PatchRoomError>> {
+        let url = self.base_url.join(&format!("v1/rooms/{room_id}"))?;
+        let response = self
+            .reqwest_client
+            .patch(url)
+            .header(AUTHORIZATION, self.auth_header()?)
+            .json(&patch)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            return Ok(());
+        }
+
+        Err(Self::parse_api_error::<PatchRoomError>(
             response.status(),
             &response.bytes().await?,
         ))
