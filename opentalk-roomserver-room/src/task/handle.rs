@@ -130,14 +130,14 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Ok(())
     }
 
-    /// Update the parameters for the room
-    pub async fn update_parameter(
+    /// Set the parameters for the room
+    pub async fn set_parameters(
         &self,
         parameter: RoomParameters,
     ) -> Result<(), RoomTaskHandleError<Socket>> {
         let (tx, rx) = oneshot::channel();
 
-        self.send_request(Request::UpdateParameter {
+        self.send_request(Request::SetParameters {
             response: tx,
             parameters: Box::new(parameter),
         })
@@ -229,8 +229,8 @@ pub enum Request<Socket: SignalingSocket> {
     /// Refresh the room tasks idle timeout
     RefreshIdleTimeout { response: ResponseSender<()> },
 
-    /// Update the parameters for the room
-    UpdateParameter {
+    /// Set the parameters for the room
+    SetParameters {
         response: ResponseSender<()>,
         parameters: Box<RoomParameters>,
     },
@@ -257,7 +257,7 @@ impl<Socket: SignalingSocket> Request<Socket> {
     pub fn send_error(self, error: RoomTaskApiError) -> anyhow::Result<()> {
         match self {
             Request::RefreshIdleTimeout { response }
-            | Request::UpdateParameter { response, .. }
+            | Request::SetParameters { response, .. }
             | Request::WsJoin { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),

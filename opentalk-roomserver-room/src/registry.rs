@@ -74,7 +74,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 
         if let Some(task_handle) = registry.get(&room_id) {
             task_handle
-                .update_parameter((*room_parameters).clone())
+                .set_parameters((*room_parameters).clone())
                 .await?;
             return Ok((RoomAction::Updated, task_handle.clone()));
         }

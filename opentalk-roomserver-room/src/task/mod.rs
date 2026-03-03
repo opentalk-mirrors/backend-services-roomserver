@@ -366,11 +366,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .ok()
                     .context("Failed to respond to RefreshIdleTimeout, response channel dropped")?;
             }
-            Request::UpdateParameter {
+            Request::SetParameters {
                 response: response_tx,
                 parameters,
             } => {
-                self.update_parameter(*parameters);
+                self.set_parameters(*parameters);
                 response_tx
                     .send(Err(RoomTaskApiError::NotImplemented))
                     .ok()
@@ -643,7 +643,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    fn update_parameter(&mut self, room_parameters: RoomParameters) {
+    fn set_parameters(&mut self, room_parameters: RoomParameters) {
         self.info.room = room_parameters
         // TODO: handle updated values
     }
