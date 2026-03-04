@@ -444,6 +444,7 @@ mod test {
             invite_code: None,
             tariff: TariffDetails::example_data(),
             streaming_links: vec![],
+            show_meeting_details: true,
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
             preferred_language: langid!("en"),

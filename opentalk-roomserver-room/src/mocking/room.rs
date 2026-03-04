@@ -128,6 +128,7 @@ impl TestRoomBuilder {
                     disabled_features: BTreeSet::default(),
                 },
                 streaming_links: Vec::new(),
+                show_meeting_details: true,
                 e2e_encryption: false,
                 module_settings: ModuleSettings::new(),
                 preferred_language: langid!("en"),

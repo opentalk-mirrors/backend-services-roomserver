@@ -57,6 +57,10 @@ pub struct RoomParameters {
 
     pub streaming_links: Vec<StreamingLink>,
 
+    /// When true the meeting details are visible to all participants. When false, they are visible
+    /// to moderators only.
+    pub show_meeting_details: bool,
+
     /// Indicates whether the meeting room should have e2e encryption enabled.
     pub e2e_encryption: bool,
 
@@ -123,6 +127,7 @@ impl ExampleData for RoomParameters {
             invite_code: Some(InviteCode::example_data()),
             tariff: TariffDetails::example_data(),
             streaming_links: vec![StreamingLink::example_data()],
+            show_meeting_details: true,
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
             preferred_language: langid!("de"),
@@ -225,6 +230,7 @@ mod tests {
                 "disabled_features": ["recording::record"],
             },
             "streaming_links": [{"name": "My OwnCast Stream", "url": "https://owncast.example.com/mystream"}],
+            "show_meeting_details": true,
             "e2e_encryption": false,
             "module_settings": {
                 "livekit":  {
