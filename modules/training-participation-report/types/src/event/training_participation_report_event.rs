@@ -3,6 +3,7 @@
 
 //! Signaling events for the `meeting_report` namespace
 
+use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::{assets::AssetId, time::Timestamp};
 use serde::{Deserialize, Serialize};
 
@@ -45,9 +46,8 @@ pub enum TrainingParticipationReportEvent {
         /// The asset id for the PDF asset
         asset_id: AssetId,
 
-        /// The remaining storage quota
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        remaining_quota: Option<u32>,
+        /// The new quota values
+        quota: Quota,
     },
 
     /// An error happened when executing a `meeting_report` command
@@ -63,7 +63,8 @@ impl From<TrainingParticipationReportError> for TrainingParticipationReportEvent
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
-    use opentalk_types_common::{assets::AssetId, time::Timestamp};
+    use opentalk_types_api_v1::assets::Quota;
+    use opentalk_types_common::{assets::AssetId, time::Timestamp, utils::ExampleData};
     use serde_json::json;
 
     use super::{TrainingParticipationReportError, TrainingParticipationReportEvent};
@@ -145,7 +146,7 @@ mod tests {
         let event = TrainingParticipationReportEvent::PdfCreated {
             filename: "pdf-file.pdf".to_owned(),
             asset_id: AssetId::from_u128(0x735fcdaa_56dd_4ddb_9eb0_7d083a4a9d9b),
-            remaining_quota: Some(1024),
+            quota: Quota::example_data(),
         };
         let raw = serde_json::to_string_pretty(&event).expect("Must be serializable");
 
@@ -154,7 +155,10 @@ mod tests {
           "message": "pdf_created",
           "filename": "pdf-file.pdf",
           "asset_id": "735fcdaa-56dd-4ddb-9eb0-7d083a4a9d9b",
-          "remaining_quota": 1024
+          "quota": {
+            "total": 5368709120,
+            "used": 2147483648
+          }
         }
         "#);
     }
@@ -165,7 +169,9 @@ mod tests {
             "message": "pdf_created",
             "filename": "pdf-file.pdf",
             "asset_id": "735fcdaa-56dd-4ddb-9eb0-7d083a4a9d9b",
-            "remaining_quota": 1024,
+            "quota": {
+                "used": 0,
+            },
         });
         let event: TrainingParticipationReportEvent =
             serde_json::from_value(json).expect("Must be deserializable");
@@ -175,7 +181,10 @@ mod tests {
             TrainingParticipationReportEvent::PdfCreated {
                 filename: "pdf-file.pdf".to_owned(),
                 asset_id: AssetId::from_u128(0x735fcdaa_56dd_4ddb_9eb0_7d083a4a9d9b),
-                remaining_quota: Some(1024),
+                quota: Quota {
+                    total: None,
+                    used: 0
+                }
             }
         );
     }

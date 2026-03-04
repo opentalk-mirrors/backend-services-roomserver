@@ -302,6 +302,8 @@ skip = [
   { name = "rustls-webpki", version = "0.101" },
   { name = "serde_spanned", version = "0.6" },
   { name = "smithay-client-toolkit", version = "0.19" },
+  { name = "strum", version = "0.27" },
+  { name = "strum_macros", version = "0.27" },
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
   { name = "tinystr", version = "0.7" },

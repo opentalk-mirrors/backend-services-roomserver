@@ -93,6 +93,7 @@ async fn room_task_time_limit() {
             id: TariffId::generate(),
             name: "Immediately closing room".into(),
             quotas: BTreeMap::from_iter([(QuotaType::RoomTimeLimitSecs, 0)]),
+            used_quota: BTreeMap::new(),
             disabled_features: BTreeSet::new(),
         })
         .spawn();

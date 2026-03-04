@@ -27,6 +27,9 @@ pub struct TariffDetails {
     /// The quotas of the tariff
     pub quotas: BTreeMap<QuotaType, u64>,
 
+    /// The amount of used quota from the tariff
+    pub used_quota: BTreeMap<QuotaType, u64>,
+
     /// Disabled module features
     pub disabled_features: BTreeSet<ModuleFeatureId>,
 }
@@ -44,6 +47,7 @@ impl ExampleData for TariffDetails {
             id: TariffId::nil(),
             name: "Starter tariff".to_string(),
             quotas: BTreeMap::from_iter([(QuotaType::MaxStorage, 50000)]),
+            used_quota: BTreeMap::from_iter([(QuotaType::MaxStorage, 20000)]),
             disabled_features: ["recording::record".parse().expect("valid feature id")]
                 .into_iter()
                 .collect(),

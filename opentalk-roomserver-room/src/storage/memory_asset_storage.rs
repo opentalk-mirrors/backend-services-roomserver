@@ -12,8 +12,9 @@ use opentalk_roomserver_signaling::storage::{
         provider::{AssetStorageProvider, AssetStream},
     },
 };
+use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::assets::AssetId;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 /// A simple storage provider using the local asset system as storage backend.
 ///
@@ -22,7 +23,7 @@ use tokio::sync::Mutex;
 /// been implemented.
 #[derive(Debug)]
 pub struct MemoryAssetStorage {
-    quota: Option<u64>,
+    quota: RwLock<Quota>,
     assets: Mutex<HashMap<AssetId, Vec<u8>>>,
 }
 
@@ -30,9 +31,9 @@ impl MemoryAssetStorage {
     /// Creates a new [`MemoryAssetStorage`]
     ///
     /// * `quota` - The total size of assets the user is allowed to upload (in bytes)
-    pub fn new(quota: Option<u64>) -> Self {
+    pub fn new(quota: Quota) -> Self {
         Self {
-            quota,
+            quota: RwLock::new(quota),
             assets: Mutex::new(HashMap::new()),
         }
     }
@@ -56,14 +57,9 @@ impl AssetStorageProvider for MemoryAssetStorage {
         &self,
         mut asset: AssetStream,
         metadata: AssetMetaData,
-        context: &StorageContext,
+        _context: &StorageContext,
     ) -> UploadResult {
-        if self
-            .remaining_quota(context)
-            .await
-            .map(|q| q == 0)
-            .unwrap_or(false)
-        {
+        if !self.can_upload().await {
             return Err(StorageError::QuotaExceeded);
         }
 
@@ -73,23 +69,24 @@ impl AssetStorageProvider for MemoryAssetStorage {
             data.extend_from_slice(&chunk);
         }
 
+        let size = data.len() as u64;
         let id = AssetId::generate();
         self.assets.lock().await.insert(id, data);
+
+        {
+            let mut quota = self.quota.write().await;
+            quota.used = u64::saturating_add(quota.used, size);
+        }
 
         Ok(AssetUploaded {
             id,
             filename: metadata.to_string(),
-            remaining_quota: self.remaining_quota(context).await,
+            quota: self.quota.read().await.clone(),
         })
     }
 
-    async fn remaining_quota(&self, _context: &StorageContext) -> Option<u64> {
-        if let Some(q) = self.quota {
-            let used: usize = self.assets.lock().await.values().map(Vec::len).sum();
-            Some(q.saturating_sub(used as u64))
-        } else {
-            None
-        }
+    async fn can_upload(&self) -> bool {
+        !self.quota.read().await.is_exceeded()
     }
 }
 
@@ -105,6 +102,7 @@ mod test {
         },
     };
     use opentalk_roomserver_types::breakout::BREAKOUT_MODULE_ID;
+    use opentalk_types_api_v1::assets::Quota;
     use opentalk_types_common::{
         assets::{FileExtension, asset_file_kind},
         rooms::RoomId,
@@ -115,8 +113,11 @@ mod test {
 
     #[tokio::test]
     async fn upload_asset() {
-        let quota = 5 * 1024u64.pow(3);
-        let storage = MemoryAssetStorage::new(Some(quota));
+        let quota = Quota {
+            total: Some(5 * 1024u64.pow(3)),
+            used: 0,
+        };
+        let storage = MemoryAssetStorage::new(quota);
         let storage_context = StorageContext {
             room_id: RoomId::from_u128(0x12),
             namespace: BREAKOUT_MODULE_ID,
@@ -144,8 +145,11 @@ mod test {
 
     #[tokio::test]
     async fn exceed_quota() {
-        let quota = 1;
-        let storage = MemoryAssetStorage::new(Some(quota));
+        let quota = Quota {
+            total: Some(1),
+            used: 0,
+        };
+        let storage = MemoryAssetStorage::new(quota);
         let storage_context = StorageContext {
             room_id: RoomId::from_u128(0x12),
             namespace: BREAKOUT_MODULE_ID,
@@ -180,8 +184,11 @@ mod test {
 
     #[tokio::test]
     async fn stream_error() {
-        let quota = 5 * 1024u64.pow(3);
-        let storage = MemoryAssetStorage::new(Some(quota));
+        let quota = Quota {
+            total: Some(1),
+            used: 0,
+        };
+        let storage = MemoryAssetStorage::new(quota);
         let storage_context = StorageContext {
             room_id: RoomId::from_u128(0x12),
             namespace: BREAKOUT_MODULE_ID,

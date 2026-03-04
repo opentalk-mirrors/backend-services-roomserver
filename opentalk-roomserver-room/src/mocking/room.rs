@@ -124,6 +124,7 @@ impl TestRoomBuilder {
                     id: TariffId::from_u128(1),
                     name: "Default Tariff".to_string(),
                     quotas: BTreeMap::default(),
+                    used_quota: BTreeMap::new(),
                     disabled_features: BTreeSet::default(),
                 },
                 streaming_links: Vec::new(),

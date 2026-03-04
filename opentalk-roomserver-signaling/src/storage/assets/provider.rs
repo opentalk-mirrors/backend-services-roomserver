@@ -33,5 +33,5 @@ pub trait AssetStorageProvider: Send + Sync + Debug + Any {
         context: &StorageContext,
     ) -> UploadResult;
 
-    async fn remaining_quota(&self, context: &StorageContext) -> Option<u64>;
+    async fn can_upload(&self) -> bool;
 }

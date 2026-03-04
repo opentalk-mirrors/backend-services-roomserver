@@ -11,7 +11,9 @@ use opentalk_roomserver_signaling::storage::{
     },
 };
 use opentalk_service_auth::ApiKey;
-use opentalk_types_api_v1::{error::ApiError, services::roomserver::PostAssetResponseBody};
+use opentalk_types_api_v1::{
+    assets::Quota, error::ApiError, services::roomserver::PostAssetResponseBody,
+};
 use reqwest::{Body, header::CONTENT_TYPE};
 use tokio::sync::RwLock;
 use url::Url;
@@ -26,11 +28,11 @@ pub struct ControllerAssetStorage {
     base_url: Url,
     secret: ApiKey,
     client: reqwest::Client,
-    quota: RwLock<Option<u64>>,
+    quota: RwLock<Quota>,
 }
 
 impl ControllerAssetStorage {
-    pub fn new(base_url: Url, secret: ApiKey, quota: Option<u64>) -> Self {
+    pub fn new(base_url: Url, secret: ApiKey, quota: Quota) -> Self {
         Self {
             base_url,
             secret,
@@ -107,7 +109,7 @@ impl AssetStorageProvider for ControllerAssetStorage {
 
         let PostAssetResponseBody {
             asset_resource,
-            remaining_quota_bytes,
+            quota,
         } = serde_json::from_slice(&body)
             .inspect_err(|e| {
                 tracing::error!(
@@ -117,19 +119,17 @@ impl AssetStorageProvider for ControllerAssetStorage {
             })
             .context("Failed to parse upload asset response body")?;
 
-        if let Some(remaining_quota_bytes) = remaining_quota_bytes {
-            self.quota.write().await.replace(remaining_quota_bytes);
-        }
+        *self.quota.write().await = quota.clone();
 
         Ok(AssetUploaded {
             id: asset_resource.id,
             filename: asset_resource.filename,
-            remaining_quota: remaining_quota_bytes,
+            quota,
         })
     }
 
-    async fn remaining_quota(&self, _context: &StorageContext) -> Option<u64> {
-        *self.quota.read().await
+    async fn can_upload(&self) -> bool {
+        !self.quota.read().await.is_exceeded()
     }
 }
 
@@ -148,13 +148,16 @@ mod tests {
     };
     use opentalk_service_auth::ApiKey;
     use opentalk_types_api_v1::{
-        assets::AssetResource, error::ApiError, services::roomserver::PostAssetResponseBody,
+        assets::{AssetResource, Quota},
+        error::ApiError,
+        services::roomserver::PostAssetResponseBody,
     };
     use opentalk_types_common::{
         assets::{AssetFileKind, AssetId, FileExtension},
         modules::ModuleId,
         rooms::RoomId,
         time::Timestamp,
+        utils::ExampleData,
     };
     use pretty_assertions::assert_eq;
 
@@ -175,7 +178,10 @@ mod tests {
                 kind: asset_file_kind.to_string(),
                 size: 12.into(),
             },
-            remaining_quota_bytes: None,
+            quota: Quota {
+                total: None,
+                used: 12,
+            },
         };
 
         let mut server = mockito::Server::new_async().await;
@@ -200,7 +206,10 @@ mod tests {
         let provider = ControllerAssetStorage::new(
             server.url().parse().unwrap(),
             ApiKey::new("controller", "secret"),
-            None,
+            Quota {
+                total: None,
+                used: 0,
+            },
         );
         let asset_stream =
             stream::once(async { Ok(Bytes::copy_from_slice(r"asdasd".as_bytes())) }).boxed();
@@ -228,7 +237,7 @@ mod tests {
             AssetUploaded {
                 id: response_body.asset_resource.id,
                 filename: response_body.asset_resource.filename,
-                remaining_quota: response_body.remaining_quota_bytes
+                quota: response_body.quota,
             }
         );
     }
@@ -260,7 +269,10 @@ mod tests {
         let provider = ControllerAssetStorage::new(
             server.url().parse().unwrap(),
             ApiKey::new("controller", "secret"),
-            None,
+            Quota {
+                total: None,
+                used: 0,
+            },
         );
         let asset_stream =
             stream::once(async { Ok(Bytes::copy_from_slice(r"asdasd".as_bytes())) }).boxed();
@@ -313,7 +325,7 @@ mod tests {
         let provider = ControllerAssetStorage::new(
             server.url().parse().unwrap(),
             ApiKey::new("controller", "secret"),
-            None,
+            Quota::example_data(),
         );
 
         let asset_stream = stream::iter(vec![Err(AssetLoadError {

@@ -219,7 +219,7 @@ impl SignalingModule for TrainingParticipationReportModule {
             TrainingParticipationReportLoopback::ReportUploaded(AssetUploaded {
                 id,
                 filename,
-                remaining_quota,
+                quota,
                 ..
             }) => {
                 // Send the report to the room owner
@@ -229,8 +229,7 @@ impl SignalingModule for TrainingParticipationReportModule {
                         TrainingParticipationReportEvent::PdfCreated {
                             filename,
                             asset_id: id,
-                            remaining_quota: remaining_quota
-                                .map(|q| q.try_into().ok().unwrap_or(u32::MAX)),
+                            quota,
                         },
                     )?;
                 }

@@ -92,6 +92,7 @@ use opentalk_roomserver_types::{
     signaling::{SignalingCommand, module_error::FatalError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
+use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::{
     modules::ModuleId, rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType, time::Timestamp,
 };
@@ -204,7 +205,15 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let message_router = MessageRouter::new(app_state.clone(), room_parameters.ws_rate_limit);
         let storage = create_storage_provider(
             &settings,
-            room_parameters.tariff.quota(&QuotaType::MaxStorage),
+            Quota {
+                total: room_parameters.tariff.quota(&QuotaType::MaxStorage),
+                used: room_parameters
+                    .tariff
+                    .used_quota
+                    .get(&QuotaType::MaxStorage)
+                    .cloned()
+                    .unwrap_or(0),
+            },
         );
         let module_resources = create_module_resource_storage_provider(&settings);
 
@@ -1115,10 +1124,7 @@ fn participant_id_from_uuid(user_id: impl Into<Uuid>) -> ParticipantId {
     ParticipantId::from(user_id.into())
 }
 
-fn create_storage_provider(
-    settings: &Settings,
-    quota: Option<u64>,
-) -> Arc<dyn AssetStorageProvider> {
+fn create_storage_provider(settings: &Settings, quota: Quota) -> Arc<dyn AssetStorageProvider> {
     match &settings.controller {
         Some(controller) => Arc::new(ControllerAssetStorage::new(
             controller.url.clone(),
