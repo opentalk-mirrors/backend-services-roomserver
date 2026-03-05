@@ -1137,7 +1137,7 @@ fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId
         ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
             participant_id_from_uuid(profile.id)
         }
-        ClientKind::Guest { .. } | ClientKind::Recorder | ClientKind::CallIn { .. } => {
+        ClientKind::Guest { .. } | ClientKind::Recorder { .. } | ClientKind::CallIn { .. } => {
             participant_id_from_uuid(device_id)
         }
     }

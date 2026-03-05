@@ -10,7 +10,7 @@ use opentalk_types_common::{
 use opentalk_types_signaling::ParticipationVisibility;
 use serde::{Deserialize, Serialize};
 
-use crate::public_user_profile::PublicUserProfile;
+use crate::{public_user_profile::PublicUserProfile, room_kind::RoomKind};
 
 /// Client context required for a signaling connection
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -38,7 +38,7 @@ pub enum ClientKind {
     Guest { display_name: DisplayName },
 
     /// Invisible service participant used by the recording service
-    Recorder,
+    Recorder { room: RoomKind },
 
     /// Telephone call-In participant which identifies via a meeting id & pin
     CallIn { display_name: DisplayName },
@@ -54,7 +54,9 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(profile.id)
             }
-            ClientKind::Guest { .. } | ClientKind::Recorder | ClientKind::CallIn { .. } => None,
+            ClientKind::Guest { .. } | ClientKind::Recorder { .. } | ClientKind::CallIn { .. } => {
+                None
+            }
         }
     }
 
@@ -63,7 +65,7 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 profile.user_info.display_name.clone()
             }
-            ClientKind::Recorder => DisplayName::from_str_lossy("recorder"),
+            ClientKind::Recorder { .. } => DisplayName::from_str_lossy("recorder"),
             ClientKind::CallIn { display_name } | ClientKind::Guest { display_name } => {
                 display_name.clone()
             }
@@ -75,7 +77,9 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.email)
             }
-            ClientKind::Guest { .. } | ClientKind::Recorder | ClientKind::CallIn { .. } => None,
+            ClientKind::Guest { .. } | ClientKind::Recorder { .. } | ClientKind::CallIn { .. } => {
+                None
+            }
         }
     }
 
@@ -84,7 +88,9 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.user_info.avatar_url)
             }
-            ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder => None,
+            ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder { .. } => {
+                None
+            }
         }
     }
 
@@ -93,7 +99,9 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.user_info)
             }
-            ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder => None,
+            ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder { .. } => {
+                None
+            }
         }
     }
 
@@ -101,7 +109,7 @@ impl ClientKind {
         match &self {
             ClientKind::Registered { .. } => ParticipationKind::Registered,
             ClientKind::Guest { .. } => ParticipationKind::Guest,
-            ClientKind::Recorder => ParticipationKind::Recorder,
+            ClientKind::Recorder { .. } => ParticipationKind::Recorder,
             ClientKind::CallIn { .. } => ParticipationKind::CallIn,
             ClientKind::RegisteredCallIn { .. } => ParticipationKind::RegisteredCallIn,
         }
@@ -113,7 +121,7 @@ impl ClientKind {
             | ClientKind::Guest { .. }
             | ClientKind::CallIn { .. }
             | ClientKind::RegisteredCallIn { .. } => false,
-            ClientKind::Recorder => true,
+            ClientKind::Recorder { .. } => true,
         }
     }
 
@@ -122,7 +130,9 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(profile.timezone)
             }
-            ClientKind::Recorder | ClientKind::CallIn { .. } | ClientKind::Guest { .. } => None,
+            ClientKind::Recorder { .. } | ClientKind::CallIn { .. } | ClientKind::Guest { .. } => {
+                None
+            }
         }
     }
 }
@@ -134,7 +144,7 @@ impl ClientKind {
             | ClientKind::Guest { .. }
             | ClientKind::CallIn { .. }
             | ClientKind::RegisteredCallIn { .. } => ParticipationVisibility::Visible,
-            ClientKind::Recorder => ParticipationVisibility::Hidden,
+            ClientKind::Recorder { .. } => ParticipationVisibility::Hidden,
         }
     }
 }
@@ -191,7 +201,7 @@ impl From<&ClientKind> for ParticipationKind {
         match value {
             ClientKind::Registered { .. } => Self::Registered,
             ClientKind::Guest { .. } => Self::Guest,
-            ClientKind::Recorder => Self::Recorder,
+            ClientKind::Recorder { .. } => Self::Recorder,
             ClientKind::CallIn { .. } => Self::CallIn,
             ClientKind::RegisteredCallIn { .. } => Self::RegisteredCallIn,
         }
@@ -208,6 +218,7 @@ mod tests {
     use crate::{
         client_parameters::{ClientParameters, ParticipationKind, Role},
         public_user_profile::PublicUserProfile,
+        room_kind::RoomKind,
     };
 
     #[test]
@@ -281,7 +292,9 @@ mod tests {
     fn service() {
         let client_parameter = ClientParameters {
             device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Recorder,
+            kind: ClientKind::Recorder {
+                room: RoomKind::Main,
+            },
             role: Role::User,
         };
         assert_eq!(
@@ -297,6 +310,10 @@ mod tests {
                 "role": "user",
                 "device_secret": "v3rys3cr3tD3v1ce5tr1ng",
                 "kind": "recorder",
+                "room": {
+                    "kind": "main",
+                }
+
             })
         );
     }

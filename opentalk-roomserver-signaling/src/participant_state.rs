@@ -378,7 +378,9 @@ mod tests {
             recorder,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Recorder,
+                kind: ClientKind::Recorder {
+                    room: RoomKind::Main,
+                },
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -447,7 +449,9 @@ mod tests {
             recorder,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Recorder,
+                kind: ClientKind::Recorder {
+                    room: RoomKind::Main,
+                },
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -507,7 +511,9 @@ mod tests {
             recorder,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Recorder,
+                kind: ClientKind::Recorder {
+                    room: RoomKind::Main,
+                },
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,

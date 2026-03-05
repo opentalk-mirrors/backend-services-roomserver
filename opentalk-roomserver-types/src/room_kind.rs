@@ -8,6 +8,7 @@ use crate::breakout::breakout_id::BreakoutId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind", content = "id")]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum RoomKind {
     Main,
     Breakout(BreakoutId),
