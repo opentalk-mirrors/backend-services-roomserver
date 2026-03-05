@@ -21,6 +21,7 @@ use std::{
 };
 
 use futures::{StreamExt, stream};
+use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     time::Timestamp,
@@ -64,8 +65,8 @@ impl ModuleAssetStorage {
             .await
     }
 
-    pub async fn remaining_quota(&self) -> Option<u64> {
-        self.provider.remaining_quota(&self.context).await
+    pub async fn can_upload(&self) -> bool {
+        self.provider.can_upload().await
     }
 }
 
@@ -121,5 +122,5 @@ impl Display for AssetMetaData {
 pub struct AssetUploaded {
     pub id: AssetId,
     pub filename: String,
-    pub remaining_quota: Option<u64>,
+    pub quota: Quota,
 }

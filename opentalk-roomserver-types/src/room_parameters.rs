@@ -219,6 +219,9 @@ mod tests {
                 "quotas": {
                     "max_storage": 50000
                 },
+                "used_quota": {
+                    "max_storage": 20000
+                },
                 "disabled_features": ["recording::record"],
             },
             "streaming_links": [{"name": "My OwnCast Stream", "url": "https://owncast.example.com/mystream"}],

@@ -537,6 +537,8 @@ components:
           name: Starter tariff
           quotas:
             max_storage: 50000
+          used_quota:
+            max_storage: 20000
         waiting_room: false
         ws_rate_limit:
           token_bucket_size: 30
@@ -622,6 +624,7 @@ components:
         - id
         - name
         - quotas
+        - used_quota
         - disabled_features
       properties:
         disabled_features:
@@ -650,6 +653,20 @@ components:
                 examples:
                   - max_storage
             example: max_storage
+        used_quota:
+          type: object
+          description: The amount of used quota from the tariff
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+          propertyNames:
+            anyOf:
+              - type: string
+                description: A quota type
+                examples:
+                  - max_storage
+            example: max_storage
       example:
         disabled_features:
           - "recording::record"
@@ -657,6 +674,8 @@ components:
         name: Starter tariff
         quotas:
           max_storage: 50000
+        used_quota:
+          max_storage: 20000
     TariffId:
       type: string
       format: uuid
@@ -749,6 +768,8 @@ components:
             name: Starter tariff
             quotas:
               max_storage: 50000
+            used_quota:
+              max_storage: 20000
           waiting_room: false
           ws_rate_limit:
             token_bucket_size: 30

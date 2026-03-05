@@ -796,6 +796,9 @@ mod tests {
               "quotas": {
                 "max_storage": 50000
               },
+              "used_quota": {
+                "max_storage": 20000
+              },
               "disabled_features": [
                 "recording::record"
               ]
@@ -851,6 +854,9 @@ mod tests {
                     "name": "Starter tariff",
                     "quotas": {
                         "max_storage": 50000
+                    },
+                    "used_quota": {
+                        "max_storage": 20000
                     },
                     "disabled_features": [
                         "recording::record"

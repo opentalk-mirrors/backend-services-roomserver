@@ -115,6 +115,7 @@ mod tests {
                 id: TariffId::generate(),
                 name: "Room Participant Limit".into(),
                 quotas: BTreeMap::from_iter([(QuotaType::RoomParticipantLimit, 2)]),
+                used_quota: BTreeMap::new(),
                 disabled_features: BTreeSet::new(),
             })
             .spawn();

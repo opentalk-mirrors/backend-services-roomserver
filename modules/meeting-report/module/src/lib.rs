@@ -223,8 +223,7 @@ impl MeetingReportModule {
     ) -> Result<AssetUploaded, SignalingModuleError<MeetingReportError>> {
         const ASSET_FILE_KIND: AssetFileKind = asset_file_kind!("meeting_report");
 
-        let quota = storage.remaining_quota().await;
-        if quota.map(|q| q == 0).unwrap_or(false) {
+        if !storage.can_upload().await {
             return Err(MeetingReportError::StorageExceeded.into());
         }
 

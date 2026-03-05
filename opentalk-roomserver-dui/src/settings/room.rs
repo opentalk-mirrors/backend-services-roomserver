@@ -24,7 +24,7 @@ use opentalk_roomserver_types_moderation::MODERATION_MODULE_ID;
 use opentalk_types_common::{
     events::EventId,
     shared_folders::{SharedFolder, SharedFolderAccess},
-    tariffs::TariffId,
+    tariffs::{QuotaType, TariffId},
     time::TimeZone,
     users::{UserId, UserInfo},
     utils::ExampleData,
@@ -108,18 +108,16 @@ pub fn default_room_parameters() -> RoomParameters {
             name: "Starter tariff".to_string(),
             quotas: BTreeMap::from([
                 (
-                    opentalk_types_common::tariffs::QuotaType::MaxStorage,
+                    QuotaType::MaxStorage,
                     1024 * 1024 * 1024 * 5, // 5 GiB
                 ),
+                (QuotaType::RoomParticipantLimit, 25),
                 (
-                    opentalk_types_common::tariffs::QuotaType::RoomParticipantLimit,
-                    25,
-                ),
-                (
-                    opentalk_types_common::tariffs::QuotaType::RoomTimeLimitSecs,
+                    QuotaType::RoomTimeLimitSecs,
                     60 * 60 * 24, // 24h
                 ),
             ]),
+            used_quota: BTreeMap::new(),
             disabled_features: BTreeSet::new(),
         },
         streaming_links: vec![],

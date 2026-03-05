@@ -32,6 +32,7 @@ async fn join_success() {
         "id": "00000000-0000-0000-0000-000000000001",
         "name": "Default Tariff",
         "quotas": {},
+        "used_quota": {},
         "disabled_features": []
       },
       "enabled_modules": [
@@ -89,6 +90,7 @@ async fn participant_joined() {
         "id": "00000000-0000-0000-0000-000000000001",
         "name": "Default Tariff",
         "quotas": {},
+        "used_quota": {},
         "disabled_features": []
       },
       "enabled_modules": [
