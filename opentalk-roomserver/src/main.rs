@@ -124,7 +124,7 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
         let client_address = settings.http.service_url.clone();
 
         set.spawn(client.run(
-            client_address,
+            client_address.expect("TODO"), //TODO remove after orchestrator update in next commit
             state_provider,
             wait_shutdown(app_state.subscribe()),
         ));
