@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.24] - 2026-03-05
+
+[0.0.24]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.23...v0.0.24
+
+### 🚀 New features
+
+- Add controller module resource storage ([!913](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/913))
+- (mock) Add recorder participant ([!921](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/921))
+- Add `show_meeting_details` field to `RoomParameters` ([!930](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/930))
+- (web-api) Patch room parameters ([!930](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/930), [#198](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/198))
+
+### 🐛 Bug fixes
+
+- (ci) Gitlab token not passed to git-cliff when defined in file ([!903](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/903))
+- (openapi) Remove obsolete `TariffModuleResource` ([!915](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/915))
+- `service_url` fails to build when `http.address` is an IPv6 address ([!904](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/904), [#188](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/188))
+- (whiteboard) Initialization state is not reset when initialization fails ([!917](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/917))
+- (meeting-notes) Initialization state is not reset when initialization fails ([!916](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/916))
+- (ci) Reduce usage of nightly compiler for running tests ([!925](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/925), [#197](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/197))
+- Service participants do not skip waiting room ([!921](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/921), [#195](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/195))
+- (core) Core modules are not in the `enabled_modules` of the `JoinSuccess` message ([!922](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/922), [#196](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/196))
+
+### 📚 Documentation
+
+- Add `http.service_url` ([!904](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/904))
+
+### 🔨 Refactor
+
+- Use internal controller api ([!914](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/914))
+- Use total and used instead of remaining quota ([!931](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/931))
+- (room) Rename `Request::UpdateParameter` to `SetParameters` ([!930](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/930))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!923](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/923), [!908](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/908), [!927](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/927))
+- (deps) Update opentalk ([!920](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/920))
+- (deps) Update rust crate sysinfo to v0.38.3 ([!928](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/928))
+
 ## [0.0.23] - 2026-02-13
 
 [0.0.23]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.22...v0.0.23
