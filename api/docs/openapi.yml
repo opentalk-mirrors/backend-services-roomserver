@@ -494,7 +494,7 @@ components:
         - created_by
         - waiting_room
         - tariff
-        - streaming_links
+        - streaming_targets
         - show_meeting_details
         - e2e_encryption
         - module_settings
@@ -540,10 +540,10 @@ components:
           description: |-
             When true the meeting details are visible to all participants. When false, they are visible
             to moderators only.
-        streaming_links:
+        streaming_targets:
           type: array
           items:
-            $ref: "#/components/schemas/StreamingLink"
+            $ref: "#/components/schemas/RoomStreamingTarget"
         tariff:
           $ref: "#/components/schemas/TariffDetails"
         waiting_room:
@@ -594,9 +594,13 @@ components:
         password: "1234"
         preferred_language: de
         show_meeting_details: true
-        streaming_links:
-          - name: My OwnCast Stream
-            url: "https://owncast.example.com/mystream"
+        streaming_targets:
+          - id: 00000000-0000-0000-0000-000043434343
+            kind: custom
+            name: Example Stream
+            public_url: "https://streaming.example.com/livestream123"
+            streaming_endpoint: "https://ingress.streaming.example.com/"
+            streaming_key: aabbccddeeff
         tariff:
           disabled_features:
             - "recording::record"
@@ -647,6 +651,25 @@ components:
       example:
         public_url: "https://example.com/"
         token: 00000000-0000-0000-0000-0000abadcafe
+    RoomStreamingTarget:
+      allOf:
+        - $ref: "#/components/schemas/StreamingTarget"
+          description: The streaming target
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              $ref: "#/components/schemas/StreamingTargetId"
+              description: The streaming target id
+      description: A streaming target which is specific for a Room
+      example:
+        id: 00000000-0000-0000-0000-000043434343
+        kind: custom
+        name: Example Stream
+        public_url: "https://streaming.example.com/livestream123"
+        streaming_endpoint: "https://ingress.streaming.example.com/"
+        streaming_key: aabbccddeeff
     SharedFolder:
       type: object
       description: |-
@@ -681,6 +704,10 @@ components:
       example:
         password: v3rys3cr3t
         url: "https://cloud.example.com/shares/abc123"
+    StreamingKey:
+      type: string
+      description: The secret key of a streaming target
+      example: aabbccddeeff
     StreamingLink:
       type: object
       description: Streaming link for an event
@@ -698,6 +725,60 @@ components:
       example:
         name: My OwnCast Stream
         url: "https://owncast.example.com/mystream"
+    StreamingTarget:
+      allOf:
+        - $ref: "#/components/schemas/StreamingTargetKind"
+          description: The kind of the streaming target
+        - type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              description: The name of the streaming target
+      description: A streaming target
+      example:
+        kind: custom
+        name: Example Stream
+        public_url: "https://streaming.example.com/livestream123"
+        streaming_endpoint: "https://ingress.streaming.example.com/"
+        streaming_key: aabbccddeeff
+    StreamingTargetId:
+      type: string
+      format: uuid
+      description: ID of a streaming target
+      example: 00000000-0000-0000-0000-000043434343
+    StreamingTargetKind:
+      oneOf:
+        - type: object
+          description: "The \"custom\" kind"
+          required:
+            - streaming_endpoint
+            - streaming_key
+            - public_url
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - custom
+            public_url:
+              type: string
+              format: uri
+              description: The url from which the stream can be accessed
+            streaming_endpoint:
+              type: string
+              format: uri
+              description: The endpoint url of the streaming target
+            streaming_key:
+              $ref: "#/components/schemas/StreamingKey"
+              description: The streaming key
+      description: A streaming target kind
+      example:
+        kind: custom
+        public_url: "https://streaming.example.com/livestream123"
+        streaming_endpoint: "https://ingress.streaming.example.com/"
+        streaming_key: aabbccddeeff
     TariffDetails:
       type: object
       description: Tariff information related to a room
@@ -840,9 +921,13 @@ components:
           password: "1234"
           preferred_language: de
           show_meeting_details: true
-          streaming_links:
-            - name: My OwnCast Stream
-              url: "https://owncast.example.com/mystream"
+          streaming_targets:
+            - id: 00000000-0000-0000-0000-000043434343
+              kind: custom
+              name: Example Stream
+              public_url: "https://streaming.example.com/livestream123"
+              streaming_endpoint: "https://ingress.streaming.example.com/"
+              streaming_key: aabbccddeeff
           tariff:
             disabled_features:
               - "recording::record"

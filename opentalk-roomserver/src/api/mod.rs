@@ -459,7 +459,7 @@ mod test {
             event: None,
             invite_code: None,
             tariff: TariffDetails::example_data(),
-            streaming_links: vec![],
+            streaming_targets: vec![],
             show_meeting_details: true,
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
