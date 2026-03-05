@@ -853,7 +853,9 @@ impl MockRecorderBuilder {
     pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
         room.join_participant(ClientParameters {
             device_secret: self.secret,
-            kind: ClientKind::Recorder,
+            kind: ClientKind::Recorder {
+                room: RoomKind::Main,
+            },
             role: Role::User,
         })
         .await
@@ -865,7 +867,9 @@ impl MockRecorderBuilder {
     ) -> Result<MockParticipantWaiting, room::Error> {
         room.enter_waiting_room(ClientParameters {
             device_secret: self.secret,
-            kind: ClientKind::Recorder,
+            kind: ClientKind::Recorder {
+                room: RoomKind::Main,
+            },
             role: Role::User,
         })
         .await

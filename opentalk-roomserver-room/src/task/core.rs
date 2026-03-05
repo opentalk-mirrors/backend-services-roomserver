@@ -515,7 +515,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 Some(profile.user_info.avatar_url),
                 self.info.room.created_by.id == profile.id,
             ),
-            ClientKind::Guest { .. } | ClientKind::Recorder | ClientKind::CallIn { .. } => {
+            ClientKind::Guest { .. } | ClientKind::Recorder { .. } | ClientKind::CallIn { .. } => {
                 (Role::Guest, None, false)
             }
         };

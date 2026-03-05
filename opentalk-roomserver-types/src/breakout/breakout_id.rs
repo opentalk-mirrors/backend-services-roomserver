@@ -21,4 +21,5 @@ use serde::{Deserialize, Serialize};
     Serialize,
     Deserialize,
 )]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct BreakoutId(u32);

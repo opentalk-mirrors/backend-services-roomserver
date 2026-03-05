@@ -152,6 +152,10 @@ paths:
       security: []
 components:
   schemas:
+    BreakoutId:
+      type: integer
+      format: int32
+      minimum: 0
     CallInId:
       $ref: "#/components/schemas/NumericId"
       description: The id of a call-in participation
@@ -210,12 +214,15 @@ components:
         - type: object
           description: Invisible service participant used by the recording service
           required:
+            - room
             - kind
           properties:
             kind:
               type: string
               enum:
                 - recorder
+            room:
+              $ref: "#/components/schemas/RoomKind"
         - type: object
           description: Telephone call-In participant which identifies via a meeting id & pin
           required:
@@ -460,6 +467,27 @@ components:
       format: uuid
       description: The id of a room
       example: 00000000-0000-0000-0000-0000abadcafe
+    RoomKind:
+      oneOf:
+        - type: object
+          required:
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - main
+        - type: object
+          required:
+            - id
+            - kind
+          properties:
+            id:
+              $ref: "#/components/schemas/BreakoutId"
+            kind:
+              type: string
+              enum:
+                - breakout
     RoomParameters:
       type: object
       required:
