@@ -38,7 +38,12 @@ pub enum ClientKind {
     Guest { display_name: DisplayName },
 
     /// Invisible service participant used by the recording service
-    Recorder { room: RoomKind },
+    Recorder {
+        /// Room for which the recorder was requested from
+        ///
+        /// Recorders may only access the recording-service commands & events in this room
+        room: RoomKind,
+    },
 
     /// Telephone call-In participant which identifies via a meeting id & pin
     CallIn { display_name: DisplayName },

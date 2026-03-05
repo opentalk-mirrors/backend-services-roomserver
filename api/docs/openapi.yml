@@ -223,6 +223,10 @@ components:
                 - recorder
             room:
               $ref: "#/components/schemas/RoomKind"
+              description: |-
+                Room for which the recorder was requested from
+
+                Recorders may only access the recording-service commands & events in this room
         - type: object
           description: Telephone call-In participant which identifies via a meeting id & pin
           required:
