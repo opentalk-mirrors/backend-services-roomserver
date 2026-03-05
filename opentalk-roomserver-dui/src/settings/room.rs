@@ -121,6 +121,7 @@ pub fn default_room_parameters() -> RoomParameters {
             disabled_features: BTreeSet::new(),
         },
         streaming_links: vec![],
+        show_meeting_details: true,
         e2e_encryption: false,
         module_settings,
         preferred_language: langid!("en"),

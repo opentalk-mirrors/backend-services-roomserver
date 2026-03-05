@@ -50,6 +50,38 @@ paths:
           description: An internal server error occurred
       security:
         - API-Token: []
+    patch:
+      tags:
+        - "v1::rooms"
+      summary: Modifies the room parameters of an active room.
+      description: Change the parameters of an existing room
+      operationId: patch_room
+      parameters:
+        - name: room_id
+          in: path
+          description: The UUID that identifies the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomParametersPatch"
+        required: true
+      responses:
+        "204":
+          description: Successfully updated the room parameters
+        "400":
+          description: The provided API token or json body could not be parsed
+        "401":
+          description: The provided API token is invalid
+        "404":
+          description: The provided room does not exist
+        "422":
+          description: The patch could not be applied
+      security:
+        - API-Token: []
   "/rooms/{room_id}/token":
     post:
       tags:
@@ -435,6 +467,7 @@ components:
         - waiting_room
         - tariff
         - streaming_links
+        - show_meeting_details
         - e2e_encryption
         - module_settings
         - preferred_language
@@ -474,6 +507,11 @@ components:
           type: string
           description: The preferred language of the room.
           example: de
+        show_meeting_details:
+          type: boolean
+          description: |-
+            When true the meeting details are visible to all participants. When false, they are visible
+            to moderators only.
         streaming_links:
           type: array
           items:
@@ -527,6 +565,7 @@ components:
             service_url: "http://localhost:7880"
         password: "1234"
         preferred_language: de
+        show_meeting_details: true
         streaming_links:
           - name: My OwnCast Stream
             url: "https://owncast.example.com/mystream"
@@ -543,6 +582,20 @@ components:
         ws_rate_limit:
           token_bucket_size: 30
           tokens_per_second: 10
+    RoomParametersPatch:
+      type: object
+      properties:
+        password:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/RoomPassword"
+        title:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/EventTitle"
+      example:
+        password: v3rys3cr3t
+        title: Team Event
     RoomPassword:
       type: string
       description: A room password
@@ -758,6 +811,7 @@ components:
               service_url: "http://localhost:7880"
           password: "1234"
           preferred_language: de
+          show_meeting_details: true
           streaming_links:
             - name: My OwnCast Stream
               url: "https://owncast.example.com/mystream"

@@ -10,15 +10,20 @@ use std::{
 
 use opentalk_orchestrator_client::{RoomServerEvent, client::OrchestratorHandle};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
-use opentalk_roomserver_types::room_parameters::RoomParameters;
+use opentalk_roomserver_types::{
+    room_parameters::RoomParameters, room_parameters_patch::RoomParametersPatch,
+};
 use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
 use opentalk_types_common::rooms::RoomId;
 use tokio::sync::{Notify, RwLock, watch};
 
 use super::signaling::module_initializer::ModuleRegistry;
-use crate::task::{
-    RoomTask,
-    handle::{RoomTaskHandle, RoomTaskHandleError},
+use crate::{
+    RoomTaskApiError,
+    task::{
+        RoomTask,
+        handle::{RoomTaskHandle, RoomTaskHandleError},
+    },
 };
 
 /// The room task registry
@@ -74,7 +79,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 
         if let Some(task_handle) = registry.get(&room_id) {
             task_handle
-                .update_parameter((*room_parameters).clone())
+                .set_parameters((*room_parameters).clone())
                 .await?;
             return Ok((RoomAction::Updated, task_handle.clone()));
         }
@@ -92,6 +97,21 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             .await;
 
         Ok((RoomAction::Created, task_handle))
+    }
+
+    pub async fn patch_room(
+        &self,
+        room_id: RoomId,
+        patch: RoomParametersPatch,
+    ) -> Result<RoomAction, RoomTaskHandleError<Socket>> {
+        let registry = self.inner.write().await;
+
+        let Some(task_handle) = registry.get(&room_id) else {
+            return Err(RoomTaskApiError::NotFound.into());
+        };
+
+        task_handle.patch_parameters(patch).await?;
+        Ok(RoomAction::Updated)
     }
 
     async fn insert(

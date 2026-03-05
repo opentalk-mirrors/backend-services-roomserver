@@ -8,6 +8,7 @@ use opentalk_roomserver_signaling::storage::{
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
+    room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_api_v1::error::ApiError;
@@ -46,6 +47,10 @@ impl<Socket: SignalingSocket> From<RoomTaskHandleError<Socket>> for ApiError {
             RoomTaskHandleError::ApiError(ref room_task_api_error) => match room_task_api_error {
                 RoomTaskApiError::NotImplemented => {
                     ApiError::internal().with_message(error.to_string())
+                }
+                RoomTaskApiError::NotFound => ApiError::not_found().with_message(error.to_string()),
+                RoomTaskApiError::FailedToApplyPatch(inner_err) => {
+                    ApiError::unprocessable_entity().with_message(format!("{error}: {inner_err}"))
                 }
                 RoomTaskApiError::Closing => {
                     ApiError::service_unavailable().with_message(error.to_string())
@@ -130,16 +135,33 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Ok(())
     }
 
-    /// Update the parameters for the room
-    pub async fn update_parameter(
+    /// Set the parameters for the room
+    pub async fn set_parameters(
         &self,
         parameter: RoomParameters,
     ) -> Result<(), RoomTaskHandleError<Socket>> {
         let (tx, rx) = oneshot::channel();
 
-        self.send_request(Request::UpdateParameter {
+        self.send_request(Request::SetParameters {
             response: tx,
             parameters: Box::new(parameter),
+        })
+        .await?;
+
+        Self::receive_response(rx).await?;
+
+        Ok(())
+    }
+
+    pub async fn patch_parameters(
+        &self,
+        patch: RoomParametersPatch,
+    ) -> Result<(), RoomTaskHandleError<Socket>> {
+        let (tx, rx) = oneshot::channel();
+
+        self.send_request(Request::PatchParameters {
+            response: tx,
+            patch: Box::new(patch),
         })
         .await?;
 
@@ -229,10 +251,16 @@ pub enum Request<Socket: SignalingSocket> {
     /// Refresh the room tasks idle timeout
     RefreshIdleTimeout { response: ResponseSender<()> },
 
-    /// Update the parameters for the room
-    UpdateParameter {
+    /// Set the parameters for the room
+    SetParameters {
         response: ResponseSender<()>,
         parameters: Box<RoomParameters>,
+    },
+
+    /// Partially update the parameters for the room
+    PatchParameters {
+        response: ResponseSender<()>,
+        patch: Box<RoomParametersPatch>,
     },
 
     /// Check if a user with the given [`UserId`] is banned
@@ -257,7 +285,8 @@ impl<Socket: SignalingSocket> Request<Socket> {
     pub fn send_error(self, error: RoomTaskApiError) -> anyhow::Result<()> {
         match self {
             Request::RefreshIdleTimeout { response }
-            | Request::UpdateParameter { response, .. }
+            | Request::SetParameters { response, .. }
+            | Request::PatchParameters { response, .. }
             | Request::WsJoin { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),

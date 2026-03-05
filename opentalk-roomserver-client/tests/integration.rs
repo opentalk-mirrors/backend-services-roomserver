@@ -5,12 +5,19 @@
 // container to reflect the latest API. Running them in the CI would require building such a
 // container before the tests, otherwise changes to the roomserver API could break the tests.
 
+use std::str::FromStr;
+
 use opentalk_roomserver_client::{Client, Error, RequestTokenError};
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
+    room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_service_auth::ApiKey;
-use opentalk_types_common::{rooms::RoomId, utils::ExampleData};
+use opentalk_types_common::{
+    events::EventTitle,
+    rooms::{RoomId, RoomPassword},
+    utils::ExampleData,
+};
 use testcontainers::{
     ContainerAsync, GenericImage, ImageExt,
     core::{IntoContainerPort, Mount, WaitFor, logs::consumer::logging_consumer::LoggingConsumer},
@@ -34,6 +41,25 @@ async fn put_room() {
         .put_room(RoomId::from_u128(0x1), RoomParameters::example_data())
         .await
         .unwrap();
+}
+
+#[test_log::test(tokio::test)]
+#[ignore = "Requires an up-to-date roomserver container"]
+async fn patch_room() {
+    let (_container, base_url) = spawn_roomserver().await;
+    let client = Client::new(base_url, api_key());
+    let room_id = RoomId::from_u128(0x1);
+
+    client
+        .put_room(room_id, RoomParameters::example_data())
+        .await
+        .unwrap();
+
+    let patch = RoomParametersPatch {
+        password: Some(Some(RoomPassword::from_str("new password").unwrap())),
+        title: Some(EventTitle::from_str_lossy("New Event Title")),
+    };
+    client.patch_room(room_id, patch).await.unwrap();
 }
 
 #[test_log::test(tokio::test)]

@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     connection_id::ConnectionId, disconnect_reason::DisconnectReason,
-    join::join_success::JoinSuccess, shared_json::SharedJson,
-    signaling::module_error::SignalingModuleError,
+    join::join_success::JoinSuccess, room_parameters_patch::RoomParametersPatch,
+    shared_json::SharedJson, signaling::module_error::SignalingModuleError,
 };
 
 /// Outgoing websocket messages in the core namespace
@@ -70,6 +70,12 @@ pub enum CoreEvent {
 
     /// The room is being closed, further commands will be discarded
     Closing { reason: RoomCloseReason },
+
+    /// The room parameters have been modified
+    RoomParametersChanged {
+        /// The room parameters that have been modified
+        change: RoomParametersPatch,
+    },
 
     /// An error happened when executing a `core` command
     Error(CoreError),

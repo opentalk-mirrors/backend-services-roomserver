@@ -128,6 +128,7 @@ impl TestRoomBuilder {
                     disabled_features: BTreeSet::default(),
                 },
                 streaming_links: Vec::new(),
+                show_meeting_details: true,
                 e2e_encryption: false,
                 module_settings: ModuleSettings::new(),
                 preferred_language: langid!("en"),
@@ -193,6 +194,11 @@ impl TestRoomBuilder {
 
     pub fn owner(mut self, created_by: PublicUserProfile) -> Self {
         self.room_parameters.created_by = created_by;
+        self
+    }
+
+    pub fn show_meeting_details(mut self, show_meeting_details: bool) -> Self {
+        self.room_parameters.show_meeting_details = show_meeting_details;
         self
     }
 

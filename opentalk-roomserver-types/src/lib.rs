@@ -20,6 +20,7 @@ pub mod rate_limit;
 pub mod room_info;
 pub mod room_kind;
 pub mod room_parameters;
+pub mod room_parameters_patch;
 pub mod shared_json;
 pub mod shared_raw_json;
 pub mod signaling;

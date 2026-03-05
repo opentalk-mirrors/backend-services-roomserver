@@ -9,12 +9,13 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{post, put},
+    routing::{patch, post, put},
 };
 use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
     room_parameters::RoomParameters,
+    room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
@@ -63,6 +64,12 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
         room_parameters: RoomParameters,
     ) -> Result<RoomAction, ApiError>;
 
+    async fn patch_room(
+        &self,
+        room_id: RoomId,
+        patch: RoomParametersPatch,
+    ) -> Result<RoomAction, ApiError>;
+
     async fn request_room_token(
         &mut self,
         room_id: RoomId,
@@ -101,6 +108,34 @@ pub(crate) async fn put_room<B: RoomBackend>(
     Json(room_parameters): Json<RoomParameters>,
 ) -> Result<RoomAction, ApiError> {
     ctx.put_room(path.0, room_parameters).await
+}
+
+/// Modifies the room parameters of an active room.
+#[utoipa::path(
+    patch,
+    path = "/rooms/{room_id}",
+    description = "Change the parameters of an existing room",
+    request_body = RoomParametersPatch,
+    params(
+        ("room_id" = RoomId, Path, description = "The UUID that identifies the room")
+    ),
+    responses(
+        (status = StatusCode::NO_CONTENT, description = "Successfully updated the room parameters"),
+        (status = StatusCode::UNAUTHORIZED, description = "The provided API token is invalid"),
+        (status = StatusCode::BAD_REQUEST, description = "The provided API token or json body could not be parsed"),
+        (status = StatusCode::NOT_FOUND, description = "The provided room does not exist"),
+        (status = StatusCode::UNPROCESSABLE_ENTITY, description = "The patch could not be applied"),
+    ),
+    security(
+        ("API-Token" = [])
+    )
+    )]
+pub(crate) async fn patch_room<B: RoomBackend>(
+    State(ctx): State<B>,
+    Path(room_id): Path<RoomId>,
+    Json(patch): Json<RoomParametersPatch>,
+) -> Result<RoomAction, ApiError> {
+    ctx.patch_room(room_id, patch).await
 }
 
 /// Creates a new signaling token for the specified user and room
@@ -151,6 +186,7 @@ pub fn routes<B: RoomBackend + 'static>() -> Router<B> {
         "/rooms",
         Router::new()
             .route("/{room_id}", put(put_room::<B>))
+            .route("/{room_id}", patch(patch_room::<B>))
             .route("/{room_id}/token", post(request_token::<B>)),
     )
 }
