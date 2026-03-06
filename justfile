@@ -63,7 +63,7 @@ _check_yq:
     fi
 
 # Prepare a release
-prepare-release VERSION: (set-version VERSION) update-frontend-api (update-changelog VERSION)
+prepare-release VERSION: (set-version VERSION) update-openapi (update-changelog VERSION)
 
 # Sets the version in the Cargo.toml and updates the Cargo.lock
 set-version VERSION: _check_cargo_set_version _check_yq
@@ -75,7 +75,7 @@ set-version VERSION: _check_cargo_set_version _check_yq
     yq '.info.version = "{{ VERSION }}"' -i api/docs/openapi.yml
 
 # Update the version in the OpenAPI spec
-update-frontend-api:
+update-openapi:
     # Update OpenAPI specification (which contains the version number)
     cargo run -- openapi dump > api/docs/openapi.yml
     # Trim whitespace
