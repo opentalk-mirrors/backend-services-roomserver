@@ -85,7 +85,7 @@ pub enum RequestTokenError {
     Banned,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Client {
     reqwest_client: ReqwestClient,
     base_url: Url,
