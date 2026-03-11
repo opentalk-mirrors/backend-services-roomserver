@@ -120,7 +120,7 @@ pub fn default_room_parameters() -> RoomParameters {
             used_quota: BTreeMap::new(),
             disabled_features: BTreeSet::new(),
         },
-        streaming_links: vec![],
+        streaming_targets: vec![],
         show_meeting_details: true,
         e2e_encryption: false,
         module_settings,

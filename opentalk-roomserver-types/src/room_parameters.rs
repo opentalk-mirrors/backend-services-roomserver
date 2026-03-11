@@ -10,7 +10,7 @@ use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle},
     rooms::{RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
-    streaming::StreamingLink,
+    streaming::RoomStreamingTarget,
     tariffs::QuotaType,
     time::Timestamp,
     utils::ExampleData,
@@ -55,7 +55,7 @@ pub struct RoomParameters {
 
     pub tariff: TariffDetails,
 
-    pub streaming_links: Vec<StreamingLink>,
+    pub streaming_targets: Vec<RoomStreamingTarget>,
 
     /// When true the meeting details are visible to all participants. When false, they are visible
     /// to moderators only.
@@ -109,7 +109,7 @@ impl Debug for RoomParameters {
             .field("event", &self.event)
             .field("invite_code", &self.invite_code)
             .field("tariff", &self.tariff)
-            .field("streaming_links", &self.streaming_links)
+            .field("streaming_targets", &self.streaming_targets)
             .field("e2e_encryption", &self.e2e_encryption)
             .field("module_data", &self.module_settings)
             .finish()
@@ -126,7 +126,7 @@ impl ExampleData for RoomParameters {
             event: Some(EventContext::example_data()),
             invite_code: Some(InviteCode::example_data()),
             tariff: TariffDetails::example_data(),
-            streaming_links: vec![StreamingLink::example_data()],
+            streaming_targets: vec![RoomStreamingTarget::example_data()],
             show_meeting_details: true,
             e2e_encryption: false,
             module_settings: ModuleSettings::example_data(),
@@ -229,8 +229,17 @@ mod tests {
                 },
                 "disabled_features": ["recording::record"],
             },
-            "streaming_links": [{"name": "My OwnCast Stream", "url": "https://owncast.example.com/mystream"}],
             "show_meeting_details": true,
+            "streaming_targets": [
+                {
+                    "id": "00000000-0000-0000-0000-000043434343",
+                    "kind": "custom",
+                    "name": "Example Stream",
+                    "public_url": "https://streaming.example.com/livestream123",
+                    "streaming_endpoint": "https://ingress.streaming.example.com/",
+                    "streaming_key": "aabbccddeeff",
+                }
+            ],
             "e2e_encryption": false,
             "module_settings": {
                 "livekit":  {

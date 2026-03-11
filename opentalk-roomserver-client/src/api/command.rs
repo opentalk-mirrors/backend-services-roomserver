@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use opentalk_roomserver_types_recording::{RECORDING_MODULE_ID, command::RecordingCommand};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
 // reexport commands for easier usage
@@ -85,6 +86,7 @@ pub enum SignalingModuleCommand {
     Whiteboard(WhiteboardCommand),
     LegalVote(LegalVoteCommand),
     TrainingParticipationReport(TrainingParticipationReportCommand),
+    Recording(RecordingCommand),
 }
 
 impl SignalingModuleCommand {
@@ -108,6 +110,7 @@ impl SignalingModuleCommand {
             Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
+            Self::Recording(..) => RECORDING_MODULE_ID,
         }
     }
 }
@@ -133,6 +136,7 @@ mod tests {
         command::{Choices, PollsCommand, Vote},
     };
     use opentalk_roomserver_types_raise_hands::command::RaiseHandsCommand;
+    use opentalk_roomserver_types_recording::command::RecordingCommand;
     use opentalk_roomserver_types_timer::{TimerCommand, command::Kind};
     use opentalk_roomserver_types_training_participation_report::TrainingParticipationReportCommand;
     use opentalk_roomserver_types_whiteboard::WhiteboardCommand;
@@ -470,6 +474,24 @@ mod tests {
           "namespace": "training_participation_report",
           "payload": {
             "action": "confirm_presence"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_recording() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            payload: SignalingModuleCommand::Recording(RecordingCommand::StartRecording),
+        };
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "recording",
+          "payload": {
+            "action": "start_recording"
           }
         }
         "#);

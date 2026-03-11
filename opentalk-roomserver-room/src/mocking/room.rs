@@ -26,6 +26,7 @@ use opentalk_roomserver_types::{
     module_settings::{ModuleSettings, SignalingModuleSettings},
     public_user_profile::PublicUserProfile,
     rate_limit::RateLimitSettings,
+    room_kind::RoomKind,
     room_parameters::{EventContext, RoomParameters},
     tariff_details::TariffDetails,
 };
@@ -33,6 +34,7 @@ use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use opentalk_types_common::{
     assets::AssetId,
     rooms::RoomId,
+    streaming::RoomStreamingTarget,
     tariffs::{QuotaType, TariffId},
 };
 use tokio::{sync::watch, task::JoinHandle};
@@ -98,6 +100,7 @@ fn settings() -> Settings {
         reports: Reports {
             typst: ReportsTypst { packages_path },
         },
+        recording: Default::default(),
     }
 }
 
@@ -127,7 +130,7 @@ impl TestRoomBuilder {
                     used_quota: BTreeMap::new(),
                     disabled_features: BTreeSet::default(),
                 },
-                streaming_links: Vec::new(),
+                streaming_targets: Vec::new(),
                 show_meeting_details: true,
                 e2e_encryption: false,
                 module_settings: ModuleSettings::new(),
@@ -199,6 +202,18 @@ impl TestRoomBuilder {
 
     pub fn show_meeting_details(mut self, show_meeting_details: bool) -> Self {
         self.room_parameters.show_meeting_details = show_meeting_details;
+        self
+    }
+
+    pub fn settings(mut self, update: impl FnOnce(&mut Settings)) -> Self {
+        update(&mut self.settings);
+        self
+    }
+
+    pub fn streaming_target(mut self, streaming_target: RoomStreamingTarget) -> Self {
+        self.room_parameters
+            .streaming_targets
+            .push(streaming_target);
         self
     }
 
@@ -323,8 +338,15 @@ impl TestRoom {
         MockParticipantJoining::gustav().join(self).await.unwrap()
     }
 
-    pub async fn join_recorder(&mut self) -> MockParticipantJoined {
-        MockParticipantJoined::recorder().join(self).await.unwrap()
+    pub async fn join_recorder(
+        &mut self,
+        room_kind: RoomKind,
+        device_number: usize,
+    ) -> MockParticipantJoined {
+        MockParticipantJoined::recorder(device_number)
+            .join(self, room_kind)
+            .await
+            .unwrap()
     }
 
     pub async fn waiting_room_bob(&mut self, device_number: usize) -> MockParticipantWaiting {
@@ -350,13 +372,6 @@ impl TestRoom {
 
     pub async fn waiting_room_gustav_guest(&mut self) -> MockParticipantWaiting {
         MockParticipantJoining::gustav()
-            .enter_waiting_room(self)
-            .await
-            .unwrap()
-    }
-
-    pub async fn waiting_room_recorder(&mut self) -> MockParticipantWaiting {
-        MockParticipantJoined::recorder()
             .enter_waiting_room(self)
             .await
             .unwrap()
@@ -407,8 +422,31 @@ pub async fn flush_connected_events(others: &mut [&mut MockParticipantJoined]) {
             .unwrap();
         assert!(
             matches!(event.payload, CoreEvent::ParticipantConnected { .. },),
-            "Participant `{}` didn't receive CoreEvent::ParticipantConnected",
-            p.join_success().display_name.as_str()
+            "Participant `{}` didn't receive CoreEvent::ParticipantConnected, got {:?}",
+            p.join_success().display_name.as_str(),
+            event
+        );
+    }
+}
+
+pub async fn flush_disconnected_events(others: &mut [&mut MockParticipantJoined]) {
+    for p in others {
+        let event = p
+            .receive::<CoreEvent>()
+            .await
+            .with_context(|| {
+                format!(
+                    "`{}` didn't receive an event",
+                    p.join_success().display_name
+                )
+            })
+            .unwrap();
+
+        assert!(
+            matches!(event.payload, CoreEvent::ParticipantDisconnected { .. },),
+            "Participant `{}` didn't receive CoreEvent::ParticipantDisconnected, got {:?}",
+            p.join_success().display_name.as_str(),
+            event,
         );
     }
 }

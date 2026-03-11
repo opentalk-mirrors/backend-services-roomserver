@@ -114,6 +114,9 @@ exceptions = [
   ], name = "opentalk-roomserver-common" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-recording" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-signaling" },
   { allow = [
     "EUPL-1.2",
@@ -151,6 +154,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-raise-hands" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-recording" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-shared-folder" },

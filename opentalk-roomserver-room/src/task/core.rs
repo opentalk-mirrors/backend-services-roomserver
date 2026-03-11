@@ -41,7 +41,8 @@ use opentalk_roomserver_web_api::v1::signaling::websocket::{
     CloseFrame, SignalingSocket, SignalingSocketMessage,
 };
 use opentalk_types_common::{
-    events::MeetingDetails, modules::ModuleId, tariffs::QuotaType, time::Timestamp,
+    events::MeetingDetails, modules::ModuleId, streaming::StreamingLink, tariffs::QuotaType,
+    time::Timestamp,
 };
 use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
 
@@ -536,7 +537,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let meeting_details = MeetingDetails {
             invite_code_id: self.info.room.invite_code,
             call_in: self.info.room.call_in.clone(),
-            streaming_links: self.info.room.streaming_links.clone(),
+            streaming_links: self
+                .info
+                .room
+                .streaming_targets
+                .iter()
+                .filter_map(|target| {
+                    let url = target.streaming_target.kind.get_stream_target_location()?;
+
+                    Some(StreamingLink {
+                        name: target.streaming_target.name.clone(),
+                        url,
+                    })
+                })
+                .collect(),
         };
 
         let other_connections = self

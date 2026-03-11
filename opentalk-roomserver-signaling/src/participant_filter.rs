@@ -170,7 +170,7 @@ impl<'a> ParticipantsFiltered<'a> {
             .flat_map(|(_, s)| s.connections())
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&ParticipantId, &ParticipantState)> + use<'_> {
+    pub fn iter(self) -> impl Iterator<Item = (&'a ParticipantId, &'a ParticipantState)> + use<'a> {
         let filter = self.filter;
 
         self.inner
