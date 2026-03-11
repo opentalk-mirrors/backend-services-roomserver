@@ -27,53 +27,53 @@ authors = [
 homepage = "https://opentalk.eu/"
 license = "EUPL-1.2"
 repository = "https://gitlab.opencode.de/opentalk/roomserver"
-version = "0.0.25"
+version = "0.0.26-alpha"
 
 [workspace.dependencies]
-opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.25" }
-opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.25" }
-opentalk-roomserver-mocking-livekit = { path = "modules/livekit/mock", version = "0.0.25" }
-opentalk-roomserver-module-automod = { path = "modules/automod/module", version = "0.0.25" }
-opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.25" }
-opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.25" }
-opentalk-roomserver-module-echo = { path = "modules/echo/module", version = "0.0.25" }
-opentalk-roomserver-module-legal-vote = { path = "modules/legal-vote/module", version = "0.0.25" }
-opentalk-roomserver-module-livekit = { path = "modules/livekit/module", version = "0.0.25" }
-opentalk-roomserver-module-meeting-notes = { path = "modules/meeting-notes/module", version = "0.0.25" }
-opentalk-roomserver-module-meeting-report = { path = "modules/meeting-report/module", version = "0.0.25" }
-opentalk-roomserver-module-moderation = { path = "modules/moderation/module", version = "0.0.25" }
-opentalk-roomserver-module-polls = { path = "modules/polls/module", version = "0.0.25" }
-opentalk-roomserver-module-raise-hands = { path = "modules/raise-hands/module", version = "0.0.25" }
-opentalk-roomserver-module-recording = { path = "modules/recording/module", version = "0.0.25" }
-opentalk-roomserver-module-shared-folder = { path = "modules/shared-folder/module", version = "0.0.25" }
-opentalk-roomserver-module-subroom-audio = { path = "modules/subroom-audio/module", version = "0.0.25" }
-opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.25" }
-opentalk-roomserver-module-training-participation-report = { path = "modules/training-participation-report/module", version = "0.0.25" }
-opentalk-roomserver-module-whiteboard = { path = "modules/whiteboard/module", version = "0.0.25" }
+opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.26-alpha" }
+opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.26-alpha" }
+opentalk-roomserver-mocking-livekit = { path = "modules/livekit/mock", version = "0.0.26-alpha" }
+opentalk-roomserver-module-automod = { path = "modules/automod/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-echo = { path = "modules/echo/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-legal-vote = { path = "modules/legal-vote/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-livekit = { path = "modules/livekit/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-meeting-notes = { path = "modules/meeting-notes/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-meeting-report = { path = "modules/meeting-report/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-moderation = { path = "modules/moderation/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-polls = { path = "modules/polls/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-raise-hands = { path = "modules/raise-hands/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-recording = { path = "modules/recording/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-shared-folder = { path = "modules/shared-folder/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-subroom-audio = { path = "modules/subroom-audio/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-training-participation-report = { path = "modules/training-participation-report/module", version = "0.0.26-alpha" }
+opentalk-roomserver-module-whiteboard = { path = "modules/whiteboard/module", version = "0.0.26-alpha" }
 opentalk-roomserver-report-generation = { path = "opentalk-roomserver-report-generation", version = "0.0.16-dev" }
-opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.25" }
-opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.25" }
-opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.25", features = [
+opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.26-alpha" }
+opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.26-alpha" }
+opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.26-alpha", features = [
   "utoipa",
 ] }
-opentalk-roomserver-types-automod = { path = "modules/automod/types", version = "0.0.25" }
-opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.25" }
-opentalk-roomserver-types-e2ee = { path = "modules/e2ee/types", version = "0.0.25" }
-opentalk-roomserver-types-echo = { path = "modules/echo/types", version = "0.0.25" }
-opentalk-roomserver-types-legal-vote = { path = "modules/legal-vote/types", version = "0.0.25" }
-opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = "0.0.25" }
-opentalk-roomserver-types-meeting-notes = { path = "modules/meeting-notes/types", version = "0.0.25" }
-opentalk-roomserver-types-meeting-report = { path = "modules/meeting-report/types", version = "0.0.25" }
-opentalk-roomserver-types-moderation = { path = "modules/moderation/types", version = "0.0.25" }
-opentalk-roomserver-types-polls = { path = "modules/polls/types", version = "0.0.25" }
-opentalk-roomserver-types-raise-hands = { path = "modules/raise-hands/types", version = "0.0.25" }
-opentalk-roomserver-types-recording = { path = "modules/recording/types", version = "0.0.25" }
-opentalk-roomserver-types-shared-folder = { path = "modules/shared-folder/types", version = "0.0.25" }
-opentalk-roomserver-types-subroom-audio = { path = "modules/subroom-audio/types", version = "0.0.25" }
-opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.25" }
-opentalk-roomserver-types-training-participation-report = { path = "modules/training-participation-report/types", version = "0.0.25" }
-opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.0.25" }
-opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.25" }
+opentalk-roomserver-types-automod = { path = "modules/automod/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-e2ee = { path = "modules/e2ee/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-echo = { path = "modules/echo/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-legal-vote = { path = "modules/legal-vote/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-meeting-notes = { path = "modules/meeting-notes/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-meeting-report = { path = "modules/meeting-report/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-moderation = { path = "modules/moderation/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-polls = { path = "modules/polls/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-raise-hands = { path = "modules/raise-hands/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-recording = { path = "modules/recording/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-shared-folder = { path = "modules/shared-folder/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-subroom-audio = { path = "modules/subroom-audio/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-training-participation-report = { path = "modules/training-participation-report/types", version = "0.0.26-alpha" }
+opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.0.26-alpha" }
+opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.26-alpha" }
 opentalk-service-auth = { version = "0.2", features = ["axum"] }
 opentalk-types-api-internal = "0.1.1"
 opentalk-types-api-v1 = { version = "0.54.0", features = ["axum"] }
