@@ -45,11 +45,11 @@ _check_dot:
     fi
 
 [no-exit-message]
-_check_git_cliff:
+_check_opentalk_git_cliff:
     #!/usr/bin/env bash
     set -euo pipefail
-    if ! git-cliff --help &>/dev/null; then
-        echo 'git-cliff is not available, you can install it with `cargo install --git ssh://git@git.opentalk.dev:222/opentalk/tools/git-cliff.git`' >&2
+    if ! opentalk-git-cliff --help &>/dev/null; then
+        echo 'opentalk-git-cliff is not available, you can install it with `cargo install --git ssh://git@git.opentalk.dev:222/opentalk/tools/check-changelog.git`' >&2
         exit 1
     fi
 
@@ -84,7 +84,7 @@ update-openapi:
     echo '' >> api/docs/openapi.yml
 
 # Update the changelog
-update-changelog VERSION: _check_git_cliff
+update-changelog VERSION: _check_opentalk_git_cliff
     #!/usr/bin/env bash
 
     if [ -z "$GITLAB_TOKEN" ] && [ -f "$HOME/.gitlab_token" ]; then
@@ -95,8 +95,7 @@ update-changelog VERSION: _check_git_cliff
     GITLAB_TOKEN=$GITLAB_TOKEN \
     GITLAB_API_URL=https://git.opentalk.dev/api/v4 \
     GITLAB_REPO=opentalk/backend/services/roomserver \
-    git-cliff -vv \
-        --config opentalk \
+    opentalk-git-cliff \
         --unreleased \
         --tag "v{{ VERSION }}" \
         --prepend CHANGELOG.md
