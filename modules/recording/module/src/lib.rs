@@ -312,7 +312,7 @@ impl RecordingModule {
             for target in &self.streaming_targets {
                 let Some(location) = target.streaming_target.kind.get_stream_target_location()
                 else {
-                    log::warn!("Failed to build streaming url for a streaming-target");
+                    tracing::warn!("Failed to build streaming url for a streaming-target");
                     continue;
                 };
 
@@ -382,7 +382,7 @@ impl RecordingModule {
             let url = match recorder_config.url.join("v1/init") {
                 Ok(url) => url,
                 Err(err) => {
-                    log::error!(
+                    tracing::error!(
                         "Failed to build recorder init url from base_url: {}, {err}",
                         recorder_config.url
                     );
@@ -391,7 +391,7 @@ impl RecordingModule {
                 }
             };
 
-            log::debug!("Sending off recorder start request to {url} with body {body:?}");
+            tracing::debug!("Sending off recorder start request to {url} with body {body:?}");
 
             let response = http_client
                 .post(url)
@@ -403,7 +403,7 @@ impl RecordingModule {
             let response = match response {
                 Ok(response) => response,
                 Err(err) => {
-                    log::error!("Failed to send init request to recorder, {err:?}");
+                    tracing::error!("Failed to send init request to recorder, {err:?}");
                     return Some(LoopBackEvent::RecorderRequestFailed);
                 }
             };
@@ -415,13 +415,13 @@ impl RecordingModule {
                 .map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
 
             if response_status.is_success() {
-                log::debug!(
+                tracing::debug!(
                     "Got recorder start response status={} body={:?}",
                     response_status,
                     response_body,
                 );
             } else {
-                log::debug!(
+                tracing::debug!(
                     "Got non-success response to recorder start request status={} body={:?}",
                     response_status,
                     response_body,
