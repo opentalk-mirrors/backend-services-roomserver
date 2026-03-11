@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.25] - 2026-03-11
+
+[0.0.25]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.24...v0.0.25
+
+### 🚀 New features
+
+- Add recording module ([!517](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/517), [#137](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/137))
+
+### 🔨 Refactor
+
+- Add RoomKind to ClientKind::Recorder ([!933](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/933))
+- Replace streaming_links with streaming_targets in client parameters ([!517](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/517))
+
+### ⚙ Miscellaneous
+
+- (justfile) Rename `update-frontend-api` function to `update-openapi` ([!937](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/937))
+- Add documentation for ClientKind::Recorder's room field ([!517](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/517))
+
 ## [0.0.24] - 2026-03-05
 
 [0.0.24]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.23...v0.0.24
