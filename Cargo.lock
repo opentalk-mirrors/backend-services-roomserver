@@ -5702,7 +5702,6 @@ version = "0.0.26-alpha"
 dependencies = [
  "anyhow",
  "axum",
- "log",
  "opentalk-roomserver-common",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
@@ -5717,6 +5716,7 @@ dependencies = [
  "serde_json",
  "test-log",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
