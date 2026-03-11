@@ -134,6 +134,12 @@ api_key = { "id" = "controller", "secret" = "secret" }
 
 # Optional orchestrator configuration
 #[orchestrator]
+# If configured, the roomserver will register at the orchestrator when started.
+#
+# If the `http.service_url` is configured, the roomserver will include that URL in the orchestrators registration
+# request. If not, the roomserver will only provide its `http.port` in the registration and the orchestrator must build
+# the roomservers URL by using the received websocket address and the provided port.
+#
 # The API key of the orchestrator
 #api_key = { id = "orchestrator", secret = "secret" }
 # The orchestrator URL
