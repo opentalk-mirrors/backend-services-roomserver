@@ -243,9 +243,6 @@ exceptions = [
   ], name = "opentalk-service-auth" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-types" },
-  { allow = [
-    "EUPL-1.2",
   ], name = "opentalk-types-api-common" },
   { allow = [
     "EUPL-1.2",
