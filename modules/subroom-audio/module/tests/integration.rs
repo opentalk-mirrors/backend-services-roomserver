@@ -1,21 +1,36 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_mocking_livekit as mocking_livekit;
+use opentalk_roomserver_mocking_livekit as mocking;
+use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_subroom_audio::SubroomAudioModule;
-use opentalk_roomserver_room::mocking::room::flush_connected_events;
+use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types_subroom_audio::{
     WhisperId,
     command::{ParticipantTargets, SubroomAudioCommand},
     event::{SubroomAudioError, SubroomAudioEvent},
 };
+use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
+
+pub async fn build_room() -> (mocking::ContainerGuard, TestRoom, String) {
+    let (container, settings) = mocking::create_livekit_container().await;
+
+    let room = TestRoom::builder()
+        .room_id(RoomId::generate())
+        .register_module::<LiveKitModule>()
+        .register_module::<SubroomAudioModule>()
+        .add_init_module_data(&settings)
+        .unwrap()
+        .spawn();
+
+    (container, room, settings.public_url)
+}
 
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_create_whisper_group_and_invite() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<SubroomAudioModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
 
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
@@ -50,8 +65,7 @@ async fn livekit_create_whisper_group_and_invite() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_accept_and_leave_whisper_group() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<SubroomAudioModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
 
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
@@ -145,8 +159,7 @@ async fn livekit_accept_and_leave_whisper_group() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_cannot_create_whisper_group_with_empty_participants() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<SubroomAudioModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
 
     alice
@@ -174,8 +187,7 @@ async fn livekit_cannot_create_whisper_group_with_empty_participants() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_cannot_invite_nonexistent_participant() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<SubroomAudioModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
 
     let fake_id = ParticipantId::generate();
@@ -206,8 +218,7 @@ async fn livekit_cannot_invite_nonexistent_participant() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_cannot_kick_without_permission() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<SubroomAudioModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -258,8 +269,7 @@ async fn livekit_cannot_kick_without_permission() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_cannot_invite_to_nonexistent_group() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<SubroomAudioModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -291,8 +301,7 @@ async fn livekit_cannot_invite_to_nonexistent_group() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_cannot_accept_whisper_invite_twice() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<SubroomAudioModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -355,8 +364,7 @@ async fn livekit_cannot_accept_whisper_invite_twice() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_cannot_accept_invite_when_not_invited() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<SubroomAudioModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
 
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
@@ -408,8 +416,7 @@ async fn livekit_cannot_accept_invite_when_not_invited() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_cannot_kick_self() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<SubroomAudioModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
 
     let mut alice = room.join_alice_moderator(0).await;
     let bob = room.join_bob(0).await;

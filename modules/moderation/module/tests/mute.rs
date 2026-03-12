@@ -18,6 +18,8 @@ use opentalk_roomserver_types_moderation::{
 };
 use opentalk_types_signaling::ParticipantId;
 
+mod common;
+
 #[test_log::test(tokio::test)]
 async fn unknown_participant() {
     let mut room = TestRoom::builder()
@@ -50,8 +52,7 @@ async fn unknown_participant() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_mute_bob() {
-    let (_container, room, public_url) = livekit_mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, public_url) = common::build_room().await;
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -138,8 +139,7 @@ async fn insufficient_permissions() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_alice_in_breakout_bob_in_main() {
-    let (_container, room, public_url) = livekit_mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, public_url) = common::build_room().await;
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_mocking_livekit as mocking_livekit;
+use opentalk_roomserver_mocking_livekit as mocking;
 use opentalk_roomserver_module_automod::AutomodModule;
+use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::{
     participant::MockParticipantJoined,
     room::{TestRoom, flush_connected_events},
@@ -22,8 +23,23 @@ use opentalk_roomserver_types_automod::{
     event::{AutomodError, AutomodEvent, StoppedReason},
     state::AutomodState,
 };
+use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
+
+pub async fn build_room() -> (mocking::ContainerGuard, TestRoom, String) {
+    let (container, settings) = mocking::create_livekit_container().await;
+
+    let room = TestRoom::builder()
+        .room_id(RoomId::generate())
+        .register_module::<LiveKitModule>()
+        .register_module::<AutomodModule>()
+        .add_init_module_data(&settings)
+        .unwrap()
+        .spawn();
+
+    (container, room, settings.public_url)
+}
 
 async fn start_automod(
     participant: &mut MockParticipantJoined,
@@ -119,8 +135,7 @@ async fn insufficient_permissions_start() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_insufficient_permissions_edit() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -165,8 +180,7 @@ async fn livekit_insufficient_permissions_edit() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_insufficient_permissions_stop() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -205,8 +219,7 @@ async fn livekit_insufficient_permissions_stop() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_insufficient_permissions_select() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -245,8 +258,7 @@ async fn livekit_insufficient_permissions_select() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_insufficient_permissions_yield() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -325,8 +337,7 @@ async fn livekit_insufficient_permissions_yield() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_session_already_running() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
 
     let parameter = Parameter {
@@ -522,8 +533,7 @@ async fn invalid_selection_start() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_invalid_edit() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
 
     let parameter = Parameter {
@@ -595,8 +605,7 @@ async fn livekit_invalid_edit() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_invalid_select() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -660,8 +669,7 @@ async fn livekit_invalid_select() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_stop() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
 
     let parameter = Parameter {
@@ -695,8 +703,7 @@ async fn livekit_stop() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_join_success() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
 
     assert!(
@@ -774,8 +781,7 @@ async fn livekit_join_success() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_join_auto_append() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
 
     // Auto append on join is enabled
@@ -892,8 +898,7 @@ async fn livekit_join_auto_append() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_join_no_auto_append() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
 
     // Auto append on join is disabled
@@ -962,8 +967,7 @@ async fn livekit_join_no_auto_append() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_breakout_room() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1039,8 +1043,7 @@ async fn livekit_breakout_room() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_participant_disconnect() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1109,8 +1112,7 @@ async fn livekit_participant_disconnect() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_selection_strategy_none() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1254,8 +1256,7 @@ async fn livekit_selection_strategy_none() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_selection_strategy_playlist() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1464,8 +1465,7 @@ async fn livekit_selection_strategy_playlist() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_selection_strategy_random() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
@@ -1617,8 +1617,7 @@ async fn livekit_selection_strategy_random() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_selection_strategy_nomination() {
-    let (_container, room, _public_url) = mocking_livekit::build_livekit_room().await;
-    let mut room = room.register_module::<AutomodModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;

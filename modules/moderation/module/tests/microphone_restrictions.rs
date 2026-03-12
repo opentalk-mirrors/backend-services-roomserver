@@ -20,11 +20,14 @@ use opentalk_roomserver_types_moderation::{
 use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
 
+use crate::common::build_room;
+
+mod common;
+
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_microphones_are_restricted() {
-    let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, public_url) = build_room().await;
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -98,8 +101,7 @@ async fn livekit_microphones_are_restricted() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_permissions_are_updated() {
-    let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, public_url) = build_room().await;
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -197,8 +199,7 @@ async fn livekit_permissions_are_updated() {
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_enable_unknown_participant() {
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
-    let (_container, room, _public_url) = mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -232,8 +233,7 @@ async fn livekit_enable_unknown_participant() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_disable_unknown_participant() {
-    let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, public_url) = build_room().await;
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -298,8 +298,7 @@ async fn livekit_disable_unknown_participant() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_disable_insufficient_permissions() {
-    let (_container, room, _public_url) = mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
 
     // Bob joins the meeting
     let mut bob = room.join_bob(0).await;
@@ -320,8 +319,7 @@ async fn livekit_disable_insufficient_permissions() {
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_enable_insufficient_permissions() {
     let disconnected_participant = ParticipantId::from_u128(0x461ba262_6bb1_4c85_bbd5_b3d010b1a076);
-    let (_container, room, _public_url) = mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
 
     // Bob joins the meeting
     let mut bob = room.join_bob(0).await;
@@ -350,8 +348,7 @@ async fn livekit_enable_insufficient_permissions() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_barrier_should_be_freed() {
-    let (_container, room, _public_url) = mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, _public_url) = build_room().await;
 
     // Alice joins the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -382,8 +379,7 @@ async fn livekit_barrier_should_be_freed() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_alice_in_breakout_bob_in_main() {
-    let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, public_url) = build_room().await;
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;
@@ -462,8 +458,7 @@ async fn livekit_alice_in_breakout_bob_in_main() {
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_alice_and_bob_in_breakout() {
-    let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.register_module::<ModerationModule>().spawn();
+    let (_container, mut room, public_url) = build_room().await;
 
     // Alice and Bob join the meeting
     let mut alice = room.join_alice_moderator(0).await;

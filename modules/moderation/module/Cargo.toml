@@ -8,7 +8,7 @@ edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-module-moderation"
-publish = false
+publish = true
 repository.workspace = true
 version.workspace = true
 
