@@ -20,6 +20,7 @@ use std::{any::Any, collections::BTreeMap, fmt::Display, time::Duration};
 
 use anyhow::Context;
 use dyn_module_context::DynModuleContext;
+pub use module_initializer::{DescriptionPrinter, ModuleInitializer};
 use opentalk_roomserver_signaling::{
     event_origin::EventOrigin,
     module_context::ModuleContext,

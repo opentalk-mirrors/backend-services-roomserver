@@ -14,7 +14,8 @@ use livekit_protocol::TrackSource;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, SignalingModule, SignalingModuleInitData,
+        ModuleJoinData, ModuleSwitchData, SignalingModule, SignalingModuleDescription,
+        SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -62,6 +63,12 @@ pub struct LiveKitModule {
     livekit_client: Arc<RoomClient>,
 
     rooms: HashMap<RoomKind, LiveKitSubroom>,
+}
+
+impl SignalingModuleDescription for LiveKitModule {
+    const MODULE_ID: ModuleId = LIVEKIT_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles Livekit media streams coordination and integration";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for LiveKitModule {

@@ -13,7 +13,10 @@ use opentalk_roomserver_signaling::{
     banned_participant::BannedParticipant,
     module_context::{ChannelDroppedError, ModuleContext},
     participant_state::ParticipantState,
-    signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
+    signaling_module::{
+        ModuleJoinData, NoOp, SignalingModule, SignalingModuleDescription,
+        SignalingModuleFeatureDescription, SignalingModuleInitData,
+    },
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, Role},
@@ -50,6 +53,12 @@ impl From<ChannelDroppedError> for ModerationLoopback {
     fn from(_: ChannelDroppedError) -> Self {
         Self::ChannelDropped
     }
+}
+
+impl SignalingModuleDescription for ModerationModule {
+    const MODULE_ID: ModuleId = MODERATION_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles moderation functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for ModerationModule {

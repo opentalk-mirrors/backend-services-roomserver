@@ -5,7 +5,10 @@ use std::convert::Infallible;
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
+    signaling_module::{
+        ModuleJoinData, NoOp, SignalingModule, SignalingModuleDescription,
+        SignalingModuleFeatureDescription, SignalingModuleInitData,
+    },
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
@@ -15,6 +18,12 @@ use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 
 pub struct EchoModule;
+
+impl SignalingModuleDescription for EchoModule {
+    const MODULE_ID: ModuleId = ECHO_MODULE_ID;
+    const DESCRIPTION: &'static str = "Used for internal connection checking and development";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+}
 
 impl SignalingModule for EchoModule {
     const NAMESPACE: ModuleId = ECHO_MODULE_ID;

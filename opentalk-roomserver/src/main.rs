@@ -30,6 +30,7 @@ use tokio::{
 mod api;
 mod cli;
 mod metrics;
+mod modules;
 mod tcp_multi_listener;
 
 mod trace;
@@ -251,6 +252,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(SubCommand::Health(command)) => {
             cli::health::handle_command(command, args.config.as_deref()).await?;
+        }
+        Some(SubCommand::Modules(command)) => {
+            cli::modules::handle_command(command);
         }
         None => run_app(args.config.as_deref()).await?,
     }

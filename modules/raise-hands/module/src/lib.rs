@@ -7,7 +7,7 @@ use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-        SignalingModuleInitData,
+        SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -27,6 +27,12 @@ pub struct RaiseHandsModule {
     /// The raised hands state for each room. If a room is not present in this map,
     /// raised hands are not enabled for that room.
     raised_hands: HashMap<RoomKind, HashMap<ParticipantId, Timestamp>>,
+}
+
+impl SignalingModuleDescription for RaiseHandsModule {
+    const MODULE_ID: ModuleId = RAISE_HANDS_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles the raising hand functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for RaiseHandsModule {

@@ -3,7 +3,9 @@
 
 use std::{collections::HashMap, marker::PhantomData};
 
-use opentalk_roomserver_signaling::signaling_module::{SignalingModule, SignalingModuleInitData};
+use opentalk_roomserver_signaling::signaling_module::{
+    SignalingModule, SignalingModuleFeatureDescription, SignalingModuleInitData,
+};
 use opentalk_types_common::modules::ModuleId;
 
 use super::{ModuleDispatcher, ModuleHandle};
@@ -73,6 +75,12 @@ impl ModuleRegistry {
 
         (modules, uninitialized)
     }
+
+    pub fn print<P: DescriptionPrinter>(&self, printer: &mut P) {
+        for initializer in self.modules.values() {
+            printer.print(initializer.as_ref());
+        }
+    }
 }
 
 impl Default for ModuleRegistry {
@@ -81,12 +89,22 @@ impl Default for ModuleRegistry {
     }
 }
 
+pub trait DescriptionPrinter {
+    fn print(&mut self, module_initializer: &dyn ModuleInitializer);
+}
+
 #[async_trait::async_trait]
-trait ModuleInitializer: Sync + Send {
+pub trait ModuleInitializer: Sync + Send {
     async fn init_module(
         &self,
         init_data: SignalingModuleInitData,
     ) -> Option<Box<dyn ModuleHandle>>;
+
+    fn description(&self) -> &'static str;
+
+    fn feature_descriptions(&self) -> &[SignalingModuleFeatureDescription];
+
+    fn module_id(&self) -> ModuleId;
 }
 
 struct ModuleInitializerImpl<M: SignalingModule + Sync> {
@@ -113,5 +131,17 @@ impl<M: SignalingModule + Sync + 'static> ModuleInitializer for ModuleInitialize
             tracing::debug!("`{}` module initializer returned none", M::NAMESPACE);
             None
         }
+    }
+
+    fn description(&self) -> &'static str {
+        M::DESCRIPTION
+    }
+
+    fn feature_descriptions(&self) -> &[SignalingModuleFeatureDescription] {
+        M::FEATURES
+    }
+
+    fn module_id(&self) -> ModuleId {
+        M::MODULE_ID
     }
 }

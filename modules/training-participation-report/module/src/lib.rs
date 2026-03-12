@@ -15,7 +15,7 @@ use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-        SignalingModuleInitData,
+        SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
     storage::assets::AssetUploaded,
 };
@@ -81,6 +81,12 @@ pub struct TrainingParticipationReportModule {
     autostart: Option<TrainingParticipationReportParameterSet>,
     sessions: HashMap<RoomKind, TrainingSession>,
     typst_package_path: PathBuf,
+}
+
+impl SignalingModuleDescription for TrainingParticipationReportModule {
+    const MODULE_ID: ModuleId = TRAINING_PARTICIPATION_REPORT_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles training participation report functionality. Participants are asked to confirm their presence repeatedly at pre-configured time intervals. These confirmations are documented in the training participation report which is created automatically at the end of the meeting.";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for TrainingParticipationReportModule {

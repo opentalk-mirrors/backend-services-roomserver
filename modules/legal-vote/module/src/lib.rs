@@ -60,7 +60,7 @@ use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-        SignalingModuleInitData,
+        SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -103,6 +103,12 @@ pub struct LegalVoteModule {
     active_votes: HashMap<RoomKind, ActiveVote>,
     history: HashMap<LegalVoteId, Vec<proto::ProtocolEntry>>,
     typst_package_path: PathBuf,
+}
+
+impl SignalingModuleDescription for LegalVoteModule {
+    const MODULE_ID: ModuleId = LEGAL_VOTE_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles the legal-vote functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for LegalVoteModule {

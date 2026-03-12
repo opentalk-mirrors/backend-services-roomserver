@@ -19,7 +19,10 @@ use std::convert::Infallible;
 pub use internal::UpdateSharedFolder;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{ModuleJoinData, PeerDataMap, SignalingModule, SignalingModuleInitData},
+    signaling_module::{
+        ModuleJoinData, PeerDataMap, SignalingModule, SignalingModuleDescription,
+        SignalingModuleFeatureDescription, SignalingModuleInitData,
+    },
 };
 use opentalk_roomserver_types::{
     client_parameters::Role, connection_id::ConnectionId,
@@ -33,6 +36,12 @@ use opentalk_types_signaling::ParticipantId;
 
 pub struct SharedFolderModule {
     state: SharedFolder,
+}
+
+impl SignalingModuleDescription for SharedFolderModule {
+    const MODULE_ID: ModuleId = SHARED_FOLDER_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles shared folder integration. This allows automatic creation of shares on a NextCloud instance using the [OCS API](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-api-overview.html).";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for SharedFolderModule {

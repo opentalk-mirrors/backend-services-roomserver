@@ -24,6 +24,7 @@ axum-prometheus.workspace = true
 cidr.workspace = true
 clap.workspace = true
 futures.workspace = true
+itertools.workspace = true
 opentalk-orchestrator-client.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-module-automod.workspace = true
@@ -44,6 +45,7 @@ opentalk-roomserver-module-timer.workspace = true
 opentalk-roomserver-module-training-participation-report.workspace = true
 opentalk-roomserver-module-whiteboard.workspace = true
 opentalk-roomserver-room.workspace = true
+opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-types-api-v1 = { workspace = true, features = ["utoipa"] }

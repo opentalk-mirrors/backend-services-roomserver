@@ -30,6 +30,7 @@ Usage: opentalk-roomserver [OPTIONS] [COMMAND]
 Commands:
   health   Return the readiness state
   openapi  OpenAPI related commands
+  modules  Command show available modules
   help     Print this message or the help of the given subcommand(s)
 
 Options:

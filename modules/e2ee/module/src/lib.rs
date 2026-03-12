@@ -4,7 +4,10 @@
 
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
+    signaling_module::{
+        ModuleJoinData, NoOp, SignalingModule, SignalingModuleDescription,
+        SignalingModuleFeatureDescription, SignalingModuleInitData,
+    },
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
@@ -17,6 +20,12 @@ use opentalk_types_signaling::ParticipantId;
 
 #[derive(Debug)]
 pub struct E2eeModule;
+
+impl SignalingModuleDescription for E2eeModule {
+    const MODULE_ID: ModuleId = E2EE_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles end-to-end encryption functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+}
 
 impl SignalingModule for E2eeModule {
     const NAMESPACE: ModuleId = E2EE_MODULE_ID;

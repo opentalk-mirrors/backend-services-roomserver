@@ -15,7 +15,10 @@ use livekit_api::{
 use livekit_protocol::TrackSource;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
+    signaling_module::{
+        ModuleJoinData, NoOp, SignalingModule, SignalingModuleDescription,
+        SignalingModuleFeatureDescription, SignalingModuleInitData,
+    },
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
@@ -40,6 +43,12 @@ pub struct SubroomAudioModule {
     settings: Arc<LiveKitSettings>,
     livekit_client: Arc<RoomClient>,
     whisper_rooms: HashMap<WhisperId, WhisperGroup>,
+}
+
+impl SignalingModuleDescription for SubroomAudioModule {
+    const MODULE_ID: ModuleId = SUBROOM_AUDIO_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles sub-room audio, allowing participants to talk to each other in a separate audio group.";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for SubroomAudioModule {

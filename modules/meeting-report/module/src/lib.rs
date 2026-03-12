@@ -14,7 +14,10 @@ use opentalk_roomserver_room::{AssetUploaded, ModuleAssetStorage};
 use opentalk_roomserver_signaling::{
     localization,
     module_context::ModuleContext,
-    signaling_module::{ModuleJoinData, NoOp, SignalingModule, SignalingModuleInitData},
+    signaling_module::{
+        ModuleJoinData, NoOp, SignalingModule, SignalingModuleDescription,
+        SignalingModuleFeatureDescription, SignalingModuleInitData,
+    },
     storage::assets::AssetMetaData,
 };
 use opentalk_roomserver_types::{
@@ -46,6 +49,13 @@ const TEMPLATE: &str = include_str!("../templates/attendance_report.typ");
 const FTL_EN: &str = include_str!("../templates/l10n/en.ftl");
 const FTL_DE: &str = include_str!("../templates/l10n/de.ftl");
 const AVAILABLE_LANGUAGES: &[LanguageIdentifier] = &[langid!("en"), langid!("de")];
+
+impl SignalingModuleDescription for MeetingReportModule {
+    const MODULE_ID: ModuleId = MEETING_REPORT_MODULE_ID;
+    const DESCRIPTION: &'static str =
+        "Handles generation of meeting reports, e.g. participant list export";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+}
 
 impl SignalingModule for MeetingReportModule {
     const NAMESPACE: ModuleId = MEETING_REPORT_MODULE_ID;

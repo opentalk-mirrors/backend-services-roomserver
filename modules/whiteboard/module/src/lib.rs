@@ -12,7 +12,7 @@ use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-        SignalingModuleInitData,
+        SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
     storage::assets::ModuleAssetStorage,
 };
@@ -53,6 +53,12 @@ impl From<&InitState> for WhiteboardState {
 pub struct WhiteboardModule {
     state: HashMap<RoomKind, InitState>,
     client: Arc<SpacedeckClient>,
+}
+
+impl SignalingModuleDescription for WhiteboardModule {
+    const MODULE_ID: ModuleId = WHITEBOARD_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used during the meeting.";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for WhiteboardModule {

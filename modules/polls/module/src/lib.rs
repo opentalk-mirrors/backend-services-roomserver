@@ -12,7 +12,7 @@ use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-        SignalingModuleInitData,
+        SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -96,6 +96,12 @@ impl Poll {
         results.sort_by(|a, b| a.id.cmp(&b.id));
         results
     }
+}
+
+impl SignalingModuleDescription for PollsModule {
+    const MODULE_ID: ModuleId = POLLS_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles meeting polls functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for PollsModule {

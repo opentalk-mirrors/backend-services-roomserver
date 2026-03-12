@@ -12,7 +12,7 @@ use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-        SignalingModuleInitData,
+        SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -48,6 +48,13 @@ impl From<ChannelDroppedError> for TimerLoopback {
 pub struct TimerModule {
     timers: HashMap<RoomKind, Option<Timer>>,
     ready_participants: HashMap<RoomKind, BTreeSet<ParticipantId>>,
+}
+
+impl SignalingModuleDescription for TimerModule {
+    const MODULE_ID: ModuleId = TIMER_MODULE_ID;
+    const DESCRIPTION: &'static str =
+        "Handles timer functionality including the coffee-break timer.";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for TimerModule {
