@@ -30,7 +30,6 @@ use tokio::{
 mod api;
 mod cli;
 mod metrics;
-mod modules;
 mod tcp_multi_listener;
 
 mod trace;

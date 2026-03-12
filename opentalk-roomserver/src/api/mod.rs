@@ -11,6 +11,7 @@ use axum::{
     serve::Listener as _,
 };
 use opentalk_roomserver_common::settings::Settings;
+use opentalk_roomserver_modules::setup_registry;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
@@ -34,8 +35,8 @@ use utoipa::{
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    ApplicationState, api::websocket::WebSocketAdapter, modules::setup_registry,
-    tcp_multi_listener::MultiListener, wait_shutdown,
+    ApplicationState, api::websocket::WebSocketAdapter, tcp_multi_listener::MultiListener,
+    wait_shutdown,
 };
 
 pub(crate) type Router = axum::Router<Context>;

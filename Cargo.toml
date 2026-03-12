@@ -10,6 +10,7 @@ members = [
   "opentalk-roomserver",
   "opentalk-roomserver-client",
   "opentalk-roomserver-dui",
+  "opentalk-roomserver-modules",
   "opentalk-roomserver-room",
   "opentalk-roomserver-types",
   "opentalk-roomserver-web-api",
@@ -50,6 +51,7 @@ opentalk-roomserver-module-subroom-audio = { path = "modules/subroom-audio/modul
 opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.26-alpha" }
 opentalk-roomserver-module-training-participation-report = { path = "modules/training-participation-report/module", version = "0.0.26-alpha" }
 opentalk-roomserver-module-whiteboard = { path = "modules/whiteboard/module", version = "0.0.26-alpha" }
+opentalk-roomserver-modules = { path = "opentalk-roomserver-modules", version = "0.0.26-alpha" }
 opentalk-roomserver-report-generation = { path = "opentalk-roomserver-report-generation", version = "0.0.16-dev" }
 opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.26-alpha" }
 opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.26-alpha" }
