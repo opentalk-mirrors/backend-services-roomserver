@@ -9,6 +9,7 @@ use opentalk_version::InfoArgs;
 
 pub(crate) mod health;
 mod license;
+pub(crate) mod modules;
 pub(crate) mod openapi;
 
 opentalk_version::build_info!();
@@ -84,4 +85,8 @@ pub(crate) enum SubCommand {
     /// OpenAPI related commands
     #[clap(subcommand)]
     Openapi(openapi::Command),
+
+    /// Command show available modules
+    #[clap(subcommand)]
+    Modules(modules::Command),
 }

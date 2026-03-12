@@ -5,12 +5,14 @@ use std::collections::BTreeMap;
 
 use opentalk_roomserver_signaling::signaling_module::{
     CreateReplica, ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-    SignalingModuleInitData,
+    SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
 };
 use opentalk_roomserver_types::signaling::module_error::{ModuleError, SignalingModuleError};
 use opentalk_types_common::modules::{ModuleId, module_id};
 use opentalk_types_signaling::{SignalingModuleFrontendData, SignalingModulePeerFrontendData};
 use serde::{Deserialize, Serialize};
+
+pub const MOCK_MODULE_ID: ModuleId = module_id!("mock");
 
 pub struct MockModule {}
 
@@ -42,8 +44,14 @@ pub struct Error;
 
 impl ModuleError for Error {}
 
+impl SignalingModuleDescription for MockModule {
+    const MODULE_ID: ModuleId = MOCK_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used during the meeting.";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+}
+
 impl SignalingModule for MockModule {
-    const NAMESPACE: ModuleId = module_id!("mock");
+    const NAMESPACE: ModuleId = MOCK_MODULE_ID;
 
     type Incoming = MockCommand;
 

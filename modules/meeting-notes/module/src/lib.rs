@@ -12,7 +12,7 @@ use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-        SignalingModuleInitData,
+        SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -68,6 +68,12 @@ pub struct SessionUrl {
 pub struct MeetingNotesModule {
     etherpad: Arc<EtherpadClient>,
     etherpad_rooms: HashMap<RoomKind, InitState>,
+}
+
+impl SignalingModuleDescription for MeetingNotesModule {
+    const MODULE_ID: ModuleId = MEETING_NOTES_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles meeting note editing and viewing functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for MeetingNotesModule {

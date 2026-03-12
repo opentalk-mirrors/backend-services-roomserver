@@ -13,7 +13,7 @@ use opentalk_roomserver_types::{
     shared_json::SharedJson,
     signaling::module_error::{FatalError, ModuleError, SignalingModuleError},
 };
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{features::FeatureId, modules::ModuleId};
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
@@ -28,7 +28,7 @@ use crate::participant_state::ParticipantState;
 /// handled in sequence on the same task. Signaling modules are expected to spawn separate tasks
 /// when compute intense or long-running operations need to be executed (See
 /// [`SignalingModule::Loopback`] for more details).
-pub trait SignalingModule: Send + Sync + Sized {
+pub trait SignalingModule: Send + Sync + Sized + SignalingModuleDescription {
     /// The unique namespace for the module
     ///
     /// This is used as a general identifier to dispatch incoming signaling messages to the correct
@@ -365,4 +365,15 @@ pub struct SignalingModuleInitData {
     pub settings: Arc<Settings>,
     /// The room parameters that are used to initialize the room
     pub room_parameters: Arc<RoomParameters>,
+}
+
+pub struct SignalingModuleFeatureDescription {
+    pub feature_id: FeatureId,
+    pub description: &'static str,
+}
+
+pub trait SignalingModuleDescription {
+    const MODULE_ID: ModuleId;
+    const DESCRIPTION: &'static str;
+    const FEATURES: &[SignalingModuleFeatureDescription];
 }

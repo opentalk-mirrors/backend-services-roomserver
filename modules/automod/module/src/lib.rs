@@ -68,7 +68,8 @@ use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, SignalingModule, SignalingModuleInitData,
+        ModuleJoinData, ModuleSwitchData, NoOp, SignalingModule, SignalingModuleDescription,
+        SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -118,6 +119,13 @@ impl From<ChannelDroppedError> for AutomodLoopback {
     fn from(_: ChannelDroppedError) -> Self {
         AutomodLoopback::ChannelDropped
     }
+}
+
+impl SignalingModuleDescription for AutomodModule {
+    const MODULE_ID: ModuleId = AUTOMOD_MODULE_ID;
+    const DESCRIPTION: &'static str =
+        "Handles auto-moderation functionality such as the talking stick";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 }
 
 impl SignalingModule for AutomodModule {

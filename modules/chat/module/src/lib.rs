@@ -8,7 +8,8 @@ use chat_id::{ChatId, PrivateChatId};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, SignalingModule, SignalingModuleInitData,
+        ModuleJoinData, ModuleSwitchData, NoOp, SignalingModule, SignalingModuleDescription,
+        SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -48,8 +49,11 @@ pub struct ChatModule {
     rate_limit: Option<RateLimit>,
 }
 
-#[derive(Debug)]
-pub struct RefillBuckets;
+impl SignalingModuleDescription for ChatModule {
+    const MODULE_ID: ModuleId = CHAT_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles room chat functionality";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+}
 
 impl SignalingModule for ChatModule {
     const NAMESPACE: ModuleId = CHAT_MODULE_ID;

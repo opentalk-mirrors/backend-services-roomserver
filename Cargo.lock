@@ -5314,23 +5314,7 @@ dependencies = [
  "icu_locid",
  "opentalk-orchestrator-client",
  "opentalk-roomserver-common",
- "opentalk-roomserver-module-automod",
- "opentalk-roomserver-module-chat",
- "opentalk-roomserver-module-e2ee",
- "opentalk-roomserver-module-echo",
- "opentalk-roomserver-module-legal-vote",
- "opentalk-roomserver-module-livekit",
- "opentalk-roomserver-module-meeting-notes",
- "opentalk-roomserver-module-meeting-report",
- "opentalk-roomserver-module-moderation",
- "opentalk-roomserver-module-polls",
- "opentalk-roomserver-module-raise-hands",
- "opentalk-roomserver-module-recording",
- "opentalk-roomserver-module-shared-folder",
- "opentalk-roomserver-module-subroom-audio",
- "opentalk-roomserver-module-timer",
- "opentalk-roomserver-module-training-participation-report",
- "opentalk-roomserver-module-whiteboard",
+ "opentalk-roomserver-modules",
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
@@ -5817,6 +5801,33 @@ dependencies = [
  "testcontainers",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "opentalk-roomserver-modules"
+version = "0.0.26-alpha"
+dependencies = [
+ "itertools 0.14.0",
+ "opentalk-roomserver-module-automod",
+ "opentalk-roomserver-module-chat",
+ "opentalk-roomserver-module-e2ee",
+ "opentalk-roomserver-module-echo",
+ "opentalk-roomserver-module-legal-vote",
+ "opentalk-roomserver-module-livekit",
+ "opentalk-roomserver-module-meeting-notes",
+ "opentalk-roomserver-module-meeting-report",
+ "opentalk-roomserver-module-moderation",
+ "opentalk-roomserver-module-polls",
+ "opentalk-roomserver-module-raise-hands",
+ "opentalk-roomserver-module-recording",
+ "opentalk-roomserver-module-shared-folder",
+ "opentalk-roomserver-module-subroom-audio",
+ "opentalk-roomserver-module-timer",
+ "opentalk-roomserver-module-training-participation-report",
+ "opentalk-roomserver-module-whiteboard",
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-types-common",
 ]
 
 [[package]]

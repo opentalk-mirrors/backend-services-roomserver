@@ -14,7 +14,7 @@ use opentalk_roomserver_signaling::{
     participant_state::ParticipantState,
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-        SignalingModuleInitData,
+        SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -69,6 +69,21 @@ pub struct RecordingModule {
 
 pub enum LoopBackEvent {
     RecorderRequestFailed,
+}
+
+impl SignalingModuleDescription for RecordingModule {
+    const MODULE_ID: ModuleId = RECORDING_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles recording functionality.";
+    const FEATURES: &[SignalingModuleFeatureDescription] = &[
+        SignalingModuleFeatureDescription {
+            feature_id: RECORD_FEATURE_ID,
+            description: "Allows creation of recordings for meetings",
+        },
+        SignalingModuleFeatureDescription {
+            feature_id: STREAM_FEATURE_ID,
+            description: "Allows streaming meetings to streaming services",
+        },
+    ];
 }
 
 impl SignalingModule for RecordingModule {

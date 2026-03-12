@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashMap, marker::PhantomData};
+use std::{
+    collections::{BTreeMap, BTreeSet, HashMap},
+    marker::PhantomData,
+};
 
-use opentalk_roomserver_signaling::signaling_module::{SignalingModule, SignalingModuleInitData};
-use opentalk_types_common::modules::ModuleId;
+use opentalk_roomserver_signaling::signaling_module::{
+    SignalingModule, SignalingModuleFeatureDescription, SignalingModuleInitData,
+};
+use opentalk_types_common::{features::FeatureId, modules::ModuleId};
 
 use super::{ModuleDispatcher, ModuleHandle};
 use crate::signaling::CORE_MODULES;
@@ -73,6 +78,19 @@ impl ModuleRegistry {
 
         (modules, uninitialized)
     }
+
+    pub fn print<P: DescriptionPrinter>(&self, printer: &mut P) {
+        for initializer in self.modules.values() {
+            printer.print(initializer.as_ref());
+        }
+    }
+
+    pub fn module_features(&self) -> BTreeMap<ModuleId, BTreeSet<FeatureId>> {
+        self.modules
+            .values()
+            .map(|initializer| (initializer.module_id(), initializer.features()))
+            .collect()
+    }
 }
 
 impl Default for ModuleRegistry {
@@ -81,12 +99,24 @@ impl Default for ModuleRegistry {
     }
 }
 
+pub trait DescriptionPrinter {
+    fn print(&mut self, module_initializer: &dyn ModuleInitializer);
+}
+
 #[async_trait::async_trait]
-trait ModuleInitializer: Sync + Send {
+pub trait ModuleInitializer: Sync + Send {
     async fn init_module(
         &self,
         init_data: SignalingModuleInitData,
     ) -> Option<Box<dyn ModuleHandle>>;
+
+    fn description(&self) -> &'static str;
+
+    fn feature_descriptions(&self) -> &[SignalingModuleFeatureDescription];
+
+    fn module_id(&self) -> ModuleId;
+
+    fn features(&self) -> BTreeSet<FeatureId>;
 }
 
 struct ModuleInitializerImpl<M: SignalingModule + Sync> {
@@ -113,5 +143,21 @@ impl<M: SignalingModule + Sync + 'static> ModuleInitializer for ModuleInitialize
             tracing::debug!("`{}` module initializer returned none", M::NAMESPACE);
             None
         }
+    }
+
+    fn description(&self) -> &'static str {
+        M::DESCRIPTION
+    }
+
+    fn feature_descriptions(&self) -> &[SignalingModuleFeatureDescription] {
+        M::FEATURES
+    }
+
+    fn module_id(&self) -> ModuleId {
+        M::MODULE_ID
+    }
+
+    fn features(&self) -> BTreeSet<FeatureId> {
+        M::FEATURES.iter().map(|f| f.feature_id.clone()).collect()
     }
 }

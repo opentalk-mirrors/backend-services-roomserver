@@ -46,6 +46,7 @@ $OPENTALK_ROOMSERVER_CMD help | codify text > "$CLI_DIR"/help.md
 $OPENTALK_ROOMSERVER_CMD health --help | codify text > "$CLI_DIR"/health-help.md
 $OPENTALK_ROOMSERVER_CMD openapi --help | codify text > "$CLI_DIR"/openapi-help.md
 $OPENTALK_ROOMSERVER_CMD openapi dump --help | codify text > "$CLI_DIR"/openapi-dump-help.md
+$OPENTALK_ROOMSERVER_CMD modules --help | codify text > "$CLI_DIR"/modules-help.md
 
 # Remove trailing spaces to prevent markdownlint from triggering *MD009 - Trailing spaces*
 # https://github.com/markdownlint/markdownlint/blob/main/docs/RULES.md#md009---trailing-spaces
