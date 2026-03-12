@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashMap, marker::PhantomData};
+use std::{
+    collections::{BTreeMap, BTreeSet, HashMap},
+    marker::PhantomData,
+};
 
 use opentalk_roomserver_signaling::signaling_module::{
     SignalingModule, SignalingModuleFeatureDescription, SignalingModuleInitData,
 };
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{features::FeatureId, modules::ModuleId};
 
 use super::{ModuleDispatcher, ModuleHandle};
 use crate::signaling::CORE_MODULES;
@@ -81,6 +84,13 @@ impl ModuleRegistry {
             printer.print(initializer.as_ref());
         }
     }
+
+    pub fn module_features(&self) -> BTreeMap<ModuleId, BTreeSet<FeatureId>> {
+        self.modules
+            .values()
+            .map(|initializer| (initializer.module_id(), initializer.features()))
+            .collect()
+    }
 }
 
 impl Default for ModuleRegistry {
@@ -105,6 +115,8 @@ pub trait ModuleInitializer: Sync + Send {
     fn feature_descriptions(&self) -> &[SignalingModuleFeatureDescription];
 
     fn module_id(&self) -> ModuleId;
+
+    fn features(&self) -> BTreeSet<FeatureId>;
 }
 
 struct ModuleInitializerImpl<M: SignalingModule + Sync> {
@@ -143,5 +155,9 @@ impl<M: SignalingModule + Sync + 'static> ModuleInitializer for ModuleInitialize
 
     fn module_id(&self) -> ModuleId {
         M::MODULE_ID
+    }
+
+    fn features(&self) -> BTreeSet<FeatureId> {
+        M::FEATURES.iter().map(|f| f.feature_id.clone()).collect()
     }
 }
