@@ -3,11 +3,11 @@
 
 [package]
 authors.workspace = true
-description = "Opentalk RoomServer LiveKit Module mocking utilities."
+description = "Opentalk RoomServer LiveKit test utilities."
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
-name = "opentalk-roomserver-mocking-livekit"
+name = "opentalk-roomserver-test-util-livekit"
 publish = true
 repository.workspace = true
 version.workspace = true

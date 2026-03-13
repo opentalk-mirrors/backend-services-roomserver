@@ -120,9 +120,6 @@ exceptions = [
   ], name = "opentalk-roomserver-dui" },
   { allow = [
     "EUPL-1.2",
-  ], name = "opentalk-roomserver-mocking-livekit" },
-  { allow = [
-    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-automod" },
   { allow = [
     "EUPL-1.2",
@@ -181,6 +178,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-signaling" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-test-util-livekit" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types" },

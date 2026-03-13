@@ -5,8 +5,8 @@ use std::{collections::BTreeSet, time::Duration};
 
 use livekit::{RoomEvent, RoomOptions};
 use livekit_api::services::room::RoomClient;
-use opentalk_roomserver_mocking_livekit::{LIVEKIT_KEY, LIVEKIT_SECRET};
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
+use opentalk_roomserver_test_util_livekit::{LIVEKIT_KEY, LIVEKIT_SECRET};
 use opentalk_roomserver_types::{
     breakout::{
         breakout_config::{BreakoutConfig, BreakoutRoomConfig},

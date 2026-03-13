@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use opentalk_roomserver_mocking_livekit as mocking;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_subroom_audio::SubroomAudioModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
+use opentalk_roomserver_test_util_livekit as test_util;
 use opentalk_roomserver_types_subroom_audio::{
     WhisperId,
     command::{ParticipantTargets, SubroomAudioCommand},
@@ -13,8 +13,8 @@ use opentalk_roomserver_types_subroom_audio::{
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
 
-pub async fn build_room() -> (mocking::ContainerGuard, TestRoom, String) {
-    let (container, settings) = mocking::create_livekit_container().await;
+pub async fn build_room() -> (test_util::ContainerGuard, TestRoom, String) {
+    let (container, settings) = test_util::create_livekit_container().await;
 
     let room = TestRoom::builder()
         .room_id(RoomId::generate())
