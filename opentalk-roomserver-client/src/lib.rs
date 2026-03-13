@@ -15,7 +15,8 @@ use opentalk_roomserver_types::{
     room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_service_auth::{ApiKey, EncodingError};
-use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_common::{rooms::RoomId, roomserver::Token, users::UserId};
 use reqwest::{Client as ReqwestClient, Response, header::AUTHORIZATION};
 use serde::Deserialize;
 use thiserror::Error;
@@ -69,6 +70,13 @@ pub enum PatchRoomError {
     #[error("The provided API token is invalid")]
     InvalidApiToken,
     #[error("The room does not exist")]
+    NotFound,
+}
+
+#[derive(Error, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PostStorageQuotaError {
+    #[error("No rooms created by the specified user exist")]
     NotFound,
 }
 
@@ -152,6 +160,33 @@ impl Client {
         }
 
         Err(Self::parse_api_error::<PatchRoomError>(
+            response.status(),
+            &response.bytes().await?,
+        ))
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn post_storage_quota(
+        &self,
+        user_id: UserId,
+        quota: Quota,
+    ) -> Result<(), Error<PostStorageQuotaError>> {
+        let url = self
+            .base_url
+            .join(&format!("v1/user/{user_id}/storage_quota"))?;
+        let response = self
+            .reqwest_client
+            .post(url)
+            .header(AUTHORIZATION, self.auth_header()?)
+            .json(&quota)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            return Ok(());
+        }
+
+        Err(Self::parse_api_error::<PostStorageQuotaError>(
             response.status(),
             &response.bytes().await?,
         ))

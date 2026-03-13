@@ -40,6 +40,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
     CloseFrame, SignalingSocket, SignalingSocketMessage,
 };
+use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::{
     events::MeetingDetails, modules::ModuleId, streaming::StreamingLink, tariffs::QuotaType,
     time::Timestamp,
@@ -672,6 +673,21 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             CORE_MODULE_ID,
             None,
             CoreEvent::RoomParametersChanged { change },
+        )
+    }
+
+    /// Notify moderators that the storage quota changed
+    pub(crate) fn broadcast_storage_quota_changed_event(
+        &mut self,
+        quota: Quota,
+    ) -> Result<(), FatalError> {
+        tracing::trace!("Broadcasting storage quota changed event");
+
+        self.message_router.conference.serialize_and_send(
+            self.participants.moderators().connected().connection_ids(),
+            CORE_MODULE_ID,
+            None,
+            CoreEvent::StorageQuotaChanged { quota },
         )
     }
 

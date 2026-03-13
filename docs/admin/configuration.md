@@ -36,6 +36,7 @@ Some configuration options allow to configure multiple values.
 - [Conference](conference.md)
 - [Defaults](defaults.md)
 - [Reports](reports.md)
+- [Internal](internal.md)
 
 ## Example configuration file
 
@@ -144,6 +145,13 @@ api_key = { "id" = "controller", "secret" = "secret" }
 #api_key = { id = "orchestrator", secret = "secret" }
 # The orchestrator URL
 #url = "http://127.0.0.1:11222"
+
+# Internal settings are optional and use default values if not set.
+# [internal]
+# The number of rooms to modify in parallel when receiving a storage quota POST request.
+# Higher numbers will reduce the time it takes to update the storage quota for all rooms,
+# but will increase server load while the requests are running.
+# parallel_storage_quota_requests = 5
 ```
 
 <!-- end:fromfile:example/roomserver.toml.md -->

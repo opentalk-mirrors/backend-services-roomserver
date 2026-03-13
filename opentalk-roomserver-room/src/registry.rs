@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{
-    collections::{HashMap, HashSet},
-    pin::Pin,
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashSet, pin::Pin, sync::Arc, time::Duration};
 
 use opentalk_orchestrator_client::{RoomServerEvent, client::OrchestratorHandle};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
@@ -14,12 +9,13 @@ use opentalk_roomserver_types::{
     room_parameters::RoomParameters, room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
-use opentalk_types_common::rooms::RoomId;
+use opentalk_types_common::{rooms::RoomId, users::UserId};
 use tokio::sync::{Notify, RwLock, watch};
 
 use super::signaling::module_initializer::ModuleRegistry;
 use crate::{
     RoomTaskApiError,
+    room_map::RoomMap,
     task::{
         RoomTask,
         handle::{RoomTaskHandle, RoomTaskHandleError},
@@ -31,7 +27,7 @@ use crate::{
 /// Holds a list over all active rooms and their [`RoomTaskHandle`].
 #[derive(Default, Debug)]
 pub struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
-    inner: Arc<RwLock<HashMap<RoomId, RoomTaskHandle<Socket>>>>,
+    rooms: Arc<RwLock<RoomMap<Socket>>>,
     room_removed: Arc<Notify>,
     idle_timeout: Duration,
     orchestrator_handle: Option<OrchestratorHandle>,
@@ -42,7 +38,7 @@ pub struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
 impl<Socket: SignalingSocket> Clone for RoomTaskRegistry<Socket> {
     fn clone(&self) -> Self {
         Self {
-            inner: self.inner.clone(),
+            rooms: self.rooms.clone(),
             room_removed: self.room_removed.clone(),
             idle_timeout: self.idle_timeout,
             orchestrator_handle: self.orchestrator_handle.clone(),
@@ -54,7 +50,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     /// Creates a new [`RoomTaskRegistry`] wi th default values
     pub fn new(idle_timeout: Duration, orchestrator_handle: Option<OrchestratorHandle>) -> Self {
         Self {
-            inner: Arc::default(),
+            rooms: Arc::default(),
             room_removed: Arc::default(),
             idle_timeout,
             orchestrator_handle,
@@ -75,15 +71,16 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> Result<(RoomAction, RoomTaskHandle<Socket>), RoomTaskHandleError<Socket>> {
-        let registry = self.inner.write().await;
+        let rooms = self.rooms.write().await;
 
-        if let Some(task_handle) = registry.get(&room_id) {
+        if let Some(task_handle) = rooms.map().get(&room_id) {
             task_handle
                 .set_parameters((*room_parameters).clone())
                 .await?;
             return Ok((RoomAction::Updated, task_handle.clone()));
         }
 
+        let created_by = room_parameters.created_by.id;
         let (task_handle, future_room) = RoomTask::setup(
             room_id,
             room_parameters,
@@ -93,7 +90,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             self.idle_timeout,
         );
 
-        self.insert(room_id, registry, &task_handle, future_room)
+        self.insert(room_id, created_by, rooms, &task_handle, future_room)
             .await;
 
         Ok((RoomAction::Created, task_handle))
@@ -104,9 +101,9 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         room_id: RoomId,
         patch: RoomParametersPatch,
     ) -> Result<RoomAction, RoomTaskHandleError<Socket>> {
-        let registry = self.inner.write().await;
+        let rooms = self.rooms.write().await;
 
-        let Some(task_handle) = registry.get(&room_id) else {
+        let Some(task_handle) = rooms.map().get(&room_id) else {
             return Err(RoomTaskApiError::NotFound.into());
         };
 
@@ -117,7 +114,8 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     async fn insert(
         &self,
         room_id: RoomId,
-        mut registry: tokio::sync::RwLockWriteGuard<'_, HashMap<RoomId, RoomTaskHandle<Socket>>>,
+        created_by: UserId,
+        mut rooms: tokio::sync::RwLockWriteGuard<'_, RoomMap<Socket>>,
         task_handle: &RoomTaskHandle<Socket>,
         future_room: Pin<Box<dyn Future<Output = ()> + Send>>,
     ) {
@@ -128,7 +126,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             this.remove_room(room_id).await;
         });
 
-        registry.insert(room_id, task_handle.clone());
+        rooms.insert(room_id, created_by, task_handle.clone());
     }
 
     /// Spawns a new room task if it does not already exists
@@ -140,13 +138,14 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) {
-        let registry = self.inner.write().await;
+        let rooms = self.rooms.write().await;
 
-        if registry.get(&room_id).is_some() {
+        if rooms.map().get(&room_id).is_some() {
             // Room already exists
             return;
         }
 
+        let created_by = room_parameters.created_by.id;
         let (task_handle, join_handle) = RoomTask::setup(
             room_id,
             room_parameters,
@@ -156,15 +155,15 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             self.idle_timeout,
         );
 
-        self.insert(room_id, registry, &task_handle, join_handle)
+        self.insert(room_id, created_by, rooms, &task_handle, join_handle)
             .await;
     }
 
     /// Checks if the requested room id exists and refreshes the idle timeout if it does
     pub async fn ensure_room_exists(&self, room_id: &RoomId) -> bool {
-        let registry = self.inner.read().await;
+        let rooms = self.rooms.read().await;
 
-        let Some(handle) = registry.get(room_id) else {
+        let Some(handle) = rooms.map().get(room_id) else {
             return false;
         };
 
@@ -179,13 +178,21 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     }
 
     pub async fn allowed_origins(&self, room_id: RoomId) -> Option<Vec<String>> {
-        let registry = self.inner.read().await;
-        registry.get(&room_id)?.allowed_origins().await
+        let rooms = self.rooms.read().await;
+        rooms.map().get(&room_id)?.allowed_origins().await
     }
 
     /// Get the [`RoomTaskHandle`] for the specified [`RoomId`]
     pub async fn get_task_handle(&self, room_id: &RoomId) -> Option<RoomTaskHandle<Socket>> {
-        self.inner.read().await.get(room_id).cloned()
+        self.rooms.read().await.map().get(room_id).cloned()
+    }
+
+    /// Get the [`RoomTaskHandle`]s for all rooms created by the specified [`UserId`]
+    pub async fn task_handles_by_creator(
+        &self,
+        creator: UserId,
+    ) -> Vec<(RoomId, RoomTaskHandle<Socket>)> {
+        self.rooms.read().await.handles_by_creator(creator)
     }
 
     /// Removes the room from the registry
@@ -193,9 +200,9 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     /// This will also destroy the related [`RoomTask`]
     async fn remove_room(&self, room_id: RoomId) {
         tracing::trace!("Remove room task handle from registry: {room_id}");
-        let mut room_list = self.inner.write().await;
+        let mut rooms = self.rooms.write().await;
 
-        room_list.remove(&room_id);
+        rooms.remove(room_id);
         self.room_removed.notify_waiters();
 
         if let Some(handle) = &self.orchestrator_handle
@@ -209,7 +216,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 
     /// Returns all known room ids
     pub async fn room_ids(&self) -> HashSet<RoomId> {
-        self.inner.read().await.keys().copied().collect()
+        self.rooms.read().await.map().keys().copied().collect()
     }
 
     /// Wait until all pending room task have finished.
@@ -221,10 +228,10 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     pub async fn wait_for_room_closed(&self) {
         // Wait for all room tasks to finish, acquire the lock in every iteration to not cause a
         // deadlock
-        while !self.inner.read().await.is_empty() {
+        while !self.rooms.read().await.map().is_empty() {
             tracing::trace!(
                 "Wait for room task removal, remaining tasks: {}",
-                self.inner.read().await.len()
+                self.rooms.read().await.map().len()
             );
             self.room_removed.notified().await;
         }

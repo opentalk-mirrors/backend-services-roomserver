@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 
 use chrono::{DateTime, Utc};
+use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
@@ -75,6 +76,12 @@ pub enum CoreEvent {
     RoomParametersChanged {
         /// The room parameters that have been modified
         change: RoomParametersPatch,
+    },
+
+    /// The storage quota has changed
+    StorageQuotaChanged {
+        /// The new quota
+        quota: Quota,
     },
 
     /// An error happened when executing a `core` command

@@ -10,6 +10,7 @@ use axum::{
     http::{Request, Response},
     serve::Listener as _,
 };
+use futures::{StreamExt, stream};
 use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_modules::setup_registry;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
@@ -20,9 +21,9 @@ use opentalk_roomserver_types::{
     room_parameters_patch::RoomParametersPatch,
     signaling::signaling_context::SignalingClientContext,
 };
-use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend};
-use opentalk_types_api_v1::error::ApiError;
-use opentalk_types_common::rooms::RoomId;
+use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend, user::UserBackend};
+use opentalk_types_api_v1::{assets::Quota, error::ApiError};
+use opentalk_types_common::{rooms::RoomId, users::UserId};
 use service_probe::{ServiceState, set_service_state};
 use token_store::TokenStore;
 use tokio::sync::{Mutex, watch};
@@ -53,11 +54,13 @@ pub mod websocket;
         ),
         tags(
             (name = "v1::rooms", description = "Endpoints related to rooms"),
+            (name = "v1::user", description = "Endpoints related to a user"),
         ),
         paths(
            v1::rooms::put_room,
            v1::rooms::patch_room,
            v1::rooms::request_token,
+           v1::user::post_storage_quota,
            v1::signaling::open_signaling_socket
         ),
         components(
@@ -343,6 +346,43 @@ impl RoomBackend for Context {
         let public_url = self.settings.http.public_url.clone();
 
         Ok(RoomServerAccess { public_url, token })
+    }
+}
+
+#[async_trait]
+impl UserBackend for Context {
+    async fn post_storage_quota(&self, user_id: UserId, quota: Quota) -> Result<(), ApiError> {
+        let handles = self.room_tasks.task_handles_by_creator(user_id).await;
+        if handles.is_empty() {
+            return Err(
+                ApiError::not_found().with_message("No rooms created by the specified user exist")
+            );
+        }
+
+        let parallel_requests = self
+            .settings
+            .internal
+            .parallel_storage_quota_requests
+            .into();
+
+        let results = stream::iter(handles)
+            .map(|(room_id, handle)| {
+                let quota = quota.clone();
+                async move {
+                    handle.set_storage_quota(quota).await.inspect_err(|err| {
+                        tracing::warn!("Failed to set storage quota for room {room_id}: {err}");
+                    })
+                }
+            })
+            .buffer_unordered(parallel_requests)
+            .collect::<Vec<_>>()
+            .await;
+
+        if let Some(err) = results.into_iter().find_map(Result::err) {
+            return Err(err.into());
+        }
+
+        Ok(())
     }
 }
 

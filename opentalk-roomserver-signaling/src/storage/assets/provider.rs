@@ -6,6 +6,7 @@ use std::{any::Any, fmt::Debug};
 use async_trait::async_trait;
 use bytes::Bytes;
 use futures::stream::BoxStream;
+use opentalk_types_api_v1::assets::Quota;
 
 use crate::storage::assets::{AssetMetaData, StorageContext, UploadResult};
 
@@ -34,4 +35,6 @@ pub trait AssetStorageProvider: Send + Sync + Debug + Any {
     ) -> UploadResult;
 
     async fn can_upload(&self) -> bool;
+
+    async fn set_storage_quota(&self, quota: Quota);
 }

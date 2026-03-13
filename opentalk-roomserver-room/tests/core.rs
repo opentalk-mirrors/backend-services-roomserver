@@ -16,6 +16,7 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
     room_parameters_patch::RoomParametersPatch,
 };
+use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::rooms::RoomPassword;
 
 #[test_log::test(tokio::test)]
@@ -312,6 +313,37 @@ async fn patch_room_parameters_removed_password_contains_null() {
         panic!("Received wrong event: {event:?}");
     };
     assert_eq!(change, patch);
+
+    // Bob does not receive the event because he isn't a moderator
+    assert!(bob.received_nothing());
+}
+
+#[test_log::test(tokio::test)]
+async fn storage_quota_change_notifies_moderators() {
+    let mut room = TestRoom::builder().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // The storage quota is patched via a web request
+    let quota = Quota {
+        total: Some(2048),
+        used: 1024,
+    };
+    room.room_handle
+        .set_storage_quota(quota.clone())
+        .await
+        .unwrap();
+
+    // Alice receives the storage quota changed event
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::StorageQuotaChanged {
+        quota: received_quota,
+    } = event
+    else {
+        panic!("Received wrong event: {event:?}");
+    };
+    assert_eq!(quota, received_quota);
 
     // Bob does not receive the event because he isn't a moderator
     assert!(bob.received_nothing());

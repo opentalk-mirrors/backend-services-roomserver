@@ -17,6 +17,7 @@ pub mod metrics;
 pub mod mocking;
 pub mod orchestrator_metrics;
 pub mod registry;
+pub(crate) mod room_map;
 pub mod signaling;
 pub mod storage;
 pub mod task;
