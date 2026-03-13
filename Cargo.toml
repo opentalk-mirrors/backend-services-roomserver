@@ -6,6 +6,7 @@
 default-members = ["opentalk-roomserver"]
 members = [
   "modules/*/module",
+  "modules/*/test-util",
   "modules/*/types",
   "opentalk-roomserver",
   "opentalk-roomserver-client",
@@ -33,7 +34,6 @@ version = "0.0.26-alpha"
 [workspace.dependencies]
 opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.26-alpha" }
 opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.26-alpha" }
-opentalk-roomserver-mocking-livekit = { path = "modules/livekit/mock", version = "0.0.26-alpha" }
 opentalk-roomserver-module-automod = { path = "modules/automod/module", version = "0.0.26-alpha" }
 opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.26-alpha" }
 opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.26-alpha" }
@@ -55,6 +55,7 @@ opentalk-roomserver-modules = { path = "opentalk-roomserver-modules", version = 
 opentalk-roomserver-report-generation = { path = "opentalk-roomserver-report-generation", version = "0.0.16-dev" }
 opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.26-alpha" }
 opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.26-alpha" }
+opentalk-roomserver-test-util-livekit = { path = "modules/livekit/test-util", version = "0.0.26-alpha" }
 opentalk-roomserver-types = { path = "opentalk-roomserver-types", version = "0.0.26-alpha", features = [
   "utoipa",
 ] }

@@ -4,9 +4,9 @@
 use std::collections::BTreeSet;
 
 use livekit::{RoomEvent, RoomOptions};
-use opentalk_roomserver_mocking_livekit as mocking;
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
+use opentalk_roomserver_test_util_livekit as mocking;
 use opentalk_roomserver_types::{
     breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
     core::CoreEvent,
