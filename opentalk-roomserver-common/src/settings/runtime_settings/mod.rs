@@ -56,7 +56,6 @@ impl Settings {
         let port = 11333;
         let address = "localhost".into();
         let public_url = Url::parse(&format!("http://{address}:{port}")).unwrap();
-        let service_url = public_url.clone();
         let controller = ControllerConfig {
             url: Url::parse("http://localhost:8000").unwrap(),
             api_key: ApiKey::new("controller", "secret"),
@@ -68,7 +67,7 @@ impl Settings {
                 port,
                 api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", api_token)]),
                 enable_openapi: true,
-                service_url,
+                service_url: None,
                 public_url,
             },
             controller: Some(controller),
@@ -92,7 +91,7 @@ impl TryFrom<SettingsFile> for Settings {
 
     fn try_from(value: SettingsFile) -> Result<Self, Self::Error> {
         Ok(Settings {
-            http: value.http.try_into()?,
+            http: value.http.into(),
             controller: value.controller,
             orchestrator: value.orchestrator,
             monitoring: value.monitoring.map(Into::into),

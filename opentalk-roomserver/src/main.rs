@@ -13,7 +13,7 @@ use clap::Parser;
 use cli::{Args, SubCommand};
 use futures::TryFutureExt;
 use metrics::MetricHandle;
-use opentalk_orchestrator_client::OrchestratorClient;
+use opentalk_orchestrator_client::{OrchestratorClient, ServiceAddress};
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
     settings::{Monitoring, Settings, SettingsFile},
@@ -121,10 +121,13 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
 
         let state_provider = OrchestratorStateProvider::new(room_registry.clone());
 
-        let client_address = settings.http.service_url.clone();
+        let service_address = match settings.http.service_url.clone() {
+            Some(url) => ServiceAddress::Url(url),
+            None => ServiceAddress::Port(settings.http.port),
+        };
 
         set.spawn(client.run(
-            client_address,
+            service_address,
             state_provider,
             wait_shutdown(app_state.subscribe()),
         ));
