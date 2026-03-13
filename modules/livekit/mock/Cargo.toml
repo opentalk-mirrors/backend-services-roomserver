@@ -3,11 +3,12 @@
 
 [package]
 authors.workspace = true
+description = "Opentalk RoomServer LiveKit Module mocking utilities."
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-mocking-livekit"
-publish = false
+publish = true
 repository.workspace = true
 version.workspace = true
 
@@ -17,10 +18,7 @@ workspace = true
 [dependencies]
 anyhow.workspace = true
 livekit.workspace = true
-opentalk-roomserver-module-livekit.workspace = true
-opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-roomserver-types-livekit.workspace = true
-opentalk-types-common.workspace = true
 testcontainers.workspace = true
 tokio.workspace = true
 tracing.workspace = true

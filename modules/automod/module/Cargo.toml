@@ -8,7 +8,7 @@ edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-module-automod"
-publish = false
+publish = true
 repository.workspace = true
 version.workspace = true
 
@@ -30,6 +30,7 @@ tracing.workspace = true
 
 [dev-dependencies]
 opentalk-roomserver-mocking-livekit.workspace = true
+opentalk-roomserver-module-livekit.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
 test-log.workspace = true

@@ -5,7 +5,7 @@ use std::{collections::BTreeSet, time::Duration};
 
 use livekit::{RoomEvent, RoomOptions};
 use livekit_api::services::room::RoomClient;
-use opentalk_roomserver_mocking_livekit::{self as mocking, LIVEKIT_KEY, LIVEKIT_SECRET};
+use opentalk_roomserver_mocking_livekit::{LIVEKIT_KEY, LIVEKIT_SECRET};
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types::{
     breakout::{
@@ -18,12 +18,13 @@ use opentalk_roomserver_types_livekit::LiveKitState;
 use opentalk_types_common::rooms::RoomId;
 use tokio::time::sleep;
 
+mod common;
+
 /// Test that the JoinSuccess contains the access token for the LiveKit room.
 #[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_rooms_lifecycle() {
-    let (_container, room, public_url) = mocking::build_livekit_room().await;
-    let mut room = room.spawn();
+    let (_container, mut room, public_url) = common::build_room().await;
     let room_id = room.id();
     let livekit_client = RoomClient::with_api_key(&public_url, LIVEKIT_KEY, LIVEKIT_SECRET);
 

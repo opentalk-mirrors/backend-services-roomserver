@@ -5445,10 +5445,7 @@ version = "0.0.26-alpha"
 dependencies = [
  "anyhow",
  "livekit",
- "opentalk-roomserver-module-livekit",
- "opentalk-roomserver-room",
  "opentalk-roomserver-types-livekit",
- "opentalk-types-common",
  "testcontainers",
  "tokio",
  "tracing",
@@ -5727,6 +5724,7 @@ dependencies = [
  "livekit-api",
  "livekit-protocol",
  "opentalk-roomserver-mocking-livekit",
+ "opentalk-roomserver-module-livekit",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",

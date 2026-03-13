@@ -108,10 +108,76 @@ exceptions = [
   ], name = "opentalk-report-generation" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-client" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-common" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-dui" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-mocking-livekit" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-automod" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-chat" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-e2ee" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-echo" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-legal-vote" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-livekit" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-meeting-notes" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-meeting-report" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-moderation" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-polls" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-raise-hands" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-recording" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-shared-folder" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-subroom-audio" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-timer" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-training-participation-report" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-whiteboard" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-modules" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-room" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-signaling" },

@@ -8,7 +8,7 @@ edition = "2024"
 homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-module-subroom-audio"
-publish = false
+publish = true
 repository.workspace = true
 version.workspace = true
 
@@ -19,6 +19,7 @@ workspace = true
 anyhow.workspace = true
 livekit-api.workspace = true
 livekit-protocol.workspace = true
+opentalk-roomserver-module-livekit.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
