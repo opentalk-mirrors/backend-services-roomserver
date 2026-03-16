@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.26] - 2026-03-16
+
+[0.0.26]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.25...v0.0.26
+
+### 🚀 New features
+
+- Print SignalingModule descriptions ([!941](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/941), [#172](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/172))
+- Introduce `opentalk-roomserver-modules` crate ([!941](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/941))
+- (room) Expose a map from `ModuleId` to their provided `FeatureId` ([!941](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/941))
+- (orchestrator) Allow service registration by port ([!936](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/936))
+
+### 🔨 Refactor
+
+- Avoid circular dependency and prepare release ([!942](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/942), [#202](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/202))
+- (settings) Don't assume a default service url ([!936](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/936))
+- This isn't a mock, it's the actual thing ([!943](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/943))
+
+### 📦 Dependencies
+
+- (deps) Update orchestrator client ([!936](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/936))
+- (deps) Update `opentalk-types-api-v1` to v0.55.0 ([!944](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/944))
+
+### ⚙ Miscellaneous
+
+- (recorder) Use `tracing` crate instead of `log` ([!940](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/940))
+
+### Ci
+
+- (cargo) Don't publish recording module crate ([!940](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/940))
+
 ## [0.0.25] - 2026-03-11
 
 [0.0.25]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.24...v0.0.25
