@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.28] - 2026-03-17
+
+[0.0.28]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.27...v0.0.28
+
+### 🐛 Bug fixes
+
+- (room) Compiler error in room metrics file when used as a dependency ([!949](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/949), [#206](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/206))
+
 ## [0.0.27] - 2026-03-17
 
 [0.0.27]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.26...v0.0.27
