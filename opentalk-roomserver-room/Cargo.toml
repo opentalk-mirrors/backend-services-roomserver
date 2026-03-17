@@ -29,7 +29,7 @@ opentalk-roomserver-common.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
-opentalk-service-auth.workspace = true
+opentalk-service-auth = { workspace = true, features = ["axum"] }
 opentalk-types-api-internal.workspace = true
 opentalk-types-api-v1.workspace = true
 opentalk-types-common.workspace = true
