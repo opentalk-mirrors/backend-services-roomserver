@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.27] - 2026-03-17
+
+[0.0.27]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.26...v0.0.27
+
+### 📦 Dependencies
+
+- (deps) Update orchestrator client to 0.4.1 ([!947](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/947))
+
+### ⚙ Miscellaneous
+
+- Do not use default-feature for service auth crate ([!946](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/946))
+
 ## [0.0.26] - 2026-03-16
 
 [0.0.26]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.25...v0.0.26
