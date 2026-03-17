@@ -3562,7 +3562,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -5251,9 +5251,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-orchestrator-client"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c73c2c7eeaf83bafb2bb6920664cc99d92f0de4d4b1c49575924f24b4b1be832"
+checksum = "3f93b9b32f2b0a29c0ca0e03086f28f9d349ebf1e06a85930516ab9d18f312e3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6174,15 +6174,15 @@ dependencies = [
 
 [[package]]
 name = "opentalk-service-auth"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "726bcee48a54bc4acfe2a0d986197ba744376928f9aa0265d13823a04c67cc65"
+checksum = "7bd9205ccd9f6a7a71c4cefa08e9e799bd2525d3d86e9aa1aeb4a34a018c6154"
 dependencies = [
  "axum",
  "futures",
  "jsonwebtoken 10.3.0",
  "opentalk-types-api-common",
- "rand 0.9.2",
+ "rand 0.10.0",
  "serde",
  "thiserror 2.0.18",
  "tower",
@@ -7056,7 +7056,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.11.0",
  "proc-macro2",
  "quote",
  "syn",
