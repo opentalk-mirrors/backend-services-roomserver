@@ -29,7 +29,7 @@ pub const ROOM_LIFE_TIME_BUCKETS: &[f64] = &[
 ];
 const CONNECTION_COUNT: &str = "signaling.connection_count";
 const CONNECTIONS_PER_ROOM: &str = "signaling.connections_per_room";
-const CONNECTIONS_PER_ROOM_BUCKETS: [u16; 7] = [2, 10, 25, 50, 100, 200, 300];
+const CONNECTIONS_PER_ROOM_BUCKETS: [usize; 7] = [2, 10, 25, 50, 100, 200, 300];
 pub const CONNECTION_MEETING_TIME: &str = "signaling.connection_meeting_time";
 pub const CONNECTION_MEETING_TIME_BUCKETS: &[f64] = &[
     2.0 * 60.0,        // 2 minutes
@@ -201,7 +201,7 @@ impl Metrics {
         histogram!(CONNECTION_MEETING_TIME, SCOPE_KEY => SCOPE_VALUE).record(meeting_time);
     }
 
-    fn increment_connections_per_room_bucket(bucket: u16) {
+    fn increment_connections_per_room_bucket(bucket: usize) {
         // The idea behind the connections per room metric is to track the number of connections
         // in a room in a histogram. However, a histogram is not suitable for this, because
         // in a histogram, a recorded value cannot change. E.g., in the connection meeting time
@@ -216,14 +216,14 @@ impl Metrics {
             .increment(1);
     }
 
-    fn decrement_connections_per_room_bucket(bucket: u16) {
+    fn decrement_connections_per_room_bucket(bucket: usize) {
         gauge!(CONNECTIONS_PER_ROOM, BUCKET_KEY => bucket.to_string(), SCOPE_KEY => SCOPE_VALUE)
             .decrement(1);
     }
 
-    fn connection_count_bucket(count: usize) -> u16 {
+    fn connection_count_bucket(count: usize) -> usize {
         for bucket in CONNECTIONS_PER_ROOM_BUCKETS {
-            if count <= bucket.into() {
+            if count <= bucket {
                 return bucket;
             }
         }
