@@ -240,8 +240,27 @@ async fn start_service_probe(
     Ok(())
 }
 
+/// `rustls` and `jsonwebtoken` depend on a `CryptoProvider` being configured.
+/// If no provider was explicitly configured, a provider will be derived from
+/// the enabled features. Since there are many crates that depend on rustls and
+/// `jsonwebtoken`, we don't have complete control over the enabled features.
+/// If the configuration via feature is ambiguous these crates will panic.
+///
+/// Here we ensure that these crates are explicitly configured.
+fn ensure_crypto_provider() {
+    rustls::crypto::CryptoProvider::install_default(rustls::crypto::aws_lc_rs::default_provider())
+        .expect("valid default crypto provider expected");
+
+    jsonwebtoken::crypto::CryptoProvider::install_default(
+        &jsonwebtoken::crypto::aws_lc::DEFAULT_PROVIDER,
+    )
+    .expect("valid default crypto provider expected");
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    ensure_crypto_provider();
+
     let args = Args::parse();
 
     if args.run_tasks().should_exit() {
