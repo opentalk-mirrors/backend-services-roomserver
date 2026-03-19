@@ -3,14 +3,14 @@
 
 use anyhow::Context;
 use opentalk_types_common::{events::EventTitle, rooms::RoomPassword, utils::ExampleData};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::room_parameters::RoomParameters;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(RoomParametersPatch::example_data())))]
 pub struct RoomParametersPatch {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, deserialize_with = "some_option")]
     pub password: Option<Option<RoomPassword>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<EventTitle>,
@@ -50,6 +50,18 @@ impl RoomParametersPatch {
     }
 }
 
+/// this ensures that an undefined value is deserialized to `None`, while `null`
+/// will be deserialized to `Some(None)`.
+///
+/// See https://github.com/serde-rs/serde/issues/904#issuecomment-297737140
+fn some_option<'de, T, D>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    T: Deserialize<'de>,
+    D: Deserializer<'de>,
+{
+    Option::<T>::deserialize(deserializer).map(Some)
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
@@ -86,6 +98,35 @@ mod tests {
             password: Some(Some(
                 RoomPassword::from_str("v3rys3cr3t").expect("Password must be valid"),
             )),
+            title: Some(EventTitle::from_str_lossy("Meeting")),
+        };
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn deserialize_room_parameters_patch_null_password() {
+        let json = json!({
+            "password": null,
+            "title": "Meeting",
+        });
+        let produced: RoomParametersPatch = serde_json::from_value(json).unwrap();
+        let expected = RoomParametersPatch {
+            password: Some(None),
+            title: Some(EventTitle::from_str_lossy("Meeting")),
+        };
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn deserialize_room_parameters_patch_undefined_password() {
+        let json = json!({
+            "title": "Meeting",
+        });
+        let produced: RoomParametersPatch = serde_json::from_value(json).unwrap();
+        let expected = RoomParametersPatch {
+            password: None,
             title: Some(EventTitle::from_str_lossy("Meeting")),
         };
 

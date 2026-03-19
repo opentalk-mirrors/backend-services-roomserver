@@ -285,3 +285,34 @@ async fn patch_room_parameters_notifies_all_when_meeting_details_enabled() {
     };
     assert_eq!(change, patch);
 }
+
+#[test_log::test(tokio::test)]
+async fn patch_room_parameters_removed_password_contains_null() {
+    let mut room = TestRoom::builder()
+        .password(Some("password".parse().unwrap()))
+        .show_meeting_details(false)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // The room parameters are patched via a web request
+    let patch = RoomParametersPatch {
+        password: Some(None),
+        title: None,
+    };
+    room.room_handle
+        .patch_parameters(patch.clone())
+        .await
+        .unwrap();
+
+    // Alice receives the room parameters changed event
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::RoomParametersChanged { change } = event else {
+        panic!("Received wrong event: {event:?}");
+    };
+    assert_eq!(change, patch);
+
+    // Bob does not receive the event because he isn't a moderator
+    assert!(bob.received_nothing());
+}
