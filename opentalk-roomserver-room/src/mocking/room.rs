@@ -33,7 +33,7 @@ use opentalk_roomserver_types::{
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use opentalk_types_common::{
     assets::AssetId,
-    rooms::RoomId,
+    rooms::{RoomId, RoomPassword},
     streaming::RoomStreamingTarget,
     tariffs::{QuotaType, TariffId},
 };
@@ -214,6 +214,11 @@ impl TestRoomBuilder {
         self.room_parameters
             .streaming_targets
             .push(streaming_target);
+        self
+    }
+
+    pub fn password(mut self, password: Option<RoomPassword>) -> Self {
+        self.room_parameters.password = password;
         self
     }
 
