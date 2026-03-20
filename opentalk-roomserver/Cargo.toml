@@ -24,7 +24,7 @@ axum-prometheus.workspace = true
 cidr.workspace = true
 clap.workspace = true
 futures.workspace = true
-jsonwebtoken = { workspace = true, features = ["aws-lc-rs"] }
+jsonwebtoken = { workspace = true, features = ["aws_lc_rs"] }
 opentalk-orchestrator-client.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-modules.workspace = true
