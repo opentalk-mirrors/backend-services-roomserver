@@ -122,6 +122,9 @@ exceptions = [
   ], name = "opentalk-roomserver-common" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-crypto-provider" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-dui" },
   { allow = [
     "EUPL-1.2",

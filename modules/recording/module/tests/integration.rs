@@ -4,6 +4,7 @@
 
 use axum::{Json, routing::post};
 use opentalk_roomserver_common::settings::runtime_settings::recording::Recording;
+use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_module_recording::RecordingModule;
 use opentalk_roomserver_room::mocking::{
     participant::MockParticipant,
@@ -93,6 +94,8 @@ macro_rules! expect_recording_event {
 }
 
 fn create_room(mock_recorder: &MockRecorderTask) -> TestRoom {
+    ensure_crypto_provider();
+
     TestRoom::builder()
         .settings(|settings| {
             settings.recording = Some(Recording {

@@ -10,6 +10,7 @@ members = [
   "modules/*/types",
   "opentalk-roomserver",
   "opentalk-roomserver-client",
+  "opentalk-roomserver-crypto-provider",
   "opentalk-roomserver-dui",
   "opentalk-roomserver-modules",
   "opentalk-roomserver-room",
@@ -34,6 +35,7 @@ version = "0.0.29-alpha"
 [workspace.dependencies]
 opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.29-alpha" }
 opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.29-alpha" }
+opentalk-roomserver-crypto-provider = { path = "opentalk-roomserver-crypto-provider", version = "0.0.29-alpha" }
 opentalk-roomserver-module-automod = { path = "modules/automod/module", version = "0.0.29-alpha" }
 opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.29-alpha" }
 opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.29-alpha" }
@@ -52,7 +54,6 @@ opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0
 opentalk-roomserver-module-training-participation-report = { path = "modules/training-participation-report/module", version = "0.0.29-alpha" }
 opentalk-roomserver-module-whiteboard = { path = "modules/whiteboard/module", version = "0.0.29-alpha" }
 opentalk-roomserver-modules = { path = "opentalk-roomserver-modules", version = "0.0.29-alpha" }
-opentalk-roomserver-report-generation = { path = "opentalk-roomserver-report-generation", version = "0.0.16-dev" }
 opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.29-alpha" }
 opentalk-roomserver-signaling = { path = "opentalk-roomserver-signaling", version = "0.0.29-alpha" }
 opentalk-roomserver-test-util-livekit = { path = "modules/livekit/test-util", version = "0.0.29-alpha" }
@@ -100,7 +101,6 @@ clap = { version = "4.5", features = ["derive"] }
 config = { version = "0.15", default-features = false, features = ["toml"] }
 derive_more = { version = "2", features = ["display"] }
 dirs = "6.0.0"
-ecow = "0.2"
 eframe = "0.33.0"
 egui = "0.33.0"
 egui_extras = { version = "0.33.0", default-features = false }
@@ -117,7 +117,6 @@ jsonwebtoken = { version = "10", default-features = false }
 livekit = "0.7"
 livekit-api = "0.4"
 livekit-protocol = "0.7"
-livekit-runtime = { version = "0.4", default-features = false }
 log = "0.4.22"
 mockito = "1.7.0"
 opentalk-etherpad-client = { version = "0.5", default-features = false }
@@ -164,11 +163,6 @@ tracing-subscriber = { version = "0.3", features = [
   "parking_lot",
 ] }
 tungstenite = "0.28.0"
-typst = "0.14"
-typst-kit = { version = "0.14", default-features = false, features = [
-  "embed-fonts",
-] }
-typst-pdf = "0.14"
 url = "2.5.2"
 utoipa = { version = "5.3.1", features = ["yaml"] }
 utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }

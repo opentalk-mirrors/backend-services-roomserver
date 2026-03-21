@@ -13,6 +13,7 @@ use livekit::{
         prelude::{AudioFrame, AudioSourceOptions, RtcAudioSource},
     },
 };
+use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_types_livekit::LiveKitSettings;
 use testcontainers::{
     ContainerAsync, GenericImage, ImageExt as _,
@@ -60,6 +61,8 @@ impl From<ContainerAsync<GenericImage>> for ContainerGuard {
 }
 
 pub async fn create_livekit_container() -> (ContainerGuard, LiveKitSettings) {
+    ensure_crypto_provider();
+
     let livekit_container = GenericImage::new("livekit/livekit-server", "latest")
         .with_exposed_port(LIVEKIT_PORT.tcp())
         .with_wait_for(WaitFor::message_on_stderr("starting LiveKit server"))

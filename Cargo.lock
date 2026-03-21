@@ -5565,9 +5565,9 @@ dependencies = [
  "clap",
  "futures",
  "icu_locid",
- "jsonwebtoken",
  "opentalk-orchestrator-client",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-modules",
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
@@ -5580,7 +5580,6 @@ dependencies = [
  "opentelemetry_sdk",
  "pretty_assertions",
  "reqwest 0.13.2",
- "rustls 0.23.37",
  "service-probe",
  "service-probe-client",
  "test-log",
@@ -5658,6 +5657,14 @@ dependencies = [
  "thiserror 2.0.18",
  "toml 1.0.7+spec-1.1.0",
  "url",
+]
+
+[[package]]
+name = "opentalk-roomserver-crypto-provider"
+version = "0.0.29-alpha"
+dependencies = [
+ "jsonwebtoken",
+ "rustls 0.23.37",
 ]
 
 [[package]]
@@ -5927,6 +5934,7 @@ dependencies = [
  "anyhow",
  "axum",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -6088,6 +6096,7 @@ dependencies = [
  "mockito",
  "opentalk-orchestrator-client",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
@@ -6142,6 +6151,7 @@ version = "0.0.29-alpha"
 dependencies = [
  "anyhow",
  "livekit",
+ "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-types-livekit",
  "testcontainers",
  "tokio",
