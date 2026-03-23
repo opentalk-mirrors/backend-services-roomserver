@@ -139,6 +139,7 @@ mod tests {
     use bytes::Bytes;
     use futures::{StreamExt, stream};
     use mockito::Matcher;
+    use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
     use opentalk_roomserver_signaling::storage::{
         StorageContext,
         assets::{
@@ -165,6 +166,8 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn successful_asset_upload() {
+        ensure_crypto_provider();
+
         let room_id = RoomId::from_u128(0x01);
         let asset_file_kind = AssetFileKind::example_data();
         let created_at = Timestamp::unix_epoch();
@@ -244,6 +247,8 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn quota_exceeded_asset_upload() {
+        ensure_crypto_provider();
+
         let room_id = RoomId::from_u128(0x01);
         let asset_file_kind = AssetFileKind::example_data();
         let created_at = Timestamp::unix_epoch();
@@ -300,6 +305,8 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn test_asset_load_error() {
+        ensure_crypto_provider();
+
         let room_id = RoomId::from_u128(0x01);
         let asset_file_kind = AssetFileKind::example_data();
         let created_at = Timestamp::unix_epoch();

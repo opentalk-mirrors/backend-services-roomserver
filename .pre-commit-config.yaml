@@ -53,6 +53,12 @@ repos:
           - --deny
           - advisory-not-detected
           - --hide-inclusion-graph
+  - repo: https://github.com/bnjbvr/cargo-machete
+    rev: 6ddd489
+    hooks:
+      - id: cargo-machete
+        args:
+          - --with-metadata
   # There currently is no official taplo hook, but this one got recommended in the corresponding issue
   - repo: https://github.com/ComPWA/taplo-pre-commit
     rev: v0.9.3

@@ -24,9 +24,9 @@ axum-prometheus.workspace = true
 cidr.workspace = true
 clap.workspace = true
 futures.workspace = true
-jsonwebtoken = { workspace = true, features = ["aws-lc-rs"] }
 opentalk-orchestrator-client.workspace = true
 opentalk-roomserver-common.workspace = true
+opentalk-roomserver-crypto-provider.workspace = true
 opentalk-roomserver-modules.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true
@@ -37,7 +37,7 @@ opentalk-version.workspace = true
 opentelemetry.workspace = true
 opentelemetry-otlp.workspace = true
 opentelemetry_sdk.workspace = true
-rustls = { workspace = true, features = ["aws-lc-rs"] }
+reqwest.workspace = true
 service-probe.workspace = true
 service-probe-client.workspace = true
 tokio = { workspace = true, features = ["rt", "signal"] }

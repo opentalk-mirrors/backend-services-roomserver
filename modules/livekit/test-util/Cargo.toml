@@ -18,6 +18,7 @@ workspace = true
 [dependencies]
 anyhow.workspace = true
 livekit.workspace = true
+opentalk-roomserver-crypto-provider.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
 testcontainers.workspace = true
 tokio.workspace = true

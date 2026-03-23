@@ -44,6 +44,12 @@ ignore = [
 
   # Bincode is unmaintained
   "RUSTSEC-2025-0141",
+
+  # No fixed release available for rsa timing sidechannel yet.
+  "RUSTSEC-2023-0071",
+
+  # vulnerability in rustls-webpki.
+  "RUSTSEC-2026-0049",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -75,7 +81,6 @@ allow = [
   "MIT",
   "MPL-2.0",
   "OFL-1.1",
-  "OpenSSL",
   "Ubuntu-font-1.0",
   "Unicode-3.0",
   "Zlib",
@@ -115,6 +120,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-common" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-crypto-provider" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-dui" },
@@ -319,6 +327,8 @@ allow = []
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
+  { name = "anstream", version = "0.6" },
+  { name = "anstyle-parse", version = "0.2" },
   { name = "base64", version = "0.21" },
   { name = "bitflags", version = "1" },
   { name = "calloop", version = "0.13" },
@@ -347,16 +357,17 @@ skip = [
   { name = "imagesize", version = "0.13" },
   { name = "itertools", version = "0.11" },
   { name = "itertools", version = "0.12" },
-  { name = "jsonwebtoken", version = "9.3" },
   { name = "kurbo", version = "0.11" },
   { name = "linux-raw-sys", version = "0.4" },
   { name = "litemap", version = "0.7" },
+  { name = "moxcms", version = "0.7" },
   { name = "phf", version = "0.12" },
   { name = "phf_shared", version = "0.12" },
   { name = "png", version = "0.17" },
   { name = "prost", version = "0.12.6" },
   { name = "prost-derive", version = "0.12.6" },
   { name = "prost-types", version = "0.12" },
+  { name = "quick-xml", version = "0.38" },
   { name = "rand", version = "0.8" },
   { name = "rand", version = "0.9" },
   { name = "rand_chacha", version = "0.3" },
@@ -376,11 +387,14 @@ skip = [
   { name = "tokio-rustls", version = "0.24" },
   { name = "tokio-tungstenite", version = "0.20.1" },
   { name = "toml", version = "0.8" },
+  { name = "toml", version = "0.9" },
   { name = "toml_datetime", version = "0.6.11" },
+  { name = "toml_datetime", version = "0.7" },
   { name = "toml_edit", version = "0.22" },
   { name = "tungstenite", version = "0.20" },
   { name = "untrusted", version = "0.7" },
   { name = "webpki-roots", version = "0.25" },
+  { name = "winnow", version = "0.7" },
   { name = "writeable", version = "0.5" },
   { name = "yoke", version = "0.7" },
   { name = "yoke-derive", version = "0.7" },

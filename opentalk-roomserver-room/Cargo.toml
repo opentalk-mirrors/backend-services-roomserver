@@ -51,6 +51,7 @@ bytes.workspace = true
 icu_locid.workspace = true
 insta = { workspace = true, features = ["json", "redactions"] }
 mockito.workspace = true
+opentalk-roomserver-crypto-provider.workspace = true
 pretty_assertions.workspace = true
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
