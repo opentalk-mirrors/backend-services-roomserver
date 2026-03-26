@@ -47,9 +47,6 @@ ignore = [
 
   # No fixed release available for rsa timing sidechannel yet.
   "RUSTSEC-2023-0071",
-
-  # vulnerability in rustls-webpki.
-  "RUSTSEC-2026-0049",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -327,8 +324,6 @@ allow = []
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
-  { name = "anstream", version = "0.6" },
-  { name = "anstyle-parse", version = "0.2" },
   { name = "base64", version = "0.21" },
   { name = "bitflags", version = "1" },
   { name = "calloop", version = "0.13" },
