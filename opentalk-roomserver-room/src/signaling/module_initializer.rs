@@ -9,7 +9,13 @@ use std::{
 use opentalk_roomserver_signaling::signaling_module::{
     SignalingModule, SignalingModuleFeatureDescription, SignalingModuleInitData,
 };
-use opentalk_types_common::{features::FeatureId, modules::ModuleId};
+use opentalk_roomserver_types::{breakout::BREAKOUT_MODULE_ID, core::CORE_MODULE_ID};
+use opentalk_types_common::{
+    features::{
+        CALL_IN_FEATURE_ID, FeatureId, GUESTS_ALLOWED_FEATURE_ID, STORAGE_UPGRADABLE_FEATURE_ID,
+    },
+    modules::ModuleId,
+};
 
 use super::{ModuleDispatcher, ModuleHandle};
 use crate::signaling::CORE_MODULES;
@@ -23,9 +29,16 @@ pub struct ModuleRegistry {
 
 impl ModuleRegistry {
     pub fn new() -> Self {
-        Self {
+        let mut registry = Self {
             modules: HashMap::new(),
-        }
+        };
+        registry
+            .modules
+            .insert(CORE_MODULE_ID, Box::new(CoreModuleDummy));
+        registry
+            .modules
+            .insert(BREAKOUT_MODULE_ID, Box::new(BreakoutRoomModuleDummy));
+        registry
     }
 
     async fn init_module(
@@ -159,5 +172,76 @@ impl<M: SignalingModule + Sync + 'static> ModuleInitializer for ModuleInitialize
 
     fn features(&self) -> BTreeSet<FeatureId> {
         M::FEATURES.iter().map(|f| f.feature_id.clone()).collect()
+    }
+}
+
+struct CoreModuleDummy;
+
+const CORE_FEATURES: &[SignalingModuleFeatureDescription; 3] = &[
+    SignalingModuleFeatureDescription {
+        feature_id: CALL_IN_FEATURE_ID,
+        description: "Enables telephone call-in functionality for meetings.",
+    },
+    SignalingModuleFeatureDescription {
+        feature_id: GUESTS_ALLOWED_FEATURE_ID,
+        description: "Allow guest access. With this feature enabled, guests are allowed to join meetings through invite links. When turned off, no invite links are generated, and invite links that existed before will be invalid.",
+    },
+    SignalingModuleFeatureDescription {
+        feature_id: STORAGE_UPGRADABLE_FEATURE_ID,
+        description: "Communicates to the frontend that the user's storage can be upgraded. Frontend will then show the corresponding link to the account management if the user's storage is close to the limit. This feature is usually configured differently the tariffs. If a user has a tariff which already provides the maximum available storage space, then that feature should be disabled. For all other tariffs it should be on.",
+    },
+];
+
+#[async_trait::async_trait]
+impl ModuleInitializer for CoreModuleDummy {
+    async fn init_module(
+        &self,
+        _init_data: SignalingModuleInitData,
+    ) -> Option<Box<dyn ModuleHandle>> {
+        None
+    }
+
+    fn description(&self) -> &'static str {
+        "Handles core room functionality such as joining and leaving"
+    }
+
+    fn feature_descriptions(&self) -> &[SignalingModuleFeatureDescription] {
+        CORE_FEATURES
+    }
+
+    fn module_id(&self) -> ModuleId {
+        CORE_MODULE_ID
+    }
+
+    fn features(&self) -> BTreeSet<FeatureId> {
+        BTreeSet::new()
+    }
+}
+
+struct BreakoutRoomModuleDummy;
+
+#[async_trait::async_trait]
+impl ModuleInitializer for BreakoutRoomModuleDummy {
+    async fn init_module(
+        &self,
+        _init_data: SignalingModuleInitData,
+    ) -> Option<Box<dyn ModuleHandle>> {
+        None
+    }
+
+    fn description(&self) -> &'static str {
+        "Handles breakout room functionality"
+    }
+
+    fn feature_descriptions(&self) -> &[SignalingModuleFeatureDescription] {
+        &[]
+    }
+
+    fn module_id(&self) -> ModuleId {
+        BREAKOUT_MODULE_ID
+    }
+
+    fn features(&self) -> BTreeSet<FeatureId> {
+        BTreeSet::new()
     }
 }
