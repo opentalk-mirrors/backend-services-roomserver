@@ -93,7 +93,10 @@ impl ModuleRegistry {
     }
 
     pub fn print<P: DescriptionPrinter>(&self, printer: &mut P) {
-        for initializer in self.modules.values() {
+        let mut initializers: Vec<_> = self.modules.values().collect();
+        initializers.sort_by_key(|initializer| initializer.module_id());
+
+        for initializer in initializers {
             printer.print(initializer.as_ref());
         }
     }
