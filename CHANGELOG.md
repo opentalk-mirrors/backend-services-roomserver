@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.29] - 2026-03-27
+
+[0.0.29]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.28...v0.0.29
+
+### 🚀 New features
+
+- Add core features ([!956](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/956), [#207](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/207))
+
+### 🐛 Bug fixes
+
+- Ensure CryptoProvider is configured ([!951](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/951))
+- Room parameter update do not include empty password ([!952](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/952), [#208](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/208))
+
+### 🔨 Refactor
+
+- Add crate to setup CryptoProviders ([!953](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/953))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!953](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/953), [!955](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/955))
+- (deps) Update crate unicode-segmentation to v1.13.2
+
+### Ci
+
+- (pre-commit) Add machete to pre-commit hooks ([!953](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/953))
+
 ## [0.0.28] - 2026-03-17
 
 [0.0.28]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.27...v0.0.28
