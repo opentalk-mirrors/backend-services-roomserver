@@ -101,6 +101,7 @@ fn settings() -> Settings {
             typst: ReportsTypst { packages_path },
         },
         recording: Default::default(),
+        internal: Default::default(),
     }
 }
 

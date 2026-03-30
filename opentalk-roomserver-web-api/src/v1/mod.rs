@@ -2,19 +2,25 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use super::Router;
+use crate::v1::user::UserBackend;
 
 pub mod rooms;
 pub mod signaling;
+pub mod user;
 
 use opentalk_service_auth::service::ApiKeyAuthorization;
 pub use rooms::{RoomAction, RoomBackend};
 use signaling::SignalingBackend;
 
-pub trait Backend: Send + Sync + Clone + Sized + RoomBackend + SignalingBackend {}
+pub trait Backend:
+    Send + Sync + Clone + Sized + RoomBackend + UserBackend + SignalingBackend
+{
+}
 
 pub fn routes<B: Backend + 'static>(state: B, auth_middleware: ApiKeyAuthorization) -> Router<B> {
     Router::<B>::new()
         .merge(rooms::routes())
+        .merge(user::routes())
         .layer(auth_middleware)
         .merge(signaling::routes(state))
 }

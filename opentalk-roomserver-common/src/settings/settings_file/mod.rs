@@ -16,10 +16,12 @@ use telemetry::{Metrics, Monitoring, Tracing};
 use thiserror::Error;
 
 use super::controller_settings::ControllerConfig;
+use crate::settings::settings_file::internal::Internal;
 
 pub mod conference;
 pub mod defaults;
 pub mod http;
+pub mod internal;
 pub mod livekit;
 pub mod recording;
 pub mod reports;
@@ -63,6 +65,9 @@ pub struct SettingsFile {
 
     #[serde(default)]
     pub(crate) recording: Option<Recording>,
+
+    #[serde(default)]
+    pub(crate) internal: Option<Internal>,
 }
 
 impl SettingsFile {

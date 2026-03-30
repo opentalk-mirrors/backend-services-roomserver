@@ -403,6 +403,16 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .ok()
                     .context("Failed to respond to PatchParameter, response channel dropped")?;
             }
+            Request::StorageQuotaChanged {
+                response: response_tx,
+                quota,
+            } => {
+                self.storage_quota_changed(quota)?;
+
+                response_tx.send(Ok(())).ok().context(
+                    "Failed to respond to StorageQuotaChanged, response channel dropped",
+                )?;
+            }
             Request::IsBanned { response, user_id } => {
                 let participant_id = ParticipantId::from(Uuid::from(user_id));
 
@@ -672,6 +682,21 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     #[tracing::instrument(level = "info", skip(self))]
     fn set_parameters(&mut self, room_parameters: RoomParameters) {
         self.info.room = room_parameters
+    }
+
+    #[tracing::instrument(level = "info", skip_all)]
+    fn storage_quota_changed(&mut self, quota: Quota) -> Result<(), FatalError> {
+        // Update the quota values in the room parameters, so joining participants receive the new
+        // values in the JoinSuccess event.
+        let tariff = &mut self.info.room.tariff;
+        if let Some(total) = quota.total {
+            tariff.quotas.insert(QuotaType::MaxStorage, total);
+        }
+        tariff.used_quota.insert(QuotaType::MaxStorage, quota.used);
+
+        self.broadcast_storage_quota_changed_event(quota)
+            .context("Failed to broadcast storage quota changed event")
+            .map_err(FatalError)
     }
 
     #[tracing::instrument(level = "info", skip_all)]

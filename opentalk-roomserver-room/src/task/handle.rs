@@ -11,7 +11,7 @@ use opentalk_roomserver_types::{
     room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_v1::{assets::Quota, error::ApiError};
 use opentalk_types_common::users::UserId;
 use tokio::sync::{
     mpsc,
@@ -170,6 +170,21 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Ok(())
     }
 
+    pub async fn set_storage_quota(&self, quota: Quota) -> Result<(), RoomTaskHandleError<Socket>> {
+        self.assets.set_storage_quota(quota.clone()).await;
+
+        let (tx, rx) = oneshot::channel();
+        self.send_request(Request::StorageQuotaChanged {
+            response: tx,
+            quota,
+        })
+        .await?;
+
+        Self::receive_response(rx).await?;
+
+        Ok(())
+    }
+
     pub async fn accept_signaling_socket(
         &self,
         socket: Socket,
@@ -226,6 +241,29 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
     }
 }
 
+#[cfg(any(test, feature = "mock"))]
+impl Default for RoomTaskHandle<crate::mocking::socket::MockSocket> {
+    fn default() -> Self {
+        use crate::storage::{
+            memory_asset_storage::MemoryAssetStorage,
+            memory_module_storage::MemoryModuleResourceStorage,
+        };
+
+        let assets = Arc::new(MemoryAssetStorage::new(Quota {
+            total: None,
+            used: 0,
+        }));
+        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
+        let (sender, _) = mpsc::channel(1);
+
+        Self {
+            assets,
+            module_resources,
+            sender,
+        }
+    }
+}
+
 /// A message that can be send to a [`super::RoomTask`]
 ///
 /// See [`Request`] for the possible messages.
@@ -263,6 +301,12 @@ pub enum Request<Socket: SignalingSocket> {
         patch: Box<RoomParametersPatch>,
     },
 
+    /// Notify the room task that the storage quota changed
+    StorageQuotaChanged {
+        response: ResponseSender<()>,
+        quota: Quota,
+    },
+
     /// Check if a user with the given [`UserId`] is banned
     IsBanned {
         response: ResponseSender<bool>,
@@ -287,12 +331,15 @@ impl<Socket: SignalingSocket> Request<Socket> {
             Request::RefreshIdleTimeout { response }
             | Request::SetParameters { response, .. }
             | Request::PatchParameters { response, .. }
+            | Request::StorageQuotaChanged { response, .. }
             | Request::WsJoin { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
+
             Request::IsBanned { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
+
             Request::AllowedOrigins { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),

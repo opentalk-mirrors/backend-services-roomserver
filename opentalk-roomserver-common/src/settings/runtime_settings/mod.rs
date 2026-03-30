@@ -4,6 +4,7 @@
 use conference::Conference;
 use defaults::Defaults;
 use http::Http;
+use internal::Internal;
 use opentalk_orchestrator_client::OrchestratorConfig;
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use reports::Reports;
@@ -19,6 +20,7 @@ use crate::settings::runtime_settings::recording::Recording;
 pub mod conference;
 pub mod defaults;
 pub mod http;
+pub mod internal;
 pub mod recording;
 pub mod reports;
 pub mod reports_typst;
@@ -46,6 +48,8 @@ pub struct Settings {
     pub reports: Reports,
 
     pub recording: Option<Recording>,
+
+    pub internal: Internal,
 }
 
 impl Settings {
@@ -82,6 +86,7 @@ impl Settings {
             defaults: None,
             reports: Default::default(),
             recording: None,
+            internal: Default::default(),
         }
     }
 }
@@ -101,6 +106,7 @@ impl TryFrom<SettingsFile> for Settings {
             defaults: value.defaults.map(Into::into),
             reports: value.reports.unwrap_or_default().into(),
             recording: value.recording.map(Into::into),
+            internal: value.internal.map(Into::into).unwrap_or_default(),
         })
     }
 }

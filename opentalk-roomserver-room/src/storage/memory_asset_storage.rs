@@ -88,6 +88,10 @@ impl AssetStorageProvider for MemoryAssetStorage {
     async fn can_upload(&self) -> bool {
         !self.quota.read().await.is_exceeded()
     }
+
+    async fn set_storage_quota(&self, quota: Quota) {
+        *self.quota.write().await = quota;
+    }
 }
 
 #[cfg(test)]

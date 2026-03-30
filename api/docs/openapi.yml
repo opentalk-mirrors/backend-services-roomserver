@@ -150,6 +150,32 @@ paths:
         "500":
           description: An internal server error occurred
       security: []
+  "/user/{user_id}/storage_quota":
+    post:
+      tags:
+        - "v1::user"
+      summary: Updates the storage quota (used and limit) of the specified user.
+      operationId: post_storage_quota
+      parameters:
+        - name: user_id
+          in: path
+          description: The UUID that identifies the user
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Quota"
+        required: true
+      responses:
+        "204":
+          description: The storage quota was updated successfully
+        "404":
+          description: No rooms created by the specified user exist
+      security:
+        - API-Token: []
 components:
   schemas:
     BreakoutId:
@@ -442,6 +468,24 @@ components:
         lastname: Adams
         timezone: Europe/Berlin
         title: ""
+    Quota:
+      type: object
+      description: Quota information
+      required:
+        - used
+      properties:
+        total:
+          type:
+            - integer
+            - "null"
+          format: int64
+          description: "The total quota available, if applicable"
+          minimum: 0
+        used:
+          type: integer
+          format: int64
+          description: The used quota
+          minimum: 0
     RateLimitSettings:
       type: object
       required:
@@ -996,3 +1040,5 @@ components:
 tags:
   - name: "v1::rooms"
     description: Endpoints related to rooms
+  - name: "v1::user"
+    description: Endpoints related to a user

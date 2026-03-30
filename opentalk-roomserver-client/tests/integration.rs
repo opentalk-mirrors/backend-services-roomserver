@@ -7,15 +7,19 @@
 
 use std::str::FromStr;
 
-use opentalk_roomserver_client::{Client, Error, RequestTokenError};
+use opentalk_roomserver_client::{
+    ApiError, Client, Error, PostStorageQuotaError, RequestTokenError,
+};
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, room_parameters::RoomParameters,
-    room_parameters_patch::RoomParametersPatch,
+    client_parameters::ClientParameters, public_user_profile::PublicUserProfile,
+    room_parameters::RoomParameters, room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_service_auth::ApiKey;
+use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::{
     events::EventTitle,
     rooms::{RoomId, RoomPassword},
+    users::UserId,
     utils::ExampleData,
 };
 use testcontainers::{
@@ -60,6 +64,54 @@ async fn patch_room() {
         title: Some(EventTitle::from_str_lossy("New Event Title")),
     };
     client.patch_room(room_id, patch).await.unwrap();
+}
+
+#[test_log::test(tokio::test)]
+#[ignore = "Requires an up-to-date roomserver container"]
+async fn post_storage_quota_not_found() {
+    let (_container, base_url) = spawn_roomserver().await;
+    let client = Client::new(base_url, api_key());
+    let user_id = UserId::from_u128(0x1);
+    let quota = Quota {
+        total: Some(2048),
+        used: 1024,
+    };
+
+    let err = client.post_storage_quota(user_id, quota).await.unwrap_err();
+    assert!(matches!(err, Error::ApiError(ApiError {
+            code, ..
+        }) if code == PostStorageQuotaError::NotFound));
+}
+
+#[test_log::test(tokio::test)]
+#[ignore = "Requires an up-to-date roomserver container"]
+async fn post_storage_quota() {
+    let (_container, base_url) = spawn_roomserver().await;
+    let client = Client::new(base_url, api_key());
+    let user_id = UserId::from_u128(0x1);
+    let quota = Quota {
+        total: Some(2048),
+        used: 1024,
+    };
+    let room_id = RoomId::from_u128(0x1);
+
+    // Create a a room with the user id as creator
+    let parameters = RoomParameters {
+        created_by: PublicUserProfile {
+            id: user_id,
+            ..PublicUserProfile::example_data()
+        },
+        ..RoomParameters::example_data()
+    };
+    client
+        .put_room(room_id, parameters)
+        .await
+        .expect("Failed to create room");
+
+    client
+        .post_storage_quota(user_id, quota)
+        .await
+        .expect("Failed to post storage quota");
 }
 
 #[test_log::test(tokio::test)]
