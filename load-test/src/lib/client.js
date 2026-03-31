@@ -24,9 +24,10 @@ export class ClientBuilder {
    * Open a WebSocket connection to the RoomServer and join the specified room
    * @param {string} baseUrl - Base URL of the RoomServer
    * @param {string} roomId - The ID of the room to join
+   * @param {string} roomId - The ID of the user joining the room
    * @returns {Promise<Client>} The connected client
    */
-  async connect(baseUrl, roomId) {
+  async connect(baseUrl, roomId, userId) {
     // Create parameters for this virtual user
     const roomParams = createRoomParameter(this.rateLimit);
     const clientParams = createClientParameter(__VU, __ITER);
