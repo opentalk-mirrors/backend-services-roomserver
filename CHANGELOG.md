@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.30] - 2026-03-31
+
+[0.0.30]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.29...v0.0.30
+
+### 🚀 New features
+
+- (client) Derive `Clone` for `Client` ([!935](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/935))
+- (web-api) Add REST endpoint for updating storage quota ([!935](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/935), [#200](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/200))
+
+### 🐛 Bug fixes
+
+- Make ModuleRegistry::print output deterministic ([!958](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/958), [#213](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/213))
+
 ## [0.0.29] - 2026-03-27
 
 [0.0.29]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.28...v0.0.29
