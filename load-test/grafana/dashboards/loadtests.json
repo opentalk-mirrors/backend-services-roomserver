@@ -18,7 +18,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
   "links": [],
   "panels": [
     {
@@ -127,7 +126,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
@@ -137,7 +136,6 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "avg(last_over_time(k6_fairness_echo_responses_total{test_name=\"$fairness_test\"}[$__range]))",
-          "hide": false,
           "instant": true,
           "legendFormat": "average",
           "range": false,
@@ -168,10 +166,7 @@
             "alias": "difference %",
             "mode": "reduceRow",
             "reduce": {
-              "include": [
-                "Value 2",
-                "average"
-              ],
+              "include": ["Value 2", "average"],
               "reducer": "diffperc"
             }
           }
@@ -195,10 +190,7 @@
           "id": "filterFieldsByName",
           "options": {
             "include": {
-              "names": [
-                "vu",
-                "diffference _abs"
-              ]
+              "names": ["vu", "diffference _abs"]
             }
           }
         },
@@ -283,7 +275,7 @@
           "reverse": false
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "editorMode": "code",
@@ -429,7 +421,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "editorMode": "code",
@@ -446,7 +438,6 @@
           },
           "editorMode": "code",
           "expr": "k6_vus",
-          "hide": false,
           "instant": false,
           "legendFormat": "VUs",
           "range": true,
@@ -454,6 +445,164 @@
         }
       ],
       "title": "Spike Round Trip Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failure rate"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HTTP requests"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "k6_spike_storage_quota_echo_rtt{test_name=\"$spike_storage_quota_test\"}",
+          "legendFormat": "echo RTT",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "editorMode": "code",
+          "expr": "sum(k6_http_req_failed_rate)",
+          "instant": false,
+          "legendFormat": "failure rate",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "editorMode": "code",
+          "expr": "k6_vus",
+          "instant": false,
+          "legendFormat": "VUs",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "editorMode": "code",
+          "expr": "sum(k6_http_reqs_total)",
+          "instant": false,
+          "legendFormat": "HTTP requests",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Storage Quota",
       "type": "timeseries"
     },
     {
@@ -539,7 +688,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "editorMode": "code",
@@ -661,7 +810,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "editorMode": "code",
@@ -677,7 +826,6 @@
           },
           "editorMode": "code",
           "expr": "signaling_congested_connections",
-          "hide": false,
           "instant": false,
           "legendFormat": "congested connections",
           "range": true,
@@ -748,7 +896,7 @@
           "reverse": false
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "editorMode": "code",
@@ -765,7 +913,6 @@
           },
           "editorMode": "code",
           "expr": "k6_vus",
-          "hide": false,
           "instant": false,
           "legendFormat": "VUs",
           "range": true,
@@ -872,7 +1019,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "editorMode": "code",
@@ -982,7 +1129,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "editorMode": "code",
@@ -999,7 +1146,6 @@
           },
           "editorMode": "code",
           "expr": "k6_rate_limit_sent_total{test_name=\"$rate_limit_test\"}",
-          "hide": false,
           "instant": false,
           "legendFormat": "sent",
           "range": true,
@@ -1030,6 +1176,7 @@
         },
         "refresh": 2,
         "regex": "",
+        "regexApplyTo": "value",
         "type": "query"
       },
       {
@@ -1047,12 +1194,17 @@
         },
         "refresh": 2,
         "regex": "",
+        "regexApplyTo": "value",
         "type": "query"
       },
       {
         "current": {
           "text": "spike_join-15:03:31 GMT+0000 (UTC)",
           "value": "spike_join-15:03:31 GMT+0000 (UTC)"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "P1809F7CD0C75ACF3"
         },
         "definition": "label_values(k6_spike_join_echo_rtt,test_name)",
         "name": "spike_join_test",
@@ -1064,6 +1216,7 @@
         },
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
         "type": "query"
       },
       {
@@ -1081,6 +1234,29 @@
         },
         "refresh": 1,
         "regex": "",
+        "regexApplyTo": "value",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "spike_storage_quota-10:19:51 GMT+0000 (UTC)",
+          "value": "spike_storage_quota-10:19:51 GMT+0000 (UTC)"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "P1809F7CD0C75ACF3"
+        },
+        "definition": "label_values(k6_spike_storage_quota_echo_rtt,test_name)",
+        "name": "spike_storage_quota_test",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(k6_spike_storage_quota_echo_rtt,test_name)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "regexApplyTo": "value",
         "type": "query"
       }
     ]
@@ -1093,5 +1269,6 @@
   "timezone": "browser",
   "title": "Loadtest",
   "uid": "adqw8xd",
-  "version": 4
+  "version": 3,
+  "weekStart": ""
 }
