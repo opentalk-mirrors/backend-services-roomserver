@@ -28,22 +28,11 @@ export function createRoomParameter(rateLimit, createdBy) {
       id: '2da2b825-6db9-4dc4-b9e6-b4fd64e66a16',
       name: 'Starter tariff',
       quotas: {},
-      modules: {
-        automod: { features: [] },
-        chat: { features: [] },
-        e2ee: { features: [] },
-        echo: { features: [] },
-        meeting_report: { features: [] },
-        moderation: { features: [] },
-        polls: { features: [] },
-        raise_hands: { features: [] },
-        shared_folder: { features: [] },
-        subroom_audio: { features: [] },
-        timer: { features: [] },
-        meeting_notes: { features: [] },
-      },
+      used_quota: {},
+      disabled_features: [],
     },
-    streaming_links: [],
+    streaming_targets: [],
+    show_meeting_details: true,
     e2e_encryption: false,
     module_settings: {
       livekit: {
@@ -52,6 +41,18 @@ export function createRoomParameter(rateLimit, createdBy) {
         public_url: 'http://localhost:7880',
         service_url: 'http://localhost:7880',
       },
+      automod: {},
+      chat: {},
+      e2ee: {},
+      echo: {},
+      meeting_report: {},
+      moderation: {},
+      polls: {},
+      raise_hands: {},
+      shared_folder: {},
+      subroom_audio: {},
+      timer: {},
+      meeting_notes: {},
     },
     asset_storage: {
       type: 'controller',
@@ -61,6 +62,7 @@ export function createRoomParameter(rateLimit, createdBy) {
     preferred_language: 'de',
     fallback_language: 'de',
     ws_rate_limit: rateLimit,
+    allowed_origins: ['*'],
   };
 }
 
