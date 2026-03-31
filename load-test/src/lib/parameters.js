@@ -4,13 +4,13 @@
 /**
  * Create a default room parameter configuration
  * @param {object} rateLimit - The rate limit configuration
- * @param {object} createdBy - The user who creates the room
+ * @param {string} userId - The user who creates the room
  * @return {object} The room parameters
  */
-export function createRoomParameter(rateLimit, createdBy) {
+export function createRoomParameter(rateLimit, userId) {
   return {
-    created_by: createdBy || {
-      id: '00000000-0000-0000-0000-0000000a11ce',
+    created_by: {
+      id: userId || '00000000-0000-0000-0000-0000000a11ce',
       email: 'alice@example.com',
       title: 'M.Sc.',
       firstname: 'Alice',
