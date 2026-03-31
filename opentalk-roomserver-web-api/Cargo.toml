@@ -21,7 +21,11 @@ bytes.workspace = true
 futures.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
-opentalk-types-api-v1 = { workspace = true, features = ["axum", "http"] }
+opentalk-types-api-v1 = { workspace = true, features = [
+  "axum",
+  "http",
+  "utoipa",
+] }
 opentalk-types-common.workspace = true
 thiserror.workspace = true
 tokio-util.workspace = true
