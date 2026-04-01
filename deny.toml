@@ -47,6 +47,9 @@ ignore = [
 
   # No fixed release available for rsa timing sidechannel yet.
   "RUSTSEC-2023-0071",
+
+  # rustls-pemfile is unmaintained
+  "RUSTSEC-2025-0134",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -356,6 +359,7 @@ skip = [
   { name = "linux-raw-sys", version = "0.4" },
   { name = "litemap", version = "0.7" },
   { name = "moxcms", version = "0.7" },
+  { name = "openssl-probe", version = "0.1" },
   { name = "phf", version = "0.12" },
   { name = "phf_shared", version = "0.12" },
   { name = "png", version = "0.17" },
@@ -371,6 +375,7 @@ skip = [
   { name = "reqwest", version = "0.12" },
   { name = "rustix", version = "0.38" },
   { name = "rustls", version = "0.21" },
+  { name = "rustls-native-certs", version = "0.6" },
   { name = "rustls-webpki", version = "0.101" },
   { name = "serde_spanned", version = "0.6" },
   { name = "smithay-client-toolkit", version = "0.19" },
