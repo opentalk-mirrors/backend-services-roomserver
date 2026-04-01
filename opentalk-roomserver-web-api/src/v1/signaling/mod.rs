@@ -13,7 +13,7 @@ use axum::{
         ws::{WebSocket, WebSocketUpgrade},
     },
     response::{IntoResponse, Response},
-    routing::get,
+    routing::any,
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, signaling::signaling_context::SignalingClientContext,
@@ -28,7 +28,7 @@ pub mod websocket;
 
 pub(crate) fn routes<B: SignalingBackend + 'static>(state: B) -> Router<B> {
     Router::new()
-        .route("/signaling/{token}", get(open_signaling_socket::<B>))
+        .route("/signaling/{token}", any(open_signaling_socket::<B>))
         .layer(cors::cors_layer(state))
 }
 
