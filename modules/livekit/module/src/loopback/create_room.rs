@@ -17,7 +17,7 @@ pub async fn create_room(
         .create_room(&subroom_id, CreateRoomOptions::default())
         .await
         .map_err(|err| {
-            tracing::error!("failed to create room: {}", err);
+            tracing::error!(error = ?err, "failed to create room");
             LiveKitError::LivekitUnavailable
         })?;
     tracing::debug!("LiveKit room created: {}", room.name);
