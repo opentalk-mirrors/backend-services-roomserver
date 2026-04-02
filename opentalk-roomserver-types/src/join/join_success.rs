@@ -2,8 +2,11 @@
 //
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use opentalk_types_common::{
-    events::MeetingDetails, modules::ModuleId, time::Timestamp, users::DisplayName,
+    events::MeetingDetails, features::FeatureId, modules::ModuleId, time::Timestamp,
+    users::DisplayName,
 };
 use opentalk_types_signaling::{ParticipantId, Role};
 use serde::{Deserialize, Serialize};
@@ -48,8 +51,8 @@ pub struct JoinSuccess {
     /// The tariff of the meeting
     pub tariff: Box<TariffDetails>,
 
-    /// The list of enabled modules in the room
-    pub enabled_modules: Vec<ModuleId>,
+    /// The map of enabled modules and their available features in the room
+    pub enabled_modules: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
 
     /// The module data for the participant
     pub module_data: opentalk_types_signaling::ModuleData,

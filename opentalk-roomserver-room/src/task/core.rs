@@ -3,7 +3,7 @@
 
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, hash_map::Entry},
+    collections::{BTreeMap, BTreeSet, hash_map::Entry},
     sync::Arc,
 };
 
@@ -42,8 +42,8 @@ use opentalk_roomserver_web_api::v1::signaling::websocket::{
 };
 use opentalk_types_api_v1::assets::Quota;
 use opentalk_types_common::{
-    events::MeetingDetails, modules::ModuleId, streaming::StreamingLink, tariffs::QuotaType,
-    time::Timestamp,
+    events::MeetingDetails, features::FeatureId, modules::ModuleId, streaming::StreamingLink,
+    tariffs::QuotaType, time::Timestamp,
 };
 use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
 
@@ -571,6 +571,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             })
             .unwrap_or_default();
 
+        let enabled_modules = self.enabled_modules();
+
         Ok(JoinSuccess {
             id: participant_id,
             connection_id,
@@ -591,8 +593,33 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             meeting_details,
             is_room_owner,
             module_data,
-            enabled_modules: self.modules.keys().cloned().chain(CORE_MODULES).collect(),
+            enabled_modules,
         })
+    }
+
+    /// Return the list of enabled modules and their enabled features.
+    ///
+    /// Enabled modules are calculated by
+    ///
+    /// * the list of configured modules in the [`RoomParameters`]
+    /// * adding the mandatory modules: [`CORE_MODULES`]
+    /// * disabling features in [`TariffDetails::disabled_features`]
+    ///
+    /// [`TariffDetails::disabled_features`]: opentalk_roomserver_types::tariff_details::TariffDetails::disabled_features
+    /// [`RoomParameters`]: opentalk_roomserver_types::room_parameters::RoomParameters
+    pub(crate) fn enabled_modules(&self) -> BTreeMap<ModuleId, BTreeSet<FeatureId>> {
+        let mut enabled_modules = self.module_registry.module_features();
+
+        enabled_modules.retain(|module_id, _| {
+            self.modules.contains_key(module_id) || CORE_MODULES.contains(module_id)
+        });
+
+        for module_feature in &self.info.room.tariff.disabled_features {
+            enabled_modules
+                .get_mut(&module_feature.module)
+                .map(|features| features.remove(&module_feature.feature));
+        }
+        enabled_modules
     }
 
     /// Attach core related info about the joining participant for other participants (peers).
@@ -736,6 +763,8 @@ impl RequestedModuleActions {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+
     use insta::assert_snapshot;
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_types::{
@@ -812,7 +841,10 @@ mod tests {
                 streaming_links: vec![],
             },
             is_room_owner: false,
-            enabled_modules: vec![module_id!("test_module")],
+            enabled_modules: BTreeMap::from_iter([(
+                module_id!("test_module"),
+                BTreeSet::from_iter([]),
+            )]),
         };
         let event = SignalingEvent {
             namespace: CORE_MODULE_ID,
@@ -853,9 +885,9 @@ mod tests {
                 "recording::record"
               ]
             },
-            "enabled_modules": [
-              "test_module"
-            ],
+            "enabled_modules": {
+              "test_module": []
+            },
             "module_data": {
               "test": {
                 "a": "test",
@@ -912,9 +944,9 @@ mod tests {
                         "recording::record"
                     ],
                 },
-                "enabled_modules": [
-                    "test_module"
-                ],
+                "enabled_modules": {
+                    "test_module": ["test_feature"]
+                },
                 "module_data": {
                     "test": {
                         "a": "test",
