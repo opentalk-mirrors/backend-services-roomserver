@@ -101,11 +101,11 @@ impl RoomServerApp {
         })
     }
 
-    fn left_panel_ui(&mut self, ctx: &egui::Context) -> Result<(), RunnerGoneError> {
+    fn left_panel_ui(&mut self, ui: &mut egui::Ui) -> Result<(), RunnerGoneError> {
         match &mut self.view {
             CentralAppView::Signaling(signaling_view) if signaling_view.show_side_panel() => {
-                egui::SidePanel::left("Message Side Panel")
-                    .show(ctx, |ui| {
+                egui::Panel::left("Message Side Panel")
+                    .show_inside(ui, |ui| {
                         signaling_view.left_panel_ui(
                             ui,
                             &self.command_tx,
@@ -143,15 +143,15 @@ impl RoomServerApp {
         }
     }
 
-    fn menu_ui(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+    fn menu_ui(&mut self, ui: &mut egui::Ui) {
+        egui::Panel::top("menu_bar").show_inside(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 egui::widgets::global_theme_preference_switch(ui);
 
                 ui.menu_button("File", |ui| {
                     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                     let settings_btn = Button::new("Settings")
-                        .shortcut_text(ctx.format_shortcut(&SETTINGS_SHORTCUT));
+                        .shortcut_text(ui.format_shortcut(&SETTINGS_SHORTCUT));
                     if ui.add(settings_btn).clicked() && self.settings_view.is_none() {
                         self.settings_view = Some(SettingsView::new(&self.settings));
                     }
@@ -173,7 +173,6 @@ impl RoomServerApp {
                 let request = match &mut self.view {
                     CentralAppView::Signaling(signaling_view) => signaling_view
                         .menu_ui(
-                            ctx,
                             ui,
                             &self.command_tx,
                             self.signaling_state_rx.borrow().to_owned(),
@@ -196,7 +195,7 @@ impl RoomServerApp {
                 });
 
                 if let Some(request) = request {
-                    self.transition_to_view(request, ctx);
+                    self.transition_to_view(request, ui);
                 }
             })
         });
@@ -256,27 +255,27 @@ impl RoomServerApp {
     }
 }
 impl eframe::App for RoomServerApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.menu_ui(ctx);
-        egui::TopBottomPanel::bottom("bottom-view")
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        self.menu_ui(ui);
+        egui::Panel::bottom("bottom-view")
             .resizable(true)
-            .default_height(102.)
-            .show(ctx, |ui| {
+            .default_size(102.)
+            .show_inside(ui, |ui| {
                 self.bottom_panel_ui(ui);
             });
-        if let Err(RunnerGoneError) = self.left_panel_ui(ctx) {
+        if let Err(RunnerGoneError) = self.left_panel_ui(ui) {
             self.transition_to_view(
                 TransitionToView::Error {
                     message: RichText::new("Runner is gone"),
                 },
-                ctx,
+                ui,
             );
         }
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             self.central_panel_ui(ui);
         });
         if let Some(settings_view) = &mut self.settings_view {
-            let modal = egui::Modal::new(egui::Id::new("Settings")).show(ctx, |ui| {
+            let modal = egui::Modal::new(egui::Id::new("Settings")).show(ui, |ui| {
                 settings_view.ui(ui, &mut self.settings);
             });
             if modal.should_close() {
@@ -284,27 +283,27 @@ impl eframe::App for RoomServerApp {
             }
         }
         if let Some(view) = &mut self.about_view {
-            let modal = egui::Modal::new(egui::Id::new("About")).show(ctx, |ui| {
+            let modal = egui::Modal::new(egui::Id::new("About")).show(ui, |ui| {
                 view.ui(ui);
             });
             if modal.should_close() {
                 self.about_view.take();
             }
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&EXIT_SHORTCUT)) {
+        if ui.input_mut(|i| i.consume_shortcut(&EXIT_SHORTCUT)) {
             let _ = self.command_tx.send(RunnerCommand::Close);
-            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            ui.send_viewport_cmd(egui::ViewportCommand::Close);
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&SETTINGS_SHORTCUT)) && self.settings_view.is_none()
+        if ui.input_mut(|i| i.consume_shortcut(&SETTINGS_SHORTCUT)) && self.settings_view.is_none()
         {
             self.settings_view = Some(SettingsView::new(&self.settings));
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&ERROR_SHORTCUT)) {
+        if ui.input_mut(|i| i.consume_shortcut(&ERROR_SHORTCUT)) {
             self.transition_to_view(
                 TransitionToView::Error {
                     message: RichText::new("This is a test"),
                 },
-                ctx,
+                ui,
             );
         }
     }

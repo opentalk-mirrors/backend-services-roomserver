@@ -101,7 +101,6 @@ impl SignalingView {
     }
     pub fn menu_ui(
         &mut self,
-        ctx: &egui::Context,
         ui: &mut egui::Ui,
         command_tx: &UnboundedSender<RunnerCommand>,
         signaling_state: SignalingState,
@@ -109,19 +108,19 @@ impl SignalingView {
     ) -> Result<Option<TransitionToView>, RunnerGoneError> {
         ui.menu_button("Message", |ui| {
             let btn_clear =
-                egui::Button::new("Clear").shortcut_text(ctx.format_shortcut(&CLEAR_SHORTCUT));
+                egui::Button::new("Clear").shortcut_text(ui.format_shortcut(&CLEAR_SHORTCUT));
             if ui.add(btn_clear).clicked() {
-                self.clear_messages(ctx);
+                self.clear_messages(ui);
             }
 
-            let btn_previous = egui::Button::new("Previous")
-                .shortcut_text(ctx.format_shortcut(&PREVIOUS_SHORTCUT));
+            let btn_previous =
+                egui::Button::new("Previous").shortcut_text(ui.format_shortcut(&PREVIOUS_SHORTCUT));
             if ui.add(btn_previous).clicked() {
                 self.load_previous_message(&settings.history);
             }
 
             let btn_successor =
-                egui::Button::new("Successor").shortcut_text(ctx.format_shortcut(&CLEAR_SHORTCUT));
+                egui::Button::new("Successor").shortcut_text(ui.format_shortcut(&CLEAR_SHORTCUT));
             if ui
                 .add_enabled(self.historic_message_state.is_some(), btn_successor)
                 .clicked()
@@ -164,20 +163,20 @@ impl SignalingView {
         match signaling_state {
             SignalingState::Connected => {
                 let button = egui::Button::new("Disconnect")
-                    .shortcut_text(ctx.format_shortcut(&DISCONNECT_SHORTCUT));
+                    .shortcut_text(ui.format_shortcut(&DISCONNECT_SHORTCUT));
                 if ui.add(button).clicked()
-                    || ctx.input_mut(|i| i.consume_shortcut(&DISCONNECT_SHORTCUT))
+                    || ui.input_mut(|i| i.consume_shortcut(&DISCONNECT_SHORTCUT))
                 {
                     command_tx.send(RunnerCommand::Close)?;
                 }
             }
             SignalingState::Disconnect => {
                 let button = egui::Button::new("Connect")
-                    .shortcut_text(ctx.format_shortcut(&DISCONNECT_SHORTCUT));
+                    .shortcut_text(ui.format_shortcut(&DISCONNECT_SHORTCUT));
                 if ui.add(button).clicked() {
                     return Ok(Some(TransitionToView::ConnectionConfig));
                 }
-                if ctx.input_mut(|i| i.consume_shortcut(&DISCONNECT_SHORTCUT)) {
+                if ui.input_mut(|i| i.consume_shortcut(&DISCONNECT_SHORTCUT)) {
                     return Ok(Some(TransitionToView::ConnectionConfig));
                 }
             }
@@ -189,9 +188,9 @@ impl SignalingView {
             "Show History Panel"
         };
         let btn_show_history = egui::Button::new(show_history_txt)
-            .shortcut_text(ctx.format_shortcut(&TOGGLE_HISTORY_PANEL_SHORTCUT));
+            .shortcut_text(ui.format_shortcut(&TOGGLE_HISTORY_PANEL_SHORTCUT));
         if ui.add(btn_show_history).clicked()
-            || ctx.input_mut(|i| i.consume_shortcut(&TOGGLE_HISTORY_PANEL_SHORTCUT))
+            || ui.input_mut(|i| i.consume_shortcut(&TOGGLE_HISTORY_PANEL_SHORTCUT))
         {
             self.show_history_panel = !self.show_history_panel;
         }
@@ -205,7 +204,7 @@ impl SignalingView {
                 };
                 let mut btn_show_plugin = egui::Button::new(show_plugin_txt);
                 if let Some(shortcut) = plugin.shortcut() {
-                    btn_show_plugin = btn_show_plugin.shortcut_text(ctx.format_shortcut(shortcut));
+                    btn_show_plugin = btn_show_plugin.shortcut_text(ui.format_shortcut(shortcut));
                 }
                 if ui.add(btn_show_plugin).clicked() {
                     *open = !*open;
@@ -218,7 +217,7 @@ impl SignalingView {
         for (open, plugin) in &mut self.plugins {
             if plugin
                 .shortcut()
-                .is_some_and(|shortcut| ctx.input_mut(|i| i.consume_shortcut(shortcut)))
+                .is_some_and(|shortcut| ui.input_mut(|i| i.consume_shortcut(shortcut)))
             {
                 *open = !*open;
             }
@@ -226,20 +225,20 @@ impl SignalingView {
 
         delete_mode_btn(ui, &mut self.delete_mode);
 
-        if ctx.input_mut(|i| i.consume_shortcut(&CLEAR_SHORTCUT)) {
-            self.clear_messages(ctx);
+        if ui.input_mut(|i| i.consume_shortcut(&CLEAR_SHORTCUT)) {
+            self.clear_messages(ui);
         }
 
-        if ctx.input_mut(|i| i.consume_shortcut(&PREVIOUS_SHORTCUT)) {
+        if ui.input_mut(|i| i.consume_shortcut(&PREVIOUS_SHORTCUT)) {
             self.load_previous_message(&settings.history);
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&SUCCESSOR_SHORTCUT)) {
+        if ui.input_mut(|i| i.consume_shortcut(&SUCCESSOR_SHORTCUT)) {
             self.load_successor_message(&settings.history);
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&FOCUS_MESSAGE_INPUT_SHORTCUT)) {
+        if ui.input_mut(|i| i.consume_shortcut(&FOCUS_MESSAGE_INPUT_SHORTCUT)) {
             self.force_focus = true;
             log::trace!("request repaint: change focus to message input");
-            ctx.request_repaint();
+            ui.request_repaint();
         }
 
         Ok(None)
@@ -425,11 +424,11 @@ impl SignalingView {
         res
     }
 
-    fn clear_messages(&mut self, ctx: &egui::Context) {
+    fn clear_messages(&mut self, ui: &egui::Ui) {
         self.messages.clear();
         self.historic_message_state.take();
         log::trace!("request repaint: clear messages");
-        ctx.request_repaint();
+        ui.request_repaint();
     }
 
     fn receive_runner_events(
