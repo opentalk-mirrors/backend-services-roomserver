@@ -140,12 +140,13 @@ impl From<CoreError> for SignalingModuleError<CoreError> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, BTreeSet};
 
     use chrono::DateTime;
     use insta::assert_snapshot;
     use opentalk_types_common::{
         events::MeetingDetails,
+        features::feature_id,
         modules::module_id,
         rooms::RoomId,
         users::{DisplayName, UserInfo},
@@ -173,7 +174,10 @@ mod tests {
             role: Role::Guest,
             closes_at: None,
             tariff: Box::new(TariffDetails::example_data()),
-            enabled_modules: vec![module_id!("test_module")],
+            enabled_modules: BTreeMap::from_iter([(
+                module_id!("test_module"),
+                BTreeSet::from_iter([feature_id!("test_feature")]),
+            )]),
             module_data: ModuleData::new(),
             participants: vec![],
             event_info: None,
@@ -214,9 +218,11 @@ mod tests {
               "recording::record"
             ]
           },
-          "enabled_modules": [
-            "test_module"
-          ],
+          "enabled_modules": {
+            "test_module": [
+              "test_feature"
+            ]
+          },
           "module_data": {},
           "participants": [],
           "event_info": null,

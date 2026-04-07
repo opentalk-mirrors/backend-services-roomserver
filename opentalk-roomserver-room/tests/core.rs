@@ -46,11 +46,15 @@ async fn join_success() {
         "used_quota": {},
         "disabled_features": []
       },
-      "enabled_modules": [
-        "mock",
-        "core",
-        "breakout"
-      ],
+      "enabled_modules": {
+        "breakout": [],
+        "core": [
+          "call_in",
+          "guests_allowed",
+          "storage_upgradable"
+        ],
+        "mock": []
+      },
       "module_data": {
         "mock": "Self: 00000000-0000-0000-0000-0000000a11ce"
       },
@@ -104,11 +108,15 @@ async fn participant_joined() {
         "used_quota": {},
         "disabled_features": []
       },
-      "enabled_modules": [
-        "mock",
-        "core",
-        "breakout"
-      ],
+      "enabled_modules": {
+        "breakout": [],
+        "core": [
+          "call_in",
+          "guests_allowed",
+          "storage_upgradable"
+        ],
+        "mock": []
+      },
       "module_data": {
         "mock": "Self: 00000000-0000-0000-0000-000000000b0b"
       },
@@ -223,7 +231,7 @@ async fn join_success_contains_core_modules() {
     assert!(
         CORE_MODULES
             .iter()
-            .all(|id| join_success.enabled_modules.contains(id))
+            .all(|id| join_success.enabled_modules.contains_key(id))
     );
 }
 

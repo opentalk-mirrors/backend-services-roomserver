@@ -217,7 +217,12 @@ impl ModuleInitializer for CoreModuleDummy {
     }
 
     fn features(&self) -> BTreeSet<FeatureId> {
-        BTreeSet::new()
+        BTreeSet::from_iter(
+            self.feature_descriptions()
+                .iter()
+                .map(|description| &description.feature_id)
+                .cloned(),
+        )
     }
 }
 
@@ -245,6 +250,11 @@ impl ModuleInitializer for BreakoutRoomModuleDummy {
     }
 
     fn features(&self) -> BTreeSet<FeatureId> {
-        BTreeSet::new()
+        BTreeSet::from_iter(
+            self.feature_descriptions()
+                .iter()
+                .map(|description| &description.feature_id)
+                .cloned(),
+        )
     }
 }

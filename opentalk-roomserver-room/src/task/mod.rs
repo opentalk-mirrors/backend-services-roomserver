@@ -175,6 +175,8 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 
     modules: Modules,
 
+    module_registry: Arc<ModuleRegistry>,
+
     storage: Arc<dyn AssetStorageProvider>,
 
     module_resources: Arc<dyn ModuleResourceProvider>,
@@ -285,6 +287,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 banned_participants: HashMap::new(),
                 quota_timeout: Timeout::new(Duration::from_secs(time_limit)),
                 metrics: Metrics::new(),
+                module_registry,
             };
 
             room_task.run().await;
