@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.32] - 2026-04-07
+
+[0.0.32]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.31...v0.0.32
+
+### 🚀 New features
+
+- Provide available features inside JoinSuccess ([!965](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/965), [#211](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/211))
+
+### 🐛 Bug fixes
+
+- Add missing utoipa feature ([!960](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/960))
+- (load) Update room parameters in load tests to match the roomserver ([!963](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/963))
+- Allow `GET` and `CONNECT` methods to upgrade ws requests ([!964](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/964))
+- Enable TLS for outgoing requests (i.e. LiveKit api) ([!964](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/964))
+
+### 🔨 Refactor
+
+- (load) Allow configuring user ID when connecting client ([!963](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/963))
+
+### 📦 Dependencies
+
+- (deps) Update opentalk rust crates ([!967](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/967))
+
+### ⚙ Miscellaneous
+
+- (logs) Log livekit error details ([!964](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/964))
+- Create dependency graph for all opentalk dependencies ([!966](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/966))
+
+### Ci
+
+- Use changelog preview template ([!962](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/962))
+
+### Test
+
+- (load) Add storage quota spike test ([!963](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/963))
+
 ## [0.0.31] - 2026-03-31
 
 [0.0.31]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.30...v0.0.31
