@@ -126,7 +126,12 @@ generate-deps-graph: _check_cargo_depgraph _check_dot
     #!/usr/bin/env bash
     set -euo pipefail
     OUT_PATH="target/dep-graph.png"
-    cargo depgraph --workspace-only --all-deps | dot -Tpng > $OUT_PATH
+    OPENTALK_CRATES=$(cargo tree --workspace --prefix none --no-dedupe 2>/dev/null \
+        | sed 's/ v.*//' \
+        | sort -u \
+        | grep '^opentalk' \
+        | paste -sd,)
+    cargo depgraph --all-deps --include "$OPENTALK_CRATES" | dot -Tpng > $OUT_PATH
     echo "Created dependency graph at $OUT_PATH"
 
 test-coverage:
