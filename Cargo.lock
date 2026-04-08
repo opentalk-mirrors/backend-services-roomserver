@@ -5590,9 +5590,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-etherpad-client"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e514546dc26b2f9d865149b7322efaab636fff982c8e4383a9bd6e0c700a3fc0"
+checksum = "c11c9fdcea39110aa88c26b31135e319b88fbf2753093a315eca43e876199eb0"
 dependencies = [
  "bytes",
  "futures",
@@ -5600,7 +5600,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_repr",
- "snafu 0.8.9",
+ "snafu 0.9.0",
  "url",
 ]
 
