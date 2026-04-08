@@ -35,6 +35,14 @@
       ],
       "groupName": "typst",
       "groupSlug": "typst"
+    },
+    {
+      "matchPackagePatterns": [
+        "tungstenite",
+        "tokio-tungstenite"
+      ],
+      "groupName": "tungstenite",
+      "groupSlug": "tungstenite"
     }
   ]
 }
