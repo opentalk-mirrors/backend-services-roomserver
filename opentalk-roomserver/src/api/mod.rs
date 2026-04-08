@@ -22,7 +22,7 @@ use opentalk_roomserver_types::{
     signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_roomserver_web_api::v1::{
-    self, Backend, RoomAction, RoomBackend,
+    self, Backend, RoomAction, RoomBackend, SecurityAddon,
     livekit_proxy::{LiveKitProxyBackend, WebsocketRequest, WebsocketResponse},
     user::UserBackend,
 };
@@ -33,10 +33,7 @@ use token_store::TokenStore;
 use tokio::sync::{Mutex, watch};
 use tower_http::trace::TraceLayer;
 use tracing::{Span, info_span};
-use utoipa::{
-    OpenApi,
-    openapi::security::{Http, HttpAuthScheme},
-};
+use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
@@ -91,24 +88,6 @@ pub mod websocket;
         modifiers(&SecurityAddon),
     )]
 pub(crate) struct ApiDoc;
-
-struct SecurityAddon;
-
-impl utoipa::Modify for SecurityAddon {
-    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-        use utoipa::openapi::security::SecurityScheme;
-
-        let components = openapi.components.as_mut().unwrap();
-
-        let http_scheme = Http::builder()
-            .scheme(HttpAuthScheme::Bearer)
-            .bearer_format("api token")
-            .description("The roomservers API token is expected to be in the `Authorization` header with the format: `bearer <token>`".into())
-            .build();
-
-        components.add_security_scheme("API-Token", SecurityScheme::Http(http_scheme));
-    }
-}
 
 /// Starts the web server
 pub(crate) async fn run_web_server<L>(
