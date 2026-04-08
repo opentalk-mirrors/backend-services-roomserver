@@ -11,6 +11,7 @@ use anyhow::anyhow;
 use futures::{StreamExt as _, stream};
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
+use opentalk_roomserver_livekit_proxy::{ShutdownSender, build_livekit_rtc_url, proxy_websocket};
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
@@ -25,6 +26,9 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_livekit::{
     LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitInternal, LiveKitSettings, LiveKitState,
     MicrophoneRestrictionError, MicrophoneRestrictionState, ParticipantsMuted,
+};
+use opentalk_roomserver_web_api::v1::livekit_proxy::{
+    LiveKitProxyTarget, WebsocketRequest, WebsocketResponse,
 };
 use opentalk_types_common::modules::{ModuleId, module_id};
 use opentalk_types_signaling::ParticipantId;
@@ -63,6 +67,7 @@ pub struct LiveKitModule {
     livekit_client: Arc<RoomClient>,
 
     rooms: HashMap<RoomKind, LiveKitSubroom>,
+    proxy_shutdown: HashMap<(ParticipantId, ConnectionId), ShutdownSender>,
 }
 
 impl SignalingModuleDescription for LiveKitModule {
@@ -114,6 +119,7 @@ impl SignalingModule for LiveKitModule {
             livekit_client: Arc::new(livekit_client),
 
             rooms: HashMap::new(),
+            proxy_shutdown: HashMap::new(),
         })
     }
 
@@ -144,6 +150,8 @@ impl SignalingModule for LiveKitModule {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
+        self.cancel_proxies_for_connection(participant_id, connection_id);
+
         let Some(room) = self.rooms.get_mut(&ctx.room) else {
             return Err(anyhow::anyhow!("Unknown room").into());
         };
@@ -180,7 +188,9 @@ impl SignalingModule for LiveKitModule {
         event: Self::Loopback,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match event? {
-            LiveKitLoopback::RoomCreated | LiveKitLoopback::RoomRemoved => Ok(()),
+            LiveKitLoopback::RoomCreated
+            | LiveKitLoopback::RoomRemoved
+            | LiveKitLoopback::ProxySocketClosed => Ok(()),
             LiveKitLoopback::NoteRevokedTokens {
                 token_identities,
                 participant_id,
@@ -210,12 +220,20 @@ impl SignalingModule for LiveKitModule {
                 new_state,
                 return_channel,
             } => self.update_microphone_restrictions(ctx, sender, new_state, return_channel)?,
+            LiveKitInternal::ProxyLivekitSocket {
+                websocket_request,
+                return_channel,
+            } => self.proxy_livekit_socket(ctx, *websocket_request, return_channel),
+            LiveKitInternal::GetLivekitServiceUrl { return_channel } => {
+                self.get_livekit_service_url(return_channel)
+            }
         }
-
         Ok(())
     }
 
     fn on_closing(&mut self, ctx: &mut ModuleContext<'_, Self>) -> Result<(), anyhow::Error> {
+        self.proxy_shutdown.clear();
+
         let rooms = self.rooms.drain().collect();
         Self::cleanup_rooms(ctx, rooms);
 
@@ -258,6 +276,10 @@ impl SignalingModule for LiveKitModule {
         let connections = connections.get(&participant_id).ok_or_else(|| {
             anyhow::anyhow!("Unknown participant can't switch breakout rooms {participant_id}")
         })?;
+
+        for connection_id in connections {
+            self.cancel_proxies_for_connection(participant_id, *connection_id);
+        }
 
         let Some(room) = self.rooms.get_mut(&old_room) else {
             return Err(anyhow::anyhow!(
@@ -303,6 +325,101 @@ impl SignalingModule for LiveKitModule {
 }
 
 impl LiveKitModule {
+    fn proxy_livekit_socket(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        websocket_request: WebsocketRequest,
+        response_sender: oneshot::Sender<WebsocketResponse>,
+    ) {
+        if !Self::is_proxy_request_authorized(ctx, &websocket_request) {
+            let _ = response_sender.send(WebsocketResponse::unauthorized());
+            return;
+        }
+
+        let participant_id = websocket_request.participant_id;
+        let connection_id = websocket_request.connection_id;
+        let LiveKitProxyTarget::LiveKit { room_kind } = websocket_request.proxy_target else {
+            let _ = response_sender.send(WebsocketResponse::unauthorized());
+            return;
+        };
+        let access_token = websocket_request.access_token.clone();
+        let Ok(livekit_rtc_url) = build_livekit_rtc_url(&self.settings.service_url) else {
+            tracing::warn!(?self.settings.service_url, "invalid livekit service URL");
+            let _ = response_sender.send(WebsocketResponse::internal_error());
+            return;
+        };
+
+        // Channel used to shutdown the proxy task. This happens when the participant leaves the
+        // meeting
+        let (shutdown_tx, shutdown_rx) = ShutdownSender::new();
+        let shutdown_key = (participant_id, connection_id);
+        self.proxy_shutdown.insert(shutdown_key, shutdown_tx);
+
+        // Channel to pass the socket from the upgrade callback to the loopback task
+        let (socket_tx, socket_rx) = oneshot::channel();
+        let response = websocket_request.ws_upgrade(move |socket| async move {
+            let _ = socket_tx.send(socket);
+        });
+
+        if response_sender.send(response).is_err() {
+            self.proxy_shutdown.remove(&shutdown_key);
+            return;
+        }
+
+        ctx.spawn(async move {
+            let Ok(downstream_socket) = socket_rx.await else {
+                return Ok(LiveKitLoopback::ProxySocketClosed);
+            };
+
+            if let Err(err) = proxy_websocket(
+                livekit_rtc_url,
+                access_token,
+                downstream_socket,
+                shutdown_rx,
+            )
+            .await
+            {
+                tracing::warn!(
+                    ?participant_id,
+                    ?connection_id,
+                    ?room_kind,
+                    "livekit websocket proxy stopped with error: {err:?}"
+                );
+            }
+
+            Ok(LiveKitLoopback::ProxySocketClosed)
+        });
+    }
+
+    fn is_proxy_request_authorized(
+        ctx: &ModuleContext<'_, Self>,
+        websocket_request: &WebsocketRequest,
+    ) -> bool {
+        let LiveKitProxyTarget::LiveKit { room_kind } = &websocket_request.proxy_target else {
+            return false;
+        };
+
+        ctx.participant_state(websocket_request.participant_id)
+            .is_some_and(|participant| {
+                !participant.in_waiting_room
+                    && participant.room == *room_kind
+                    && participant
+                        .connections
+                        .contains_key(&websocket_request.connection_id)
+            })
+    }
+
+    fn cancel_proxies_for_connection(
+        &mut self,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+    ) {
+        self.proxy_shutdown.remove(&(participant_id, connection_id));
+    }
+
+    fn get_livekit_service_url(&self, return_channel: oneshot::Sender<String>) {
+        let _ = return_channel.send(self.settings.service_url.clone());
+    }
     /// creates a new access token and sends it to the participant
     fn issue_access_token(
         &mut self,

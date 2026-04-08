@@ -26,6 +26,7 @@ mod screen_share_permissions;
 pub enum LiveKitLoopback {
     RoomCreated,
     RoomRemoved,
+    ProxySocketClosed,
 
     /// Note that the token identities were removed
     NoteRevokedTokens {

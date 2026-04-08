@@ -13,4 +13,5 @@ pub enum SubroomAudioLoopback {
     RoomCreated,
     RoomDestroyed,
     ParticipantRemoved,
+    ProxySocketClosed,
 }

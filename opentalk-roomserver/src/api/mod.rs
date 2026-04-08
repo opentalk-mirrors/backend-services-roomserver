@@ -21,7 +21,11 @@ use opentalk_roomserver_types::{
     room_parameters_patch::RoomParametersPatch,
     signaling::signaling_context::SignalingClientContext,
 };
-use opentalk_roomserver_web_api::v1::{self, Backend, RoomAction, RoomBackend, user::UserBackend};
+use opentalk_roomserver_web_api::v1::{
+    self, Backend, RoomAction, RoomBackend,
+    livekit_proxy::{LiveKitProxyBackend, WebsocketRequest, WebsocketResponse},
+    user::UserBackend,
+};
 use opentalk_types_api_v1::{assets::Quota, error::ApiError};
 use opentalk_types_common::{rooms::RoomId, users::UserId};
 use service_probe::{ServiceState, set_service_state};
@@ -61,7 +65,8 @@ pub mod websocket;
            v1::rooms::patch_room,
            v1::rooms::request_token,
            v1::user::post_storage_quota,
-           v1::signaling::open_signaling_socket
+           v1::signaling::open_signaling_socket,
+           v1::livekit_proxy::proxy_socket,
         ),
         components(
             schemas(
@@ -346,6 +351,56 @@ impl RoomBackend for Context {
         let public_url = self.settings.http.public_url.clone();
 
         Ok(RoomServerAccess { public_url, token })
+    }
+}
+
+#[async_trait]
+impl LiveKitProxyBackend for Context {
+    async fn accept_livekit_websocket(
+        &self,
+        ws_request: WebsocketRequest,
+    ) -> Result<WebsocketResponse, ApiError> {
+        let Some(task_handle) = self.room_tasks.get_task_handle(&ws_request.room_id).await else {
+            return Err(ApiError::not_found());
+        };
+
+        let response = task_handle.accept_livekit_socket(ws_request).await?;
+
+        Ok(response)
+    }
+
+    async fn proxy_livekit_validate(
+        &self,
+        room_id: RoomId,
+        headers: axum::http::HeaderMap,
+    ) -> Result<axum::response::Response, ApiError> {
+        let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
+            return Err(ApiError::not_found());
+        };
+
+        let livekit_service_url = task_handle.livekit_service_url().await?;
+        let validate_url = format!("{}/rtc/validate", livekit_service_url.trim_end_matches('/'));
+
+        let response = reqwest::Client::new()
+            .post(validate_url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(|_| ApiError::internal())?;
+
+        let status = axum::http::StatusCode::from_u16(response.status().as_u16())
+            .map_err(|_| ApiError::internal())?;
+        let mut builder = axum::response::Response::builder().status(status);
+
+        for (name, value) in response.headers() {
+            builder = builder.header(name, value);
+        }
+
+        let body = response.bytes().await.map_err(|_| ApiError::internal())?;
+
+        builder
+            .body(axum::body::Body::from(body))
+            .map_err(|_| ApiError::internal())
     }
 }
 

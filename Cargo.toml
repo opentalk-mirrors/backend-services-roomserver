@@ -8,6 +8,7 @@ members = [
   "modules/*/module",
   "modules/*/test-util",
   "modules/*/types",
+  "modules/livekit/proxy",
   "opentalk-roomserver",
   "opentalk-roomserver-client",
   "opentalk-roomserver-crypto-provider",
@@ -36,6 +37,7 @@ version = "0.0.33-alpha"
 opentalk-roomserver-client = { path = "opentalk-roomserver-client", version = "0.0.33-alpha" }
 opentalk-roomserver-common = { path = "opentalk-roomserver-common", version = "0.0.33-alpha" }
 opentalk-roomserver-crypto-provider = { path = "opentalk-roomserver-crypto-provider", version = "0.0.33-alpha" }
+opentalk-roomserver-livekit-proxy = { path = "modules/livekit/proxy", version = "0.0.33-alpha" }
 opentalk-roomserver-module-automod = { path = "modules/automod/module", version = "0.0.33-alpha" }
 opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.33-alpha" }
 opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.33-alpha" }

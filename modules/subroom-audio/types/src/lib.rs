@@ -5,6 +5,7 @@
 
 pub mod command;
 pub mod event;
+pub mod internal;
 pub mod state;
 
 mod whisper_id;

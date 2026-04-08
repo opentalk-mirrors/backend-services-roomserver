@@ -5805,6 +5805,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-livekit-proxy"
+version = "0.0.33-alpha"
+dependencies = [
+ "anyhow",
+ "futures",
+ "opentalk-roomserver-web-api",
+ "tokio",
+ "tokio-tungstenite 0.29.0",
+ "tracing",
+]
+
+[[package]]
 name = "opentalk-roomserver-module-automod"
 version = "0.0.33-alpha"
 dependencies = [
@@ -5911,11 +5923,13 @@ dependencies = [
  "livekit",
  "livekit-api",
  "livekit-protocol",
+ "opentalk-roomserver-livekit-proxy",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-test-util-livekit",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-livekit",
+ "opentalk-roomserver-web-api",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
@@ -6077,6 +6091,7 @@ dependencies = [
  "anyhow",
  "livekit-api",
  "livekit-protocol",
+ "opentalk-roomserver-livekit-proxy",
  "opentalk-roomserver-module-livekit",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
@@ -6084,6 +6099,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-subroom-audio",
+ "opentalk-roomserver-web-api",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "test-log",
@@ -6202,6 +6218,8 @@ dependencies = [
  "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-types-livekit",
+ "opentalk-roomserver-types-subroom-audio",
  "opentalk-roomserver-web-api",
  "opentalk-service-auth",
  "opentalk-types-api-internal",
@@ -6359,6 +6377,7 @@ version = "0.0.33-alpha"
 dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-web-api",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
@@ -6471,10 +6490,12 @@ dependencies = [
  "derive_more",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-roomserver-web-api",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
  "serde_json",
+ "tokio",
  "uuid",
 ]
 
@@ -6530,15 +6551,20 @@ dependencies = [
  "axum",
  "bytes",
  "futures",
+ "jsonwebtoken",
+ "livekit-api",
  "opentalk-roomserver-types",
  "opentalk-service-auth",
  "opentalk-types-api-v1",
  "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
  "thiserror 2.0.18",
  "tokio-util",
  "tower-http",
  "tracing",
  "utoipa",
+ "uuid",
 ]
 
 [[package]]

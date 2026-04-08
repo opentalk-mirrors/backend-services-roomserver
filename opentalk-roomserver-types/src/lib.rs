@@ -25,3 +25,6 @@ pub mod shared_json;
 pub mod shared_raw_json;
 pub mod signaling;
 pub mod tariff_details;
+
+/// Delimiter used for subroom-audio LiveKit room identifiers (`room_id#whisper_id`).
+pub const LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER: char = '#';

@@ -11,20 +11,20 @@ use crate::loopback::SubroomAudioLoopback;
 
 pub async fn destroy_room(
     livekit_client: Arc<RoomClient>,
-    whisper_id: String,
+    livekit_room_id: String,
 ) -> Result<SubroomAudioLoopback, SubroomAudioError> {
     livekit_client
-        .delete_room(&whisper_id)
+        .delete_room(&livekit_room_id)
         .await
         .map_err(|err| {
             tracing::debug!(
                 "failed to remove livekit whisper room for id {}: {}",
-                whisper_id,
+                livekit_room_id,
                 err
             );
             SubroomAudioError::LivekitUnavailable
         })?;
 
-    tracing::debug!("LiveKit audio subroom destroyed: {}", whisper_id);
+    tracing::debug!("LiveKit audio subroom destroyed: {}", livekit_room_id);
     Ok(SubroomAudioLoopback::RoomDestroyed)
 }
