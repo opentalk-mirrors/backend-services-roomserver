@@ -629,12 +629,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participants: Vec<ParticipantId>,
     ) -> Result<(), FatalError> {
         for participant_id in participants {
-            let Some(state) = self.participants.all_unfiltered.get(&participant_id) else {
+            let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
                 tracing::error!(
                     "Failed to get connections for unknown participant {participant_id}"
                 );
                 continue;
             };
+
+            // Ensure the kicked participant can not skip the waiting room
+            state.in_waiting_room = true;
+            state.role = Role::User;
+
             let connections: Vec<ConnectionId> = state.connections().collect();
             for connection_id in connections {
                 self.disconnect_participant(
