@@ -25,9 +25,16 @@ const TEST_START_TIME = new Date();
 // Test configuration
 const BASE_URL = getRequiredEnv('BASE_URL');
 const ROOM_ID = getEnv('ROOM_ID', '27c66df5-f6be-4d70-a167-abba2cf28a2a');
-const MEASURE_DURATION = getEnv('SPIKE_JOIN_MEASURE_DURATION', 120); // seconds
-const SPIKE_END = 70 * 1000; // 70 seconds
+
 const SPIKE_ECHO_INTERVAL = getEnv('SPIKE_JOIN_ECHO_INTERVAL', 1); // seconds
+const START_DELAY = getEnv('SPIKE_JOIN_START_DELAY', 30); // seconds
+const SPIKE_RAMP_UP_DURATION = getEnv('SPIKE_JOIN_RAMP_UP_DURATION', 10); // seconds
+const SPIKE_DURATION = getEnv('SPIKE_JOIN_DURATION', 30); // seconds
+const SPIKE_RAMP_DOWN_DURATION = getEnv('SPIKE_JOIN_RAMP_DOWN_DURATION', 10); // seconds
+const MAX_USERS = getEnv('SPIKE_JOIN_MAX_USERS', 800);
+
+const SPIKE_END = START_DELAY + SPIKE_RAMP_UP_DURATION + SPIKE_DURATION;
+const MEASURE_DURATION = START_DELAY + SPIKE_RAMP_UP_DURATION + SPIKE_DURATION + SPIKE_RAMP_DOWN_DURATION;
 
 // Custom metrics
 const ECHO_RTT = new Gauge('spike_join_echo_rtt');
@@ -44,12 +51,15 @@ export const options = {
       exec: 'spike',
       executor: 'ramping-vus',
       startVUs: 0,
-      // Start the spike after 30 seconds to allow measuring baseline RTT first
-      startTime: '30s',
+      // Start the spike after START_DELAY seconds to allow measuring baseline RTT first
+      startTime: `${START_DELAY}s`,
       stages: [
-        { duration: '10s', target: 800 }, // Ramp up to 800 VUs over 10 seconds
-        { duration: '30s', target: 800 }, // Keep at 800 VUs for 30 seconds
-        { duration: '10s', target: 0 }, // Ramp down to 0 VUs over 10 seconds
+        // Increase the number of VUs
+        { duration: `${SPIKE_RAMP_UP_DURATION}s`, target: MAX_USERS },
+        // Keep the number of VUs stable
+        { duration: `${SPIKE_DURATION}s`, target: MAX_USERS },
+        // Decrease the number of VUs
+        { duration: `${SPIKE_RAMP_DOWN_DURATION}s`, target: 0 },
       ],
       gracefulRampDown: '0s',
     },
