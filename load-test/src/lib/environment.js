@@ -20,6 +20,16 @@ export function getEnv(key, defaultValue = '') {
     return defaultValue;
   }
 
+  // Try to match the type of the default value
+  if (typeof defaultValue === 'boolean') {
+    return /^(true|1|yes|on)$/i.test(String(value).trim());
+  }
+
+  const parse = defaultValue?.constructor;
+  if (typeof parse === 'function') {
+    return parse(value);
+  }
+
   return value;
 }
 
