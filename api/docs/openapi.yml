@@ -13,6 +13,38 @@ info:
 servers:
   - url: /v1
 paths:
+  /livekit/rtc:
+    get:
+      tags:
+        - "v1::livekit_proxy"
+      summary: Opens a new LiveKit WebSocket connection for RTC communication.
+      description: |-
+        This endpoint establishes a WebSocket connection to the upstream LiveKit server.
+        The access token can be provided either as a query parameter or in the `Authorization`
+        header with the `Bearer` scheme.
+
+        # Available paths
+        - `/livekit/rtc`
+        - `/livekit/rtc/v1`
+      operationId: proxy_socket
+      parameters:
+        - name: access_token
+          in: query
+          description: "LiveKit access token (JWT) as query parameter. If not provided, must be in Authorization header with Bearer scheme"
+          required: false
+          schema:
+            type: string
+      responses:
+        "101":
+          description: Successfully upgraded connection to WebSocket for RTC communication
+        "400":
+          description: Invalid token format or missing required token claims
+        "401":
+          description: Missing access token or invalid token scheme
+        "500":
+          description: An internal server error occurred
+      security:
+        - Livekit-Token: []
   "/rooms/{room_id}":
     put:
       tags:
@@ -1037,6 +1069,11 @@ components:
       scheme: bearer
       bearerFormat: api token
       description: "The roomservers API token is expected to be in the `Authorization` header with the format: `bearer <token>`"
+    Livekit-Token:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "The access token to authorize against the LiveKit server. This can also be provided via query parameters. This token is expected in the `Authorization` header with the format: `bearer <token>`"
 tags:
   - name: "v1::rooms"
     description: Endpoints related to rooms

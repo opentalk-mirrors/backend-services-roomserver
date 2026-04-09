@@ -124,6 +124,7 @@ pub mod breakout;
 pub mod closing;
 pub mod core;
 pub mod handle;
+mod livekit;
 pub mod timeout;
 pub mod waiting_room;
 
@@ -418,7 +419,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
             Request::IsBanned { response, user_id } => {
                 let participant_id = ParticipantId::from(Uuid::from(user_id));
-
                 response
                     .send(Ok(self.banned_participants.contains_key(&participant_id)))
                     .ok()
@@ -435,11 +435,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             } => {
                 self.ws_join(socket, client_parameters)
                     .context("Fatal error while accepting new websocket connection")?;
-
                 response
                     .send(Ok(()))
                     .ok()
                     .context("Failed to respond to WsJoin, response channel dropped")?;
+            }
+            Request::AcceptLivekitSocket {
+                response,
+                websocket_request,
+            } => {
+                self.send_socket_to_livekit_module(websocket_request, response)?;
+            }
+            Request::GetLivekitServiceUrl { response } => {
+                self.get_livekit_service_url(response)?;
             }
         }
 

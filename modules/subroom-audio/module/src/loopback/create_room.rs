@@ -11,10 +11,10 @@ use crate::loopback::SubroomAudioLoopback;
 
 pub async fn create_room(
     livekit_client: Arc<RoomClient>,
-    whisper_id: String,
+    livekit_room_id: String,
 ) -> Result<SubroomAudioLoopback, SubroomAudioError> {
     let room = livekit_client
-        .create_room(&whisper_id, CreateRoomOptions::default())
+        .create_room(&livekit_room_id, CreateRoomOptions::default())
         .await
         .map_err(|err| {
             tracing::error!("failed to create room: {}", err);

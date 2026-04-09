@@ -3,11 +3,12 @@
 
 [package]
 authors.workspace = true
-description = "Opentalk RoomServer LiveKit Types"
+description = "Shared LiveKit websocket proxy utilities for RoomServer modules"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
-name = "opentalk-roomserver-types-livekit"
+name = "opentalk-roomserver-livekit-proxy"
+publish = true
 repository.workspace = true
 version.workspace = true
 
@@ -15,10 +16,9 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-opentalk-roomserver-signaling.workspace = true
-opentalk-roomserver-types.workspace = true
+anyhow.workspace = true
+futures.workspace = true
 opentalk-roomserver-web-api.workspace = true
-opentalk-types-common.workspace = true
-opentalk-types-signaling.workspace = true
-serde.workspace = true
 tokio.workspace = true
+tokio-tungstenite.workspace = true
+tracing.workspace = true

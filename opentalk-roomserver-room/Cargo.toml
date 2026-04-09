@@ -20,6 +20,7 @@ anyhow.workspace = true
 async-trait.workspace = true
 axum-prometheus.workspace = true
 blake3.workspace = true
+bytes.workspace = true
 chrono.workspace = true
 futures.workspace = true
 icu_locid = { workspace = true, optional = true }
@@ -28,6 +29,8 @@ opentalk-orchestrator-client.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-livekit.workspace = true
+opentalk-roomserver-types-subroom-audio.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
 opentalk-types-api-internal.workspace = true

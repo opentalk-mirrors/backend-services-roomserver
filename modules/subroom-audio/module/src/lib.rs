@@ -13,25 +13,32 @@ use livekit_api::{
     services::room::RoomClient,
 };
 use livekit_protocol::TrackSource;
+use opentalk_roomserver_livekit_proxy::{ShutdownSender, build_livekit_rtc_url, proxy_websocket};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, NoOp, SignalingModule, SignalingModuleDescription,
+        ModuleJoinData, SignalingModule, SignalingModuleDescription,
         SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
-    connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
+    LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER, connection_id::ConnectionId,
+    signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_livekit::LiveKitSettings;
 use opentalk_roomserver_types_subroom_audio::{
     SUBROOM_AUDIO_MODULE_ID, WhisperId,
     command::{ParticipantTargets, SubroomAudioCommand},
     event::{SubroomAudioError, SubroomAudioEvent, WhisperParticipantInfo},
+    internal::SubroomAudioInternal,
     state::{WhisperGroup, WhisperState},
 };
-use opentalk_types_common::modules::ModuleId;
+use opentalk_roomserver_web_api::v1::livekit_proxy::{
+    LiveKitProxyTarget, WebsocketRequest, WebsocketResponse,
+};
+use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::ParticipantId;
+use tokio::sync::oneshot;
 
 use crate::loopback::SubroomAudioLoopback;
 
@@ -43,6 +50,7 @@ pub struct SubroomAudioModule {
     settings: Arc<LiveKitSettings>,
     livekit_client: Arc<RoomClient>,
     whisper_rooms: HashMap<WhisperId, WhisperGroup>,
+    proxy_shutdown: HashMap<(ParticipantId, ConnectionId), ShutdownSender>,
 }
 
 impl SignalingModuleDescription for SubroomAudioModule {
@@ -58,7 +66,7 @@ impl SignalingModule for SubroomAudioModule {
 
     type Outgoing = SubroomAudioEvent;
 
-    type Internal = NoOp;
+    type Internal = SubroomAudioInternal;
 
     type Loopback = Result<SubroomAudioLoopback, SubroomAudioError>;
 
@@ -87,6 +95,7 @@ impl SignalingModule for SubroomAudioModule {
             livekit_client: Arc::new(livekit_client),
 
             whisper_rooms: HashMap::new(),
+            proxy_shutdown: HashMap::new(),
         })
     }
 
@@ -104,8 +113,10 @@ impl SignalingModule for SubroomAudioModule {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         participant_id: ParticipantId,
-        _connection_id: ConnectionId,
+        connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
+        self.cancel_proxies_for_connection(participant_id, connection_id);
+
         let result = self.leave_all_whisper_groups(ctx, participant_id);
 
         if result.is_err() {
@@ -146,9 +157,131 @@ impl SignalingModule for SubroomAudioModule {
             }
         }
     }
+
+    fn on_internal_command(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        command: Self::Internal,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        match command {
+            SubroomAudioInternal::ProxyLivekitSocket {
+                websocket_request,
+                return_channel,
+            } => self.proxy_livekit_socket(ctx, *websocket_request, return_channel),
+        }
+
+        Ok(())
+    }
+
+    fn on_closing(&mut self, _ctx: &mut ModuleContext<'_, Self>) -> Result<(), anyhow::Error> {
+        self.proxy_shutdown.clear();
+
+        Ok(())
+    }
 }
 
 impl SubroomAudioModule {
+    fn proxy_livekit_socket(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        websocket_request: WebsocketRequest,
+        return_channel: oneshot::Sender<WebsocketResponse>,
+    ) {
+        if !self.is_proxy_request_authorized(ctx, &websocket_request) {
+            let _ = return_channel.send(WebsocketResponse::unauthorized());
+            return;
+        }
+
+        let participant_id = websocket_request.participant_id;
+        let connection_id = websocket_request.connection_id;
+        let access_token = websocket_request.access_token.clone();
+        let Ok(livekit_rtc_url) = build_livekit_rtc_url(&self.settings.service_url) else {
+            tracing::warn!(?self.settings.service_url, "invalid livekit service URL");
+            let _ = return_channel.send(WebsocketResponse::internal_error());
+            return;
+        };
+
+        let (shutdown_tx, shutdown_rx) = ShutdownSender::new();
+        let key = (participant_id, connection_id);
+        self.proxy_shutdown.insert(key, shutdown_tx);
+
+        let (socket_tx, socket_rx) = oneshot::channel();
+        let response = websocket_request.ws_upgrade(move |socket| async move {
+            let _ = socket_tx.send(socket);
+        });
+
+        if return_channel.send(response).is_err() {
+            self.proxy_shutdown.remove(&key);
+            return;
+        }
+
+        ctx.spawn(async move {
+            let Ok(downstream_socket) = socket_rx.await else {
+                return Ok(SubroomAudioLoopback::ProxySocketClosed);
+            };
+
+            if let Err(err) = proxy_websocket(
+                livekit_rtc_url,
+                access_token,
+                downstream_socket,
+                shutdown_rx,
+            )
+            .await
+            {
+                tracing::warn!(
+                    ?participant_id,
+                    ?connection_id,
+                    "subroom-audio livekit websocket proxy stopped with error: {err:?}"
+                );
+            }
+
+            Ok(SubroomAudioLoopback::ProxySocketClosed)
+        });
+    }
+
+    fn is_proxy_request_authorized(
+        &self,
+        ctx: &ModuleContext<'_, Self>,
+        websocket_request: &WebsocketRequest,
+    ) -> bool {
+        let LiveKitProxyTarget::SubroomAudio { whisper_id } = &websocket_request.proxy_target
+        else {
+            return false;
+        };
+        let whisper_id = WhisperId::from(*whisper_id);
+
+        let Some(participant) = ctx.participant_state(websocket_request.participant_id) else {
+            return false;
+        };
+
+        if participant.in_waiting_room
+            || !participant
+                .connections
+                .contains_key(&websocket_request.connection_id)
+        {
+            return false;
+        }
+
+        let Some(whisper_group) = self.whisper_rooms.get(&whisper_id) else {
+            return false;
+        };
+
+        matches!(
+            whisper_group
+                .participants
+                .get(&websocket_request.participant_id),
+            Some(WhisperState::Creator | WhisperState::Accepted)
+        )
+    }
+
+    fn cancel_proxies_for_connection(
+        &mut self,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+    ) {
+        self.proxy_shutdown.remove(&(participant_id, connection_id));
+    }
+
     fn get_whisper_group(
         &mut self,
         sender: ParticipantId,
@@ -227,7 +360,7 @@ impl SubroomAudioModule {
         sender: ParticipantId,
         whisper_id: WhisperId,
     ) -> Result<(), SignalingModuleError<SubroomAudioError>> {
-        let token = self.create_access_token(sender, whisper_id)?;
+        let token = self.create_access_token(ctx.room_id, sender, whisper_id)?;
         let whisper_group = self.get_whisper_group(sender, whisper_id)?;
 
         if whisper_group.has_accepted(&sender) {
@@ -294,11 +427,12 @@ impl SubroomAudioModule {
         let livekit_client = Arc::clone(&self.livekit_client);
         let whisper_group = self.get_whisper_group(sender, whisper_id)?;
         let has_token = whisper_group.has_accepted(&sender);
+        let livekit_room_id = build_livekit_whisper_room_id(ctx.room_id, whisper_id);
 
         if has_token {
             ctx.spawn(loopback::remove_participant(
                 livekit_client,
-                whisper_id.to_string(),
+                livekit_room_id.clone(),
                 sender.to_string(),
             ));
         }
@@ -308,7 +442,7 @@ impl SubroomAudioModule {
         if whisper_group.participants.is_empty() {
             ctx.spawn(loopback::destroy_room(
                 Arc::clone(&self.livekit_client),
-                whisper_id.to_string(),
+                livekit_room_id,
             ));
 
             self.whisper_rooms.remove(&whisper_id);
@@ -482,18 +616,21 @@ impl SubroomAudioModule {
         sender: ParticipantId,
         whisper_id: WhisperId,
     ) -> Result<String, SignalingModuleError<SubroomAudioError>> {
+        let livekit_room_id = build_livekit_whisper_room_id(ctx.room_id, whisper_id);
+
         ctx.spawn(loopback::create_room(
             Arc::clone(&self.livekit_client),
-            whisper_id.to_string(),
+            livekit_room_id,
         ));
 
-        let token = self.create_access_token(sender, whisper_id)?;
+        let token = self.create_access_token(ctx.room_id, sender, whisper_id)?;
 
         Ok(token)
     }
 
     fn create_access_token(
         &self,
+        room_id: RoomId,
         sender: ParticipantId,
         whisper_id: WhisperId,
     ) -> Result<String, SignalingModuleError<SubroomAudioError>> {
@@ -509,7 +646,7 @@ impl SubroomAudioModule {
                     room_record: false,
                     room_admin: false,
                     room_join: true,
-                    room: whisper_id.to_string(),
+                    room: build_livekit_whisper_room_id(room_id, whisper_id),
                     destination_room: String::new(),
                     can_publish: true,
                     can_subscribe: true,
@@ -526,6 +663,10 @@ impl SubroomAudioModule {
 
         Ok(access_token)
     }
+}
+
+fn build_livekit_whisper_room_id(room_id: RoomId, whisper_id: WhisperId) -> String {
+    format!("{room_id}{LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER}{whisper_id}")
 }
 
 fn is_group_creator(sender: &ParticipantId, whisper_group: &WhisperGroup) -> bool {

@@ -10,7 +10,10 @@ use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch,
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
+use opentalk_roomserver_web_api::v1::{
+    livekit_proxy::{WebsocketRequest, WebsocketResponse},
+    signaling::websocket::SignalingSocket,
+};
 use opentalk_types_api_v1::{assets::Quota, error::ApiError};
 use opentalk_types_common::users::UserId;
 use tokio::sync::{
@@ -130,9 +133,7 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         self.send_request(Request::RefreshIdleTimeout { response: tx })
             .await?;
 
-        Self::receive_response(rx).await?;
-
-        Ok(())
+        Self::receive_response(rx).await
     }
 
     /// Set the parameters for the room
@@ -148,9 +149,7 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         })
         .await?;
 
-        Self::receive_response(rx).await?;
-
-        Ok(())
+        Self::receive_response(rx).await
     }
 
     pub async fn patch_parameters(
@@ -199,9 +198,7 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         })
         .await?;
 
-        Self::receive_response(rx).await?;
-
-        Ok(())
+        Self::receive_response(rx).await
     }
 
     pub async fn is_banned(&self, user_id: UserId) -> Result<bool, RoomTaskHandleError<Socket>> {
@@ -213,9 +210,7 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         })
         .await?;
 
-        let response = Self::receive_response(rx).await?;
-
-        Ok(response)
+        Self::receive_response(rx).await
     }
 
     pub async fn allowed_origins(&self) -> Option<Vec<String>> {
@@ -238,6 +233,30 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
 
     pub fn module_resources(&self) -> Arc<dyn ModuleResourceProvider> {
         Arc::clone(&self.module_resources)
+    }
+
+    pub async fn accept_livekit_socket(
+        &self,
+        websocket_request: WebsocketRequest,
+    ) -> Result<WebsocketResponse, RoomTaskHandleError<Socket>> {
+        let (tx, rx) = oneshot::channel();
+
+        self.send_request(Request::AcceptLivekitSocket {
+            response: tx,
+            websocket_request,
+        })
+        .await?;
+
+        Self::receive_response(rx).await
+    }
+
+    pub async fn livekit_service_url(&self) -> Result<String, RoomTaskHandleError<Socket>> {
+        let (tx, rx) = oneshot::channel();
+
+        self.send_request(Request::GetLivekitServiceUrl { response: tx })
+            .await?;
+
+        Self::receive_response(rx).await
     }
 }
 
@@ -287,7 +306,9 @@ type ResponseSender<T> = oneshot::Sender<Result<T, RoomTaskApiError>>;
 #[derive(Debug)]
 pub enum Request<Socket: SignalingSocket> {
     /// Refresh the room tasks idle timeout
-    RefreshIdleTimeout { response: ResponseSender<()> },
+    RefreshIdleTimeout {
+        response: ResponseSender<()>,
+    },
 
     /// Set the parameters for the room
     SetParameters {
@@ -323,6 +344,15 @@ pub enum Request<Socket: SignalingSocket> {
         socket: Socket,
         client_parameters: ClientParameters,
     },
+
+    AcceptLivekitSocket {
+        response: ResponseSender<WebsocketResponse>,
+        websocket_request: WebsocketRequest,
+    },
+
+    GetLivekitServiceUrl {
+        response: ResponseSender<String>,
+    },
 }
 
 impl<Socket: SignalingSocket> Request<Socket> {
@@ -341,6 +371,12 @@ impl<Socket: SignalingSocket> Request<Socket> {
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
 
             Request::AllowedOrigins { response, .. } => response
+                .send(Err(error))
+                .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
+            Request::AcceptLivekitSocket { response, .. } => response
+                .send(Err(error))
+                .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
+            Request::GetLivekitServiceUrl { response } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
         }
