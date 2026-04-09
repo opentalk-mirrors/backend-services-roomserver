@@ -29,10 +29,14 @@ const TEST_START_TIME = new Date();
 // Test configuration
 const BASE_URL = getRequiredEnv('BASE_URL');
 const ROOM_ID = getEnv('ROOM_ID', '27c66df5-f6be-4d70-a167-abba2cf28a2a');
-const RAMP_UP_DURATION = 5 * 60 * 1000; // 5 minutes
-const TEST_DURATION = 10 * 60 * 1000; // 10 minutes
 
-const ECHO_START_TIME = TEST_START_TIME.getTime() + RAMP_UP_DURATION;
+// Duration to reach number of VUs (default: 5 minutes)
+const RAMP_UP_DURATION_SECONDS = getEnv('FAIRNESS_RAMP_UP_DURATION_SECONDS', 5 * 60 * 1000);
+// Duration of the fairness test (default: 10 minutes)
+const TEST_DURATION_SECONDS = getEnv('FAIRNESS_TEST_DURATION_SECONDS', 10 * 60 * 1000);
+const USERS = getEnv('FAIRNESS_USERS', 200);
+
+const ECHO_START_TIME = TEST_START_TIME.getTime() + RAMP_UP_DURATION_SECONDS;
 
 // Custom metrics
 const ECHO_RESPONSES_COUNTER = new Counter('fairness_echo_responses');
@@ -44,8 +48,10 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '5m', target: 200 }, // Ramp up to 200 VUs over 5 minutes
-        { duration: '10m', target: 200 }, // Stay at 200 VUs for 10 minutes
+        // Ramp up VUs, make sure everyone joined
+        { duration: `${RAMP_UP_DURATION_SECONDS}s`, target: USERS },
+        // Keep the number VUs constant and test for fairness
+        { duration: `${TEST_DURATION_SECONDS}s`, target: USERS },
       ],
     },
   },
@@ -64,7 +70,7 @@ export default async function () {
 
   console.info(`VU ${__VU} starting echo commands`);
 
-  const testEnd = RAMP_UP_DURATION + TEST_DURATION;
+  const testEnd = RAMP_UP_DURATION_SECONDS + TEST_DURATION_SECONDS;
   try {
     // Run until the test duration has elapsed
     while (exec.instance.currentTestRunDuration < testEnd) {
