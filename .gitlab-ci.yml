@@ -285,6 +285,31 @@ test:cargo_test:
     TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
     RUST_LOG: opentalk=trace
 
+test:load:
+  stage: test
+  <<: *default_job_condition
+  image:
+    name: grafana/k6:1.7.1
+    entrypoint: ['']
+  needs:
+    - build
+  parallel:
+    matrix:
+      - TEST: [break-chat, break-join, fairness, rate-limit, spike-join, spike-storage-quota]
+  variables:
+    ROOMSERVER_BIN: $CI_PROJECT_DIR/target/release/opentalk-roomserver
+    OT_ROOMSERVER_HTTP__PUBLIC_URL: http://localhost:11333
+    OT_ROOMSERVER_MONITORING__ADDR: 127.0.0.1
+    LOAD_TEST_BASE_URL: http://localhost:11333
+    LOG_DIR: $CI_PROJECT_DIR/target/load-test/
+  script:
+    - $CI_PROJECT_DIR/ci/run-load-test.sh "src/tests/${TEST}.js"
+  artifacts:
+    when: on_failure
+    paths:
+      - $LOG_DIR
+    expire_in: 1 week
+
 build:
   stage: build
   needs: []
