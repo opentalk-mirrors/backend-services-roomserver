@@ -42,6 +42,7 @@ opentalk-roomserver-module-automod = { path = "modules/automod/module", version 
 opentalk-roomserver-module-chat = { path = "modules/chat/module", version = "0.0.34-alpha" }
 opentalk-roomserver-module-e2ee = { path = "modules/e2ee/module", version = "0.0.34-alpha" }
 opentalk-roomserver-module-echo = { path = "modules/echo/module", version = "0.0.34-alpha" }
+opentalk-roomserver-module-excalidraw = { path = "modules/excalidraw/module", version = "0.0.34-alpha" }
 opentalk-roomserver-module-legal-vote = { path = "modules/legal-vote/module", version = "0.0.34-alpha" }
 opentalk-roomserver-module-livekit = { path = "modules/livekit/module", version = "0.0.34-alpha" }
 opentalk-roomserver-module-meeting-notes = { path = "modules/meeting-notes/module", version = "0.0.34-alpha" }
@@ -66,6 +67,7 @@ opentalk-roomserver-types-automod = { path = "modules/automod/types", version = 
 opentalk-roomserver-types-chat = { path = "modules/chat/types", version = "0.0.34-alpha" }
 opentalk-roomserver-types-e2ee = { path = "modules/e2ee/types", version = "0.0.34-alpha" }
 opentalk-roomserver-types-echo = { path = "modules/echo/types", version = "0.0.34-alpha" }
+opentalk-roomserver-types-excalidraw = { path = "modules/excalidraw/types", version = "0.0.34-alpha" }
 opentalk-roomserver-types-legal-vote = { path = "modules/legal-vote/types", version = "0.0.34-alpha" }
 opentalk-roomserver-types-livekit = { path = "modules/livekit/types", version = "0.0.34-alpha" }
 opentalk-roomserver-types-meeting-notes = { path = "modules/meeting-notes/types", version = "0.0.34-alpha" }

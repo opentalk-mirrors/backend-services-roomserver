@@ -31,6 +31,7 @@ use serde::{Deserialize, Serialize};
 // reexport events for easier usage
 pub use {
     opentalk_roomserver_types_e2ee::{E2EE_MODULE_ID, E2eeEvent},
+    opentalk_roomserver_types_excalidraw::{EXCALIDRAW_MODULE_ID, ExcalidrawEvent},
     opentalk_roomserver_types_livekit::{
         Credentials, LIVEKIT_MODULE_ID, LiveKitError, LiveKitEvent, LiveKitState,
     },
@@ -78,6 +79,7 @@ pub enum SignalingModuleEvent {
     SubroomAudio(SubroomAudioEvent),
     MeetingNotes(MeetingNotesEvent),
     Whiteboard(WhiteboardEvent),
+    Excalidraw(ExcalidrawEvent),
     LegalVote(LegalVoteEvent),
     TrainingParticipationReport(TrainingParticipationReportEvent),
     Recording(RecordingEvent),
@@ -102,6 +104,7 @@ impl SignalingModuleEvent {
             Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
             Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
+            Self::Excalidraw(..) => EXCALIDRAW_MODULE_ID,
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
             Self::Recording(..) => RECORDING_MODULE_ID,
@@ -120,6 +123,7 @@ mod tests {
     use opentalk_roomserver_types_automod::event::{AutomodEvent, StoppedReason};
     use opentalk_roomserver_types_chat::event::ChatEvent;
     use opentalk_roomserver_types_echo::event::EchoEvent;
+    use opentalk_roomserver_types_excalidraw::ExcalidrawEvent;
     use opentalk_roomserver_types_legal_vote::{
         LegalVoteEvent,
         token::Token,
@@ -527,6 +531,29 @@ mod tests {
           "payload": {
             "message": "initialized",
             "url": "https://example.com/"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_event_excalidraw() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
+            payload: SignalingModuleEvent::Excalidraw(ExcalidrawEvent::Followed {
+                participant_id: ParticipantId::nil(),
+            }),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "timestamp": "1970-01-01T00:00:00Z",
+          "namespace": "excalidraw",
+          "payload": {
+            "message": "followed",
+            "participant_id": "00000000-0000-0000-0000-000000000000"
           }
         }
         "#);

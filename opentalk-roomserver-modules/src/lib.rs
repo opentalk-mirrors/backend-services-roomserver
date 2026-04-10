@@ -6,6 +6,7 @@ use opentalk_roomserver_module_automod::AutomodModule;
 use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_module_e2ee::E2eeModule;
 use opentalk_roomserver_module_echo::EchoModule;
+use opentalk_roomserver_module_excalidraw::ExcalidrawModule;
 use opentalk_roomserver_module_legal_vote::LegalVoteModule;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_meeting_notes::MeetingNotesModule;
@@ -64,6 +65,7 @@ pub fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<TrainingParticipationReportModule>();
     module_registry.add_module::<RaiseHandsModule>();
     module_registry.add_module::<WhiteboardModule>();
+    module_registry.add_module::<ExcalidrawModule>();
     module_registry
 }
 

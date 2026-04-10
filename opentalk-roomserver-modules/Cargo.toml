@@ -18,6 +18,7 @@ opentalk-roomserver-module-automod.workspace = true
 opentalk-roomserver-module-chat.workspace = true
 opentalk-roomserver-module-e2ee.workspace = true
 opentalk-roomserver-module-echo.workspace = true
+opentalk-roomserver-module-excalidraw.workspace = true
 opentalk-roomserver-module-legal-vote.workspace = true
 opentalk-roomserver-module-livekit.workspace = true
 opentalk-roomserver-module-meeting-notes.workspace = true
