@@ -3,7 +3,9 @@
 
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
-use opentalk_roomserver_types::{core::CoreEvent, disconnect_reason::DisconnectReason};
+use opentalk_roomserver_types::{
+    client_parameters::Role, core::CoreEvent, disconnect_reason::DisconnectReason,
+};
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
@@ -34,6 +36,91 @@ async fn insufficient_permissions() {
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         event.payload,
+        ModerationEvent::Error(ModerationError::InsufficientPermissions)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn can_not_kick_room_owner() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+    let charlie = room.join_charlie(0).await;
+    flush_connected_events(&mut [&mut alice, &mut bob]).await;
+
+    // Alice grants Bob moderator rights
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: bob.id(),
+                new_role: Role::Moderator,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Bob receives the role updated event
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::RoleUpdated {
+            participant_id: bob.id(),
+            new_role: Role::Moderator
+        }
+    );
+
+    // Alice grants Charlie moderator rights
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: charlie.id(),
+                new_role: Role::Moderator,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Bob receives the role update event
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::RoleUpdated {
+            participant_id: charlie.id(),
+            new_role: Role::Moderator
+        }
+    );
+
+    // Bob tries to kick Charlie
+    bob.send_command::<ModerationModule>(
+        ModerationCommand::Kick {
+            target: charlie.id(),
+        },
+        None,
+    )
+    .await
+    .unwrap();
+
+    // Bob receives an error because the room owner can not be kicked
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
         ModerationEvent::Error(ModerationError::InsufficientPermissions)
     );
 }

@@ -241,6 +241,11 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         }
 
+        // Only the room owner is allowed to kick moderators
+        if ctx.is_moderator(target) && !ctx.is_room_owner(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
         if !ctx.room_task_info.room.waiting_room {
             Self::set_waiting_room_state(ctx, true)?;
         }
