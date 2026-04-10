@@ -177,6 +177,8 @@ paths:
       responses:
         "101":
           description: Successfully upgraded connection to WebSocket
+        "401":
+          description: The token was invalid
         "404":
           description: The requested room does not exist
         "500":

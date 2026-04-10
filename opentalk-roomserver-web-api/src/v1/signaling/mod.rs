@@ -43,6 +43,7 @@ pub(crate) fn routes<B: SignalingBackend + 'static>(state: B) -> Router<B> {
     responses(
         (status = StatusCode::SWITCHING_PROTOCOLS, description = "Successfully upgraded connection to WebSocket"),
         (status = StatusCode::NOT_FOUND, description = "The requested room does not exist"),
+        (status = StatusCode::UNAUTHORIZED, description = "The token was invalid"),
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
     ),
     params(
