@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.33] - 2026-04-13
+
+[0.0.33]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.32...v0.0.33
+
+### 🚀 New features
+
+- (livekit) Proxy livekit requests ([!938](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/938), [#199](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/199))
+
+### 🔨 Refactor
+
+- Move SecurityAddon to web-api crate ([!938](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/938))
+
+### 🐛 Bug fixes
+
+- (livekit) Error log when participant disconnects without sending close frame ([!978](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/978))
+- (moderation) Do not allow kicked users to skip the waiting room ([!981](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/981))
+- (moderation) Restrict kicking moderators to the room owner ([!981](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/981))
+
+### 📦 Dependencies
+
+- (deps) Update egui ([!972](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/972))
+- (deps) Update opentalk ([!973](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/973), [!992](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/992))
+- (deps) Update tungstenite to 0.29.0 ([!977](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/977))
+- (deps) Update rust crate opentalk-orchestrator-client to 0.5 ([!979](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/979))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.94.1 ([!984](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/984), [!985](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/985))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.1 ([!986](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/986))
+- (deps) Lock file maintenance ([!991](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/991))
+
+### Ci
+
+- (renovate) Add group rule for tungstenite ([!977](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/977))
+- Publish container images to harbor ([!982](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/982))
+
 ## [0.0.32] - 2026-04-07
 
 [0.0.32]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.31...v0.0.32
