@@ -23,9 +23,50 @@ impl KickScope {
     /// Query whether a specific role is kicked by the scope
     pub fn kicks(&self, role: Role, kind: &ClientKind) -> bool {
         match self {
-            KickScope::Guests => matches!(kind, ClientKind::Guest { .. }),
+            KickScope::Guests => {
+                matches!(kind, ClientKind::Guest { .. } | ClientKind::CallIn { .. })
+            }
             KickScope::UsersAndGuests => !matches!(role, Role::Moderator),
             KickScope::All => true,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use opentalk_roomserver_types::{
+        client_parameters::{ClientKind, Role},
+        public_user_profile::PublicUserProfile,
+    };
+    use opentalk_types_common::{users::DisplayName, utils::ExampleData};
+
+    use super::KickScope;
+
+    #[test]
+    fn guests_scope_kicks_call_in() {
+        let kind = ClientKind::CallIn {
+            display_name: DisplayName::from_str_lossy("1001"),
+        };
+
+        assert!(KickScope::Guests.kicks(Role::User, &kind));
+    }
+
+    #[test]
+    fn guests_scope_kicks_guest() {
+        let kind = ClientKind::Guest {
+            display_name: DisplayName::from_str_lossy("Gustav"),
+        };
+
+        assert!(KickScope::Guests.kicks(Role::User, &kind));
+    }
+
+    #[test]
+    fn guests_scope_does_not_kick_registered() {
+        let kind = ClientKind::Registered {
+            profile: PublicUserProfile::example_data(),
+        };
+
+        assert!(!KickScope::Guests.kicks(Role::User, &kind));
+        assert!(!KickScope::Guests.kicks(Role::Moderator, &kind));
     }
 }
