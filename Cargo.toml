@@ -82,7 +82,7 @@ opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", vers
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.33-alpha" }
 opentalk-service-auth = { version = "0.2", default-features = false }
 opentalk-types-api-internal = "0.2"
-opentalk-types-api-v1 = { version = "0.56", features = ["axum"] }
+opentalk-types-api-v1 = { version = "0.57", features = ["axum"] }
 opentalk-types-common = { version = "0.43", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.45", features = ["serde", "utoipa"] }
 
