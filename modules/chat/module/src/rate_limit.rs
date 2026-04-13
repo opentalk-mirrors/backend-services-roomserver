@@ -50,8 +50,10 @@ impl RateLimit {
             return RateLimitState::TooManyRequests;
         }
 
-        let slow_down = (tokens as f32 / self.settings.token_bucket_size as f32)
-            <= self.settings.slow_down_threshold;
+        // Check if the connection should be slowed down, we subtract a small epsilon to account for
+        // floating point inaccuracies
+        let slow_down = (tokens as f32 / self.settings.token_bucket_size as f32) - f32::EPSILON
+            <= 1.0 - self.settings.slow_down_threshold;
 
         // Rate limit is enforced when overstepping the limit, so we consume the token after
         // checking
