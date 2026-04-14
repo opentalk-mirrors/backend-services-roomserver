@@ -40,7 +40,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::v1::signaling::websocket::{
     CloseFrame, SignalingSocket, SignalingSocketMessage,
 };
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     events::MeetingDetails, features::FeatureId, modules::ModuleId, streaming::StreamingLink,
     tariffs::QuotaType, time::Timestamp,

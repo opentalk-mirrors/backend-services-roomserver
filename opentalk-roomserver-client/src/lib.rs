@@ -15,7 +15,7 @@ use opentalk_roomserver_types::{
     room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_service_auth::{ApiKey, EncodingError};
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{rooms::RoomId, roomserver::Token, users::UserId};
 use reqwest::{Client as ReqwestClient, Response, header::AUTHORIZATION};
 use serde::Deserialize;

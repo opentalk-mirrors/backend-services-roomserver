@@ -3,7 +3,7 @@
 
 //! Signaling events for the `meeting_report` namespace
 
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{assets::AssetId, time::Timestamp};
 use serde::{Deserialize, Serialize};
 
@@ -63,7 +63,7 @@ impl From<TrainingParticipationReportError> for TrainingParticipationReportEvent
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
-    use opentalk_types_api_v1::assets::Quota;
+    use opentalk_types_api_internal::module_assets::Quota;
     use opentalk_types_common::{assets::AssetId, time::Timestamp, utils::ExampleData};
     use serde_json::json;
 

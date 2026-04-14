@@ -25,7 +25,6 @@ icu_locid.workspace = true
 opentalk-roomserver-common.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-api-internal.workspace = true
-opentalk-types-api-v1.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 reqwest.workspace = true

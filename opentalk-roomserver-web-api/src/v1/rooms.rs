@@ -17,7 +17,7 @@ use opentalk_roomserver_types::{
     room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch,
 };
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 
 use crate::Router;

@@ -19,7 +19,7 @@ use opentalk_roomserver_types::{
     LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER, breakout::breakout_id::BreakoutId,
     connection_id::ConnectionId, room_kind::RoomKind,
 };
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
 use serde::Deserialize;
