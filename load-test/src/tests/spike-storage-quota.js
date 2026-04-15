@@ -30,8 +30,16 @@ const TEST_START_TIME = new Date();
 
 // Test configuration
 const BASE_URL = getRequiredEnv('BASE_URL');
-const MEASURE_DURATION = getEnv('SPIKE_STORAGE_QUOTA_MEASURE_DURATION', 70); // seconds
 const ECHO_INTERVAL = getEnv('SPIKE_STORAGE_QUOTA_ECHO_INTERVAL', 1); // seconds
+
+const START_DELAY = getEnv('SPIKE_JOIN_START_DELAY', 20); // seconds
+const RAMP_UP_DURATION = getEnv('SPIKE_STORAGE_QUOTA_RAMP_UP_DURATION', 10); // seconds
+const SPIKE_DURATION = getEnv('SPIKE_STORAGE_QUOTA_SPIKE_DURATION', 50); // seconds
+const RAMP_DOWN_DURATION = getEnv('SPIKE_STORAGE_QUOTA_RAMP_DOWN_DURATION', 10); // seconds
+const MAX_USERS = getEnv('SPIKE_JOIN_MAX_USERS', 10);
+const CONCURRENT_QUOTA_UPDATES = getEnv('SPIKE_JOIN_MAX_USERS', 10);
+
+const MEASURE_DURATION = START_DELAY + RAMP_UP_DURATION + SPIKE_DURATION + RAMP_DOWN_DURATION;
 
 // Custom metrics
 const ECHO_RTT = new Gauge('spike_storage_quota_echo_rtt');
@@ -43,17 +51,21 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '10s', target: 10 }, // Ramp up to 10 VUs over 10 seconds
-        { duration: '50s', target: 10 }, // Keep at 10 VUs for 30 seconds
-        { duration: '10s', target: 0 }, // Ramp down to 0 VUs over 10 seconds
+        // Ramp up to MAX_USERS VUs
+        { duration: `${RAMP_UP_DURATION}s`, target: MAX_USERS },
+        // Keep at MAX_USERS VUs
+        { duration: `${SPIKE_DURATION}s`, target: MAX_USERS },
+        // Ramp down to 0 VUs
+        { duration: `${RAMP_DOWN_DURATION}s`, target: 0 },
       ],
     },
     request: {
       exec: 'post_storage_quota',
       executor: 'constant-vus',
-      vus: 10,
-      startTime: '20s', // Start sending requests after 20 seconds to allow rooms to be created first
-      duration: '30s',
+      vus: CONCURRENT_QUOTA_UPDATES,
+      // Start sending requests after the start delay to allow rooms to be created first
+      startTime: `${START_DELAY}s`,
+      duration: `${SPIKE_DURATION}s`,
     },
     measure: {
       exec: 'measure',

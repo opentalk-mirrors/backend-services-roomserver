@@ -38,6 +38,7 @@ const MESSAGE_JITTER = getEnv('BREAK_CHAT_MESSAGE_JITTER', 0.5); // seconds
 const MESSAGE_CONTENT = getEnv('BREAK_CHAT_MESSAGE_CONTENT', 'generating load');
 // Test duration
 const DURATION_SECONDS = getEnv('BREAK_CHAT_DURATION_SECONDS', 3 * 60 * 60); // 3 hours
+const DURATION_MS = DURATION_SECONDS * 1000;
 
 // Custom metrics
 const SUCCESS_RATE = new Rate('break_chat_message_success');
@@ -148,9 +149,12 @@ async function connect() {
   try {
     const client = await new ClientBuilder().connect(BASE_URL, ROOM_ID);
 
-    // Abort the test if a client gets disconnected
+    // Abort only if the socket closes before the intended test duration.
+    // During normal shutdown, k6 can interrupt VUs and close sockets.
     client.ws.addEventListener('close', () => {
-      exec.test.abort('WebSocket connection closed unexpectedly');
+      if (exec.instance.currentTestRunDuration < DURATION_MS) {
+        exec.test.abort('WebSocket connection closed unexpectedly');
+      }
     });
 
     return client;

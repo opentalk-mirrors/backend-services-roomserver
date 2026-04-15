@@ -62,6 +62,15 @@ _check_yq:
         exit 1
     fi
 
+[no-exit-message]
+_check_k6:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v k6 > /dev/null; then
+        echo 'k6 is not available, see https://grafana.com/docs/k6/latest/set-up/install-k6/' >&2
+        exit 1
+    fi
+
 # Prepare a release
 prepare-release VERSION: (set-version VERSION) update-openapi (update-changelog VERSION)
 
@@ -154,3 +163,14 @@ install-latest-typst-packages:
     docker cp typst-plugins:/usr/share/typst/packages/preview/linguify/ "$TYPST_DIR"
     # delete the container
     docker container rm "$CONTAINER_NAME"
+
+test-load TEST: _check_k6
+    #!/usr/bin/env bash
+
+    export ROOMSERVER_BIN="cargo run --"
+    export OT_ROOMSERVER_HTTP__PUBLIC_URL=http://localhost:11333
+    export OT_ROOMSERVER_MONITORING__ADDR=127.0.0.1
+    export LOAD_TEST_BASE_URL=http://localhost:11333
+
+    pushd load-test
+    ../ci/run-load-test.sh src/tests/"{{ TEST }}".js

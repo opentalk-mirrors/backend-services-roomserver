@@ -27,7 +27,7 @@ const BASE_URL = getRequiredEnv('BASE_URL');
 const ROOM_ID = getEnv('ROOM_ID', '27c66df5-f6be-4d70-a167-abba2cf28a2a');
 
 // Test configuration
-const MAX_INFLIGHT = getEnv('RATE_LIMIT_MAX_INFLIGHT', 1000);
+const TOTAL_SEND = getEnv('RATE_LIMIT_TOTAL_SEND', 1000);
 const TOKENS_PER_SECOND = getEnv('RATE_LIMIT_TOKENS_PER_SECOND', 10);
 const TOKEN_BUCKET_SIZE = getEnv('RATE_LIMIT_TOKEN_BUCKET_SIZE', 15);
 
@@ -40,7 +40,7 @@ export const options = {
     rate_limit: {
       executor: 'constant-vus',
       vus: 1,
-      duration: `${MAX_INFLIGHT / TOKENS_PER_SECOND}s`,
+      duration: `${TOTAL_SEND / TOKENS_PER_SECOND}s`,
       gracefulStop: '0s',
     },
   },
@@ -71,7 +71,7 @@ export default async function () {
     RECEIVED.add(1, tags);
   };
 
-  for (let i = 0; i < MAX_INFLIGHT; i++) {
+  for (let i = 0; i < TOTAL_SEND; i++) {
     const currentTransactionId = transactionId++;
 
     // Send an echo command without awaiting the response
@@ -82,7 +82,7 @@ export default async function () {
 
   // Not using k6's sleep() here, because it would suspend the VU, preventing it
   // from processing incoming messages.
-  const waitMs = (MAX_INFLIGHT / TOKENS_PER_SECOND) * 1000;
+  const waitMs = (TOTAL_SEND / TOKENS_PER_SECOND) * 1000;
   await new Promise((resolve) => setTimeout(resolve, waitMs));
 
   client.disconnect();
