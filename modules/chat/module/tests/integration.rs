@@ -1772,7 +1772,7 @@ async fn rate_limit_slow_down() {
     .await
     .unwrap();
     let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
-    assert_eq!(event, ChatEvent::SlowDown);
+    assert!(matches!(event, ChatEvent::SlowDown { .. }));
 
     // The message is still sent
     let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
@@ -1796,7 +1796,9 @@ async fn rate_limit_reached() {
         .unwrap()
         .register_module::<ChatModule>()
         .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
 
     for _ in 0..5 {
         bob.send_command::<ChatModule>(
@@ -1809,7 +1811,7 @@ async fn rate_limit_reached() {
         .await
         .unwrap();
         let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
-        assert!(matches!(event, ChatEvent::MessageSent { .. }));
+        assert_message_eq!(Scope::Global, "hello", bob.id(), &event);
     }
 
     // Starting with the 5th message the slow down event is triggered
@@ -1824,10 +1826,15 @@ async fn rate_limit_reached() {
         .await
         .unwrap();
         let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
-        assert_eq!(event, ChatEvent::SlowDown);
+        assert_eq!(
+            event,
+            ChatEvent::SlowDown {
+                recommended_wait_ms: 1000
+            }
+        );
 
         let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
-        assert!(matches!(event, ChatEvent::MessageSent { .. }));
+        assert_message_eq!(Scope::Global, "hello", bob.id(), &event);
     }
 
     // The 11th message triggers the too many requests error
@@ -1841,8 +1848,81 @@ async fn rate_limit_reached() {
     .await
     .unwrap();
     let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
-    assert_eq!(event, ChatEvent::Error(ChatError::TooManyRequests));
+    assert_eq!(
+        event,
+        ChatEvent::Error(ChatError::TooManyRequests {
+            retry_after_ms: 5000
+        })
+    );
 
     // The message is not sent
     assert!(bob.received_nothing());
+
+    // Alice receives 10 chat messages from bob
+    for _ in 0..10 {
+        let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
+        assert_message_eq!(Scope::Global, "hello", bob.id(), &event);
+    }
+
+    // Alice receives the rate limited event for bob
+    let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
+    assert_eq!(
+        event,
+        ChatEvent::ParticipantRateLimited {
+            participant_id: bob.id()
+        }
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn moderators_dont_receive_own_participant_rate_limit_reached() {
+    let mut room = TestRoom::builder()
+        .register_module::<ChatModule>()
+        .add_init_module_data(&ChatSettings {
+            rate_limit: Some(RateLimitSettings {
+                tokens_per_second: 1,
+                token_bucket_size: 1,
+                slow_down_threshold: 1.0,
+            }),
+        })
+        .unwrap()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage {
+                content: "hello".to_string(),
+                scope: Scope::Global,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    // The first message is sent successfully
+    let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
+    assert_message_eq!(Scope::Global, "hello", alice.id(), &event);
+    // Alice is asked to slow down
+
+    alice
+        .send_command::<ChatModule>(
+            ChatCommand::SendMessage {
+                content: "hello".to_string(),
+                scope: Scope::Global,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    // The second message triggers the rate limit
+    let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
+    assert_eq!(
+        event,
+        ChatEvent::Error(ChatError::TooManyRequests {
+            retry_after_ms: 1000
+        })
+    );
+
+    // Alice does not receive the participant rate limited event for herself
+    assert!(alice.received_nothing());
 }

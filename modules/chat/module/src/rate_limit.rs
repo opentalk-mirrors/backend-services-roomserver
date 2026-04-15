@@ -47,7 +47,13 @@ impl RateLimit {
         tracing::debug!("Connection id '{connection_id}' has {tokens} of tokens left");
 
         if tokens == 0 {
-            return RateLimitState::TooManyRequests;
+            return RateLimitState::TooManyRequests {
+                retry_after_ms: self
+                    .settings
+                    .refill_time_to_slow_down_threshold_ms()
+                    .try_into()
+                    .unwrap_or(u32::MAX),
+            };
         }
 
         // Check if the connection should be slowed down, we subtract a small epsilon to account for
@@ -60,7 +66,13 @@ impl RateLimit {
         bucket.consume_token();
 
         if slow_down {
-            RateLimitState::SlowDown
+            RateLimitState::SlowDown {
+                recommended_wait_ms: self
+                    .settings
+                    .token_interval_ms()
+                    .try_into()
+                    .unwrap_or(u32::MAX),
+            }
         } else {
             RateLimitState::Ok
         }
@@ -97,6 +109,12 @@ impl Bucket {
 
 pub(super) enum RateLimitState {
     Ok,
-    SlowDown,
-    TooManyRequests,
+    SlowDown {
+        /// The time the client should wait before sending another chat message
+        recommended_wait_ms: u32,
+    },
+    TooManyRequests {
+        /// The time the client should wait before sending another chat message
+        retry_after_ms: u32,
+    },
 }
