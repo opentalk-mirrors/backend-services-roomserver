@@ -6,8 +6,9 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::{Context as _, Result};
 use async_trait::async_trait;
 use axum::{
-    extract::MatchedPath,
+    extract::{MatchedPath, OriginalUri},
     http::{Request, Response},
+    response::IntoResponse,
     serve::Listener as _,
 };
 use futures::{StreamExt, stream};
@@ -28,6 +29,7 @@ use opentalk_roomserver_web_api::v1::{
 };
 use opentalk_types_api_v1::{assets::Quota, error::ApiError};
 use opentalk_types_common::{rooms::RoomId, users::UserId};
+use reqwest::StatusCode;
 use service_probe::{ServiceState, set_service_state};
 use token_store::TokenStore;
 use tokio::sync::{Mutex, watch};
@@ -162,7 +164,8 @@ where
                 .on_failure(|fail, _duration, _span: &Span| {
                     tracing::warn!("request failed: {fail:?}");
                 }),
-        );
+        )
+        .fallback(not_found_handler);
 
     if let Some(layer) = metric_layer {
         router = router.layer(layer);
@@ -189,6 +192,12 @@ where
     room_registry.wait_for_room_closed().await;
 
     Ok(())
+}
+
+async fn not_found_handler(OriginalUri(uri): OriginalUri) -> impl IntoResponse {
+    tracing::debug!("Received request for unknown route: {}", uri);
+
+    (StatusCode::NOT_FOUND, "requested path was not found")
 }
 
 /// Context for the API endpoints
