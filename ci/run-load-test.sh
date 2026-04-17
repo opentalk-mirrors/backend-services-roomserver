@@ -74,7 +74,7 @@ cd "${SCRIPT_DIR}" || exit 1
 
 # Start roomserver in background (word splitting on ROOMSERVER_BIN is intentional)
 # shellcheck disable=SC2086
-${ROOMSERVER_BIN} --config "${ROOMSERVER_CONFIG}" >"${ROOMSERVER_LOG_FILE}" &
+NO_COLOR=1 ${ROOMSERVER_BIN} --config "${ROOMSERVER_CONFIG}" >"${ROOMSERVER_LOG_FILE}" &
 ROOMSERVER_PID=$!
 echo "Roomserver started with PID: ${ROOMSERVER_PID}"
 
