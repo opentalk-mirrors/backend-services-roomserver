@@ -21,7 +21,7 @@ use std::{
 };
 
 use futures::{StreamExt, stream};
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     assets::{AssetFileKind, AssetId, FileExtension},
     time::Timestamp,

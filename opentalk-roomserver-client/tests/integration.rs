@@ -15,7 +15,7 @@ use opentalk_roomserver_types::{
     room_parameters::RoomParameters, room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_service_auth::ApiKey;
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     events::EventTitle,
     rooms::{RoomId, RoomPassword},

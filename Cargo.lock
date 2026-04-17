@@ -5756,7 +5756,7 @@ dependencies = [
  "opentalk-roomserver-room",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
- "opentalk-types-api-v1",
+ "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-version",
  "opentelemetry",
@@ -5808,7 +5808,7 @@ dependencies = [
  "opentalk-roomserver-types-training-participation-report",
  "opentalk-roomserver-types-whiteboard",
  "opentalk-service-auth",
- "opentalk-types-api-v1",
+ "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "reqwest 0.13.2",
@@ -6323,7 +6323,6 @@ dependencies = [
  "opentalk-roomserver-web-api",
  "opentalk-service-auth",
  "opentalk-types-api-internal",
- "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
@@ -6355,7 +6354,6 @@ dependencies = [
  "opentalk-roomserver-common",
  "opentalk-roomserver-types",
  "opentalk-types-api-internal",
- "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "reqwest 0.13.2",
@@ -6388,7 +6386,7 @@ dependencies = [
  "derive_more",
  "icu_locid",
  "insta",
- "opentalk-types-api-v1",
+ "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
@@ -6620,7 +6618,7 @@ dependencies = [
  "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
- "opentalk-types-api-v1",
+ "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
@@ -6655,7 +6653,7 @@ dependencies = [
  "livekit-api",
  "opentalk-roomserver-types",
  "opentalk-service-auth",
- "opentalk-types-api-v1",
+ "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
@@ -6685,12 +6683,13 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-common"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a48a8bc4920985cfc3aa169aa38a72bff27ad75402bba5750f94db9ad68477a5"
+checksum = "c43fbcfd03e4e3d59fe58702f540d7cba732547fcf74b82105d8f7505f23f778"
 dependencies = [
  "axum",
  "base64 0.22.1",
+ "chrono",
  "derive_more",
  "http 1.4.0",
  "opentalk-types-common",
@@ -6703,38 +6702,23 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-internal"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f027144dae6561a926c69430e7622ca62bd2fc9cc499abb3bbb12d0d3268366"
-dependencies = [
- "opentalk-types-common",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "opentalk-types-api-v1"
-version = "0.57.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65bb150186cc7d1226c6f7783556a3ae7d827f5b10f0c5fd66d2b1e753270726"
+checksum = "d1811b20319feed1827ff3559b25ac19bb7482fe3470773d958ce2a002b2d3dd"
 dependencies = [
  "chrono",
- "chrono-tz",
- "derive_more",
  "opentalk-types-api-common",
  "opentalk-types-common",
  "serde",
  "serde_json",
- "serde_with",
- "url",
  "utoipa",
 ]
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.43.1"
+version = "0.43.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5b02a33d2762653e94147e3b1fd001e6e9830e85a251eb1910722a8e25a8d22"
+checksum = "a38f06c1dab8d327c8c61be01a3e26922d8bc774e52b33116b75c9706b97abe2"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -7609,7 +7593,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
- "heck 0.4.1",
+ "heck 0.5.0",
  "itertools 0.12.1",
  "log",
  "multimap",
@@ -9148,7 +9132,7 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -9160,7 +9144,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54254b8531cafa275c5e096f62d48c81435d1015405a91198ddb11e967301d40"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn 2.0.117",

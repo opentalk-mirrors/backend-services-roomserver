@@ -12,7 +12,7 @@ use opentalk_roomserver_signaling::storage::{
         provider::{AssetStorageProvider, AssetStream},
     },
 };
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::assets::AssetId;
 use tokio::sync::{Mutex, RwLock};
 
@@ -106,7 +106,7 @@ mod test {
         },
     };
     use opentalk_roomserver_types::breakout::BREAKOUT_MODULE_ID;
-    use opentalk_types_api_v1::assets::Quota;
+    use opentalk_types_api_internal::module_assets::Quota;
     use opentalk_types_common::{
         assets::{FileExtension, asset_file_kind},
         rooms::RoomId,

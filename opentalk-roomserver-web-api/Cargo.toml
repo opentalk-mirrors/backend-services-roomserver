@@ -23,7 +23,7 @@ jsonwebtoken.workspace = true
 livekit-api.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
-opentalk-types-api-v1 = { workspace = true, features = [
+opentalk-types-api-internal = { workspace = true, features = [
   "axum",
   "http",
   "utoipa",

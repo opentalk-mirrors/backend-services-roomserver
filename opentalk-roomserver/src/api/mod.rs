@@ -27,7 +27,7 @@ use opentalk_roomserver_web_api::v1::{
     livekit_proxy::{LiveKitProxyBackend, WebsocketRequest, WebsocketResponse},
     user::UserBackend,
 };
-use opentalk_types_api_v1::{assets::Quota, error::ApiError};
+use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::{rooms::RoomId, users::UserId};
 use reqwest::StatusCode;
 use service_probe::{ServiceState, set_service_state};
@@ -69,7 +69,7 @@ pub mod websocket;
         ),
         components(
             schemas(
-                opentalk_types_api_v1::users::PublicUserProfile,
+                opentalk_types_api_internal::users::PublicUserProfile,
                 opentalk_types_common::call_in::CallInId,
                 opentalk_types_common::call_in::CallInInfo,
                 opentalk_types_common::call_in::CallInPassword,
@@ -230,7 +230,7 @@ impl RoomBackend for Context {
         &self,
         room_id: RoomId,
         room_parameters: RoomParameters,
-    ) -> Result<RoomAction, opentalk_types_api_v1::error::ApiError> {
+    ) -> Result<RoomAction, opentalk_types_api_internal::error::ApiError> {
         let (action, task_handle) = self
             .room_tasks
             .put_room(
@@ -261,7 +261,7 @@ impl RoomBackend for Context {
         &self,
         room_id: RoomId,
         patch: RoomParametersPatch,
-    ) -> Result<RoomAction, opentalk_types_api_v1::error::ApiError> {
+    ) -> Result<RoomAction, opentalk_types_api_internal::error::ApiError> {
         let action = self
             .room_tasks
             .patch_room(room_id, patch)
@@ -441,7 +441,7 @@ mod test {
         public_user_profile::PublicUserProfile,
         tariff_details::TariffDetails,
     };
-    use opentalk_types_api_v1::error::ErrorBody;
+    use opentalk_types_api_internal::error::ErrorBody;
     use opentalk_types_common::{
         roomserver::DeviceSecret,
         time::TimeZone,

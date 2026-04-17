@@ -9,7 +9,7 @@ use axum::{
     extract::{Path, State},
     routing::post,
 };
-use opentalk_types_api_v1::{assets::Quota, error::ApiError};
+use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::users::UserId;
 
 use crate::Router;

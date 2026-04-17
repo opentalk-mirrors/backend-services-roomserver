@@ -11,8 +11,9 @@ use opentalk_roomserver_signaling::storage::{
     },
 };
 use opentalk_service_auth::ApiKey;
-use opentalk_types_api_v1::{
-    assets::Quota, error::ApiError, services::roomserver::PostAssetResponseBody,
+use opentalk_types_api_internal::{
+    error::ApiError,
+    module_assets::{PostAssetResponseBody, Quota},
 };
 use reqwest::{Body, header::CONTENT_TYPE};
 use tokio::sync::RwLock;
@@ -152,10 +153,9 @@ mod tests {
         },
     };
     use opentalk_service_auth::ApiKey;
-    use opentalk_types_api_v1::{
-        assets::{AssetResource, Quota},
+    use opentalk_types_api_internal::{
         error::ApiError,
-        services::roomserver::PostAssetResponseBody,
+        module_assets::{AssetResource, PostAssetResponseBody, Quota},
     };
     use opentalk_types_common::{
         assets::{AssetFileKind, AssetId, FileExtension},

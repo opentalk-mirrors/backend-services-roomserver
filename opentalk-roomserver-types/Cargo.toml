@@ -19,7 +19,7 @@ anyhow.workspace = true
 chrono.workspace = true
 derive_more.workspace = true
 icu_locid.workspace = true
-opentalk-types-api-v1.workspace = true
+opentalk-types-api-internal.workspace = true
 opentalk-types-common = { workspace = true, features = ["rand"] }
 opentalk-types-signaling = { workspace = true, features = ["utoipa"] }
 serde.workspace = true

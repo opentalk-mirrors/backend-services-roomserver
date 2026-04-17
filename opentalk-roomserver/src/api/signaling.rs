@@ -8,7 +8,7 @@ use opentalk_roomserver_types::{
     client_parameters::ClientParameters, signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_roomserver_web_api::v1::signaling::SignalingBackend;
-use opentalk_types_api_v1::error::ApiError;
+use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
 
 use super::Context;

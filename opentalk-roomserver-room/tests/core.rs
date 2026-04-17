@@ -16,7 +16,7 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
     room_parameters_patch::RoomParametersPatch,
 };
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::rooms::RoomPassword;
 
 #[test_log::test(tokio::test)]

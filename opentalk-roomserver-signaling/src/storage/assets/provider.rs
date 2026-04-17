@@ -6,7 +6,7 @@ use std::{any::Any, fmt::Debug};
 use async_trait::async_trait;
 use bytes::Bytes;
 use futures::stream::BoxStream;
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 
 use crate::storage::assets::{AssetMetaData, StorageContext, UploadResult};
 

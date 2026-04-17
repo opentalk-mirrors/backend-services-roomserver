@@ -46,7 +46,7 @@
 //!
 //! [`SignalingModule`]: opentalk_roomserver_signaling::signaling_module::SignalingModule
 //! [`UserId`]: opentalk_types_common::users::UserId
-//! [`PublicUserProfile`]: opentalk_types_api_v1::users::PublicUserProfile
+//! [`PublicUserProfile`]: opentalk_roomserver_types::public_user_profile::PublicUserProfile
 
 use std::{
     cell::RefCell,
@@ -92,7 +92,7 @@ use opentalk_roomserver_types::{
     signaling::{SignalingCommand, module_error::FatalError},
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
-use opentalk_types_api_v1::assets::Quota;
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     modules::ModuleId, rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType, time::Timestamp,
 };

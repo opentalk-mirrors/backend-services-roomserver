@@ -31,7 +31,7 @@ opentalk-roomserver-modules.workspace = true
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
-opentalk-types-api-v1 = { workspace = true, features = ["utoipa"] }
+opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-version.workspace = true
 opentelemetry.workspace = true

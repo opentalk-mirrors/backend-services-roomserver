@@ -14,7 +14,7 @@ use opentalk_roomserver_web_api::v1::{
     livekit_proxy::{WebsocketRequest, WebsocketResponse},
     signaling::websocket::SignalingSocket,
 };
-use opentalk_types_api_v1::{assets::Quota, error::ApiError};
+use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::users::UserId;
 use tokio::sync::{
     mpsc,
