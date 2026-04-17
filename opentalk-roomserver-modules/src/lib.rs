@@ -24,6 +24,24 @@ use opentalk_roomserver_room::{
     signaling::{DescriptionPrinter, ModuleInitializer},
 };
 use opentalk_roomserver_signaling::signaling_module::SignalingModuleFeatureDescription;
+pub use opentalk_roomserver_types::{breakout::BREAKOUT_MODULE_ID, core::CORE_MODULE_ID};
+pub use opentalk_roomserver_types_automod::AUTOMOD_MODULE_ID;
+pub use opentalk_roomserver_types_chat::CHAT_MODULE_ID;
+pub use opentalk_roomserver_types_e2ee::E2EE_MODULE_ID;
+pub use opentalk_roomserver_types_echo::ECHO_MODULE_ID;
+pub use opentalk_roomserver_types_legal_vote::LEGAL_VOTE_MODULE_ID;
+pub use opentalk_roomserver_types_livekit::LIVEKIT_MODULE_ID;
+pub use opentalk_roomserver_types_meeting_notes::MEETING_NOTES_MODULE_ID;
+pub use opentalk_roomserver_types_meeting_report::MEETING_REPORT_MODULE_ID;
+pub use opentalk_roomserver_types_moderation::MODERATION_MODULE_ID;
+pub use opentalk_roomserver_types_polls::POLLS_MODULE_ID;
+pub use opentalk_roomserver_types_raise_hands::RAISE_HANDS_MODULE_ID;
+pub use opentalk_roomserver_types_recording::RECORDING_MODULE_ID;
+pub use opentalk_roomserver_types_shared_folder::SHARED_FOLDER_MODULE_ID;
+pub use opentalk_roomserver_types_subroom_audio::SUBROOM_AUDIO_MODULE_ID;
+pub use opentalk_roomserver_types_timer::TIMER_MODULE_ID;
+pub use opentalk_roomserver_types_training_participation_report::TRAINING_PARTICIPATION_REPORT_MODULE_ID;
+pub use opentalk_roomserver_types_whiteboard::WHITEBOARD_MODULE_ID;
 use opentalk_types_common::modules::ModuleId;
 
 /// Initialize the registry with all modules that are available for meetings
