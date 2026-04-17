@@ -36,7 +36,7 @@ pub struct CoreState {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub left_at: Option<Timestamp>,
 
-    /// Wether the participant is the room owner
+    /// Whether the participant is the room owner
     #[serde(default)]
     pub is_room_owner: bool,
 }

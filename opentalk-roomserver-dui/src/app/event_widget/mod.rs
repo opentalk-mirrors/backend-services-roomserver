@@ -16,7 +16,7 @@ use super::signaling::filtered_vec::{Filter, Filterable};
 #[derive(Debug)]
 pub(crate) struct EventWidget {
     event: RunnerEvent,
-    /// Wether the message was parsed successfully with the opentalk-types.
+    /// Whether the message was parsed successfully with the opentalk-types.
     known_type: bool,
     json: Option<serde_json::Value>,
     timestamp: String,

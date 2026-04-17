@@ -51,7 +51,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn duration_lenght_min() {
+    fn duration_length_min() {
         assert!(
             Duration::try_from(MIN_DURATION_LENGTH - 1).is_err(),
             "Duration should be at least {MIN_DURATION_LENGTH}."

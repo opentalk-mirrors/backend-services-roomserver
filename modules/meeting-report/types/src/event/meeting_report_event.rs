@@ -23,7 +23,7 @@ pub enum MeetingReportEvent {
     },
 
     ReportGenerationStarted {
-        /// Wether or not to the e-mail addresses of the participants were requested
+        /// Whether or not to the e-mail addresses of the participants were requested
         /// to be included in the report
         include_email_addresses: bool,
     },

@@ -55,7 +55,7 @@ pub enum Error {
     /// Attempted to start a new poll while an existing one is still running
     StillRunning,
 
-    /// An internal error occured and the poll was cancelled
+    /// An internal error occurred and the poll was cancelled
     Internal,
 }
 

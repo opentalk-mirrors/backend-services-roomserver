@@ -74,11 +74,11 @@ impl SignalingConnection {
             Message::Text(utf8_bytes) => Ok(Some(utf8_bytes.to_string())),
 
             // don't log the full message, just the type
-            Message::Binary(_) => Err(anyhow!("Expected text messsage, got: Binary").into()),
-            Message::Ping(_) => Err(anyhow!("Expected text messsage, got: Ping").into()),
-            Message::Pong(_) => Err(anyhow!("Expected text messsage, got: Pong").into()),
+            Message::Binary(_) => Err(anyhow!("Expected text message, got: Binary").into()),
+            Message::Ping(_) => Err(anyhow!("Expected text message, got: Ping").into()),
+            Message::Pong(_) => Err(anyhow!("Expected text message, got: Pong").into()),
             Message::Close(_) => Ok(None),
-            Message::Frame(_) => Err(anyhow!("Expected text messsage, got: Frame").into()),
+            Message::Frame(_) => Err(anyhow!("Expected text message, got: Frame").into()),
         }
     }
 

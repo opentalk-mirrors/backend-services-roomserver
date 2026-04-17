@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 pub enum StoppedReason {
     /// The session was stopped by a moderator
     StoppedByModerator {
-        /// The moderator who issued the stop commmand
+        /// The moderator who issued the stop command
         issued_by: ParticipantId,
     },
 

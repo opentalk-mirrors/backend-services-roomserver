@@ -5,7 +5,7 @@ use egui::{Color32, RichText, TextEdit};
 
 use crate::app::shortcuts::DELETE_MODE_SHORTCUT;
 
-pub const SECTION_SPACE_HIGHT: f32 = 20.;
+pub const SECTION_SPACE_HEIGHT: f32 = 20.;
 
 const INVALID_TEXT_COLOR: Color32 = Color32::BLACK;
 const INVALID_BACKGROUND_COLOR: Color32 = Color32::LIGHT_RED;
