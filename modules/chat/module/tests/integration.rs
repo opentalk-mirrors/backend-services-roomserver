@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::num::NonZero;
+
 use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_room::mocking::{
     participant::MockParticipant,
@@ -1735,9 +1737,9 @@ async fn rate_limit_slow_down() {
     let mut room = TestRoom::builder()
         .add_init_module_data(&ChatSettings {
             rate_limit: Some(RateLimitSettings {
-                tokens_per_second: 1,
+                tokens_per_second: NonZero::new(1).unwrap(),
                 // 11 messages in 1 second will trigger the too many requests error
-                token_bucket_size: 10,
+                token_bucket_size: NonZero::new(10).unwrap(),
                 // 6 messages in 1 second will trigger the slow down event
                 slow_down_threshold: 0.5,
             }),
@@ -1786,9 +1788,9 @@ async fn rate_limit_reached() {
     let mut room = TestRoom::builder()
         .add_init_module_data(&ChatSettings {
             rate_limit: Some(RateLimitSettings {
-                tokens_per_second: 1,
+                tokens_per_second: NonZero::new(1).unwrap(),
                 // 11 messages in 1 second will trigger the too many requests error
-                token_bucket_size: 10,
+                token_bucket_size: NonZero::new(10).unwrap(),
                 // 6 messages in 1 second will trigger the slow down event
                 slow_down_threshold: 0.5,
             }),
@@ -1880,8 +1882,8 @@ async fn moderators_dont_receive_own_participant_rate_limit_reached() {
         .register_module::<ChatModule>()
         .add_init_module_data(&ChatSettings {
             rate_limit: Some(RateLimitSettings {
-                tokens_per_second: 1,
-                token_bucket_size: 1,
+                tokens_per_second: NonZero::new(1).unwrap(),
+                token_bucket_size: NonZero::new(1).unwrap(),
                 slow_down_threshold: 1.0,
             }),
         })
