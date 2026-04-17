@@ -50,6 +50,22 @@ ignore = [
 
   # rustls-pemfile is unmaintained
   "RUSTSEC-2025-0134",
+
+  # Name constraints for URI names were ignored and therefore accepted
+  #
+  # rustls-webpki v0.101.7
+  # └── rustls v0.21.12
+  #     └── tokio-rustls v0.24.1
+  #         └── livekit-api v0.4.18
+  "RUSTSEC-2026-0098",
+
+  # Permitted subtree name constraints for DNS names were accepted for certificates asserting a wildcard name.
+  #
+  # rustls-webpki v0.101.7
+  # └── rustls v0.21.12
+  #     └── tokio-rustls v0.24.1
+  #         └── livekit-api v0.4.18
+  "RUSTSEC-2026-0099",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -76,7 +92,6 @@ allow = [
   "BSD-3-Clause",
   "BSL-1.0",
   "CC0-1.0",
-  "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
   "MPL-2.0",
@@ -411,7 +426,6 @@ skip = [
   { name = "tungstenite", version = "0.20" },
   { name = "tungstenite", version = "0.28" },
   { name = "untrusted", version = "0.7" },
-  { name = "webpki-roots", version = "0.25" },
   { name = "winnow", version = "0.7" },
   { name = "writeable", version = "0.5" },
   { name = "yoke", version = "0.7" },
