@@ -6,7 +6,7 @@ use url::Url;
 
 use super::{
     event_widget::Expand,
-    style::{InvalidInputStyle, SECTION_SPACE_HIGHT},
+    style::{InvalidInputStyle, SECTION_SPACE_HEIGHT},
 };
 use crate::settings::DuiSettings;
 
@@ -33,16 +33,16 @@ impl SettingsView {
         };
         ui.heading("Settings");
 
-        ui.add_space(SECTION_SPACE_HIGHT);
+        ui.add_space(SECTION_SPACE_HEIGHT);
         self.server(ui, settings, valid_url);
 
-        ui.add_space(SECTION_SPACE_HIGHT);
+        ui.add_space(SECTION_SPACE_HEIGHT);
         Self::theme(ui, settings);
 
-        ui.add_space(SECTION_SPACE_HIGHT);
+        ui.add_space(SECTION_SPACE_HEIGHT);
         Self::event_widget_layout(ui, settings);
 
-        ui.add_space(SECTION_SPACE_HIGHT);
+        ui.add_space(SECTION_SPACE_HEIGHT);
         Self::message_history(ui, &mut settings.history);
     }
 

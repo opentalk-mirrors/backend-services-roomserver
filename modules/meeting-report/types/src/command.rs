@@ -15,7 +15,7 @@ use crate::event::MeetingReportEvent;
 pub enum MeetingReportCommand {
     /// Generate a report on current and past meeting attendees
     GenerateAttendanceReport {
-        /// Wether or not to include the e-mail addresses of the participants in the
+        /// Whether or not to include the e-mail addresses of the participants in the
         /// report
         include_email_addresses: bool,
     },

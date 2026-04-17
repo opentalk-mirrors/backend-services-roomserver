@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use super::WhisperState;
 use crate::whisper_id::WhisperId;
 
-/// Representation fo an existing whisper group
+/// Representation of an existing whisper group
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WhisperGroup {
     /// Unique id for the whisper group

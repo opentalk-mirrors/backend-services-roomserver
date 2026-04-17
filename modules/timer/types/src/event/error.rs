@@ -14,7 +14,7 @@ pub enum TimerError {
     InsufficientPermissions,
     /// A timer is already running
     TimerAlreadyRunning,
-    /// An internal error occured and the timer was stopped
+    /// An internal error occurred and the timer was stopped
     Internal,
     /// The timer is not running
     TimerNotRunning,
