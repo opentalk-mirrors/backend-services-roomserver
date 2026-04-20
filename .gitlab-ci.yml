@@ -20,7 +20,7 @@ spec:
       regex: ^\d*$
       default: ''
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.1-alpine
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.95.0-alpine
 
 stages:
   - build
@@ -91,14 +91,14 @@ lint:fmt_load_tests:
     - pnpm fmt:ci
 
 lint:clippy:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.1-trixie
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.95.0-trixie
   stage: lint
   <<: *default_job_condition
   script:
     - cargo clippy --workspace --all-features --tests -- --deny warnings
 
 lint:doc:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.1-trixie
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.95.0-trixie
   stage: lint
   <<: *default_job_condition
   variables:
@@ -260,7 +260,7 @@ test:load_typst_plugins:
     - cp -r /usr/share/typst target/typst
 
 test:cargo_test:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.1-trixie
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.95.0-trixie
   stage: test
   <<: *default_job_condition
   tags:
@@ -331,7 +331,7 @@ build:
 
 # The DUI requires glibc. We therefore build it with a Debian based container.
 build:dui:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.1-trixie
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.95.0-trixie
   <<: *default_job_condition
   stage: build
   needs: []

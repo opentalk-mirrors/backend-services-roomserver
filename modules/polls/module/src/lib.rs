@@ -93,7 +93,7 @@ impl Poll {
             .into_iter()
             .map(|(id, count)| Item { id, count })
             .collect::<Vec<_>>();
-        results.sort_by(|a, b| a.id.cmp(&b.id));
+        results.sort_by_key(|a| a.id);
         results
     }
 }
