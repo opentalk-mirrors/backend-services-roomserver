@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-pub mod adapter;
-pub mod websocket;
-
 use std::str::FromStr;
 
 use async_trait::async_trait;
 use axum::{
-    body::Body,
     extract::{Query, State, WebSocketUpgrade},
     http::{HeaderMap, header::AUTHORIZATION},
-    response::{IntoResponse, Response},
+    response::Response,
     routing::{get, post},
 };
 use livekit_api::access_token::Claims;
+pub use opentalk_roomserver_types::livekit_proxy::{
+    LiveKitAccessToken, LiveKitProxyRequest, LiveKitProxyTarget, PreparedSocket,
+};
 use opentalk_roomserver_types::{
     LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER, breakout::breakout_id::BreakoutId,
-    connection_id::ConnectionId, room_kind::RoomKind,
+    connection_id::ConnectionId, livekit_proxy::adapter::LiveKitSocketAdapter, room_kind::RoomKind,
 };
 use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
@@ -25,7 +24,7 @@ use opentalk_types_signaling::ParticipantId;
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{Router, livekit_proxy::adapter::LiveKitSocketAdapter};
+use crate::Router;
 
 pub fn routes<B: LiveKitProxyBackend + 'static>() -> Router<B> {
     Router::new().nest(
@@ -40,10 +39,17 @@ pub fn routes<B: LiveKitProxyBackend + 'static>() -> Router<B> {
 
 #[async_trait]
 pub trait LiveKitProxyBackend: Clone + Send + Sync + std::fmt::Debug {
-    async fn accept_livekit_websocket(
+    async fn connect_upstream_socket(
         &self,
-        ws_request: WebsocketRequest,
-    ) -> Result<WebsocketResponse, ApiError>;
+        ws_request: LiveKitProxyRequest,
+    ) -> Result<PreparedSocket, ApiError>;
+
+    async fn connect_downstream_socket(
+        &self,
+        ws_request: LiveKitProxyRequest,
+        upstream_socket: PreparedSocket,
+        socket: LiveKitSocketAdapter,
+    ) -> Result<(), ApiError>;
 
     /// Proxies a LiveKit REST validation request to the livekit module
     async fn proxy_livekit_validate(
@@ -51,75 +57,6 @@ pub trait LiveKitProxyBackend: Clone + Send + Sync + std::fmt::Debug {
         room_id: RoomId,
         headers: HeaderMap,
     ) -> Result<Response, ApiError>;
-}
-
-#[derive(Debug, Clone)]
-pub enum LiveKitAccessToken {
-    Header(String),
-    Query(String),
-}
-
-#[derive(Debug, Clone)]
-pub enum LiveKitProxyTarget {
-    LiveKit { room_kind: RoomKind },
-    SubroomAudio { whisper_id: Uuid },
-}
-
-impl LiveKitAccessToken {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Header(token) | Self::Query(token) => token,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct WebsocketRequest {
-    ws_upgrade: WebSocketUpgrade,
-    pub access_token: LiveKitAccessToken,
-    pub room_id: RoomId,
-    pub proxy_target: LiveKitProxyTarget,
-    pub participant_id: ParticipantId,
-    pub connection_id: ConnectionId,
-}
-
-impl WebsocketRequest {
-    pub fn ws_upgrade<C, Fut>(self, callback: C) -> WebsocketResponse
-    where
-        C: FnOnce(LiveKitSocketAdapter) -> Fut + Send + 'static,
-        Fut: Future<Output = ()> + Send + 'static,
-    {
-        let response = self
-            .ws_upgrade
-            .on_upgrade(|websocket| callback(LiveKitSocketAdapter::new(websocket)));
-        WebsocketResponse { response }
-    }
-}
-
-#[derive(Debug)]
-#[must_use = "The response must be send to the client."]
-pub struct WebsocketResponse {
-    response: Response<Body>,
-}
-
-impl WebsocketResponse {
-    pub fn internal_error() -> Self {
-        Self {
-            response: ApiError::internal().into_response(),
-        }
-    }
-
-    pub fn unauthorized() -> Self {
-        Self {
-            response: ApiError::unauthorized().into_response(),
-        }
-    }
-}
-
-impl IntoResponse for WebsocketResponse {
-    fn into_response(self) -> Response {
-        self.response
-    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -153,12 +90,12 @@ pub(crate) struct LiveKitQuery {
     ),
 )]
 #[tracing::instrument(level = "info", name = "/livekit/proxy/rtc", skip_all)]
-pub(crate) async fn proxy_socket<B: LiveKitProxyBackend>(
+pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
     State(ctx): State<B>,
     Query(query): Query<LiveKitQuery>,
     ws_upgrade: WebSocketUpgrade,
     headers: HeaderMap,
-) -> Result<WebsocketResponse, ApiError> {
+) -> Result<Response, ApiError> {
     let access_token = extract_access_token(query, &headers)?;
 
     // we do not verify the token since this is done by livekit. We only proxy the connection.
@@ -168,15 +105,28 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend>(
     let (room_id, proxy_target) = parse_livekit_room_id(&content.claims.video.room)?;
     let (participant_id, connection_id) = parse_livekit_participant(&content.claims.sub)?;
 
-    ctx.accept_livekit_websocket(WebsocketRequest {
-        ws_upgrade,
+    let websocket_request = LiveKitProxyRequest {
         access_token,
         room_id,
         proxy_target,
         participant_id,
         connection_id,
-    })
-    .await
+    };
+
+    let upstream_socket = ctx
+        .connect_upstream_socket(websocket_request.clone())
+        .await?;
+
+    let backend = ctx.clone();
+    Ok(ws_upgrade.on_upgrade(move |websocket| async move {
+        let socket = LiveKitSocketAdapter::new(websocket);
+        if let Err(err) = backend
+            .connect_downstream_socket(websocket_request, upstream_socket, socket)
+            .await
+        {
+            tracing::warn!("failed to accept livekit websocket: {err:?}");
+        }
+    }))
 }
 
 /// Proxies the LiveKit validate request to the upstream livekit service via the room task

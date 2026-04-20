@@ -18,14 +18,14 @@ use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::ClientParameters,
+    livekit_proxy::{LiveKitProxyRequest, PreparedSocket, adapter::LiveKitSocketAdapter},
     room_action::RoomAction,
     room_parameters::{self, RoomParameters},
     room_parameters_patch::RoomParametersPatch,
     signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_roomserver_web_api::{
-    livekit_proxy,
-    livekit_proxy::{LiveKitProxyBackend, WebsocketRequest, WebsocketResponse},
+    livekit_proxy::{self, LiveKitProxyBackend},
     v1::{self, Backend, RoomBackend, SecurityAddon, user::UserBackend},
 };
 use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
@@ -347,17 +347,34 @@ impl RoomBackend for Context {
 
 #[async_trait]
 impl LiveKitProxyBackend for Context {
-    async fn accept_livekit_websocket(
+    async fn connect_upstream_socket(
         &self,
-        ws_request: WebsocketRequest,
-    ) -> Result<WebsocketResponse, ApiError> {
+        ws_request: LiveKitProxyRequest,
+    ) -> Result<PreparedSocket, ApiError> {
         let Some(task_handle) = self.room_tasks.get_task_handle(&ws_request.room_id).await else {
             return Err(ApiError::not_found());
         };
 
-        let response = task_handle.accept_livekit_socket(ws_request).await?;
+        task_handle
+            .prepare_proxy_socket(ws_request)
+            .await
+            .map_err(Into::into)
+    }
 
-        Ok(response)
+    async fn connect_downstream_socket(
+        &self,
+        ws_request: LiveKitProxyRequest,
+        upstream_socket: PreparedSocket,
+        socket: LiveKitSocketAdapter,
+    ) -> Result<(), ApiError> {
+        let Some(task_handle) = self.room_tasks.get_task_handle(&ws_request.room_id).await else {
+            return Err(ApiError::not_found());
+        };
+
+        task_handle
+            .accept_livekit_socket(ws_request, upstream_socket, Box::new(socket))
+            .await?;
+        Ok(())
     }
 
     async fn proxy_livekit_validate(

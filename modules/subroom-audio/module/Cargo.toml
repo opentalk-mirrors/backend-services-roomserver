@@ -25,7 +25,6 @@ opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
 opentalk-roomserver-types-subroom-audio.workspace = true
-opentalk-roomserver-web-api.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 tokio.workspace = true

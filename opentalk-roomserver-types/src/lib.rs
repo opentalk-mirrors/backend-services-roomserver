@@ -14,6 +14,7 @@ pub mod device_id;
 pub mod disconnect_reason;
 pub mod error;
 pub mod join;
+pub mod livekit_proxy;
 pub mod module_settings;
 pub mod public_user_profile;
 pub mod rate_limit;

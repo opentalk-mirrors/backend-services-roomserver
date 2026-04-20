@@ -139,6 +139,12 @@ pub enum RoomTaskApiError {
     #[error("The specified resource could not be found")]
     NotFound,
 
+    #[error("Access denied")]
+    Unauthorized,
+
+    #[error("There was an unexpected error")]
+    Internal,
+
     /// The room task is shutting down and cannot process the request.
     #[error("The room task is shutting down and cannot process the request")]
     Closing,
@@ -439,11 +445,24 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .ok()
                     .context("Failed to respond to WsJoin, response channel dropped")?;
             }
-            Request::AcceptLivekitSocket {
+            Request::ConnectUpstreamLivekitSocket {
                 response,
                 websocket_request,
             } => {
-                self.send_socket_to_livekit_module(websocket_request, response)?;
+                self.connect_upstream_socket(websocket_request, response)?;
+            }
+            Request::ConnectDownstreamLivekitSocket {
+                response,
+                websocket_request,
+                upstream_socket,
+                downstream_socket,
+            } => {
+                self.connect_downstream_socket(
+                    websocket_request,
+                    *upstream_socket,
+                    downstream_socket,
+                    response,
+                )?;
             }
             Request::GetLivekitServiceUrl { response } => {
                 self.get_livekit_service_url(response)?;

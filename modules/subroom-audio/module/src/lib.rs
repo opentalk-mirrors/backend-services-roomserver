@@ -13,7 +13,9 @@ use livekit_api::{
     services::room::RoomClient,
 };
 use livekit_protocol::TrackSource;
-use opentalk_roomserver_livekit_proxy::{ShutdownSender, build_livekit_rtc_url, proxy_websocket};
+use opentalk_roomserver_livekit_proxy::{
+    ShutdownSender, build_livekit_rtc_url, connect_to_livekit, proxy_websocket,
+};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
@@ -22,7 +24,11 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
-    LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER, connection_id::ConnectionId,
+    LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER,
+    connection_id::ConnectionId,
+    livekit_proxy::{
+        LiveKitProxyRequest, LiveKitProxyTarget, PreparedSocket, websocket::LiveKitSocket,
+    },
     signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_livekit::LiveKitSettings;
@@ -32,9 +38,6 @@ use opentalk_roomserver_types_subroom_audio::{
     event::{SubroomAudioError, SubroomAudioEvent, WhisperParticipantInfo},
     internal::SubroomAudioInternal,
     state::{WhisperGroup, WhisperState},
-};
-use opentalk_roomserver_web_api::livekit_proxy::{
-    LiveKitProxyTarget, WebsocketRequest, WebsocketResponse,
 };
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId};
 use opentalk_types_signaling::ParticipantId;
@@ -164,10 +167,22 @@ impl SignalingModule for SubroomAudioModule {
         command: Self::Internal,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match command {
-            SubroomAudioInternal::ProxyLivekitSocket {
+            SubroomAudioInternal::ConnectUpstreamSocket {
                 websocket_request,
                 return_channel,
-            } => self.proxy_livekit_socket(ctx, *websocket_request, return_channel),
+            } => self.connect_upstream_socket(ctx, *websocket_request, return_channel),
+            SubroomAudioInternal::ConnectDownstreamSocket {
+                websocket_request,
+                upstream_socket,
+                downstream_socket,
+                return_channel,
+            } => self.connect_downstream_socket(
+                ctx,
+                *websocket_request,
+                *upstream_socket,
+                downstream_socket,
+                return_channel,
+            ),
         }
 
         Ok(())
@@ -181,52 +196,68 @@ impl SignalingModule for SubroomAudioModule {
 }
 
 impl SubroomAudioModule {
-    fn proxy_livekit_socket(
-        &mut self,
-        ctx: &mut ModuleContext<'_, Self>,
-        websocket_request: WebsocketRequest,
-        return_channel: oneshot::Sender<WebsocketResponse>,
+    fn connect_upstream_socket(
+        &self,
+        ctx: &ModuleContext<'_, Self>,
+        websocket_request: LiveKitProxyRequest,
+        return_channel: oneshot::Sender<Option<PreparedSocket>>,
     ) {
         if !self.is_proxy_request_authorized(ctx, &websocket_request) {
-            let _ = return_channel.send(WebsocketResponse::unauthorized());
+            tracing::debug!("participant is unauthorized");
+            let _ = return_channel
+                .send(None)
+                .inspect_err(|_| tracing::debug!("failed to send response"));
             return;
         }
 
-        let participant_id = websocket_request.participant_id;
-        let connection_id = websocket_request.connection_id;
-        let access_token = websocket_request.access_token.clone();
+        let access_token = websocket_request.access_token;
         let Ok(livekit_rtc_url) = build_livekit_rtc_url(&self.settings.service_url) else {
             tracing::warn!(?self.settings.service_url, "invalid livekit service URL");
-            let _ = return_channel.send(WebsocketResponse::internal_error());
+            let _ = return_channel
+                .send(None)
+                .inspect_err(|_| tracing::debug!("failed to send response"));
             return;
         };
+
+        tokio::spawn(async move {
+            match connect_to_livekit(livekit_rtc_url, access_token).await {
+                Ok(upstream_socket) => {
+                    let _ = return_channel
+                        .send(Some(upstream_socket))
+                        .inspect_err(|_| tracing::debug!("failed to send response"));
+                }
+                Err(err) => {
+                    tracing::warn!("failed to connect to upstream livekit: {err:?}");
+                    let _ = return_channel
+                        .send(None)
+                        .inspect_err(|_| tracing::debug!("failed to send response"));
+                }
+            }
+        });
+    }
+
+    fn connect_downstream_socket(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        websocket_request: LiveKitProxyRequest,
+        upstream_socket: PreparedSocket,
+        downstream_socket: Box<dyn LiveKitSocket>,
+        return_channel: oneshot::Sender<()>,
+    ) {
+        let participant_id = websocket_request.participant_id;
+        let connection_id = websocket_request.connection_id;
 
         let (shutdown_tx, shutdown_rx) = ShutdownSender::new();
         let key = (participant_id, connection_id);
         self.proxy_shutdown.insert(key, shutdown_tx);
 
-        let (socket_tx, socket_rx) = oneshot::channel();
-        let response = websocket_request.ws_upgrade(move |socket| async move {
-            let _ = socket_tx.send(socket);
-        });
-
-        if return_channel.send(response).is_err() {
+        if return_channel.send(()).is_err() {
             self.proxy_shutdown.remove(&key);
             return;
         }
 
         ctx.spawn(async move {
-            let Ok(downstream_socket) = socket_rx.await else {
-                return Ok(SubroomAudioLoopback::ProxySocketClosed);
-            };
-
-            if let Err(err) = proxy_websocket(
-                livekit_rtc_url,
-                access_token,
-                downstream_socket,
-                shutdown_rx,
-            )
-            .await
+            if let Err(err) = proxy_websocket(upstream_socket, downstream_socket, shutdown_rx).await
             {
                 tracing::warn!(
                     ?participant_id,
@@ -242,7 +273,7 @@ impl SubroomAudioModule {
     fn is_proxy_request_authorized(
         &self,
         ctx: &ModuleContext<'_, Self>,
-        websocket_request: &WebsocketRequest,
+        websocket_request: &LiveKitProxyRequest,
     ) -> bool {
         let LiveKitProxyTarget::SubroomAudio { whisper_id } = &websocket_request.proxy_target
         else {

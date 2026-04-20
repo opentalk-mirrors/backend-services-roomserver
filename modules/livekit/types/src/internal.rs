@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, fmt::Debug};
 
 use opentalk_roomserver_signaling::signaling_module::InternalCommand;
-use opentalk_roomserver_web_api::livekit_proxy::{WebsocketRequest, WebsocketResponse};
+use opentalk_roomserver_types::livekit_proxy::{
+    LiveKitProxyRequest, PreparedSocket, websocket::LiveKitSocket,
+};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot;
 
@@ -34,10 +36,19 @@ pub enum LiveKitInternal {
             oneshot::Sender<Result<MicrophoneRestrictionState, MicrophoneRestrictionError>>,
     },
 
-    /// Accept a livekit socket for proxying
-    ProxyLivekitSocket {
-        websocket_request: Box<WebsocketRequest>,
-        return_channel: oneshot::Sender<WebsocketResponse>,
+    /// Prepare a livekit proxy socket by verifying access and connecting to the upstream LiveKit
+    /// server.
+    ConnectUpstreamSocket {
+        websocket_request: Box<LiveKitProxyRequest>,
+        return_channel: oneshot::Sender<Option<PreparedSocket>>,
+    },
+
+    /// Connect the client socket and finalize the proxy setup.
+    ConnectDownstreamSocket {
+        websocket_request: Box<LiveKitProxyRequest>,
+        upstream_socket: Box<PreparedSocket>,
+        downstream_socket: Box<dyn LiveKitSocket>,
+        return_channel: oneshot::Sender<()>,
     },
 
     /// Return the configured LiveKit service URL

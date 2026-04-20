@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use axum::extract::ws::Message;
+use std::fmt::Debug;
+
 use bytes::Bytes;
 use futures::{
     Sink, Stream,
@@ -16,6 +17,7 @@ pub struct Error {
     source: Box<dyn std::error::Error + Send + Sync>,
 }
 
+#[cfg(feature = "axum")]
 impl From<axum::Error> for Error {
     fn from(value: axum::Error) -> Self {
         Self {
@@ -38,6 +40,7 @@ pub struct CloseFrame {
     pub reason: String,
 }
 
+#[cfg(feature = "axum")]
 impl From<CloseFrame> for axum::extract::ws::CloseFrame {
     fn from(value: CloseFrame) -> Self {
         Self {
@@ -47,6 +50,7 @@ impl From<CloseFrame> for axum::extract::ws::CloseFrame {
     }
 }
 
+#[cfg(feature = "axum")]
 impl From<axum::extract::ws::CloseFrame> for CloseFrame {
     fn from(value: axum::extract::ws::CloseFrame) -> Self {
         Self {
@@ -71,8 +75,10 @@ impl From<String> for LiveKitSocketMessage {
     }
 }
 
-impl From<LiveKitSocketMessage> for Message {
+#[cfg(feature = "axum")]
+impl From<LiveKitSocketMessage> for axum::extract::ws::Message {
     fn from(value: LiveKitSocketMessage) -> Self {
+        use axum::extract::ws::Message;
         match value {
             LiveKitSocketMessage::Text(text) => Message::Text(text.into()),
             LiveKitSocketMessage::Binary(bytes) => Message::Binary(bytes),
@@ -83,8 +89,10 @@ impl From<LiveKitSocketMessage> for Message {
     }
 }
 
-impl From<Message> for LiveKitSocketMessage {
-    fn from(value: Message) -> Self {
+#[cfg(feature = "axum")]
+impl From<axum::extract::ws::Message> for LiveKitSocketMessage {
+    fn from(value: axum::extract::ws::Message) -> Self {
+        use axum::extract::ws::Message;
         match value {
             Message::Text(text) => LiveKitSocketMessage::Text(text.to_string()),
             Message::Binary(bytes) => LiveKitSocketMessage::Binary(bytes),
@@ -105,5 +113,5 @@ pub trait LiveKitSink: Sink<LiveKitSocketMessage, Error = Error> + Send + Unpin 
 impl<S: LiveKitSocket> LiveKitSink for SplitSink<S, LiveKitSocketMessage> {}
 
 /// A socket implementing both [`LiveKitSink`] and [`LiveKitStream`].
-pub trait LiveKitSocket: LiveKitStream + LiveKitSink {}
-impl<S: LiveKitSink + LiveKitStream> LiveKitSocket for S {}
+pub trait LiveKitSocket: LiveKitStream + LiveKitSink + Debug {}
+impl<S: LiveKitSink + LiveKitStream + Debug> LiveKitSocket for S {}

@@ -11,7 +11,9 @@ use anyhow::anyhow;
 use futures::{StreamExt as _, stream};
 use livekit_api::services::room::RoomClient;
 use livekit_protocol::TrackSource;
-use opentalk_roomserver_livekit_proxy::{ShutdownSender, build_livekit_rtc_url, proxy_websocket};
+use opentalk_roomserver_livekit_proxy::{
+    ShutdownSender, build_livekit_rtc_url, connect_to_livekit, proxy_websocket,
+};
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
@@ -20,15 +22,17 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
-    breakout::BreakoutRoom, connection_id::ConnectionId, room_kind::RoomKind,
+    breakout::BreakoutRoom,
+    connection_id::ConnectionId,
+    livekit_proxy::{
+        LiveKitProxyRequest, LiveKitProxyTarget, PreparedSocket, websocket::LiveKitSocket,
+    },
+    room_kind::RoomKind,
     signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_livekit::{
     LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitInternal, LiveKitSettings, LiveKitState,
     MicrophoneRestrictionError, MicrophoneRestrictionState, ParticipantsMuted,
-};
-use opentalk_roomserver_web_api::livekit_proxy::{
-    LiveKitProxyTarget, WebsocketRequest, WebsocketResponse,
 };
 use opentalk_types_common::modules::{ModuleId, module_id};
 use opentalk_types_signaling::ParticipantId;
@@ -220,10 +224,22 @@ impl SignalingModule for LiveKitModule {
                 new_state,
                 return_channel,
             } => self.update_microphone_restrictions(ctx, sender, new_state, return_channel)?,
-            LiveKitInternal::ProxyLivekitSocket {
+            LiveKitInternal::ConnectUpstreamSocket {
                 websocket_request,
                 return_channel,
-            } => self.proxy_livekit_socket(ctx, *websocket_request, return_channel),
+            } => self.connect_upstream_socket(ctx, *websocket_request, return_channel),
+            LiveKitInternal::ConnectDownstreamSocket {
+                websocket_request,
+                upstream_socket,
+                downstream_socket,
+                return_channel,
+            } => self.connect_downstream_socket(
+                ctx,
+                *websocket_request,
+                *upstream_socket,
+                downstream_socket,
+                return_channel,
+            ),
             LiveKitInternal::GetLivekitServiceUrl { return_channel } => {
                 self.get_livekit_service_url(return_channel)
             }
@@ -325,29 +341,54 @@ impl SignalingModule for LiveKitModule {
 }
 
 impl LiveKitModule {
-    fn proxy_livekit_socket(
-        &mut self,
-        ctx: &mut ModuleContext<'_, Self>,
-        websocket_request: WebsocketRequest,
-        response_sender: oneshot::Sender<WebsocketResponse>,
+    fn connect_upstream_socket(
+        &self,
+        ctx: &ModuleContext<'_, Self>,
+        websocket_request: LiveKitProxyRequest,
+        return_channel: oneshot::Sender<Option<PreparedSocket>>,
     ) {
         if !Self::is_proxy_request_authorized(ctx, &websocket_request) {
-            let _ = response_sender.send(WebsocketResponse::unauthorized());
+            tracing::debug!("participant is unauthorized");
+            let _ = return_channel
+                .send(None)
+                .inspect_err(|_| tracing::debug!("failed to send response"));
             return;
         }
 
-        let participant_id = websocket_request.participant_id;
-        let connection_id = websocket_request.connection_id;
-        let LiveKitProxyTarget::LiveKit { room_kind } = websocket_request.proxy_target else {
-            let _ = response_sender.send(WebsocketResponse::unauthorized());
-            return;
-        };
-        let access_token = websocket_request.access_token.clone();
+        let access_token = websocket_request.access_token;
         let Ok(livekit_rtc_url) = build_livekit_rtc_url(&self.settings.service_url) else {
             tracing::warn!(?self.settings.service_url, "invalid livekit service URL");
-            let _ = response_sender.send(WebsocketResponse::internal_error());
+            let _ = return_channel
+                .send(None)
+                .inspect_err(|_| tracing::debug!("failed to send response"));
             return;
         };
+
+        tokio::spawn(async move {
+            match connect_to_livekit(livekit_rtc_url, access_token).await {
+                Ok(upstream_socket) => {
+                    let _ = return_channel.send(Some(upstream_socket));
+                }
+                Err(err) => {
+                    tracing::warn!("failed to connect to upstream livekit: {err:?}");
+                    let _ = return_channel
+                        .send(None)
+                        .inspect_err(|_| tracing::debug!("failed to send response"));
+                }
+            }
+        });
+    }
+
+    fn connect_downstream_socket(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        websocket_request: LiveKitProxyRequest,
+        upstream_socket: PreparedSocket,
+        downstream_socket: Box<dyn LiveKitSocket>,
+        return_channel: oneshot::Sender<()>,
+    ) {
+        let participant_id = websocket_request.participant_id;
+        let connection_id = websocket_request.connection_id;
 
         // Channel used to shutdown the proxy task. This happens when the participant leaves the
         // meeting
@@ -355,34 +396,17 @@ impl LiveKitModule {
         let shutdown_key = (participant_id, connection_id);
         self.proxy_shutdown.insert(shutdown_key, shutdown_tx);
 
-        // Channel to pass the socket from the upgrade callback to the loopback task
-        let (socket_tx, socket_rx) = oneshot::channel();
-        let response = websocket_request.ws_upgrade(move |socket| async move {
-            let _ = socket_tx.send(socket);
-        });
-
-        if response_sender.send(response).is_err() {
+        if return_channel.send(()).is_err() {
             self.proxy_shutdown.remove(&shutdown_key);
             return;
         }
 
         ctx.spawn(async move {
-            let Ok(downstream_socket) = socket_rx.await else {
-                return Ok(LiveKitLoopback::ProxySocketClosed);
-            };
-
-            if let Err(err) = proxy_websocket(
-                livekit_rtc_url,
-                access_token,
-                downstream_socket,
-                shutdown_rx,
-            )
-            .await
+            if let Err(err) = proxy_websocket(upstream_socket, downstream_socket, shutdown_rx).await
             {
                 tracing::warn!(
                     ?participant_id,
                     ?connection_id,
-                    ?room_kind,
                     "livekit websocket proxy stopped with error: {err:?}"
                 );
             }
@@ -393,7 +417,7 @@ impl LiveKitModule {
 
     fn is_proxy_request_authorized(
         ctx: &ModuleContext<'_, Self>,
-        websocket_request: &WebsocketRequest,
+        websocket_request: &LiveKitProxyRequest,
     ) -> bool {
         let LiveKitProxyTarget::LiveKit { room_kind } = &websocket_request.proxy_target else {
             return false;
@@ -418,7 +442,9 @@ impl LiveKitModule {
     }
 
     fn get_livekit_service_url(&self, return_channel: oneshot::Sender<String>) {
-        let _ = return_channel.send(self.settings.service_url.clone());
+        let _ = return_channel
+            .send(self.settings.service_url.clone())
+            .inspect_err(|_| tracing::debug!("failed to send response"));
     }
     /// creates a new access token and sends it to the participant
     fn issue_access_token(

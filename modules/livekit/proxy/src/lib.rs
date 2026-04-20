@@ -3,10 +3,9 @@
 
 use anyhow::{anyhow, bail};
 use futures::{SinkExt as _, StreamExt as _};
-use opentalk_roomserver_web_api::livekit_proxy::{
-    LiveKitAccessToken,
-    adapter::LiveKitSocketAdapter,
-    websocket::{CloseFrame, LiveKitSocketMessage},
+use opentalk_roomserver_types::livekit_proxy::{
+    LiveKitAccessToken, PreparedSocket,
+    websocket::{CloseFrame, LiveKitSocket, LiveKitSocketMessage},
 };
 use tokio::sync::oneshot;
 use tokio_tungstenite::{
@@ -39,12 +38,11 @@ impl Drop for ShutdownSender {
     }
 }
 
-pub async fn proxy_websocket(
+/// Connects to the upstream LiveKit server and returns the WebSocket connection.
+pub async fn connect_to_livekit(
     livekit_rtc_url: String,
     access_token: LiveKitAccessToken,
-    downstream_socket: LiveKitSocketAdapter,
-    mut shutdown_rx: oneshot::Receiver<()>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<PreparedSocket> {
     let request = match access_token {
         LiveKitAccessToken::Header(token) => {
             let mut request = livekit_rtc_url
@@ -72,6 +70,14 @@ pub async fn proxy_websocket(
         .await
         .map_err(|err| anyhow!("failed to connect to livekit websocket: {err}"))?;
 
+    Ok(upstream_socket)
+}
+
+pub async fn proxy_websocket(
+    upstream_socket: PreparedSocket,
+    downstream_socket: Box<dyn LiveKitSocket>,
+    mut shutdown_rx: oneshot::Receiver<()>,
+) -> anyhow::Result<()> {
     let (mut upstream_sink, mut upstream_stream) = upstream_socket.split();
     let (mut downstream_sink, mut downstream_stream) = downstream_socket.split();
 
