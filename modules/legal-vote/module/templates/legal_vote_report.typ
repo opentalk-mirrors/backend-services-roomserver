@@ -8,6 +8,7 @@
 )
 #set text(
   size: 10pt,
+  hyphenate: true,
 )
 
 #let data = json("data.json")
