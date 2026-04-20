@@ -3,11 +3,11 @@
 
 [package]
 authors.workspace = true
-description = "OpenTalk RoomServer Common"
+description = "OpenTalk RoomServer Types Excalidraw"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
-name = "opentalk-roomserver-common"
+name = "opentalk-roomserver-types-excalidraw"
 repository.workspace = true
 version.workspace = true
 
@@ -15,21 +15,14 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-anyhow.workspace = true
-cidr.workspace = true
-config.workspace = true
-dirs.workspace = true
-opentalk-orchestrator-client.workspace = true
+opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
-opentalk-service-auth = { workspace = true, features = ["axum"] }
 opentalk-types-common.workspace = true
-rand.workspace = true
+opentalk-types-signaling.workspace = true
 serde.workspace = true
-serde_path_to_error.workspace = true
-thiserror.workspace = true
-url.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
+insta.workspace = true
 pretty_assertions.workspace = true
-temp-env = "0.3.6"
-toml.workspace = true
+serde_json.workspace = true

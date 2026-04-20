@@ -12,7 +12,7 @@ use axum::{
     serve::Listener as _,
 };
 use futures::{StreamExt, stream};
-use opentalk_roomserver_common::settings::Settings;
+use opentalk_roomserver_common::{settings::Settings, token_store::TokenStore};
 use opentalk_roomserver_modules::setup_registry;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
@@ -31,7 +31,6 @@ use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::{rooms::RoomId, users::UserId};
 use reqwest::StatusCode;
 use service_probe::{ServiceState, set_service_state};
-use token_store::TokenStore;
 use tokio::sync::{Mutex, watch};
 use tower_http::trace::TraceLayer;
 use tracing::{Span, info_span};
@@ -46,7 +45,6 @@ use crate::{
 pub(crate) type Router = axum::Router<Context>;
 
 pub mod signaling;
-mod token_store;
 pub mod websocket;
 
 #[derive(OpenApi)]
@@ -207,7 +205,7 @@ pub(crate) struct Context {
     /// Global list of room tasks and their handles
     room_tasks: RoomTaskRegistry<WebSocketAdapter>,
     // A list of eligible participants and their join tokens
-    token_store: Arc<Mutex<TokenStore>>,
+    token_store: Arc<Mutex<TokenStore<SignalingClientContext>>>,
     module_registry: Arc<ModuleRegistry>,
 
     app_state: watch::Sender<ApplicationState>,

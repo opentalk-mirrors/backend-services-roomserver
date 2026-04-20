@@ -3,20 +3,23 @@
 
 use std::str::FromStr as _;
 
-use axum::http::{HeaderValue, Method, Uri};
+use axum::http::{HeaderValue, Uri};
 use opentalk_types_common::roomserver::Token;
-use tower_http::cors::{AllowOrigin, CorsLayer};
+use tower_http::cors::{AllowMethods, AllowOrigin, CorsLayer};
 use tracing::{Instrument, Level, span};
 
 use crate::v1::signaling::SignalingBackend;
 
-pub fn cors_layer<B: SignalingBackend + 'static>(state: B) -> CorsLayer {
+pub fn cors_layer<B: SignalingBackend + 'static>(
+    state: B,
+    allowed_methods: impl Into<AllowMethods>,
+) -> CorsLayer {
     CorsLayer::new()
         .allow_origin(AllowOrigin::async_predicate(|origin, parts| {
             let token = extract_token(&parts.uri);
             handle_request(state, origin, token).instrument(span!(Level::INFO, "CORS"))
         }))
-        .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD])
+        .allow_methods(allowed_methods)
 }
 
 fn extract_token(uri: &Uri) -> Option<Token> {

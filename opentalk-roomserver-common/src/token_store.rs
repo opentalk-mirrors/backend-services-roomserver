@@ -6,7 +6,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use opentalk_roomserver_types::signaling::signaling_context::SignalingClientContext;
 use opentalk_types_common::roomserver::Token;
 
 const DEFAULT_EXPIRY: Duration = Duration::from_secs(30);
@@ -32,21 +31,27 @@ impl TokenExpiry {
 /// Manages the active signaling tokens of the RoomServer
 ///
 /// Expired tokens get cleaned up when the [`TokenStore`] is accessed
-pub(crate) struct TokenStore {
+pub struct TokenStore<V> {
     /// The active tokens
-    tokens: HashMap<Token, SignalingClientContext>,
+    tokens: HashMap<Token, V>,
     /// A set to track the expiry of each token
     expiry_set: BTreeSet<TokenExpiry>,
     /// The duration for that a token is active
     expiry: Duration,
 }
 
-impl TokenStore {
-    pub(crate) fn new() -> Self {
+impl<V> Default for TokenStore<V> {
+    fn default() -> Self {
         Self::new_with_expiry(DEFAULT_EXPIRY)
     }
+}
 
-    pub(crate) fn new_with_expiry(expiry: Duration) -> Self {
+impl<V> TokenStore<V> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn new_with_expiry(expiry: Duration) -> Self {
         Self {
             tokens: HashMap::new(),
             expiry_set: BTreeSet::new(),
@@ -54,7 +59,7 @@ impl TokenStore {
         }
     }
 
-    pub(crate) fn create_token(&mut self, signaling_context: SignalingClientContext) -> Token {
+    pub fn create_token(&mut self, value: V) -> Token {
         self.remove_expired_entries();
 
         // loop to avoid the uuid collision error branch
@@ -64,7 +69,7 @@ impl TokenStore {
             match self.tokens.entry(token) {
                 Entry::Occupied(_) => {}
                 Entry::Vacant(vacant_entry) => {
-                    vacant_entry.insert(signaling_context);
+                    vacant_entry.insert(value);
                     break token;
                 }
             }
@@ -75,12 +80,12 @@ impl TokenStore {
         token
     }
 
-    pub(crate) fn consume_token(&mut self, token: &Token) -> Option<SignalingClientContext> {
+    pub fn consume_token(&mut self, token: &Token) -> Option<V> {
         self.remove_expired_entries();
         self.tokens.remove(token)
     }
 
-    pub(crate) fn peek_token(&mut self, token: &Token) -> Option<&SignalingClientContext> {
+    pub fn peek_token(&mut self, token: &Token) -> Option<&V> {
         self.remove_expired_entries();
         self.tokens.get(token)
     }
@@ -113,6 +118,7 @@ mod tests {
     use opentalk_roomserver_types::{
         client_parameters::{ClientKind, ClientParameters, Role},
         public_user_profile::PublicUserProfile,
+        signaling::signaling_context::SignalingClientContext,
     };
     use opentalk_types_common::{
         rooms::RoomId,
@@ -124,7 +130,6 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::{TokenExpiry, TokenStore};
-    use crate::api::token_store::SignalingClientContext;
 
     fn build_test_context(i: u128) -> SignalingClientContext {
         SignalingClientContext {
