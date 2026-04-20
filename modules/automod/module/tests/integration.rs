@@ -531,6 +531,58 @@ async fn invalid_selection_start() {
 }
 
 #[test_log::test(tokio::test)]
+async fn start_across_breakout_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<AutomodModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".to_string(),
+                    assignments: vec![alice.id()],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
+        .await;
+
+    alice
+        .send_command::<AutomodModule>(
+            AutomodCommand::Start {
+                parameter: Parameter {
+                    selection_strategy: SelectionStrategy::None,
+                    show_remaining: true,
+                    time_limit: None,
+                    allow_double_selection: true,
+                    auto_append_on_join: false,
+                },
+                allow_list: Some(vec![bob.id()]),
+                playlist: None,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<AutomodModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, AutomodEvent::Error(AutomodError::InvalidSelection));
+}
+
+#[test_log::test(tokio::test)]
 // The `livekit_` prefix ensures that tests that require the livekit server can be grouped by name
 async fn livekit_invalid_edit() {
     let (_container, mut room, _public_url) = build_room().await;
