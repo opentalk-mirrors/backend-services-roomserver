@@ -382,7 +382,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             } => {
                 self.set_parameters(*parameters);
                 response_tx
-                    .send(Err(RoomTaskApiError::NotImplemented))
+                    .send(Ok(()))
                     .ok()
                     .context("Failed to respond to UpdateParameter, response channel dropped")?;
             }

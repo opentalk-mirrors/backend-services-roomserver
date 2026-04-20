@@ -82,6 +82,7 @@ mod tests {
         tokio::spawn(future_room);
         (task_handle, sender)
     }
+
     #[test_log::test(tokio::test)]
     async fn timeout() {
         let (handle, _sender) = create_room_task();
@@ -107,6 +108,25 @@ mod tests {
             .accept_signaling_socket(socket, client_parameters)
             .await
             .unwrap();
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn set_parameters_updates_room_state() {
+        let (handle, _sender) = create_room_task();
+
+        let initial_allowed_origins = handle.allowed_origins().await.unwrap();
+        assert_ne!(
+            initial_allowed_origins,
+            vec!["https://example.invalid".to_owned()]
+        );
+
+        let mut updated_parameters = RoomParameters::example_data();
+        updated_parameters.allowed_origins = vec!["https://example.invalid".to_owned()];
+
+        handle.set_parameters(updated_parameters).await.unwrap();
+
+        let allowed_origins = handle.allowed_origins().await.unwrap();
+        assert_eq!(allowed_origins, vec!["https://example.invalid".to_owned()]);
     }
 
     #[test_log::test(tokio::test)]
