@@ -483,7 +483,12 @@ impl AutomodModule {
             .get_mut(&ctx.room)
             .ok_or(AutomodError::SessionNotRunning)?;
 
-        if !ctx.participants.connected().contains(&participant) {
+        if !ctx
+            .participants
+            .in_room(ctx.room)
+            .connected()
+            .contains(&participant)
+        {
             return Err(AutomodError::InvalidSelection.into());
         }
 
@@ -728,8 +733,12 @@ impl AutomodModule {
             None => return None,
         };
 
-        let connected_participants: Vec<ParticipantId> =
-            ctx.participants.connected().ids().collect();
+        let connected_participants: Vec<ParticipantId> = ctx
+            .participants
+            .in_room(ctx.room)
+            .connected()
+            .ids()
+            .collect();
         if !list
             .iter()
             .all(|participant| connected_participants.contains(participant))
