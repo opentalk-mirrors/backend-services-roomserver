@@ -187,7 +187,11 @@ impl<'a> ParticipantsFiltered<'a> {
     }
 
     pub fn contains(&self, participant_id: &ParticipantId) -> bool {
-        self.inner.all_unfiltered.contains_key(participant_id)
+        self.inner
+            .all_unfiltered
+            .get(participant_id)
+            .filter(|s| self.filter.apply(s))
+            .is_some()
     }
 
     impl_filter_functions!();

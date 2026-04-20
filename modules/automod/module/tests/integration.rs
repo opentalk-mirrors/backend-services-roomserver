@@ -664,6 +664,48 @@ async fn livekit_invalid_select() {
         .unwrap()
         .payload;
     assert_eq!(event, AutomodEvent::Error(AutomodError::InvalidSelection));
+
+    // Selecting a participant that is in a different breakout room is not allowed
+    // First, start a breakout room session
+    let bob_id = bob.id();
+    let event = alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".into(),
+                    assignments: vec![bob_id],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+    assert!(matches!(event, BreakoutEvent::Started { .. }));
+
+    // Bob switches to breakout room 0
+    bob.switch_breakout_room(&mut [&mut alice], RoomKind::Breakout(BreakoutId::from(0)))
+        .await;
+
+    // Selecting bob fails because he is in the breakout room
+    alice
+        .send_command::<AutomodModule>(
+            AutomodCommand::Select(Select::Specific {
+                participant: bob.id(),
+                keep_in_remaining: true,
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<AutomodModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, AutomodEvent::Error(AutomodError::InvalidSelection));
+
+    assert!(bob.received_nothing());
 }
 
 #[test_log::test(tokio::test)]
