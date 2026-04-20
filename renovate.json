@@ -9,7 +9,7 @@
   "packageRules": [
     {
       "matchPackagePatterns": [
-        "opentalk-*"
+        "^opentalk-*"
       ],
       "groupName": "opentalk",
       "groupSlug": "opentalk"
