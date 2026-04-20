@@ -9,7 +9,7 @@ use std::{
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_types::{
-    client_parameters::Role,
+    client_parameters::{ClientKind, Role},
     connection_id::ConnectionId,
     error::{self, SignalingError},
     room_kind::RoomKind,
@@ -541,6 +541,11 @@ where
     pub fn is_moderator(&self, participant_id: ParticipantId) -> bool {
         self.participant_role(participant_id)
             .is_some_and(|r| r == Role::Moderator)
+    }
+
+    pub fn get_client_kind(&self, participant_id: ParticipantId) -> Option<&ClientKind> {
+        self.participant_state(participant_id)
+            .map(|state| &state.kind)
     }
 
     pub fn is_room_owner(&self, participant_id: ParticipantId) -> bool {

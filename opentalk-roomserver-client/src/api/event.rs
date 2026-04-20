@@ -23,6 +23,7 @@ use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
 use opentalk_roomserver_types_training_participation_report::{
     TRAINING_PARTICIPATION_REPORT_MODULE_ID, TrainingParticipationReportEvent,
 };
+use opentalk_roomserver_types_transcription::{TRANSCRIPTION_MODULE_ID, event::TranscriptionEvent};
 use opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardEvent};
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use serde::{Deserialize, Serialize};
@@ -82,6 +83,7 @@ pub enum SignalingModuleEvent {
     LegalVote(LegalVoteEvent),
     TrainingParticipationReport(TrainingParticipationReportEvent),
     Recording(RecordingEvent),
+    Transcription(TranscriptionEvent),
 }
 
 impl SignalingModuleEvent {
@@ -108,6 +110,7 @@ impl SignalingModuleEvent {
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
             Self::Recording(..) => RECORDING_MODULE_ID,
+            Self::Transcription(..) => TRANSCRIPTION_MODULE_ID,
         }
     }
 }

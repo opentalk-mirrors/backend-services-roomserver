@@ -1159,8 +1159,8 @@ fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId
         }
         ClientKind::Guest { .. }
         | ClientKind::Recorder { .. }
-        | ClientKind::CallIn { .. }
-        | ClientKind::Transcription { .. } => participant_id_from_uuid(device_id),
+        | ClientKind::Transcription { .. }
+        | ClientKind::CallIn { .. } => participant_id_from_uuid(device_id),
     }
 }
 

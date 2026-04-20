@@ -37,9 +37,9 @@ pub enum ClientKind {
     /// A guest participant
     Guest { display_name: DisplayName },
 
-    /// Invisible service participant used by the recording service
+    /// Invisible recording participant
     Recorder {
-        /// Room for which the recorder was requested from
+        /// Room for which the recording was requested from
         ///
         /// Recorders may only access the recording-service commands & events in this room
         room: RoomKind,
@@ -126,9 +126,9 @@ impl ClientKind {
             ClientKind::Registered { .. } => ParticipationKind::Registered,
             ClientKind::Guest { .. } => ParticipationKind::Guest,
             ClientKind::Recorder { .. } => ParticipationKind::Recorder,
+            ClientKind::Transcription { .. } => ParticipationKind::Transcription,
             ClientKind::CallIn { .. } => ParticipationKind::CallIn,
             ClientKind::RegisteredCallIn { .. } => ParticipationKind::RegisteredCallIn,
-            ClientKind::Transcription { .. } => ParticipationKind::Transcription,
         }
     }
 
@@ -223,9 +223,9 @@ impl From<&ClientKind> for ParticipationKind {
             ClientKind::Registered { .. } => Self::Registered,
             ClientKind::Guest { .. } => Self::Guest,
             ClientKind::Recorder { .. } => Self::Recorder,
+            ClientKind::Transcription { .. } => Self::Transcription,
             ClientKind::CallIn { .. } => Self::CallIn,
             ClientKind::RegisteredCallIn { .. } => Self::RegisteredCallIn,
-            ClientKind::Transcription { .. } => Self::Transcription,
         }
     }
 }

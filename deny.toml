@@ -213,6 +213,9 @@ exceptions = [
   ], name = "opentalk-roomserver-module-training-participation-report" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-transcription" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-whiteboard" },
   { allow = [
     "EUPL-1.2",
@@ -282,6 +285,9 @@ exceptions = [
   ], name = "opentalk-roomserver-types-training-participation-report" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-transcription" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-types-whiteboard" },
   { allow = [
     "EUPL-1.2",
@@ -289,6 +295,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-service-auth" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-transcription-web-api" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-types-api-common" },

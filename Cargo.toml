@@ -55,6 +55,7 @@ opentalk-roomserver-module-shared-folder = { path = "modules/shared-folder/modul
 opentalk-roomserver-module-subroom-audio = { path = "modules/subroom-audio/module", version = "0.0.38-alpha" }
 opentalk-roomserver-module-timer = { path = "modules/timer/module", version = "0.0.38-alpha" }
 opentalk-roomserver-module-training-participation-report = { path = "modules/training-participation-report/module", version = "0.0.38-alpha" }
+opentalk-roomserver-module-transcription = { path = "modules/transcription/module", version = "0.0.38-alpha" }
 opentalk-roomserver-module-whiteboard = { path = "modules/whiteboard/module", version = "0.0.38-alpha" }
 opentalk-roomserver-modules = { path = "opentalk-roomserver-modules", version = "0.0.38-alpha" }
 opentalk-roomserver-room = { path = "opentalk-roomserver-room", version = "0.0.38-alpha" }
@@ -80,6 +81,7 @@ opentalk-roomserver-types-shared-folder = { path = "modules/shared-folder/types"
 opentalk-roomserver-types-subroom-audio = { path = "modules/subroom-audio/types", version = "0.0.38-alpha" }
 opentalk-roomserver-types-timer = { path = "modules/timer/types", version = "0.0.38-alpha" }
 opentalk-roomserver-types-training-participation-report = { path = "modules/training-participation-report/types", version = "0.0.38-alpha" }
+opentalk-roomserver-types-transcription = { path = "modules/transcription/types", version = "0.0.38-alpha" }
 opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.0.38-alpha" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.38-alpha" }
 opentalk-service-auth = { version = "0.2", default-features = false }
@@ -126,6 +128,7 @@ opentalk-orchestrator-client = { version = "0.7", features = [
   "roomserver-service",
 ] }
 opentalk-report-generation = "0.2"
+opentalk-transcription-web-api = "0.1"
 opentalk-version = "0.4.0"
 opentelemetry = "0.31.0"
 opentelemetry-otlp = { version = "0.31.0", features = ["grpc-tonic"] }

@@ -779,6 +779,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31b698c5f9a010f6573133b09e0de5408834d0c82f8d7475a89fc1867a71cd90"
 dependencies = [
  "axum-core",
+ "axum-macros",
  "base64 0.22.1",
  "bytes",
  "form_urlencoded",
@@ -825,6 +826,17 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7aa268c23bfbbd2c4363b9cd302a4f504fb2a9dfe7e3451d66f35dd392e20aca"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -6073,6 +6085,7 @@ dependencies = [
  "opentalk-roomserver-types-subroom-audio",
  "opentalk-roomserver-types-timer",
  "opentalk-roomserver-types-training-participation-report",
+ "opentalk-roomserver-types-transcription",
  "opentalk-roomserver-types-whiteboard",
  "opentalk-service-auth",
  "opentalk-types-api-internal",
@@ -6522,6 +6535,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-module-transcription"
+version = "0.0.38-alpha"
+dependencies = [
+ "anyhow",
+ "opentalk-roomserver-common",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-transcription",
+ "opentalk-transcription-web-api",
+ "opentalk-types-api-internal",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "reqwest 0.13.3",
+ "tracing",
+]
+
+[[package]]
 name = "opentalk-roomserver-module-whiteboard"
 version = "0.0.38-alpha"
 dependencies = [
@@ -6565,6 +6595,7 @@ dependencies = [
  "opentalk-roomserver-module-subroom-audio",
  "opentalk-roomserver-module-timer",
  "opentalk-roomserver-module-training-participation-report",
+ "opentalk-roomserver-module-transcription",
  "opentalk-roomserver-module-whiteboard",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
@@ -6585,6 +6616,7 @@ dependencies = [
  "opentalk-roomserver-types-subroom-audio",
  "opentalk-roomserver-types-timer",
  "opentalk-roomserver-types-training-participation-report",
+ "opentalk-roomserver-types-transcription",
  "opentalk-roomserver-types-whiteboard",
  "opentalk-types-common",
 ]
@@ -6940,6 +6972,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-types-transcription"
+version = "0.0.38-alpha"
+dependencies = [
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-service-auth",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
+ "url",
+]
+
+[[package]]
 name = "opentalk-roomserver-types-whiteboard"
 version = "0.0.38-alpha"
 dependencies = [
@@ -6988,6 +7033,19 @@ dependencies = [
  "serde",
  "thiserror 2.0.18",
  "tower",
+]
+
+[[package]]
+name = "opentalk-transcription-web-api"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4c6c8ede6ade8b4fd985edb146eb3d237f1dae4fed8d91356dded7c3c7bda5f"
+dependencies = [
+ "async-trait",
+ "axum",
+ "opentalk-types-api-common",
+ "opentalk-types-common",
+ "serde",
 ]
 
 [[package]]
