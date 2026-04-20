@@ -31,9 +31,9 @@ const BASE_URL = getRequiredEnv('BASE_URL');
 const ROOM_ID = getEnv('ROOM_ID', '27c66df5-f6be-4d70-a167-abba2cf28a2a');
 
 // Duration to reach number of VUs (default: 5 minutes)
-const RAMP_UP_DURATION_SECONDS = getEnv('FAIRNESS_RAMP_UP_DURATION_SECONDS', 5 * 60 * 1000);
+const RAMP_UP_DURATION_SECONDS = getEnv('FAIRNESS_RAMP_UP_DURATION_SECONDS', 5 * 60);
 // Duration of the fairness test (default: 10 minutes)
-const TEST_DURATION_SECONDS = getEnv('FAIRNESS_TEST_DURATION_SECONDS', 10 * 60 * 1000);
+const TEST_DURATION_SECONDS = getEnv('FAIRNESS_TEST_DURATION_SECONDS', 10 * 60);
 const USERS = getEnv('FAIRNESS_USERS', 200);
 
 const ECHO_START_TIME = TEST_START_TIME.getTime() + RAMP_UP_DURATION_SECONDS;
@@ -70,10 +70,10 @@ export default async function () {
 
   console.info(`VU ${__VU} starting echo commands`);
 
-  const testEnd = RAMP_UP_DURATION_SECONDS + TEST_DURATION_SECONDS;
+  const testEndMS = (RAMP_UP_DURATION_SECONDS + TEST_DURATION_SECONDS) * 1000;
   try {
     // Run until the test duration has elapsed
-    while (exec.instance.currentTestRunDuration < testEnd) {
+    while (exec.instance.currentTestRunDuration < testEndMS) {
       // Using exec.instance.currentTestRunDuration to measure time instead of Date.now()
       // because Date.now() only supports millisecond precision which is not enough for RTT
       // measurement. exec.instance.currentTestRunDuration reports time in milliseconds but
