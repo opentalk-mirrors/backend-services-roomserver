@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::num::NonZero;
+
 use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
@@ -17,12 +19,28 @@ impl SignalingModuleSettings for ChatSettings {
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct RateLimitSettings {
     /// The tokens that are added to the bucket per second
-    pub tokens_per_second: u64,
+    pub tokens_per_second: NonZero<u64>,
     /// The maximum amount of tokens that a token bucket can hold at a time
-    pub token_bucket_size: u64,
+    pub token_bucket_size: NonZero<u64>,
     /// If a participant has sent this many requests in a second, they will be told to slow down
     #[serde(deserialize_with = "deserialize_slow_down_threshold")]
     pub slow_down_threshold: f32,
+}
+
+impl RateLimitSettings {
+    /// The interval in milliseconds at which tokens are added to the bucket
+    pub fn token_interval_ms(&self) -> u64 {
+        const SECOND_IN_MS: u64 = 1000;
+        SECOND_IN_MS / self.tokens_per_second
+    }
+
+    /// The time in milliseconds it takes for the bucket to refill from empty to below the slow down
+    /// threshold
+    pub fn refill_time_to_slow_down_threshold_ms(&self) -> u64 {
+        let tokens_to_refill =
+            (self.token_bucket_size.get() as f32 * self.slow_down_threshold).ceil() as u64;
+        tokens_to_refill * self.token_interval_ms()
+    }
 }
 
 fn deserialize_slow_down_threshold<'de, D>(deserializer: D) -> Result<f32, D::Error>
@@ -49,8 +67,8 @@ mod tests {
     fn serialize_chat_settings() {
         let settings = ChatSettings {
             rate_limit: Some(RateLimitSettings {
-                tokens_per_second: 3,
-                token_bucket_size: 10,
+                tokens_per_second: NonZero::new(3).unwrap(),
+                token_bucket_size: NonZero::new(10).unwrap(),
                 slow_down_threshold: 0.8,
             }),
         };
@@ -82,8 +100,8 @@ mod tests {
             produced,
             ChatSettings {
                 rate_limit: Some(RateLimitSettings {
-                    tokens_per_second: 3,
-                    token_bucket_size: 10,
+                    tokens_per_second: NonZero::new(3).unwrap(),
+                    token_bucket_size: NonZero::new(10).unwrap(),
                     slow_down_threshold: 0.8,
                 })
             }
@@ -106,8 +124,8 @@ mod tests {
             produced,
             ChatSettings {
                 rate_limit: Some(RateLimitSettings {
-                    tokens_per_second: 3,
-                    token_bucket_size: 10,
+                    tokens_per_second: NonZero::new(3).unwrap(),
+                    token_bucket_size: NonZero::new(10).unwrap(),
                     slow_down_threshold: 0.0,
                 })
             }
@@ -130,8 +148,8 @@ mod tests {
             produced,
             ChatSettings {
                 rate_limit: Some(RateLimitSettings {
-                    tokens_per_second: 3,
-                    token_bucket_size: 10,
+                    tokens_per_second: NonZero::new(3).unwrap(),
+                    token_bucket_size: NonZero::new(10).unwrap(),
                     slow_down_threshold: 1.0,
                 })
             }
@@ -149,5 +167,30 @@ mod tests {
         });
 
         assert!(serde_json::from_value::<ChatSettings>(json).is_err());
+    }
+
+    #[test]
+    fn token_interval() {
+        let settings = RateLimitSettings {
+            tokens_per_second: NonZero::new(2).unwrap(),
+            token_bucket_size: NonZero::new(10).unwrap(),
+            slow_down_threshold: 0.8,
+        };
+        let produced = settings.token_interval_ms();
+
+        assert_eq!(produced, 500);
+    }
+
+    #[test]
+    fn refill_time_to_slow_down_threshold() {
+        let settings = RateLimitSettings {
+            tokens_per_second: NonZero::new(2).unwrap(),
+            token_bucket_size: NonZero::new(10).unwrap(),
+            slow_down_threshold: 0.4,
+        };
+
+        let produced = settings.refill_time_to_slow_down_threshold_ms();
+
+        assert_eq!(produced, 2000);
     }
 }

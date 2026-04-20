@@ -87,7 +87,13 @@ pub enum ChatEvent {
     ///
     /// When the client does not slow down, further messages may be rejected with a
     /// [`ChatError::TooManyRequests`] error.
-    SlowDown,
+    SlowDown {
+        /// The time the client should wait before sending another chat message
+        recommended_wait_ms: u32,
+    },
+
+    /// A participant has been rate limited
+    ParticipantRateLimited { participant_id: ParticipantId },
 
     /// Chat event which errored, see [`ChatError`]
     Error(ChatError),
@@ -385,6 +391,35 @@ mod tests {
     }
 
     #[test]
+    fn serialize_too_many_requests() {
+        let produced = serde_json::to_string_pretty(&ChatError::TooManyRequests {
+            retry_after_ms: 500,
+        })
+        .expect("Failed to serialize");
+
+        assert_snapshot!(produced, @r#"
+        {
+          "error": "too_many_requests",
+          "retry_after_ms": 500
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_too_many_requests() {
+        let produced: ChatError = serde_json::from_value(json!({
+            "error": "too_many_requests",
+            "retry_after_ms": 500,
+        }))
+        .expect("Failed to serialize");
+
+        let expected = ChatError::TooManyRequests {
+            retry_after_ms: 500,
+        };
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
     fn serialize_room_chat_history_chunk() {
         let produced = serde_json::to_string_pretty(&ChatEvent::RoomChatHistoryChunk {
             history: ChatChunk::default(),
@@ -499,5 +534,34 @@ mod tests {
         };
 
         assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_slow_down() {
+        let produced = serde_json::to_string_pretty(&ChatEvent::SlowDown {
+            recommended_wait_ms: 500,
+        })
+        .expect("Serialization failed");
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "slow_down",
+          "recommended_wait_ms": 500
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_slow_down() {
+        let produced: ChatEvent = serde_json::from_value(json!({
+            "message": "slow_down",
+            "recommended_wait_ms": 500,
+        }))
+        .expect("Deserialization failed");
+        let expected = ChatEvent::SlowDown {
+            recommended_wait_ms: 500,
+        };
+
+        assert_eq!(produced, expected);
     }
 }

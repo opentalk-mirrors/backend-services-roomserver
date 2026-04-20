@@ -21,7 +21,7 @@ impl RateLimit {
     }
 
     pub(super) fn insert_connection(&mut self, connection_id: ConnectionId) {
-        let bucket = Bucket::new(self.settings.token_bucket_size);
+        let bucket = Bucket::new(self.settings.token_bucket_size.get());
         self.buckets.insert(connection_id, bucket);
     }
 
@@ -37,7 +37,7 @@ impl RateLimit {
             tracing::warn!(
                 "Connection id '{connection_id}' not found in rate limit buckets, inserting."
             );
-            Bucket::new(self.settings.token_bucket_size)
+            Bucket::new(self.settings.token_bucket_size.get())
         });
 
         // Update the tokens based on the time since the last request
@@ -47,12 +47,19 @@ impl RateLimit {
         tracing::debug!("Connection id '{connection_id}' has {tokens} of tokens left");
 
         if tokens == 0 {
-            return RateLimitState::TooManyRequests;
+            return RateLimitState::TooManyRequests {
+                retry_after_ms: self
+                    .settings
+                    .refill_time_to_slow_down_threshold_ms()
+                    .try_into()
+                    .unwrap_or(u32::MAX),
+            };
         }
 
         // Check if the connection should be slowed down, we subtract a small epsilon to account for
         // floating point inaccuracies
-        let slow_down = (tokens as f32 / self.settings.token_bucket_size as f32) - f32::EPSILON
+        let slow_down = (tokens as f32 / self.settings.token_bucket_size.get() as f32)
+            - f32::EPSILON
             <= 1.0 - self.settings.slow_down_threshold;
 
         // Rate limit is enforced when overstepping the limit, so we consume the token after
@@ -60,7 +67,13 @@ impl RateLimit {
         bucket.consume_token();
 
         if slow_down {
-            RateLimitState::SlowDown
+            RateLimitState::SlowDown {
+                recommended_wait_ms: self
+                    .settings
+                    .token_interval_ms()
+                    .try_into()
+                    .unwrap_or(u32::MAX),
+            }
         } else {
             RateLimitState::Ok
         }
@@ -84,8 +97,8 @@ impl Bucket {
     /// Add tokens based on the time since the last request
     fn add_tokens(&mut self, settings: &RateLimitSettings) {
         let seconds = Instant::now().duration_since(self.timestamp).as_secs();
-        let added_tokens = seconds * settings.tokens_per_second;
-        self.tokens = std::cmp::min(self.tokens + added_tokens, settings.token_bucket_size);
+        let added_tokens = seconds * settings.tokens_per_second.get();
+        self.tokens = std::cmp::min(self.tokens + added_tokens, settings.token_bucket_size.get());
     }
 
     /// Consume a token from the bucket and update the timestamp of the last request
@@ -97,6 +110,12 @@ impl Bucket {
 
 pub(super) enum RateLimitState {
     Ok,
-    SlowDown,
-    TooManyRequests,
+    SlowDown {
+        /// The time the client should wait before sending another chat message
+        recommended_wait_ms: u32,
+    },
+    TooManyRequests {
+        /// The time the client should wait before sending another chat message
+        retry_after_ms: u32,
+    },
 }

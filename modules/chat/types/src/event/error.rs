@@ -28,7 +28,10 @@ pub enum ChatError {
     },
 
     /// Too many messages have been sent from the connection in a short time
-    TooManyRequests,
+    TooManyRequests {
+        /// The time the client must wait before sending another chat message
+        retry_after_ms: u32,
+    },
 }
 
 impl ModuleError for ChatError {}

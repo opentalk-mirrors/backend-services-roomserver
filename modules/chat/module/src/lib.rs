@@ -431,18 +431,38 @@ impl ChatModule {
     fn send_message(
         &mut self,
         ctx: &mut ModuleContext<'_, ChatModule>,
-        participant: ParticipantId,
+        participant_id: ParticipantId,
         connection_id: ConnectionId,
         content: String,
         scope: Scope,
     ) -> Result<(), SignalingModuleError<<ChatModule as SignalingModule>::Error>> {
         if let Some(rate_limit) = &mut self.rate_limit {
             match rate_limit.consume_token(connection_id) {
-                RateLimitState::TooManyRequests => {
-                    return Err(ChatError::TooManyRequests.into());
+                RateLimitState::TooManyRequests { retry_after_ms } => {
+                    // The moderators are not informed about rate limited messages if the sender is
+                    // the room owner, as the room owner can not be kicked.
+                    if !ctx.is_room_owner(participant_id) {
+                        ctx.send_ws_message(
+                            ctx.participants
+                                .in_room(ctx.room)
+                                .moderators()
+                                .ids()
+                                .filter(|id| *id != participant_id),
+                            ChatEvent::ParticipantRateLimited { participant_id },
+                        )?;
+                    }
+
+                    return Err(ChatError::TooManyRequests { retry_after_ms }.into());
                 }
-                RateLimitState::SlowDown => {
-                    ctx.send_ws_message_to_connections([connection_id], ChatEvent::SlowDown)?;
+                RateLimitState::SlowDown {
+                    recommended_wait_ms,
+                } => {
+                    ctx.send_ws_message_to_connections(
+                        [connection_id],
+                        ChatEvent::SlowDown {
+                            recommended_wait_ms,
+                        },
+                    )?;
                 }
                 RateLimitState::Ok => {}
             }
@@ -476,12 +496,12 @@ impl ChatModule {
         let id = MessageId::generate();
         let stored_msg = StoredMessage {
             id,
-            source: participant,
+            source: participant_id,
             content: content.clone(),
             scope: scope.clone(),
             timestamp: Timestamp::now(),
         };
-        let chat_id = ChatId::from_scope_and_source(scope.clone(), participant);
+        let chat_id = ChatId::from_scope_and_source(scope.clone(), participant_id);
 
         self.history
             .entry(chat_id.clone())
@@ -490,7 +510,7 @@ impl ChatModule {
 
         // ensure participation in the chat is recorded
         self.chat_state
-            .entry(participant)
+            .entry(participant_id)
             .or_default()
             .entry(chat_id.clone())
             .or_insert(None);
@@ -498,7 +518,7 @@ impl ChatModule {
         // if this is a private chat, we also record the chat for the other participant
         if let ChatId::Private(id) = &chat_id {
             self.chat_state
-                .entry(id.other(participant))
+                .entry(id.other(participant_id))
                 .or_default()
                 .entry(chat_id.clone())
                 .or_insert(None);
@@ -510,7 +530,7 @@ impl ChatModule {
                     ctx.participants.connected().ids(),
                     ChatEvent::MessageSent {
                         id,
-                        source: participant,
+                        source: participant_id,
                         content,
                         scope,
                     },
@@ -524,7 +544,7 @@ impl ChatModule {
                         .ids(),
                     ChatEvent::MessageSent {
                         id,
-                        source: participant,
+                        source: participant_id,
                         content,
                         scope,
                     },
@@ -538,7 +558,7 @@ impl ChatModule {
                         [recipient],
                         ChatEvent::MessageSent {
                             id,
-                            source: participant,
+                            source: participant_id,
                             content: content.clone(),
                             scope: private_chat_id.to_scope(recipient),
                         },
