@@ -345,7 +345,7 @@ where
     ///
     /// If the event origin is a signaling connection, the error will be sent to the participant.
     ///
-    /// The message is always scoped to the [`error::NAMESPACE`]
+    /// The message is always scoped to the [`error::ERROR_MODULE_ID`]
     pub fn handle_error(&self, error: SignalingError) {
         let participant_id = match self.event_origin {
             EventOrigin::Participant(participant_origin) => participant_origin.id,
@@ -359,7 +359,7 @@ where
         };
 
         let event = SignalingEvent {
-            namespace: error::NAMESPACE,
+            namespace: error::ERROR_MODULE_ID,
             transaction_id: self.event_origin.transaction_id(),
             timestamp: Timestamp::now(),
             payload: error,

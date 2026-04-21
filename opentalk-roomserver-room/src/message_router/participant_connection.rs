@@ -379,7 +379,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         transaction_id: Option<u64>,
     ) -> Result<(), ExitReason> {
         let event: SignalingEvent<SignalingError> = SignalingEvent {
-            namespace: opentalk_roomserver_types::error::NAMESPACE,
+            namespace: opentalk_roomserver_types::error::ERROR_MODULE_ID,
             transaction_id,
             timestamp: Timestamp::now(),
             payload: error.into(),
