@@ -2,13 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::{BTreeMap, BTreeSet, HashMap, HashSet, hash_map::Entry},
-    sync::Arc,
-};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, hash_map::Entry};
 
 use anyhow::Context;
-use opentalk_roomserver_common::settings::Settings;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     participant_state::ParticipantState,
@@ -25,8 +21,8 @@ use opentalk_roomserver_types::{
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_types_recording::{
-    RECORD_FEATURE_ID, RECORDING_MODULE_ID, RecordingStatus, STREAM_FEATURE_ID, StreamStatus,
-    StreamingTarget,
+    RECORD_FEATURE_ID, RECORDING_MODULE_ID, RecordingSettings, RecordingStatus, STREAM_FEATURE_ID,
+    StreamStatus, StreamingTarget,
     command::RecordingCommand,
     event::{RecordingError, RecordingEvent},
     peer_state::RecordingPeerState,
@@ -46,7 +42,7 @@ use opentalk_types_common::{
 use opentalk_types_signaling::ParticipantId;
 
 pub struct RecordingModule {
-    settings: Arc<Settings>,
+    settings: RecordingSettings,
     http_client: reqwest::Client,
 
     // Features
@@ -98,6 +94,12 @@ impl SignalingModule for RecordingModule {
     type Error = RecordingError;
 
     fn init(init_data: SignalingModuleInitData) -> Option<Self> {
+        let settings = (init_data
+            .room_parameters
+            .module_settings
+            .get::<RecordingSettings>()
+            .ok()?)?;
+
         let tariff = &init_data.room_parameters.tariff;
         let can_record = !tariff.disabled_features.contains(&ModuleFeatureId {
             module: RECORDING_MODULE_ID,
@@ -108,11 +110,8 @@ impl SignalingModule for RecordingModule {
             feature: STREAM_FEATURE_ID,
         });
 
-        // Don't create module if recorder isn't configured
-        init_data.settings.recording.as_ref()?;
-
         Some(Self {
-            settings: init_data.settings,
+            settings,
             http_client: reqwest::Client::new(),
             can_record,
             can_stream,
@@ -369,15 +368,8 @@ impl RecordingModule {
         &mut self,
         ctx: &mut ModuleContext<'_, RecordingModule>,
     ) -> Result<(), SignalingModuleError<RecordingError>> {
-        let recorder_config = self
+        let jwt_bearer_token = self
             .settings
-            .recording
-            .as_ref()
-            .context("Missing recorder url in config")
-            .map_err(FatalError)?
-            .clone();
-
-        let jwt_bearer_token = recorder_config
             .api_key
             .generate_jwt()
             .context("Failed to generate JWT from recorder api_key")
@@ -393,19 +385,20 @@ impl RecordingModule {
             },
         };
 
+        let url = match self.settings.url.join("v1/init") {
+            Ok(url) => url,
+            Err(err) => {
+                tracing::error!(
+                    "Failed to build recorder init url from base_url: {}, {err}",
+                    self.settings.url
+                );
+                self.reset_states_if_no_recorder_is_connected(ctx)?;
+
+                return Err(RecordingError::FailedToRequestRecordingService.into());
+            }
+        };
+
         ctx.spawn_optional(async move {
-            let url = match recorder_config.url.join("v1/init") {
-                Ok(url) => url,
-                Err(err) => {
-                    tracing::error!(
-                        "Failed to build recorder init url from base_url: {}, {err}",
-                        recorder_config.url
-                    );
-
-                    return Some(LoopBackEvent::RecorderRequestFailed);
-                }
-            };
-
             tracing::debug!("Sending off recorder start request to {url} with body {body:?}");
 
             let response = http_client

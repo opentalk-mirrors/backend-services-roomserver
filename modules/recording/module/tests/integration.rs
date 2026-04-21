@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use axum::{Json, routing::post};
-use opentalk_roomserver_common::settings::runtime_settings::recording::Recording;
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_module_recording::RecordingModule;
 use opentalk_roomserver_room::mocking::{
@@ -28,6 +27,7 @@ use opentalk_roomserver_types_recording::{
         command::RecordingServiceCommand, event::RecordingServiceEvent,
         state::ServiceStreamingTarget,
     },
+    settings::RecordingSettings,
     state::RecordingState,
 };
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
@@ -96,13 +96,14 @@ macro_rules! expect_recording_event {
 fn create_room(mock_recorder: &MockRecorderTask) -> TestRoom {
     ensure_crypto_provider();
 
+    let recording_settings = RecordingSettings {
+        url: mock_recorder.url.clone(),
+        api_key: ApiKey::new("recorder", "secret"),
+    };
+
     TestRoom::builder()
-        .settings(|settings| {
-            settings.recording = Some(Recording {
-                url: mock_recorder.url.clone(),
-                api_key: ApiKey::new("recorder", "secret"),
-            })
-        })
+        .add_init_module_data(&recording_settings)
+        .expect("valid recording module settings")
         .streaming_target(RoomStreamingTarget {
             id: StreamingTargetId::nil(),
             streaming_target: StreamingTarget {

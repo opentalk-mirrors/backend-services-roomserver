@@ -6154,7 +6154,6 @@ version = "0.0.34-alpha"
 dependencies = [
  "anyhow",
  "axum",
- "opentalk-roomserver-common",
  "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
@@ -6600,6 +6599,7 @@ dependencies = [
  "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
+ "opentalk-service-auth",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
