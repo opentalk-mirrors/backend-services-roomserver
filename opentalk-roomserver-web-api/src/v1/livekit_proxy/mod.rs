@@ -180,9 +180,13 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend>(
 }
 
 /// Proxies the LiveKit validate request to the upstream livekit service via the room task
+///
+/// # Available paths
+/// - `/livekit/rtc/validate`
+/// - `/livekit/rtc/v1/validate`
 #[utoipa::path(
     post,
-    path = "/rtc/validate",
+    path = "/livekit/rtc/validate",
     responses(
         (status = StatusCode::OK, description = "Validation response from LiveKit"),
         (status = StatusCode::UNPROCESSABLE_ENTITY, description = "No livekit module configured for the request"),
@@ -193,7 +197,7 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend>(
         ("Livekit-Token" = [])
     ),
 )]
-#[tracing::instrument(level = "info", name = "/rtc/validate", skip_all)]
+#[tracing::instrument(level = "info", name = "/livekit/rtc/validate", skip_all)]
 pub(crate) async fn proxy_validate<B: LiveKitProxyBackend>(
     State(ctx): State<B>,
     Query(query): Query<LiveKitQuery>,

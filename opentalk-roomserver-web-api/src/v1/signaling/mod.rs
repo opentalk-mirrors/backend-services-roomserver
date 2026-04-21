@@ -47,7 +47,7 @@ pub(crate) fn routes<B: SignalingBackend + 'static>(state: B) -> Router<B> {
         (status = StatusCode::INTERNAL_SERVER_ERROR, description = "An internal server error occurred"),
     ),
     params(
-        ("token" = RoomId, Path, description = "The UUID token that verifies the user")
+        ("token" = Token, Path, description = "The roomserver token that authorizes the user")
     ),
     security(),
     )]

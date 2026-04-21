@@ -45,6 +45,27 @@ paths:
           description: An internal server error occurred
       security:
         - Livekit-Token: []
+  /livekit/rtc/validate:
+    post:
+      tags:
+        - "v1::livekit_proxy"
+      summary: Proxies the LiveKit validate request to the upstream livekit service via the room task
+      description: |-
+        # Available paths
+        - `/livekit/rtc/validate`
+        - `/livekit/rtc/v1/validate`
+      operationId: proxy_validate
+      responses:
+        "200":
+          description: Validation response from LiveKit
+        "400":
+          description: Invalid request headers
+        "422":
+          description: No livekit module configured for the request
+        "500":
+          description: An internal server error occurred
+      security:
+        - Livekit-Token: []
   "/rooms/{room_id}":
     put:
       tags:
@@ -170,10 +191,10 @@ paths:
       parameters:
         - name: token
           in: path
-          description: The UUID token that verifies the user
+          description: The roomserver token that authorizes the user
           required: true
           schema:
-            $ref: "#/components/schemas/RoomId"
+            $ref: "#/components/schemas/Token"
       responses:
         "101":
           description: Successfully upgraded connection to WebSocket
@@ -1081,3 +1102,7 @@ tags:
     description: Endpoints related to rooms
   - name: "v1::user"
     description: Endpoints related to a user
+  - name: "v1::signaling"
+    description: Endpoints related to signaling connections
+  - name: "v1::livekit_proxy"
+    description: Endpoints related to the LiveKit proxy

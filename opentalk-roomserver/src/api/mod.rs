@@ -56,14 +56,17 @@ pub mod websocket;
         tags(
             (name = "v1::rooms", description = "Endpoints related to rooms"),
             (name = "v1::user", description = "Endpoints related to a user"),
+            (name = "v1::signaling", description = "Endpoints related to signaling connections"),
+            (name = "v1::livekit_proxy", description = "Endpoints related to the LiveKit proxy"),
         ),
         paths(
-           v1::rooms::put_room,
-           v1::rooms::patch_room,
-           v1::rooms::request_token,
-           v1::user::post_storage_quota,
-           v1::signaling::open_signaling_socket,
-           v1::livekit_proxy::proxy_socket,
+            v1::rooms::put_room,
+            v1::rooms::patch_room,
+            v1::rooms::request_token,
+            v1::user::post_storage_quota,
+            v1::signaling::open_signaling_socket,
+            v1::livekit_proxy::proxy_socket,
+            v1::livekit_proxy::proxy_validate,
         ),
         components(
             schemas(
