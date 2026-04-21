@@ -4,6 +4,7 @@
 use opentalk_roomserver_types::{
     breakout::{BREAKOUT_MODULE_ID, event::BreakoutEvent},
     core::{CORE_MODULE_ID, CoreEvent},
+    error::{ERROR_MODULE_ID, SignalingError},
 };
 use opentalk_roomserver_types_automod::{AUTOMOD_MODULE_ID, event::AutomodEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
@@ -56,6 +57,7 @@ impl SignalingEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
 pub enum SignalingModuleEvent {
+    Error(SignalingError),
     Automod(AutomodEvent),
     Core(CoreEvent),
     Breakout(BreakoutEvent),
@@ -85,6 +87,7 @@ pub enum SignalingModuleEvent {
 impl SignalingModuleEvent {
     pub fn namespace(&self) -> ModuleId {
         match self {
+            Self::Error(..) => ERROR_MODULE_ID,
             Self::Automod(..) => AUTOMOD_MODULE_ID,
             Self::Core(..) => CORE_MODULE_ID,
             Self::Breakout(..) => BREAKOUT_MODULE_ID,
@@ -116,6 +119,7 @@ mod tests {
     use insta::assert_snapshot;
     use opentalk_roomserver_types::{
         breakout::event::BreakoutEvent, connection_id::ConnectionId, core::CoreEvent,
+        error::SignalingError,
     };
     use opentalk_roomserver_types_automod::event::{AutomodEvent, StoppedReason};
     use opentalk_roomserver_types_chat::event::ChatEvent;
@@ -155,6 +159,57 @@ mod tests {
     #[derive(Debug, Clone, Deserialize)]
     pub struct NamespaceOnly {
         pub namespace: ModuleId,
+    }
+
+    #[test]
+    fn serialize_event_error_internal() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
+            payload: SignalingModuleEvent::Error(SignalingError::Internal),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "timestamp": "1970-01-01T00:00:00Z",
+          "namespace": "error",
+          "payload": {
+            "error": "internal"
+          }
+        }
+        "#);
+
+        // Check that the ModuleId from the actual SignalingModule matches what we serialize.
+        let namespace_only: NamespaceOnly = serde_json::from_str(&raw).unwrap();
+        assert_eq!(namespace_only.namespace, event.namespace());
+    }
+
+    #[test]
+    fn serialize_event_error_unknown_namespace() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
+            payload: SignalingModuleEvent::Error(SignalingError::UnknownNamespace {
+                invalid_namespace: "foo".into(),
+            }),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "timestamp": "1970-01-01T00:00:00Z",
+          "namespace": "error",
+          "payload": {
+            "error": "unknown_namespace",
+            "invalid_namespace": "foo"
+          }
+        }
+        "#);
+
+        // Check that the ModuleId from the actual SignalingModule matches what we serialize.
+        let namespace_only: NamespaceOnly = serde_json::from_str(&raw).unwrap();
+        assert_eq!(namespace_only.namespace, event.namespace());
     }
 
     #[test]
