@@ -3,7 +3,7 @@
 
 use opentalk_roomserver_types::{
     breakout::{BREAKOUT_MODULE_ID, event::BreakoutEvent},
-    core::CoreEvent,
+    core::{CORE_MODULE_ID, CoreEvent},
 };
 use opentalk_roomserver_types_automod::{AUTOMOD_MODULE_ID, event::AutomodEvent};
 use opentalk_roomserver_types_chat::{CHAT_MODULE_ID, event::ChatEvent};
@@ -23,10 +23,7 @@ use opentalk_roomserver_types_training_participation_report::{
     TRAINING_PARTICIPATION_REPORT_MODULE_ID, TrainingParticipationReportEvent,
 };
 use opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardEvent};
-use opentalk_types_common::{
-    modules::{CORE_MODULE_ID, ModuleId},
-    time::Timestamp,
-};
+use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use serde::{Deserialize, Serialize};
 // reexport events for easier usage
 pub use {
