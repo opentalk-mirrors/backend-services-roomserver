@@ -22,7 +22,6 @@ pub mod conference;
 pub mod defaults;
 pub mod http;
 pub mod internal;
-pub mod livekit;
 pub mod recording;
 pub mod reports;
 pub mod reports_typst;
