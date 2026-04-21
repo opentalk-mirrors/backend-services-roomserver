@@ -15,13 +15,11 @@ use super::{
     controller_settings::ControllerConfig, settings_file::SettingsFile,
     signaling_salt::SignalingSalt,
 };
-use crate::settings::runtime_settings::recording::Recording;
 
 pub mod conference;
 pub mod defaults;
 pub mod http;
 pub mod internal;
-pub mod recording;
 pub mod reports;
 pub mod reports_typst;
 pub mod telemetry;
@@ -46,8 +44,6 @@ pub struct Settings {
     pub defaults: Option<Defaults>,
 
     pub reports: Reports,
-
-    pub recording: Option<Recording>,
 
     pub internal: Internal,
 }
@@ -85,7 +81,6 @@ impl Settings {
             },
             defaults: None,
             reports: Default::default(),
-            recording: None,
             internal: Default::default(),
         }
     }
@@ -105,7 +100,6 @@ impl TryFrom<SettingsFile> for Settings {
             conference: value.conference.into(),
             defaults: value.defaults.map(Into::into),
             reports: value.reports.unwrap_or_default().into(),
-            recording: value.recording.map(Into::into),
             internal: value.internal.map(Into::into).unwrap_or_default(),
         })
     }

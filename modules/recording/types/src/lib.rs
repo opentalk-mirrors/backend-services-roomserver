@@ -8,6 +8,7 @@ pub mod command;
 pub mod event;
 pub mod peer_state;
 pub mod service;
+pub mod settings;
 pub mod state;
 
 mod status;
@@ -17,6 +18,7 @@ use opentalk_types_common::{
     features::{FeatureId, feature_id},
     modules::{ModuleId, module_id},
 };
+pub use settings::RecordingSettings;
 pub use status::{RecordingStatus, StreamErrorReason, StreamStatus};
 pub use streaming_target::StreamingTarget;
 

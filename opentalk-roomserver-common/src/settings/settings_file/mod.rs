@@ -9,7 +9,6 @@ use config::{Config, Environment, File, FileFormat};
 use defaults::Defaults;
 use http::Http;
 use opentalk_orchestrator_client::OrchestratorConfig;
-use recording::Recording;
 use reports::Reports;
 use serde::Deserialize;
 use telemetry::{Metrics, Monitoring, Tracing};
@@ -22,7 +21,6 @@ pub mod conference;
 pub mod defaults;
 pub mod http;
 pub mod internal;
-pub mod recording;
 pub mod reports;
 pub mod reports_typst;
 pub mod telemetry;
@@ -61,9 +59,6 @@ pub struct SettingsFile {
 
     #[serde(default)]
     pub(crate) reports: Option<Reports>,
-
-    #[serde(default)]
-    pub(crate) recording: Option<Recording>,
 
     #[serde(default)]
     pub(crate) internal: Option<Internal>,

@@ -14,7 +14,6 @@ version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-opentalk-roomserver-common = { workspace = true }
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-recording = { workspace = true }
