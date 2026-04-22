@@ -25,7 +25,9 @@ use opentalk_roomserver_room::{
     signaling::{DescriptionPrinter, ModuleInitializer},
 };
 use opentalk_roomserver_signaling::signaling_module::SignalingModuleFeatureDescription;
-pub use opentalk_roomserver_types::{breakout::BREAKOUT_MODULE_ID, core::CORE_MODULE_ID};
+pub use opentalk_roomserver_types::{
+    breakout::BREAKOUT_MODULE_ID, core::CORE_MODULE_ID, error::ERROR_MODULE_ID,
+};
 pub use opentalk_roomserver_types_automod::AUTOMOD_MODULE_ID;
 pub use opentalk_roomserver_types_chat::CHAT_MODULE_ID;
 pub use opentalk_roomserver_types_e2ee::E2EE_MODULE_ID;

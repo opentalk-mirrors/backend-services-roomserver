@@ -4,7 +4,7 @@
 use opentalk_types_common::modules::{ModuleId, module_id};
 use serde::{Deserialize, Serialize};
 
-pub const NAMESPACE: ModuleId = module_id!("error");
+pub const ERROR_MODULE_ID: ModuleId = module_id!("error");
 
 /// Errors that are reported back to the client via the signaling socket.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

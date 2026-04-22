@@ -348,7 +348,7 @@ impl ScopedRouter {
 
     /// Send a websocket error message of type [`SignalingError`] to the associated connection
     ///
-    /// The message is always scoped to the [`error::NAMESPACE`]
+    /// The message is always scoped to the [`error::ERROR_MODULE_ID`]
     pub(crate) fn send_error(
         &mut self,
         connection_id: ConnectionId,
@@ -356,7 +356,7 @@ impl ScopedRouter {
         error: SignalingError,
     ) {
         let event = SignalingEvent {
-            namespace: error::NAMESPACE,
+            namespace: error::ERROR_MODULE_ID,
             transaction_id,
             timestamp: Timestamp::now(),
             payload: error,
@@ -376,10 +376,10 @@ impl ScopedRouter {
 
     /// Send a websocket error message of type [`SignalingError`] to all participants
     ///
-    /// The message is always scoped to the [`error::NAMESPACE`]
+    /// The message is always scoped to the [`error::ERROR_MODULE_ID`]
     pub(crate) fn broadcast_error(&mut self, transaction_id: Option<u64>, error: SignalingError) {
         let event = SignalingEvent {
-            namespace: error::NAMESPACE,
+            namespace: error::ERROR_MODULE_ID,
             transaction_id,
             timestamp: Timestamp::now(),
             payload: error,
