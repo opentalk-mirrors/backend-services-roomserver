@@ -5,6 +5,85 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.34] - 2026-04-22
+
+[0.0.34]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.33...v0.0.34
+
+### 🚀 New features
+
+- Add 404 fallback handler ([!1007](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1007))
+- Expose module ids in `opentalk-roomserver-modules` ([!1014](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1014))
+- Move roomserver specific types out of opentalk-types-api-v1 ([!997](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/997))
+- (chat) Include chat rate limit delays in `SlowDown` and `TooManyRequests` ([!1002](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1002), [#226](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/226))
+- (excalidraw) Introduce excalidraw whiteboard ([!905](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/905), [#192](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/192))
+- Reexport `ERROR_MODULE_ID` ([!1025](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1025))
+
+### 🐛 Bug fixes
+
+- (chat) Rate limit sends slow_down too early ([!988](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/988))
+- (moderation) Call-in users are not kicked by the `Guests` kick scope ([!994](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/994))
+- Convert environment variables to their expected types ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+- Load test script should not print colored logs into a file ([!1012](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1012))
+- Fix typos ([!1013](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1013))
+- (chat) Enforce non-zero values for token bucket size and tokens per second in chat rate limit ([!1002](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1002))
+- `ParticipantsFiltered` does not apply filters in `contains()` ([!905](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/905))
+- (openapi) Add missing status for `v1/signaling/{token}` ([!905](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/905))
+- (automod) Speaker list can include participants from other breakout rooms ([!1017](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1017))
+- (legal-vote) Break long words in technical issue description ([!1023](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1023), [#233](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/233))
+- (load) Use correct environment variables in 'spike storage quota' ([!1018](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1018))
+- Only call crypto provider once ([!1018](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1018))
+- `SetParameter` API request returned NotImplemented ([!1018](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1018))
+- Fairness test used 'seconds' postfix but actually used ms ([!1018](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1018))
+- (OpenAPI) Add missing paths and fix wrong types ([!1018](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1018))
+- Recording should be configured using the `RoomParameters` ([!1024](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1024))
+- (client) Add missing `SignalingModuleEvent::Error` variant ([!1025](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1025), [#232](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/232))
+
+### 🔨 Refactor
+
+- Rename `MAX_INFLIGHT` to `TOTAL_SEND` ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+- (api) Make `TokenStore` generic over its value ([!905](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/905))
+- Move `TokenStore` to the `opentalk-roomserver-common` crate ([!905](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/905))
+- (api) Make cors layer available to all apis ([!905](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/905))
+- Add `From` source error implementation for `AssetLoadError` ([!905](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/905))
+- Rename error namespace constant to match current conventions ([!1025](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1025))
+- Use ModuleId from roomserver crate ([!1025](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1025))
+
+### 📦 Dependencies
+
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.2 ([!996](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/996))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.4 ([!1001](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1001))
+- (deps) Update pnpm to v10.33.0 ([!1004](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1004))
+- (deps) Update dependency prettier to v3.8.3 ([!999](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/999))
+- (deps) Update node.js to v24.14.1 ([!1003](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1003))
+- (deps) Use `rustls-tls-native-roots` with livekit crate everywhere ([!1010](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1010))
+- (deps) Update rust crate rustls-webpki 0.103 to 0.103.12 ([!1010](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1010))
+- (deps) Document RUSTSEC-2026-0098 & RUSTSEC-2026-0099 ([!1010](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1010))
+- (deps) Update node.js to v24.15.0 ([!1011](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1011))
+- (deps) Update rust to 1.95.0 ([!1021](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1021))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.95.0 ([!1022](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1022))
+- (deps) Update rust crate tokio to v1.52.1 ([!998](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/998))
+- (deps) Lock file maintenance ([!1016](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1016))
+- (deps) Document RUSTSEC-2026-0104 ([!1026](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1026))
+
+### ⚙ Miscellaneous
+
+- Remove livekit settings (dead code) ([!1018](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1018))
+
+### Ci
+
+- Switch ci image to alpine base ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+- Ensure load-test formatting ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+- Add scripts to test load tests ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+- Test load test scripts ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+- (renovate) Only match dependencies starting with opentalk in the opentalk group ([!1021](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1021))
+
+### Test
+
+- (load) Add environment configuration to fairness test ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+- (load) Add environment configuration to spike-join load test ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+- (load) Add env configuration to spike-storage-quota load test ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+- (load) Don't abort when test ends ([!980](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/980))
+
 ## [0.0.33] - 2026-04-13
 
 [0.0.33]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.32...v0.0.33
