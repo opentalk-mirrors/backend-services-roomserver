@@ -3,7 +3,7 @@
 
 use std::{collections::HashSet, pin::Pin, sync::Arc, time::Duration};
 
-use opentalk_orchestrator_client::{RoomServerEvent, client::OrchestratorHandle};
+use opentalk_orchestrator_client::{RoomserverEvent, client::OrchestratorHandle};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_types::{
     room_parameters::RoomParameters, room_parameters_patch::RoomParametersPatch,
@@ -207,7 +207,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 
         if let Some(handle) = &self.orchestrator_handle
             && let Err(e) = handle
-                .send_event(RoomServerEvent::RemoveRoom(room_id))
+                .send_event(RoomserverEvent::RemoveRoom(room_id))
                 .await
         {
             tracing::error!("Failed to notify orchestrator about removed room: {e}");
