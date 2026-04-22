@@ -66,6 +66,22 @@ ignore = [
   #     └── tokio-rustls v0.24.1
   #         └── livekit-api v0.4.18
   "RUSTSEC-2026-0099",
+
+  # rustls-webpki 0.101.7
+  #
+  # Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0104
+  # A panic was reachable when parsing certificate revocation lists via [`BorrowedCertRevocationList::from_der`]
+  # or [`OwnedCertRevocationList::from_der`].  This was the result of mishandling a syntactically valid empty
+  # `BIT STRING` appearing in the `onlySomeReasons` element of a `IssuingDistributionPoint` CRL extension.
+  #
+  # This panic is reachable prior to a CRL's signature being verified.
+  #
+  # Applications that do not use CRLs are not affected.
+  #
+  # This version of the rustls-webpki crate is pulled in as a transitive dependency of livekit-api, and so far
+  # no updated version which matches the compatible range is available, so we have to wait until the dependency
+  # tree of livekit-api becomes compatible / updated.
+  "RUSTSEC-2026-0104",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
