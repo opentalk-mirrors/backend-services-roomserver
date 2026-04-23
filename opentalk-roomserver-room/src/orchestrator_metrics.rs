@@ -3,7 +3,7 @@
 
 use async_trait::async_trait;
 use opentalk_orchestrator_client::{
-    Metrics, RegisterRoomServer, RegisterType, client::StateProvider,
+    Metrics, RegisterRoomserver, RegisterType, client::StateProvider,
 };
 use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use sysinfo::{CpuRefreshKind, RefreshKind, System};
@@ -38,7 +38,7 @@ impl<S: SignalingSocket + 'static> StateProvider for OrchestratorStateProvider<S
     async fn register_type(&mut self) -> opentalk_orchestrator_client::RegisterType {
         let rooms = self.registry.room_ids().await;
 
-        RegisterType::RoomServer(RegisterRoomServer { rooms })
+        RegisterType::Roomserver(RegisterRoomserver { rooms })
     }
 
     async fn metrics(&mut self) -> Metrics {
