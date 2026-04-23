@@ -3,7 +3,7 @@
 
 use anyhow::{anyhow, bail};
 use futures::{SinkExt as _, StreamExt as _};
-use opentalk_roomserver_web_api::v1::livekit_proxy::{
+use opentalk_roomserver_web_api::livekit_proxy::{
     LiveKitAccessToken,
     adapter::LiveKitSocketAdapter,
     websocket::{CloseFrame, LiveKitSocketMessage},

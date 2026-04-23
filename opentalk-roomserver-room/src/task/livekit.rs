@@ -12,9 +12,9 @@ use opentalk_roomserver_types_livekit::{LIVEKIT_MODULE_ID, LiveKitInternal};
 use opentalk_roomserver_types_subroom_audio::{
     SUBROOM_AUDIO_MODULE_ID, internal::SubroomAudioInternal,
 };
-use opentalk_roomserver_web_api::v1::{
+use opentalk_roomserver_web_api::{
     livekit_proxy::{LiveKitProxyTarget, WebsocketRequest, WebsocketResponse},
-    signaling::websocket::SignalingSocket,
+    v1::signaling::websocket::SignalingSocket,
 };
 use opentalk_types_common::time::Timestamp;
 use tokio::sync::oneshot::{self, Sender};

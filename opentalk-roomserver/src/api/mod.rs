@@ -22,10 +22,10 @@ use opentalk_roomserver_types::{
     room_parameters_patch::RoomParametersPatch,
     signaling::signaling_context::SignalingClientContext,
 };
-use opentalk_roomserver_web_api::v1::{
-    self, Backend, RoomAction, RoomBackend, SecurityAddon,
+use opentalk_roomserver_web_api::{
+    livekit_proxy,
     livekit_proxy::{LiveKitProxyBackend, WebsocketRequest, WebsocketResponse},
-    user::UserBackend,
+    v1::{self, Backend, RoomAction, RoomBackend, SecurityAddon, user::UserBackend},
 };
 use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::{rooms::RoomId, users::UserId};
@@ -57,7 +57,7 @@ pub mod websocket;
             (name = "v1::rooms", description = "Endpoints related to rooms"),
             (name = "v1::user", description = "Endpoints related to a user"),
             (name = "v1::signaling", description = "Endpoints related to signaling connections"),
-            (name = "v1::livekit_proxy", description = "Endpoints related to the LiveKit proxy"),
+            (name = "livekit_proxy", description = "Endpoints related to the LiveKit proxy"),
         ),
         paths(
             v1::rooms::put_room,
@@ -65,8 +65,8 @@ pub mod websocket;
             v1::rooms::request_token,
             v1::user::post_storage_quota,
             v1::signaling::open_signaling_socket,
-            v1::livekit_proxy::proxy_socket,
-            v1::livekit_proxy::proxy_validate,
+            livekit_proxy::proxy_socket,
+            livekit_proxy::proxy_validate,
         ),
         components(
             schemas(
@@ -128,6 +128,7 @@ where
         .context("Invalid API key configuration")?;
 
     let mut router = Router::new()
+        .merge(livekit_proxy::routes())
         .nest("/v1", v1::routes(ctx.clone(), auth_middleware))
         .with_state(ctx)
         .layer(

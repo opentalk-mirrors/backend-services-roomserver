@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_signaling::signaling_module::InternalCommand;
-use opentalk_roomserver_web_api::v1::livekit_proxy::{WebsocketRequest, WebsocketResponse};
+use opentalk_roomserver_web_api::livekit_proxy::{WebsocketRequest, WebsocketResponse};
 use tokio::sync::oneshot;
 
 #[derive(Debug)]

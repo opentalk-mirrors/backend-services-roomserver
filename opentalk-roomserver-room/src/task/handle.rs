@@ -10,9 +10,9 @@ use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch,
 };
-use opentalk_roomserver_web_api::v1::{
+use opentalk_roomserver_web_api::{
     livekit_proxy::{WebsocketRequest, WebsocketResponse},
-    signaling::websocket::SignalingSocket,
+    v1::signaling::websocket::SignalingSocket,
 };
 use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::users::UserId;
