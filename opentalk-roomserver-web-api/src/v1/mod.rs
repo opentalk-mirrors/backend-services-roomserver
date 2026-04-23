@@ -3,12 +3,12 @@
 
 use super::Router;
 pub use crate::v1::rooms::{RoomAction, RoomBackend};
-use crate::v1::{
-    livekit_proxy::LiveKitProxyBackend, signaling::SignalingBackend, user::UserBackend,
+use crate::{
+    livekit_proxy::LiveKitProxyBackend,
+    v1::{signaling::SignalingBackend, user::UserBackend},
 };
 
 pub mod cors;
-pub mod livekit_proxy;
 pub mod rooms;
 pub mod signaling;
 pub mod user;
@@ -27,7 +27,6 @@ pub fn routes<B: Backend + 'static>(state: B, auth_middleware: ApiKeyAuthorizati
         .merge(user::routes())
         .layer(auth_middleware)
         .merge(signaling::routes(state))
-        .merge(livekit_proxy::routes())
 }
 
 pub struct SecurityAddon;

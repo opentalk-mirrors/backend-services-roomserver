@@ -6,6 +6,7 @@
 //! the web API. The [`Backend`][v1::Backend] Trait must be implemented by a project wanting to
 //! provide the _RoomServer Web API_.
 
+pub mod livekit_proxy;
 pub mod v1;
 
 pub(crate) type Router<Backend> = axum::Router<Backend>;

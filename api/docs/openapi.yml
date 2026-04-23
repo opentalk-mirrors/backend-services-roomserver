@@ -16,7 +16,7 @@ paths:
   /livekit/rtc:
     get:
       tags:
-        - "v1::livekit_proxy"
+        - livekit_proxy
       summary: Opens a new LiveKit WebSocket connection for RTC communication.
       description: |-
         This endpoint establishes a WebSocket connection to the upstream LiveKit server.
@@ -48,7 +48,7 @@ paths:
   /livekit/rtc/validate:
     post:
       tags:
-        - "v1::livekit_proxy"
+        - livekit_proxy
       summary: Proxies the LiveKit validate request to the upstream livekit service via the room task
       description: |-
         # Available paths
@@ -1104,5 +1104,5 @@ tags:
     description: Endpoints related to a user
   - name: "v1::signaling"
     description: Endpoints related to signaling connections
-  - name: "v1::livekit_proxy"
+  - name: livekit_proxy
     description: Endpoints related to the LiveKit proxy

@@ -25,9 +25,9 @@ use opentalk_types_signaling::ParticipantId;
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{Router, v1::livekit_proxy::adapter::LiveKitSocketAdapter};
+use crate::{Router, livekit_proxy::adapter::LiveKitSocketAdapter};
 
-pub(crate) fn routes<B: LiveKitProxyBackend + 'static>() -> Router<B> {
+pub fn routes<B: LiveKitProxyBackend + 'static>() -> Router<B> {
     Router::new().nest(
         "/livekit/rtc",
         Router::new()

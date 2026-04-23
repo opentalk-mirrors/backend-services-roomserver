@@ -4,7 +4,7 @@
 use std::collections::BTreeSet;
 
 use opentalk_roomserver_signaling::signaling_module::InternalCommand;
-use opentalk_roomserver_web_api::v1::livekit_proxy::{WebsocketRequest, WebsocketResponse};
+use opentalk_roomserver_web_api::livekit_proxy::{WebsocketRequest, WebsocketResponse};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot;
 

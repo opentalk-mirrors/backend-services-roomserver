@@ -33,7 +33,7 @@ use opentalk_roomserver_types_subroom_audio::{
     internal::SubroomAudioInternal,
     state::{WhisperGroup, WhisperState},
 };
-use opentalk_roomserver_web_api::v1::livekit_proxy::{
+use opentalk_roomserver_web_api::livekit_proxy::{
     LiveKitProxyTarget, WebsocketRequest, WebsocketResponse,
 };
 use opentalk_types_common::{modules::ModuleId, rooms::RoomId};

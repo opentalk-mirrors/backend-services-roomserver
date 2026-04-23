@@ -9,9 +9,7 @@ use std::{
 use axum::extract::ws::WebSocket;
 use futures::{Sink, SinkExt as _, Stream, StreamExt};
 
-use crate::v1::livekit_proxy::websocket::{
-    Error, LiveKitSink, LiveKitSocketMessage, LiveKitStream,
-};
+use crate::livekit_proxy::websocket::{Error, LiveKitSink, LiveKitSocketMessage, LiveKitStream};
 
 /// Maps incoming and outgoing websocket messages from [`axum::extract::ws::Message`] to
 /// [`LiveKitSocketMessage`].

@@ -27,7 +27,7 @@ use opentalk_roomserver_types_livekit::{
     LiveKitCommand, LiveKitError, LiveKitEvent, LiveKitInternal, LiveKitSettings, LiveKitState,
     MicrophoneRestrictionError, MicrophoneRestrictionState, ParticipantsMuted,
 };
-use opentalk_roomserver_web_api::v1::livekit_proxy::{
+use opentalk_roomserver_web_api::livekit_proxy::{
     LiveKitProxyTarget, WebsocketRequest, WebsocketResponse,
 };
 use opentalk_types_common::modules::{ModuleId, module_id};
