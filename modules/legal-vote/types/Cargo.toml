@@ -16,13 +16,15 @@ basen.workspace = true
 chrono.workspace = true
 chrono-tz.workspace = true
 derive_more.workspace = true
-insta.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-pretty_assertions.workspace = true
 rand.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+pretty_assertions.workspace = true
