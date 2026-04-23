@@ -87,6 +87,7 @@ opentalk-types-api-internal = { version = "0.2", features = ["axum"] }
 opentalk-types-common = { version = "0.43", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.45", features = ["serde", "utoipa"] }
 
+anstream = "1"
 anyhow = "1"
 async-trait = "0.1"
 axum = { version = "0.8.1" }
@@ -130,6 +131,7 @@ opentelemetry-otlp = { version = "0.31.0", features = ["grpc-tonic"] }
 opentelemetry_sdk = { version = "0.31.0", features = [
   "rt-tokio-current-thread",
 ] }
+owo-colors = "4.3"
 pdf-extract = "0.10"
 pretty_assertions = "1.4.1"
 rand = "0.10"
@@ -141,6 +143,7 @@ reqwest = { version = "0.13", default-features = false, features = [
 ] }
 rustls = { version = "0.23", default-features = false }
 serde = { version = "1", features = ["derive"] }
+serde_ignored = "0.1"
 serde_json = { version = "1.0.125", features = ["raw_value"] }
 serde_path_to_error = "0.1.16"
 service-probe = "0.4.0"
