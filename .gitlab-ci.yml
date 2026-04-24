@@ -51,6 +51,9 @@ include:
   - project: opentalk/ci/templates/collect-commit-evidence
     ref: v2
     file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/common-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
   - project: opentalk/ci/templates/release-creation
     inputs:
       version: $[[ inputs.release_version ]]
@@ -60,13 +63,6 @@ include:
   - project: opentalk/ci/templates/changelog
     ref: v2
     file: .gitlab-ci-template.yml
-
-lint:markdown:
-  stage: lint
-  <<: *default_job_condition
-  image: registry.gitlab.com/pipeline-components/markdownlint:latest
-  script:
-    - mdl --style .markdown_style.rb --warnings .
 
 lint:fmt:
   stage: lint
@@ -131,19 +127,6 @@ lint:unnecessary_dependencies:
   before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
   script: cargo machete --with-metadata
 
-lint:yaml:
-  stage: lint
-  <<: *default_job_condition
-  image: alpine:3.23
-  before_script:
-    - apk add --no-cache yamllint
-  script: yamllint .
-
-lint:toml:
-  stage: lint
-  <<: *default_job_condition
-  script: taplo fmt --check
-
 lint:openapi:
   stage: lint
   <<: *default_job_condition
@@ -173,34 +156,6 @@ lint:openapi-up-to-date:
         echo "openapi specification outdated, run 'opentalk-roomserver openapi dump > api/docs/openapi.yml'"
         exit 1
       fi
-
-lint:licensing:
-  stage: lint
-  <<: *default_job_condition
-  image:
-    name: fsfe/reuse:latest
-    entrypoint: ['']
-  script:
-    - reuse lint
-
-lint:shellcheck:
-  stage: lint
-  <<: *default_job_condition
-  before_script:
-    - apt-get update && apt-get install -y shellcheck
-  script:
-    - git ls-files --exclude='*.sh' --ignored -c -z | xargs -0r shellcheck
-
-lint:commit:
-  cache: {}
-  image: node:lts-alpine
-  stage: lint
-  <<: *default_job_condition
-  before_script:
-    - apk add --no-cache git
-    - npm install -g @commitlint/cli @commitlint/config-conventional
-  script:
-    - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
 
 lint:commit-signature:
   stage: lint

@@ -1,4 +1,3 @@
-
 ---
 title: Subcommand to determine the current Health Status
 ---
