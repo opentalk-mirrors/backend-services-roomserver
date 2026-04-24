@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashSet, pin::Pin, sync::Arc, time::Duration};
+use std::{collections::HashSet, pin::Pin, sync::Arc};
 
 use opentalk_orchestrator_client::{RoomserverEvent, client::OrchestratorHandle};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
@@ -29,7 +29,6 @@ use crate::{
 pub struct RoomTaskRegistry<Socket: SignalingSocket + 'static> {
     rooms: Arc<RwLock<RoomMap<Socket>>>,
     room_removed: Arc<Notify>,
-    idle_timeout: Duration,
     orchestrator_handle: Option<OrchestratorHandle>,
 }
 
@@ -40,7 +39,6 @@ impl<Socket: SignalingSocket> Clone for RoomTaskRegistry<Socket> {
         Self {
             rooms: self.rooms.clone(),
             room_removed: self.room_removed.clone(),
-            idle_timeout: self.idle_timeout,
             orchestrator_handle: self.orchestrator_handle.clone(),
         }
     }
@@ -48,11 +46,10 @@ impl<Socket: SignalingSocket> Clone for RoomTaskRegistry<Socket> {
 
 impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     /// Creates a new [`RoomTaskRegistry`] wi th default values
-    pub fn new(idle_timeout: Duration, orchestrator_handle: Option<OrchestratorHandle>) -> Self {
+    pub fn new(orchestrator_handle: Option<OrchestratorHandle>) -> Self {
         Self {
             rooms: Arc::default(),
             room_removed: Arc::default(),
-            idle_timeout,
             orchestrator_handle,
         }
     }
@@ -87,7 +84,6 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             module_registry,
             settings,
             app_state,
-            self.idle_timeout,
         );
 
         self.insert(room_id, created_by, rooms, &task_handle, future_room)
@@ -152,7 +148,6 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             module_registry,
             settings,
             app_state,
-            self.idle_timeout,
         );
 
         self.insert(room_id, created_by, rooms, &task_handle, join_handle)
@@ -251,12 +246,13 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn room_is_removed_after_idle_timeout() {
-        let registry = RoomTaskRegistry::<MockSocket>::new(Duration::from_secs(0), None);
+        let registry = RoomTaskRegistry::<MockSocket>::new(None);
         let (_app_state_sender, app_state) = tokio::sync::watch::channel(ApplicationState::Running);
 
         let room_id = RoomId::from_u128(1);
         // build room parameter without any modules
         let mut parameter = RoomParameters::example_data();
+        parameter.room_idle_timeout = Duration::from_secs(0);
         parameter.module_settings.retain(|_, _| false);
 
         let (action, ..) = registry
@@ -283,12 +279,13 @@ mod tests {
     #[test_log::test(tokio::test)]
     async fn room_is_removed_after_shutdown() {
         // use a high RoomTask idle timeout to prevent stopping because of the timeout.
-        let registry = RoomTaskRegistry::<MockSocket>::new(Duration::from_secs(99999), None);
+        let registry = RoomTaskRegistry::<MockSocket>::new(None);
         let (app_state_sender, app_state) = tokio::sync::watch::channel(ApplicationState::Running);
 
         let room_id = RoomId::from_u128(1);
         // build room parameter without any modules
         let mut parameter = RoomParameters::example_data();
+        parameter.room_idle_timeout = Duration::from_secs(99999);
         parameter.module_settings.retain(|_, _| false);
 
         let (action, ..) = registry

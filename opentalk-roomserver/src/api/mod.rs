@@ -478,7 +478,7 @@ mod test {
 
         Context {
             settings: settings.clone(),
-            room_tasks: RoomTaskRegistry::new(Duration::from_secs(10), None),
+            room_tasks: RoomTaskRegistry::new(None),
             token_store: Arc::new(Mutex::new(TokenStore::new())),
             module_registry: Arc::new(ModuleRegistry::new()),
             app_state,
@@ -533,6 +533,7 @@ mod test {
             fallback_language: langid!("en"),
             ws_rate_limit: None,
             allowed_origins: vec!["*".to_string()],
+            room_idle_timeout: Duration::from_secs(10),
         }
     }
 

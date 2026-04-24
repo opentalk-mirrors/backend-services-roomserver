@@ -63,6 +63,7 @@ export function createRoomParameter(rateLimit, userId) {
     fallback_language: 'de',
     ws_rate_limit: rateLimit,
     allowed_origins: ['*'],
+    room_idle_timeout: 60 * 1000, // 1 minute
   };
 }
 

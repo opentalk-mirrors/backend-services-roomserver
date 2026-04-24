@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{fmt::Debug, str::FromStr};
+use std::{fmt::Debug, str::FromStr, time::Duration};
 
-use chrono::{DateTime, Duration, TimeDelta, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use icu_locid::{LanguageIdentifier, langid};
 use opentalk_types_common::{
     call_in::CallInInfo,
@@ -83,6 +83,19 @@ pub struct RoomParameters {
     /// Allowed Origins for Cross-Origin Resource Sharing (CORS) when accessing the roomserver's
     /// HTTP API.
     pub allowed_origins: Vec<String>,
+
+    /// The duration in milliseconds after which a room without participants is closed.
+    #[serde(with = "crate::duration_ms", default = "default_idle_timeout")]
+    #[cfg_attr(feature = "utoipa", schema(value_type = u64, format = "uint64"))]
+    pub room_idle_timeout: Duration,
+}
+
+/// The default timeout for an empty room
+///
+/// Should be higher than the lifetime of the signaling token from the token store to ensure that
+/// the room doesn't expire before the signaling token does.
+const fn default_idle_timeout() -> Duration {
+    Duration::from_mins(1)
 }
 
 impl RoomParameters {
@@ -134,6 +147,7 @@ impl ExampleData for RoomParameters {
             fallback_language: langid!("en"),
             ws_rate_limit: Some(RateLimitSettings::example_data()),
             allowed_origins: vec!["https://example.com".to_string()],
+            room_idle_timeout: Duration::from_mins(1),
         }
     }
 }
@@ -168,7 +182,7 @@ impl ExampleData for EventContext {
             description: EventDescription::example_data(),
             is_adhoc: false,
             starts_at: Some(DateTime::UNIX_EPOCH),
-            ends_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
+            ends_at: Some(DateTime::UNIX_EPOCH + chrono::Duration::hours(1)),
             shared_folder: Some(SharedFolder::example_data()),
         }
     }
@@ -256,6 +270,7 @@ mod tests {
                 "token_bucket_size": 30,
             },
             "allowed_origins": ["https://example.com"],
+            "room_idle_timeout": 60 * 1000,
         });
 
         // serialization

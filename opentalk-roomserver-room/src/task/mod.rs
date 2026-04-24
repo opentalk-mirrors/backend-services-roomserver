@@ -209,7 +209,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         module_registry: Arc<ModuleRegistry>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
-        timeout: Duration,
     ) -> (
         RoomTaskHandle<Socket>,
         Pin<Box<dyn Future<Output = ()> + Send>>,
@@ -278,7 +277,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             let room_task = RoomTask {
                 info: room_info,
                 api_rx: rx,
-                idle_timeout: Timeout::start_new(timeout),
+                idle_timeout: Timeout::start_new(room_parameters.room_idle_timeout),
                 message_router,
                 breakout_config: None,
                 loopback_cancel_tx: Some(loopback_cancel_tx),

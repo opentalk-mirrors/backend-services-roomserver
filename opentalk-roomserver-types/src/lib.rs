@@ -12,6 +12,7 @@ pub mod connection_id;
 pub mod core;
 pub mod device_id;
 pub mod disconnect_reason;
+pub mod duration_ms;
 pub mod error;
 pub mod join;
 pub mod livekit_proxy;

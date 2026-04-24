@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    time::Duration,
+};
 
 use icu_locid::langid;
 use opentalk_roomserver_client::api::{
@@ -129,6 +132,7 @@ pub fn default_room_parameters() -> RoomParameters {
         fallback_language: langid!("en"),
         ws_rate_limit: None,
         allowed_origins: vec!["*".to_string()],
+        room_idle_timeout: Duration::from_mins(1),
     }
 }
 

@@ -77,7 +77,6 @@ impl Settings {
             tracing: None,
             conference: Conference {
                 signaling_salt: SignalingSalt("abcdefghijklmnopqrstuvwx".into()),
-                room_idle_timeout: conference::DEFAULT_IDLE_TIMEOUT,
             },
             defaults: None,
             reports: Default::default(),
