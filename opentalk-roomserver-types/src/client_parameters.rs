@@ -45,6 +45,12 @@ pub enum ClientKind {
         room: RoomKind,
     },
 
+    /// Invisible service participant used by the transcription service
+    Transcription {
+        /// Room for which the transcription was requested from
+        room: RoomKind,
+    },
+
     /// Telephone call-In participant which identifies via a meeting id & pin
     CallIn { display_name: DisplayName },
 
@@ -59,9 +65,10 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(profile.id)
             }
-            ClientKind::Guest { .. } | ClientKind::Recorder { .. } | ClientKind::CallIn { .. } => {
-                None
-            }
+            ClientKind::Guest { .. }
+            | ClientKind::Recorder { .. }
+            | ClientKind::CallIn { .. }
+            | ClientKind::Transcription { .. } => None,
         }
     }
 
@@ -71,6 +78,7 @@ impl ClientKind {
                 profile.user_info.display_name.clone()
             }
             ClientKind::Recorder { .. } => DisplayName::from_str_lossy("recorder"),
+            ClientKind::Transcription { .. } => DisplayName::from_str_lossy("transcription"),
             ClientKind::CallIn { display_name } | ClientKind::Guest { display_name } => {
                 display_name.clone()
             }
@@ -82,9 +90,10 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.email)
             }
-            ClientKind::Guest { .. } | ClientKind::Recorder { .. } | ClientKind::CallIn { .. } => {
-                None
-            }
+            ClientKind::Guest { .. }
+            | ClientKind::Recorder { .. }
+            | ClientKind::CallIn { .. }
+            | ClientKind::Transcription { .. } => None,
         }
     }
 
@@ -93,9 +102,10 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.user_info.avatar_url)
             }
-            ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder { .. } => {
-                None
-            }
+            ClientKind::CallIn { .. }
+            | ClientKind::Guest { .. }
+            | ClientKind::Recorder { .. }
+            | ClientKind::Transcription { .. } => None,
         }
     }
 
@@ -104,9 +114,10 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.user_info)
             }
-            ClientKind::CallIn { .. } | ClientKind::Guest { .. } | ClientKind::Recorder { .. } => {
-                None
-            }
+            ClientKind::CallIn { .. }
+            | ClientKind::Guest { .. }
+            | ClientKind::Recorder { .. }
+            | ClientKind::Transcription { .. } => None,
         }
     }
 
@@ -117,6 +128,7 @@ impl ClientKind {
             ClientKind::Recorder { .. } => ParticipationKind::Recorder,
             ClientKind::CallIn { .. } => ParticipationKind::CallIn,
             ClientKind::RegisteredCallIn { .. } => ParticipationKind::RegisteredCallIn,
+            ClientKind::Transcription { .. } => ParticipationKind::Transcription,
         }
     }
 
@@ -126,7 +138,7 @@ impl ClientKind {
             | ClientKind::Guest { .. }
             | ClientKind::CallIn { .. }
             | ClientKind::RegisteredCallIn { .. } => false,
-            ClientKind::Recorder { .. } => true,
+            ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => true,
         }
     }
 
@@ -135,9 +147,10 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(profile.timezone)
             }
-            ClientKind::Recorder { .. } | ClientKind::CallIn { .. } | ClientKind::Guest { .. } => {
-                None
-            }
+            ClientKind::Recorder { .. }
+            | ClientKind::CallIn { .. }
+            | ClientKind::Guest { .. }
+            | ClientKind::Transcription { .. } => None,
         }
     }
 }
@@ -149,7 +162,9 @@ impl ClientKind {
             | ClientKind::Guest { .. }
             | ClientKind::CallIn { .. }
             | ClientKind::RegisteredCallIn { .. } => ParticipationVisibility::Visible,
-            ClientKind::Recorder { .. } => ParticipationVisibility::Hidden,
+            ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => {
+                ParticipationVisibility::Hidden
+            }
         }
     }
 }
@@ -197,6 +212,7 @@ pub enum ParticipationKind {
     Registered,
     Guest,
     Recorder,
+    Transcription,
     CallIn,
     RegisteredCallIn,
 }
@@ -209,6 +225,7 @@ impl From<&ClientKind> for ParticipationKind {
             ClientKind::Recorder { .. } => Self::Recorder,
             ClientKind::CallIn { .. } => Self::CallIn,
             ClientKind::RegisteredCallIn { .. } => Self::RegisteredCallIn,
+            ClientKind::Transcription { .. } => Self::Transcription,
         }
     }
 }

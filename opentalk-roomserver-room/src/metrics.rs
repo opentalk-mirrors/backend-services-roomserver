@@ -189,6 +189,7 @@ impl Metrics {
             ParticipationKind::Registered => "user",
             ParticipationKind::Guest => "guest",
             ParticipationKind::Recorder => "recorder",
+            ParticipationKind::Transcription => "transcription",
             ParticipationKind::CallIn => "call_in",
             ParticipationKind::RegisteredCallIn => "registered_call_in",
         };

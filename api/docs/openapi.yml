@@ -309,6 +309,19 @@ components:
 
                 Recorders may only access the recording-service commands & events in this room
         - type: object
+          description: Invisible service participant used by the transcription service
+          required:
+            - room
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - transcription
+            room:
+              $ref: "#/components/schemas/RoomKind"
+              description: Room for which the transcription was requested from
+        - type: object
           description: Telephone call-In participant which identifies via a meeting id & pin
           required:
             - display_name
