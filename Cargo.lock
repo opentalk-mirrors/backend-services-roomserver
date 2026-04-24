@@ -5829,6 +5829,7 @@ dependencies = [
 name = "opentalk-roomserver-common"
 version = "0.0.35-alpha"
 dependencies = [
+ "anstream",
  "anyhow",
  "cidr",
  "config",
@@ -5837,9 +5838,11 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-service-auth",
  "opentalk-types-common",
+ "owo-colors",
  "pretty_assertions",
  "rand 0.10.1",
  "serde",
+ "serde_ignored",
  "serde_path_to_error",
  "temp-env",
  "thiserror 2.0.18",
@@ -6972,6 +6975,12 @@ checksum = "36820e9051aca1014ddc75770aab4d68bc1e9e632f0f5627c4086bc216fb583b"
 dependencies = [
  "ttf-parser",
 ]
+
+[[package]]
+name = "owo-colors"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d211803b9b6b570f68772237e415a029d5a50c65d382910b879fb19d3271f94d"
 
 [[package]]
 name = "p256"
@@ -8747,6 +8756,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "serde_ignored"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "115dffd5f3853e06e746965a20dcbae6ee747ae30b543d91b0e089668bb07798"
+dependencies = [
+ "serde",
+ "serde_core",
 ]
 
 [[package]]

@@ -15,6 +15,7 @@ version.workspace = true
 workspace = true
 
 [dependencies]
+anstream.workspace = true
 anyhow.workspace = true
 cidr.workspace = true
 config.workspace = true
@@ -23,8 +24,10 @@ opentalk-orchestrator-client.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
 opentalk-types-common.workspace = true
+owo-colors.workspace = true
 rand.workspace = true
 serde.workspace = true
+serde_ignored.workspace = true
 serde_path_to_error.workspace = true
 thiserror.workspace = true
 url.workspace = true
