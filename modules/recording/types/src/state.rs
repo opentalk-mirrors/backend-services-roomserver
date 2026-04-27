@@ -15,6 +15,7 @@ use crate::{RecordingStatus, StreamingTarget, service::state::RecordingServiceSt
 /// when they join successfully to the meeting.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordingState {
+    pub consents_recording: bool,
     pub recording_state: RecordingStatus,
     pub stream_states: BTreeMap<StreamingTargetId, StreamingTarget>,
     pub service: Option<RecordingServiceState>,
@@ -37,6 +38,7 @@ mod tests {
     #[test]
     fn serialize_null_service() {
         let state = RecordingState {
+            consents_recording: false,
             recording_state: RecordingStatus::Error {
                 reason: StreamErrorReason {
                     code: "error_code".into(),
@@ -57,6 +59,7 @@ mod tests {
 
         assert_json_snapshot!(state, @ r#"
         {
+          "consents_recording": false,
           "recording_state": {
             "status": "error",
             "reason": {
@@ -80,6 +83,7 @@ mod tests {
     fn deserialize_null_service() {
         let json = json!(
             {
+                "consents_recording": false,
                 "recording_state": {
                     "status": "error",
                     "reason": {
@@ -100,6 +104,7 @@ mod tests {
 
         let produced: RecordingState = serde_json::from_value(json).unwrap();
         let expected = RecordingState {
+            consents_recording: false,
             recording_state: RecordingStatus::Error {
                 reason: StreamErrorReason {
                     code: "error_code".into(),
@@ -124,6 +129,7 @@ mod tests {
     #[test]
     fn serialize_some_service() {
         let state = RecordingState {
+            consents_recording: false,
             recording_state: RecordingStatus::Active,
             stream_states: [(
                 StreamingTargetId::from_u128(123),
@@ -147,6 +153,7 @@ mod tests {
 
         assert_json_snapshot!(state, @ r#"
         {
+          "consents_recording": false,
           "recording_state": {
             "status": "active"
           },
@@ -171,6 +178,7 @@ mod tests {
     #[test]
     fn deserialize_some_service() {
         let json = json!({
+          "consents_recording": false,
           "recording_state": {
             "status": "active"
           },
@@ -192,6 +200,7 @@ mod tests {
 
         let produced: RecordingState = serde_json::from_value(json).unwrap();
         let expected = RecordingState {
+            consents_recording: false,
             recording_state: RecordingStatus::Active,
             stream_states: [(
                 StreamingTargetId::from_u128(123),

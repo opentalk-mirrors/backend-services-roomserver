@@ -916,3 +916,40 @@ async fn streaming_target_breakout_in_use_events() {
         }
     );
 }
+
+#[test_log::test(tokio::test)]
+async fn joining_contains_own_consent_state() {
+    let mock_recorder = MockRecorderTask::spawn().await;
+    let mut room = create_room(&mock_recorder);
+
+    // Join and set consent to true
+
+    let alice = room.join_alice_moderator(0).await;
+
+    let recording_state = alice
+        .join_success()
+        .get_module::<RecordingState>()
+        .unwrap()
+        .unwrap();
+
+    assert!(!recording_state.consents_recording);
+
+    alice
+        .send_command::<RecordingModule>(RecordingCommand::SetConsent { consent: true }, None)
+        .await
+        .unwrap();
+
+    alice.disconnect().await.unwrap();
+
+    // Join and check that consent is still true
+
+    let alice = room.join_alice_moderator(0).await;
+
+    let recording_state = alice
+        .join_success()
+        .get_module::<RecordingState>()
+        .unwrap()
+        .unwrap();
+
+    assert!(recording_state.consents_recording);
+}
