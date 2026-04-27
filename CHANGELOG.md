@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.35] - 2026-04-27
+
+[0.0.35]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.34...v0.0.35
+
+### 🚀 New features
+
+- Move livekit proxy out of v1 scope ([!1034](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1034))
+- Log unknown fields ([!1037](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1037))
+- Add transcription client kind ([!1038](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1038))
+
+### 🐛 Bug fixes
+
+- (excalidraw) Publish excalidraw module crate ([!1029](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1029))
+- (md) Formatting ([!1040](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1040))
+
+### 📦 Dependencies
+
+- (deps) Update pnpm to v10.33.1 ([!1027](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1027))
+- (deps) Update orchestrator client ([!1030](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1030))
+- (deps) Insta and pretty_assertions are only used in tests ([!1035](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1035))
+- (deps) Update pnpm to v10.33.2 ([!1036](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1036))
+- (deps) Update opentalk ([!1044](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1044))
+
+### Ci
+
+- Use lint template ([!1040](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1040))
+
 ## [0.0.34] - 2026-04-22
 
 [0.0.34]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.33...v0.0.34
