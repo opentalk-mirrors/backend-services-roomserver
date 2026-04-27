@@ -84,7 +84,7 @@ opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", vers
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.0.35-alpha" }
 opentalk-service-auth = { version = "0.2", default-features = false }
 opentalk-types-api-internal = { version = "0.2", features = ["axum"] }
-opentalk-types-common = { version = "0.43", features = ["serde", "utoipa"] }
+opentalk-types-common = { version = "0.44.0", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.45", features = ["serde", "utoipa"] }
 
 anstream = "1"
@@ -121,7 +121,7 @@ livekit-protocol = "0.7"
 log = "0.4.22"
 mockito = "1.7.0"
 opentalk-etherpad-client = { version = "0.6", default-features = false }
-opentalk-orchestrator-client = { version = "0.6", features = [
+opentalk-orchestrator-client = { version = "0.7", features = [
   "roomserver-service",
 ] }
 opentalk-report-generation = "0.2"
