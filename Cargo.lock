@@ -6110,7 +6110,6 @@ dependencies = [
  "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-moderation",
  "opentalk-roomserver-types-shared-folder",
- "opentalk-roomserver-web-api",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
@@ -6409,8 +6408,11 @@ name = "opentalk-roomserver-types"
 version = "0.0.36-alpha"
 dependencies = [
  "anyhow",
+ "axum",
+ "bytes",
  "chrono",
  "derive_more",
+ "futures",
  "icu_locid",
  "insta",
  "opentalk-types-api-internal",
@@ -6420,6 +6422,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "tokio-util",
  "url",
  "utoipa",
  "uuid",

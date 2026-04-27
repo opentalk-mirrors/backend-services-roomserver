@@ -18,10 +18,10 @@ use opentalk_roomserver_types::{
     join::join_success::JoinSuccess,
     public_user_profile::PublicUserProfile,
     room_kind::RoomKind,
-    signaling::SignalingCommand,
-};
-use opentalk_roomserver_web_api::v1::signaling::websocket::{
-    self, CloseFrame, SignalingSocketItem, SignalingSocketMessage,
+    signaling::{
+        SignalingCommand,
+        websocket::{self, CloseFrame, SignalingSocketItem, SignalingSocketMessage},
+    },
 };
 use opentalk_types_common::{
     modules::module_id,

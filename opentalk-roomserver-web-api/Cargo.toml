@@ -21,7 +21,7 @@ bytes.workspace = true
 futures.workspace = true
 jsonwebtoken.workspace = true
 livekit-api.workspace = true
-opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types = { workspace = true, features = ["axum"] }
 opentalk-service-auth = { workspace = true, features = ["axum"] }
 opentalk-types-api-internal = { workspace = true, features = [
   "axum",

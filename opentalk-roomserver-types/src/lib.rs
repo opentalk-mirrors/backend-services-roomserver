@@ -17,6 +17,7 @@ pub mod join;
 pub mod module_settings;
 pub mod public_user_profile;
 pub mod rate_limit;
+pub mod room_action;
 pub mod room_info;
 pub mod room_kind;
 pub mod room_parameters;

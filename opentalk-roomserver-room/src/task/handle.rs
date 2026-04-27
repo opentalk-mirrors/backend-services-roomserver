@@ -8,12 +8,9 @@ use opentalk_roomserver_signaling::storage::{
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, room_parameters::RoomParameters,
-    room_parameters_patch::RoomParametersPatch,
+    room_parameters_patch::RoomParametersPatch, signaling::websocket::SignalingSocket,
 };
-use opentalk_roomserver_web_api::{
-    livekit_proxy::{WebsocketRequest, WebsocketResponse},
-    v1::signaling::websocket::SignalingSocket,
-};
+use opentalk_roomserver_web_api::livekit_proxy::{WebsocketRequest, WebsocketResponse};
 use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::users::UserId;
 use tokio::sync::{

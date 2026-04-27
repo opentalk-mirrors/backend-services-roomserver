@@ -32,8 +32,8 @@ opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
 opentalk-roomserver-types-subroom-audio.workspace = true
 opentalk-roomserver-web-api.workspace = true
-opentalk-service-auth = { workspace = true, features = ["axum"] }
-opentalk-types-api-internal.workspace = true
+opentalk-service-auth.workspace = true
+opentalk-types-api-internal = { workspace = true, features = ["http"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling = { workspace = true, features = ["rand"] }
 reqwest = { workspace = true, features = ["query", "stream"] }

@@ -18,10 +18,10 @@ use opentalk_roomserver_types::{
     error::{self, SignalingError},
     rate_limit::RateLimitSettings,
     shared_raw_json::SharedRawJson,
-    signaling::module_error::FatalError,
-};
-use opentalk_roomserver_web_api::v1::signaling::websocket::{
-    CloseFrame, SignalingSocket, SignalingSocketMessage,
+    signaling::{
+        module_error::FatalError,
+        websocket::{CloseFrame, SignalingSocket, SignalingSocketMessage},
+    },
 };
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
@@ -402,7 +402,7 @@ impl ScopedRouter {
 mod tests {
     use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
-    use opentalk_roomserver_web_api::v1::signaling::websocket::{
+    use opentalk_roomserver_types::signaling::websocket::{
         CloseFrame, SignalingSocketItem, SignalingSocketMessage,
     };
     use opentalk_types_common::{modules::module_id, time::Timestamp};

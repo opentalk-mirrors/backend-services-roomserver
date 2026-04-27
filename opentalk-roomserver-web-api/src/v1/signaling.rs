@@ -25,8 +25,6 @@ use tracing::{Instrument as _, Span};
 use super::Router;
 use crate::v1::cors;
 
-pub mod websocket;
-
 pub(crate) fn routes<B: SignalingBackend + 'static>(state: B) -> Router<B> {
     Router::new()
         .route("/signaling/{token}", any(open_signaling_socket::<B>))

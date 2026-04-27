@@ -35,10 +35,8 @@ use opentalk_roomserver_types::{
     signaling::{
         SignalingCommand,
         module_error::{FatalError, SignalingModuleError},
+        websocket::{CloseFrame, SignalingSocket, SignalingSocketMessage},
     },
-};
-use opentalk_roomserver_web_api::v1::signaling::websocket::{
-    CloseFrame, SignalingSocket, SignalingSocketMessage,
 };
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{

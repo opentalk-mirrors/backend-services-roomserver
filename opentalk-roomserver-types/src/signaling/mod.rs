@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod module_error;
 pub mod signaling_context;
+pub mod websocket;
 
 pub enum MessageTarget {
     AllParticipantsInRoom,

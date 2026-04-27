@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use opentalk_orchestrator_client::{
     Metrics, RegisterRoomserver, RegisterType, client::StateProvider,
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
+use opentalk_roomserver_types::signaling::websocket::SignalingSocket;
 use sysinfo::{CpuRefreshKind, RefreshKind, System};
 
 use crate::RoomTaskRegistry;

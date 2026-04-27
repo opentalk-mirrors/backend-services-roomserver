@@ -3,7 +3,7 @@
 
 use axum::extract::ws::WebSocket;
 use futures::{Sink, SinkExt as _, Stream, StreamExt};
-use opentalk_roomserver_web_api::v1::signaling::websocket::{
+use opentalk_roomserver_types::signaling::websocket::{
     Error, SignalingSink, SignalingSocketItem, SignalingSocketMessage, SignalingStream,
 };
 

@@ -5,12 +5,12 @@ use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{
     client_parameters::Role, core::CoreEvent, disconnect_reason::DisconnectReason,
+    signaling::websocket::CloseFrame,
 };
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::CloseFrame;
 use opentalk_types_signaling::ParticipantId;
 
 #[test_log::test(tokio::test)]

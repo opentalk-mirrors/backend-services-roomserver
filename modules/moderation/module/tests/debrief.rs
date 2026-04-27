@@ -10,15 +10,17 @@ use opentalk_roomserver_room::mocking::{
 };
 use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
 use opentalk_roomserver_types::{
-    connection_id::ConnectionId, core::CoreEvent, disconnect_reason::DisconnectReason,
+    connection_id::ConnectionId,
+    core::CoreEvent,
+    disconnect_reason::DisconnectReason,
     join::join_success::JoinSuccess,
+    signaling::websocket::{CloseFrame, SignalingSocketMessage},
 };
 use opentalk_roomserver_types_moderation::{
     KickScope,
     command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::{CloseFrame, SignalingSocketMessage};
 use opentalk_types_signaling::ParticipantId;
 
 #[test_log::test(tokio::test)]

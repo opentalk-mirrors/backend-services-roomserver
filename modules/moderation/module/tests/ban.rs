@@ -6,13 +6,13 @@ use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{
     core::{CoreEvent, LeftWaitingRoom},
     disconnect_reason::DisconnectReason,
+    signaling::websocket::CloseFrame,
 };
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
     event::{BannedParticipantInfo, ModerationError, ModerationEvent},
     state::ModerationState,
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::CloseFrame;
 use opentalk_types_common::users::{DisplayName, UserId};
 use opentalk_types_signaling::ParticipantId;
 use uuid::Uuid;

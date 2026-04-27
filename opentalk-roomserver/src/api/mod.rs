@@ -18,6 +18,7 @@ use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::ClientParameters,
+    room_action::RoomAction,
     room_parameters::{self, RoomParameters},
     room_parameters_patch::RoomParametersPatch,
     signaling::signaling_context::SignalingClientContext,
@@ -25,7 +26,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::{
     livekit_proxy,
     livekit_proxy::{LiveKitProxyBackend, WebsocketRequest, WebsocketResponse},
-    v1::{self, Backend, RoomAction, RoomBackend, SecurityAddon, user::UserBackend},
+    v1::{self, Backend, RoomBackend, SecurityAddon, user::UserBackend},
 };
 use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::{rooms::RoomId, users::UserId};

@@ -89,9 +89,8 @@ use opentalk_roomserver_types::{
     error::SignalingError,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
-    signaling::{SignalingCommand, module_error::FatalError},
+    signaling::{SignalingCommand, module_error::FatalError, websocket::SignalingSocket},
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     modules::ModuleId, rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType, time::Timestamp,

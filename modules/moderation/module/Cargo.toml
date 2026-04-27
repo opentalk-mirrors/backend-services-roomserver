@@ -34,7 +34,6 @@ livekit.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-roomserver-test-util-livekit.workspace = true
 opentalk-roomserver-types-shared-folder.workspace = true
-opentalk-roomserver-web-api.workspace = true
 pretty_assertions.workspace = true
 serde_json.workspace = true
 test-log.workspace = true
