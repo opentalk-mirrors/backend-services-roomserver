@@ -306,6 +306,7 @@ impl RecordingModule {
         }
 
         let mut recording_state = RecordingState {
+            consents_recording: self.consenting_participants.contains(&participant_id),
             recording_state: self
                 .recording_states
                 .get(&ctx.room)
