@@ -5,14 +5,14 @@ use std::str::FromStr;
 
 use async_trait::async_trait;
 use axum::{
-    extract::{Query, State, WebSocketUpgrade},
+    extract::{Query, RawQuery, State, WebSocketUpgrade},
     http::{HeaderMap, header::AUTHORIZATION},
     response::Response,
     routing::{get, post},
 };
 use livekit_api::access_token::Claims;
 pub use opentalk_roomserver_types::livekit_proxy::{
-    LiveKitAccessToken, LiveKitProxyRequest, LiveKitProxyTarget, PreparedSocket,
+    LiveKitProxyRequest, LiveKitProxyTarget, PreparedSocket,
 };
 use opentalk_roomserver_types::{
     LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER, breakout::breakout_id::BreakoutId,
@@ -56,6 +56,7 @@ pub trait LiveKitProxyBackend: Clone + Send + Sync + std::fmt::Debug {
         &self,
         room_id: RoomId,
         headers: HeaderMap,
+        raw_query: Option<String>,
     ) -> Result<Response, ApiError>;
 }
 
@@ -92,6 +93,7 @@ pub(crate) struct LiveKitQuery {
 #[tracing::instrument(level = "info", name = "/livekit/proxy/rtc", skip_all)]
 pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
     State(ctx): State<B>,
+    RawQuery(raw_query): RawQuery,
     Query(query): Query<LiveKitQuery>,
     ws_upgrade: WebSocketUpgrade,
     headers: HeaderMap,
@@ -99,14 +101,14 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
     let access_token = extract_access_token(query, &headers)?;
 
     // we do not verify the token since this is done by livekit. We only proxy the connection.
-    let content =
-        jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_str().as_bytes())
-            .map_err(|_| ApiError::bad_request())?;
+    let content = jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_bytes())
+        .map_err(|_| ApiError::bad_request())?;
     let (room_id, proxy_target) = parse_livekit_room_id(&content.claims.video.room)?;
     let (participant_id, connection_id) = parse_livekit_participant(&content.claims.sub)?;
 
     let websocket_request = LiveKitProxyRequest {
-        access_token,
+        raw_query,
+        headers,
         room_id,
         proxy_target,
         participant_id,
@@ -150,17 +152,18 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
 #[tracing::instrument(level = "info", name = "/livekit/rtc/validate", skip_all)]
 pub(crate) async fn proxy_validate<B: LiveKitProxyBackend>(
     State(ctx): State<B>,
+    RawQuery(raw_query): RawQuery,
     Query(query): Query<LiveKitQuery>,
     headers: HeaderMap,
 ) -> Result<Response, ApiError> {
     let access_token = extract_access_token(query, &headers)?;
-    let content =
-        jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_str().as_bytes())
-            .map_err(|_| ApiError::bad_request())?;
+    let content = jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_bytes())
+        .map_err(|_| ApiError::bad_request())?;
 
     let (room_id, _) = parse_livekit_room_id(&content.claims.video.room)?;
 
-    ctx.proxy_livekit_validate(room_id, headers).await
+    ctx.proxy_livekit_validate(room_id, headers, raw_query)
+        .await
 }
 
 fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget), ApiError> {
@@ -197,12 +200,9 @@ fn parse_livekit_participant(livekit_sub: &str) -> Result<(ParticipantId, Connec
     Ok((participant, connection))
 }
 
-fn extract_access_token(
-    query: LiveKitQuery,
-    headers: &HeaderMap,
-) -> Result<LiveKitAccessToken, ApiError> {
-    if let Some(access_token) = query.access_token {
-        Ok(LiveKitAccessToken::Query(access_token))
+fn extract_access_token(query: LiveKitQuery, headers: &HeaderMap) -> Result<String, ApiError> {
+    if let Some(token) = query.access_token {
+        Ok(token)
     } else {
         let Some(access_token) = headers
             .get(&AUTHORIZATION)
@@ -220,6 +220,6 @@ fn extract_access_token(
             return Err(ApiError::unauthorized());
         };
 
-        Ok(LiveKitAccessToken::Header(access_token))
+        Ok(access_token)
     }
 }

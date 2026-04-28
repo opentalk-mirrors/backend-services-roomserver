@@ -4,7 +4,7 @@
 use anyhow::{anyhow, bail};
 use futures::{SinkExt as _, StreamExt as _};
 use opentalk_roomserver_types::livekit_proxy::{
-    LiveKitAccessToken, PreparedSocket,
+    PreparedSocket,
     websocket::{CloseFrame, LiveKitSocket, LiveKitSocketMessage},
 };
 use tokio::sync::oneshot;
@@ -13,7 +13,7 @@ use tokio_tungstenite::{
     tungstenite::{
         Message as TungsteniteMessage,
         client::IntoClientRequest,
-        http::{HeaderValue, header::AUTHORIZATION},
+        http::{HeaderMap, header::AUTHORIZATION},
         protocol::{CloseFrame as TungsteniteCloseFrame, frame::coding::CloseCode},
     },
 };
@@ -41,33 +41,20 @@ impl Drop for ShutdownSender {
 
 /// Connects to the upstream LiveKit server and returns the WebSocket connection.
 pub async fn connect_to_livekit(
-    livekit_rtc_url: Url,
-    access_token: LiveKitAccessToken,
+    mut livekit_rtc_url: Url,
+    raw_query: Option<String>,
+    mut downstream_headers: HeaderMap,
 ) -> anyhow::Result<PreparedSocket> {
-    let request = match access_token {
-        LiveKitAccessToken::Header(token) => {
-            let mut request = livekit_rtc_url
-                .as_str()
-                .into_client_request()
-                .map_err(|err| anyhow!("failed to build livekit websocket request: {err}"))?;
+    livekit_rtc_url.set_query(raw_query.as_deref());
+    let mut request = livekit_rtc_url
+        .as_str()
+        .into_client_request()
+        .map_err(|err| anyhow!("failed to build livekit websocket request: {err}"))?;
 
-            let header_value = HeaderValue::from_str(&format!("Bearer {token}"))
-                .map_err(|err| anyhow!("failed to build livekit authorization header: {err}"))?;
-            request.headers_mut().insert(AUTHORIZATION, header_value);
-            request
-        }
-        LiveKitAccessToken::Query(token) => {
-            let livekit_rtc_url = livekit_rtc_url.to_string();
-            let separator = if livekit_rtc_url.contains('?') {
-                '&'
-            } else {
-                '?'
-            };
-            let uri = format!("{livekit_rtc_url}{separator}access_token={token}");
-            uri.into_client_request()
-                .map_err(|err| anyhow!("failed to build livekit websocket request: {err}"))?
-        }
-    };
+    // Only pass authorization header to LiveKit, ignore all other header
+    if let Some(authorization) = downstream_headers.remove(AUTHORIZATION) {
+        request.headers_mut().append(AUTHORIZATION, authorization);
+    }
 
     let (upstream_socket, _) = connect_async(request)
         .await

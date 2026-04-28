@@ -5,26 +5,13 @@
 pub mod adapter;
 pub mod websocket;
 
+use http::HeaderMap;
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
 use tokio_tungstenite::MaybeTlsStream;
 use uuid::Uuid;
 
 use crate::{connection_id::ConnectionId, room_kind::RoomKind};
-
-#[derive(Debug, Clone)]
-pub enum LiveKitAccessToken {
-    Header(String),
-    Query(String),
-}
-
-impl LiveKitAccessToken {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Header(token) | Self::Query(token) => token,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Copy)]
 pub enum LiveKitProxyTarget {
@@ -34,7 +21,8 @@ pub enum LiveKitProxyTarget {
 
 #[derive(Debug, Clone)]
 pub struct LiveKitProxyRequest {
-    pub access_token: LiveKitAccessToken,
+    pub raw_query: Option<String>,
+    pub headers: HeaderMap,
     pub room_id: RoomId,
     pub proxy_target: LiveKitProxyTarget,
     pub participant_id: ParticipantId,

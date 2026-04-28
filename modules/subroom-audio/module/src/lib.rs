@@ -210,7 +210,8 @@ impl SubroomAudioModule {
             return;
         }
 
-        let access_token = websocket_request.access_token;
+        let raw_query = websocket_request.raw_query;
+        let headers = websocket_request.headers;
         let Ok(livekit_rtc_url) = build_livekit_rtc_url(&self.settings.service_url) else {
             tracing::warn!(?self.settings.service_url, "invalid livekit service URL");
             let _ = return_channel
@@ -220,7 +221,7 @@ impl SubroomAudioModule {
         };
 
         tokio::spawn(async move {
-            match connect_to_livekit(livekit_rtc_url, access_token).await {
+            match connect_to_livekit(livekit_rtc_url, raw_query, headers).await {
                 Ok(upstream_socket) => {
                     let _ = return_channel
                         .send(Some(upstream_socket))

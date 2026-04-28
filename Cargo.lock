@@ -6413,6 +6413,7 @@ dependencies = [
  "chrono",
  "derive_more",
  "futures",
+ "http 1.4.0",
  "icu_locid",
  "insta",
  "opentalk-types-api-internal",
