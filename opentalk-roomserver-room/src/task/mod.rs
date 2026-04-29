@@ -107,12 +107,6 @@ use crate::{
     message_router::{MessageEnvelope, MessageRouter, ScopedRouter, SignalingMessage},
     metrics::Metrics,
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
-    storage::{
-        controller_asset_storage::ControllerAssetStorage,
-        controller_module_storage::ControllerModuleStorage,
-        memory_asset_storage::MemoryAssetStorage,
-        memory_module_storage::MemoryModuleResourceStorage,
-    },
     task::{
         handle::{Request, RoomTaskHandle, TaskMessage},
         timeout::Timeout,
@@ -207,6 +201,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         room_id: RoomId,
         mut room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
+        asset_storage: Arc<dyn AssetStorageProvider>,
+        module_resources: Arc<dyn ModuleResourceProvider>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> (
@@ -216,17 +212,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let (tx, rx) = mpsc::channel(20);
 
         let message_router = MessageRouter::new(app_state.clone(), room_parameters.ws_rate_limit);
-        let storage = create_storage_provider(
-            &settings,
-            Quota {
-                total: room_parameters.tariff.quota(&QuotaType::MaxStorage),
-                used: room_parameters.tariff.used_quota(&QuotaType::MaxStorage),
-            },
-        );
-        let module_resources = create_module_resource_storage_provider(&settings);
-
         let room_handle = RoomTaskHandle {
-            assets: Arc::clone(&storage),
+            assets: Arc::clone(&asset_storage),
             module_resources: Arc::clone(&module_resources),
             sender: tx,
         };
@@ -281,7 +268,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 app_state,
                 participants: Participants::new(),
                 modules,
-                storage,
+                storage: asset_storage,
                 module_resources,
                 waiting_participants: HashMap::new(),
                 banned_participants: HashMap::new(),
@@ -1202,25 +1189,4 @@ fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId
 /// This should either be the [`DeviceId`] for guests or a [`UserId`] in case of registered users.
 fn participant_id_from_uuid(user_id: impl Into<Uuid>) -> ParticipantId {
     ParticipantId::from(user_id.into())
-}
-
-fn create_storage_provider(settings: &Settings, quota: Quota) -> Arc<dyn AssetStorageProvider> {
-    match &settings.controller {
-        Some(controller) => Arc::new(ControllerAssetStorage::new(
-            controller.url.clone(),
-            controller.api_key.clone(),
-            quota,
-        )),
-        None => Arc::new(MemoryAssetStorage::new(quota)),
-    }
-}
-
-fn create_module_resource_storage_provider(settings: &Settings) -> Arc<dyn ModuleResourceProvider> {
-    match &settings.controller {
-        Some(controller) => Arc::new(ControllerModuleStorage::new(
-            controller.url.clone(),
-            controller.api_key.clone(),
-        )),
-        None => Arc::new(MemoryModuleResourceStorage::new()),
-    }
 }

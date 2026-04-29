@@ -31,6 +31,7 @@ use opentalk_roomserver_types::{
     tariff_details::TariffDetails,
 };
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
+use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     assets::AssetId,
     rooms::{RoomId, RoomPassword},
@@ -260,11 +261,18 @@ impl TestRoom {
     ) -> Self {
         let settings = Arc::new(settings);
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
+        let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
+            total: room_parameters.tariff.quota(&QuotaType::MaxStorage),
+            used: room_parameters.tariff.used_quota(&QuotaType::MaxStorage),
+        }));
+        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
 
         let (room_handle, future_room) = RoomTask::setup(
             room_id,
             room_parameters.into(),
             Arc::new(module_registry),
+            asset_storage,
+            module_resources,
             Arc::clone(&settings),
             rx,
         );

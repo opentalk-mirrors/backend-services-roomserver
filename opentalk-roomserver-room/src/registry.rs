@@ -5,6 +5,9 @@ use std::{collections::HashSet, pin::Pin, sync::Arc};
 
 use opentalk_orchestrator_client::{RoomserverEvent, client::OrchestratorHandle};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
+use opentalk_roomserver_signaling::storage::{
+    assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
+};
 use opentalk_roomserver_types::{
     room_action::RoomAction, room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch, signaling::websocket::SignalingSocket,
@@ -60,11 +63,14 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     ///
     /// [`Created`]: RoomAction::Created
     /// [`Updated`]: RoomAction::Updated
+    #[allow(clippy::too_many_arguments)]
     pub async fn put_room(
         &self,
         room_id: RoomId,
         room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
+        asset_storage: Arc<dyn AssetStorageProvider>,
+        module_resources: Arc<dyn ModuleResourceProvider>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> Result<(RoomAction, RoomTaskHandle<Socket>), RoomTaskHandleError<Socket>> {
@@ -82,6 +88,8 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             room_id,
             room_parameters,
             module_registry,
+            asset_storage,
+            module_resources,
             settings,
             app_state,
         );
@@ -126,11 +134,14 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     }
 
     /// Spawns a new room task if it does not already exists
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_if_not_exists(
         &self,
         room_id: RoomId,
         room_parameters: Arc<RoomParameters>,
         module_registry: Arc<ModuleRegistry>,
+        asset_storage: Arc<dyn AssetStorageProvider>,
+        module_resources: Arc<dyn ModuleResourceProvider>,
         settings: Arc<Settings>,
         app_state: watch::Receiver<ApplicationState>,
     ) {
@@ -146,6 +157,8 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             room_id,
             room_parameters,
             module_registry,
+            asset_storage,
+            module_resources,
             settings,
             app_state,
         );
@@ -236,13 +249,21 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 #[cfg(test)]
 #[cfg(feature = "mock")]
 mod tests {
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
 
     use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
     use opentalk_roomserver_types::{room_action::RoomAction, room_parameters::RoomParameters};
+    use opentalk_types_api_internal::module_assets::Quota;
     use opentalk_types_common::{rooms::RoomId, utils::ExampleData as _};
 
-    use crate::{ModuleRegistry, RoomTaskRegistry, mocking::socket::MockSocket};
+    use crate::{
+        ModuleRegistry, RoomTaskRegistry,
+        mocking::socket::MockSocket,
+        storage::{
+            memory_asset_storage::MemoryAssetStorage,
+            memory_module_storage::MemoryModuleResourceStorage,
+        },
+    };
 
     #[test_log::test(tokio::test)]
     async fn room_is_removed_after_idle_timeout() {
@@ -255,11 +276,19 @@ mod tests {
         parameter.room_idle_timeout = Duration::from_secs(0);
         parameter.module_settings.retain(|_, _| false);
 
+        let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
+            total: None,
+            used: 0,
+        }));
+        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
+
         let (action, ..) = registry
             .put_room(
                 room_id,
                 parameter.into(),
                 ModuleRegistry::new().into(),
+                asset_storage,
+                module_resources,
                 Settings::test_settings("secret".to_string()).into(),
                 app_state,
             )
@@ -288,11 +317,19 @@ mod tests {
         parameter.room_idle_timeout = Duration::from_secs(99999);
         parameter.module_settings.retain(|_, _| false);
 
+        let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
+            total: None,
+            used: 0,
+        }));
+        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
+
         let (action, ..) = registry
             .put_room(
                 room_id,
                 parameter.into(),
                 ModuleRegistry::new().into(),
+                asset_storage,
+                module_resources,
                 Settings::test_settings("secret".to_string()).into(),
                 app_state,
             )

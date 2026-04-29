@@ -51,6 +51,7 @@ mod tests {
         signaling::websocket::{CloseFrame, SignalingSocketMessage},
         tariff_details::TariffDetails,
     };
+    use opentalk_types_api_internal::module_assets::Quota;
     use opentalk_types_common::{
         rooms::RoomId,
         roomserver::DeviceSecret,
@@ -63,6 +64,10 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{participant::create_participant_connection, room::TestRoom, socket::MockSocket},
+        storage::{
+            memory_asset_storage::MemoryAssetStorage,
+            memory_module_storage::MemoryModuleResourceStorage,
+        },
         task::RoomTask,
     };
 
@@ -76,9 +81,21 @@ mod tests {
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
+        let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
+            total: None,
+            used: 0,
+        }));
+        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
 
-        let (task_handle, future_room) =
-            RoomTask::setup(id, params, module_registry, settings, state);
+        let (task_handle, future_room) = RoomTask::setup(
+            id,
+            params,
+            module_registry,
+            asset_storage,
+            module_resources,
+            settings,
+            state,
+        );
         tokio::spawn(future_room);
         (task_handle, sender)
     }

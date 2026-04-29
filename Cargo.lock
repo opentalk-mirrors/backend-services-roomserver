@@ -5767,6 +5767,7 @@ dependencies = [
  "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-modules",
  "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-types-api-internal",

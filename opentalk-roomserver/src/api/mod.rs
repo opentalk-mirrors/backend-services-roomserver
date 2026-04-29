@@ -14,7 +14,18 @@ use axum::{
 use futures::{StreamExt, stream};
 use opentalk_roomserver_common::{settings::Settings, token_store::TokenStore};
 use opentalk_roomserver_modules::setup_registry;
-use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry};
+use opentalk_roomserver_room::{
+    ModuleRegistry, RoomTaskRegistry,
+    storage::{
+        controller_asset_storage::ControllerAssetStorage,
+        controller_module_storage::ControllerModuleStorage,
+        memory_asset_storage::MemoryAssetStorage,
+        memory_module_storage::MemoryModuleResourceStorage,
+    },
+};
+use opentalk_roomserver_signaling::storage::{
+    assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
+};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::ClientParameters,
@@ -23,13 +34,14 @@ use opentalk_roomserver_types::{
     room_parameters::{self, RoomParameters},
     room_parameters_patch::RoomParametersPatch,
     signaling::signaling_context::SignalingClientContext,
+    tariff_details::TariffDetails,
 };
 use opentalk_roomserver_web_api::{
     livekit_proxy::{self, LiveKitProxyBackend},
     v1::{self, Backend, RoomBackend, SecurityAddon, user::UserBackend},
 };
 use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
-use opentalk_types_common::{rooms::RoomId, users::UserId};
+use opentalk_types_common::{rooms::RoomId, tariffs::QuotaType, users::UserId};
 use reqwest::StatusCode;
 use service_probe::{ServiceState, set_service_state};
 use tokio::sync::{Mutex, watch};
@@ -234,12 +246,16 @@ impl RoomBackend for Context {
         room_id: RoomId,
         room_parameters: RoomParameters,
     ) -> Result<RoomAction, opentalk_types_api_internal::error::ApiError> {
+        let asset_storage = create_storage_provider(&self.settings, &room_parameters.tariff);
+        let module_resources = create_module_resource_storage_provider(&self.settings);
         let (action, task_handle) = self
             .room_tasks
             .put_room(
                 room_id,
                 room_parameters.into(),
                 Arc::clone(&self.module_registry),
+                asset_storage,
+                module_resources,
                 Arc::clone(&self.settings),
                 self.app_state.subscribe(),
             )
@@ -292,11 +308,15 @@ impl RoomBackend for Context {
 
             // Room needs to be created
             (None, Some(parameters)) => {
+                let asset_storage = create_storage_provider(&self.settings, &parameters.tariff);
+                let module_resources = create_module_resource_storage_provider(&self.settings);
                 self.room_tasks
                     .create_if_not_exists(
                         room_id,
                         parameters.into(),
                         Arc::clone(&self.module_registry),
+                        asset_storage,
+                        module_resources,
                         Arc::clone(&self.settings),
                         self.app_state.subscribe(),
                     )
@@ -342,6 +362,34 @@ impl RoomBackend for Context {
         let public_url = self.settings.http.public_url.clone();
 
         Ok(RoomServerAccess { public_url, token })
+    }
+}
+
+fn create_storage_provider(
+    settings: &Settings,
+    tariff: &TariffDetails,
+) -> Arc<dyn AssetStorageProvider> {
+    let quota = Quota {
+        total: tariff.quota(&QuotaType::MaxStorage),
+        used: tariff.used_quota(&QuotaType::MaxStorage),
+    };
+    match &settings.controller {
+        Some(controller) => Arc::new(ControllerAssetStorage::new(
+            controller.url.clone(),
+            controller.api_key.clone(),
+            quota,
+        )),
+        None => Arc::new(MemoryAssetStorage::new(quota)),
+    }
+}
+
+fn create_module_resource_storage_provider(settings: &Settings) -> Arc<dyn ModuleResourceProvider> {
+    match &settings.controller {
+        Some(controller) => Arc::new(ControllerModuleStorage::new(
+            controller.url.clone(),
+            controller.api_key.clone(),
+        )),
+        None => Arc::new(MemoryModuleResourceStorage::new()),
     }
 }
 
