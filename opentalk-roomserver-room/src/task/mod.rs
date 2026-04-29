@@ -220,12 +220,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &settings,
             Quota {
                 total: room_parameters.tariff.quota(&QuotaType::MaxStorage),
-                used: room_parameters
-                    .tariff
-                    .used_quota
-                    .get(&QuotaType::MaxStorage)
-                    .cloned()
-                    .unwrap_or(0),
+                used: room_parameters.tariff.used_quota(&QuotaType::MaxStorage),
             },
         );
         let module_resources = create_module_resource_storage_provider(&settings);
