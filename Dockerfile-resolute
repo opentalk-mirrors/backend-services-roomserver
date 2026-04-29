@@ -19,7 +19,7 @@ RUN cargo build --release --locked -p opentalk-roomserver
 
 FROM git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:${typst_plugins_flavor}-${typst_plugins_version} AS typst-plugins
 
-FROM ubuntu:noble
+FROM ubuntu:resolute
 
 RUN apt-get update && apt-get full-upgrade -y && \
     apt-get install --no-install-recommends -y ca-certificates && \
