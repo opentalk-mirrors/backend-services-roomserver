@@ -102,9 +102,8 @@ impl RoomParameters {
     pub fn calc_time_limit_quota(&self, start_time: Timestamp) -> Option<Timestamp> {
         let remaining_secs = self
             .tariff
-            .quotas
-            .get(&QuotaType::RoomTimeLimitSecs)
-            .map(|secs| i64::try_from(*secs).unwrap_or(i64::MAX))?;
+            .quota(&QuotaType::RoomTimeLimitSecs)
+            .map(|secs| i64::try_from(secs).unwrap_or(i64::MAX))?;
 
         start_time
             .checked_add_signed(TimeDelta::seconds(remaining_secs))
