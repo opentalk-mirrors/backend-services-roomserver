@@ -15,6 +15,7 @@ pub struct Error {
     source: Box<dyn std::error::Error + Send + Sync>,
 }
 
+#[cfg(feature = "axum")]
 impl From<axum::Error> for Error {
     fn from(value: axum::Error) -> Self {
         Self {
@@ -37,6 +38,7 @@ pub struct CloseFrame {
     pub reason: String,
 }
 
+#[cfg(feature = "axum")]
 impl From<CloseFrame> for axum::extract::ws::CloseFrame {
     fn from(value: CloseFrame) -> Self {
         Self {
@@ -46,6 +48,7 @@ impl From<CloseFrame> for axum::extract::ws::CloseFrame {
     }
 }
 
+#[cfg(feature = "axum")]
 impl From<axum::extract::ws::CloseFrame> for CloseFrame {
     fn from(value: axum::extract::ws::CloseFrame) -> Self {
         Self {
@@ -70,6 +73,7 @@ impl From<String> for SignalingSocketMessage {
     }
 }
 
+#[cfg(feature = "axum")]
 impl From<SignalingSocketMessage> for axum::extract::ws::Message {
     fn from(value: SignalingSocketMessage) -> Self {
         match value {
@@ -84,6 +88,7 @@ impl From<SignalingSocketMessage> for axum::extract::ws::Message {
     }
 }
 
+#[cfg(feature = "axum")]
 impl From<axum::extract::ws::Message> for SignalingSocketMessage {
     fn from(value: axum::extract::ws::Message) -> Self {
         match value {

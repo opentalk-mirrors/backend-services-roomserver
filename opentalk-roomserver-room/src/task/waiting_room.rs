@@ -16,9 +16,8 @@ use opentalk_roomserver_types::{
     core::{CORE_MODULE_ID, CoreEvent, LeftWaitingRoom},
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
-    signaling::module_error::FatalError,
+    signaling::{module_error::FatalError, websocket::SignalingSocket},
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_signaling::ParticipantId;
 
 use crate::task::RoomTask;

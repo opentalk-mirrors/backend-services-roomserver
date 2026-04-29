@@ -7,12 +7,11 @@ use opentalk_roomserver_signaling::storage::{
     assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
 };
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, room_parameters::RoomParameters,
+    client_parameters::ClientParameters,
+    livekit_proxy::{LiveKitProxyRequest, PreparedSocket, websocket::LiveKitSocket},
+    room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch,
-};
-use opentalk_roomserver_web_api::{
-    livekit_proxy::{WebsocketRequest, WebsocketResponse},
-    v1::signaling::websocket::SignalingSocket,
+    signaling::websocket::SignalingSocket,
 };
 use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::users::UserId;
@@ -52,12 +51,16 @@ impl<Socket: SignalingSocket> From<RoomTaskHandleError<Socket>> for ApiError {
                     ApiError::internal().with_message(error.to_string())
                 }
                 RoomTaskApiError::NotFound => ApiError::not_found().with_message(error.to_string()),
+                RoomTaskApiError::Unauthorized => {
+                    ApiError::unauthorized().with_message(error.to_string())
+                }
                 RoomTaskApiError::FailedToApplyPatch(inner_err) => {
                     ApiError::unprocessable_entity().with_message(format!("{error}: {inner_err}"))
                 }
                 RoomTaskApiError::Closing => {
                     ApiError::service_unavailable().with_message(error.to_string())
                 }
+                RoomTaskApiError::Internal => ApiError::internal().with_message(error.to_string()),
             },
         }
     }
@@ -235,15 +238,34 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Arc::clone(&self.module_resources)
     }
 
-    pub async fn accept_livekit_socket(
+    pub async fn prepare_proxy_socket(
         &self,
-        websocket_request: WebsocketRequest,
-    ) -> Result<WebsocketResponse, RoomTaskHandleError<Socket>> {
+        websocket_request: LiveKitProxyRequest,
+    ) -> Result<PreparedSocket, RoomTaskHandleError<Socket>> {
         let (tx, rx) = oneshot::channel();
 
-        self.send_request(Request::AcceptLivekitSocket {
+        self.send_request(Request::ConnectUpstreamLivekitSocket {
             response: tx,
             websocket_request,
+        })
+        .await?;
+
+        Self::receive_response(rx).await
+    }
+
+    pub async fn accept_livekit_socket(
+        &self,
+        websocket_request: LiveKitProxyRequest,
+        upstream_socket: PreparedSocket,
+        downstream_socket: Box<dyn LiveKitSocket>,
+    ) -> Result<(), RoomTaskHandleError<Socket>> {
+        let (tx, rx) = oneshot::channel();
+
+        self.send_request(Request::ConnectDownstreamLivekitSocket {
+            response: tx,
+            websocket_request,
+            upstream_socket: Box::new(upstream_socket),
+            downstream_socket,
         })
         .await?;
 
@@ -345,9 +367,16 @@ pub enum Request<Socket: SignalingSocket> {
         client_parameters: ClientParameters,
     },
 
-    AcceptLivekitSocket {
-        response: ResponseSender<WebsocketResponse>,
-        websocket_request: WebsocketRequest,
+    ConnectUpstreamLivekitSocket {
+        response: ResponseSender<PreparedSocket>,
+        websocket_request: LiveKitProxyRequest,
+    },
+
+    ConnectDownstreamLivekitSocket {
+        response: ResponseSender<()>,
+        websocket_request: LiveKitProxyRequest,
+        upstream_socket: Box<PreparedSocket>,
+        downstream_socket: Box<dyn LiveKitSocket>,
     },
 
     GetLivekitServiceUrl {
@@ -373,7 +402,10 @@ impl<Socket: SignalingSocket> Request<Socket> {
             Request::AllowedOrigins { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
-            Request::AcceptLivekitSocket { response, .. } => response
+            Request::ConnectUpstreamLivekitSocket { response, .. } => response
+                .send(Err(error))
+                .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
+            Request::ConnectDownstreamLivekitSocket { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
             Request::GetLivekitServiceUrl { response } => response

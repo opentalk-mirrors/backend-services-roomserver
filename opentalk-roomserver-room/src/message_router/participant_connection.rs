@@ -10,12 +10,17 @@ use futures::{
 use opentalk_roomserver_common::application_state::ApplicationState;
 use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
 use opentalk_roomserver_types::{
-    connection_id::ConnectionId, error::SignalingError, rate_limit::RateLimitSettings,
-    shared_raw_json::SharedRawJson, signaling::SignalingCommand,
-};
-use opentalk_roomserver_web_api::v1::signaling::websocket::{
-    CloseFrame, SignalingSink, SignalingSocket, SignalingSocketItem, SignalingSocketMessage,
-    SignalingStream,
+    connection_id::ConnectionId,
+    error::SignalingError,
+    rate_limit::RateLimitSettings,
+    shared_raw_json::SharedRawJson,
+    signaling::{
+        SignalingCommand,
+        websocket::{
+            CloseFrame, SignalingSink, SignalingSocket, SignalingSocketItem,
+            SignalingSocketMessage, SignalingStream,
+        },
+    },
 };
 use opentalk_types_common::time::Timestamp;
 use opentalk_types_signaling::ParticipantId;
@@ -556,9 +561,12 @@ mod tests {
     use std::time::Duration;
 
     use futures::{StreamExt as _, pin_mut};
-    use opentalk_roomserver_types::{connection_id::ConnectionId, signaling::SignalingCommand};
-    use opentalk_roomserver_web_api::v1::signaling::websocket::{
-        SignalingSocketItem, SignalingSocketMessage,
+    use opentalk_roomserver_types::{
+        connection_id::ConnectionId,
+        signaling::{
+            SignalingCommand,
+            websocket::{SignalingSocketItem, SignalingSocketMessage},
+        },
     };
     use opentalk_types_signaling::ParticipantId;
     use tokio::sync::mpsc;

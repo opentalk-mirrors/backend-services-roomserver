@@ -131,15 +131,19 @@ update-docs: _check_ci_doc_updater
 run-dui *ARGS:
     RUST_LOG=opentalk=debug cargo run -p opentalk-roomserver-dui -- {{ ARGS }}
 
-generate-deps-graph: _check_cargo_depgraph _check_dot
+generate-deps-graph *CRATES: _check_cargo_depgraph _check_dot
     #!/usr/bin/env bash
     set -euo pipefail
     OUT_PATH="target/dep-graph.png"
-    OPENTALK_CRATES=$(cargo tree --workspace --prefix none --no-dedupe 2>/dev/null \
-        | sed 's/ v.*//' \
-        | sort -u \
-        | grep '^opentalk' \
-        | paste -sd,)
+    if [ -n "{{ CRATES }}" ]; then
+        OPENTALK_CRATES=$(echo "{{ CRATES }}" | tr ' ' ',')
+    else
+        OPENTALK_CRATES=$(cargo tree --workspace --prefix none --no-dedupe 2>/dev/null \
+            | sed 's/ v.*//' \
+            | sort -u \
+            | grep '^opentalk' \
+            | paste -sd,)
+    fi
     cargo depgraph --all-deps --include "$OPENTALK_CRATES" | dot -Tpng > $OUT_PATH
     echo "Created dependency graph at $OUT_PATH"
 

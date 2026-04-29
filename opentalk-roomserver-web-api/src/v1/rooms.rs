@@ -7,10 +7,9 @@ use async_trait::async_trait;
 use axum::{
     Json,
     extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
     routing::{patch, post, put},
 };
+pub use opentalk_roomserver_types::room_action::RoomAction;
 use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
     client_parameters::ClientParameters,
@@ -21,39 +20,6 @@ use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 
 use crate::Router;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum RoomAction {
-    Created,
-    Updated,
-}
-
-impl RoomAction {
-    /// Returns `true` if the room action is [`Created`].
-    ///
-    /// [`Created`]: RoomAction::Created
-    #[must_use]
-    pub fn is_created(&self) -> bool {
-        matches!(self, Self::Created)
-    }
-
-    pub fn from_status_code(status_code: StatusCode) -> Option<Self> {
-        match status_code {
-            StatusCode::CREATED => Some(Self::Created),
-            StatusCode::NO_CONTENT => Some(Self::Updated),
-            _ => None,
-        }
-    }
-}
-
-impl IntoResponse for RoomAction {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Created => StatusCode::CREATED.into_response(),
-            Self::Updated => StatusCode::NO_CONTENT.into_response(),
-        }
-    }
-}
 
 #[async_trait]
 pub trait RoomBackend: Clone + Send + Sync + Debug {

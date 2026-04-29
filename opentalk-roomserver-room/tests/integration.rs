@@ -16,9 +16,9 @@ use opentalk_roomserver_types::{
     core::{CoreCommand, CoreError, CoreEvent, RoomCloseReason},
     error::SignalingError,
     rate_limit::RateLimitSettings,
+    signaling::websocket::CloseFrame,
     tariff_details::TariffDetails,
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::CloseFrame;
 use opentalk_types_common::{
     roomserver::DeviceSecret,
     tariffs::{QuotaType, TariffId},

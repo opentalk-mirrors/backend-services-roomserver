@@ -25,9 +25,9 @@ use opentalk_roomserver_types::{
     signaling::{
         SignalingCommand,
         module_error::{FatalError, SignalingModuleError},
+        websocket::SignalingSocket,
     },
 };
-use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use opentalk_types_signaling::{ModuleData, ParticipantId};
 use state::BreakoutState;

@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use futures::{Sink, SinkExt, Stream};
-use opentalk_roomserver_web_api::v1::signaling::websocket::{
+use opentalk_roomserver_types::signaling::websocket::{
     Error as SignalingError, SignalingSink, SignalingSocketItem, SignalingSocketMessage,
     SignalingStream,
 };

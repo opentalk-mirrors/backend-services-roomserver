@@ -48,10 +48,8 @@ mod tests {
         client_parameters::{self, ClientParameters, Role},
         core::{CoreEvent, JoinBlockedReason},
         room_parameters::RoomParameters,
+        signaling::websocket::{CloseFrame, SignalingSocketMessage},
         tariff_details::TariffDetails,
-    };
-    use opentalk_roomserver_web_api::v1::signaling::websocket::{
-        CloseFrame, SignalingSocketMessage,
     };
     use opentalk_types_common::{
         rooms::RoomId,

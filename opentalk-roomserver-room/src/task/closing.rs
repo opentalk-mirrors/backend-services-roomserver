@@ -3,8 +3,10 @@
 
 use futures::StreamExt as _;
 use opentalk_roomserver_signaling::event_origin::EventOrigin;
-use opentalk_roomserver_types::{room_kind::RoomKind, signaling::module_error::FatalError};
-use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
+use opentalk_roomserver_types::{
+    room_kind::RoomKind,
+    signaling::{module_error::FatalError, websocket::SignalingSocket},
+};
 
 use crate::{
     RoomTaskApiError,

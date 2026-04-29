@@ -3,7 +3,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use opentalk_roomserver_web_api::v1::signaling::websocket::SignalingSocket;
+use opentalk_roomserver_types::signaling::websocket::SignalingSocket;
 use opentalk_types_common::{rooms::RoomId, users::UserId};
 
 use crate::RoomTaskHandle;

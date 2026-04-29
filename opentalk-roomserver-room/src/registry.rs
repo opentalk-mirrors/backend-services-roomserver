@@ -6,9 +6,9 @@ use std::{collections::HashSet, pin::Pin, sync::Arc, time::Duration};
 use opentalk_orchestrator_client::{RoomserverEvent, client::OrchestratorHandle};
 use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_types::{
-    room_parameters::RoomParameters, room_parameters_patch::RoomParametersPatch,
+    room_action::RoomAction, room_parameters::RoomParameters,
+    room_parameters_patch::RoomParametersPatch, signaling::websocket::SignalingSocket,
 };
-use opentalk_roomserver_web_api::v1::{RoomAction, signaling::websocket::SignalingSocket};
 use opentalk_types_common::{rooms::RoomId, users::UserId};
 use tokio::sync::{Notify, RwLock, watch};
 
@@ -244,8 +244,7 @@ mod tests {
     use std::time::Duration;
 
     use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
-    use opentalk_roomserver_types::room_parameters::RoomParameters;
-    use opentalk_roomserver_web_api::v1::RoomAction;
+    use opentalk_roomserver_types::{room_action::RoomAction, room_parameters::RoomParameters};
     use opentalk_types_common::{rooms::RoomId, utils::ExampleData as _};
 
     use crate::{ModuleRegistry, RoomTaskRegistry, mocking::socket::MockSocket};
