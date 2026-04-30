@@ -6539,15 +6539,19 @@ name = "opentalk-roomserver-module-transcription"
 version = "0.0.38-alpha"
 dependencies = [
  "anyhow",
- "opentalk-roomserver-common",
+ "axum",
+ "opentalk-roomserver-crypto-provider",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-transcription",
+ "opentalk-service-auth",
  "opentalk-transcription-web-api",
- "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "reqwest 0.13.3",
+ "test-log",
+ "tokio",
  "tracing",
 ]
 
@@ -6975,6 +6979,7 @@ dependencies = [
 name = "opentalk-roomserver-types-transcription"
 version = "0.0.38-alpha"
 dependencies = [
+ "insta",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-service-auth",

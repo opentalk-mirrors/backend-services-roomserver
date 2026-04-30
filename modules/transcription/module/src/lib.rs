@@ -70,7 +70,7 @@ impl SignalingModule for TranscriptionModule {
 
     fn init(init_data: SignalingModuleInitData) -> Option<Self> {
         let tariff = &init_data.room_parameters.tariff;
-        if !tariff.disabled_features.contains(&ModuleFeatureId {
+        if tariff.disabled_features.contains(&ModuleFeatureId {
             module: TRANSCRIPTION_MODULE_ID,
             feature: TRANSCRIPTION_FEATURE_ID,
         }) {
@@ -148,8 +148,8 @@ impl SignalingModule for TranscriptionModule {
 
                 self.stop_transcription(ctx)
             }
-            TranscriptionCommand::TranscriptionServiceEvent(service_event) => {
-                self.handle_transcription_service_event(ctx, service_event, participant_id)
+            TranscriptionCommand::TranscriptionServiceEvent { event } => {
+                self.handle_transcription_service_event(ctx, event, participant_id)
             }
         }
     }
@@ -320,7 +320,9 @@ impl TranscriptionModule {
         if let Some((transcription, _)) = find_transcription_service(ctx) {
             ctx.send_ws_message(
                 [*transcription],
-                TranscriptionEvent::ServiceCommand(TranscriptionServiceCommand::Stop),
+                TranscriptionEvent::ServiceCommand {
+                    command: TranscriptionServiceCommand::Stop,
+                },
             )?;
         } else {
             // The transcription service is not yet connected, but a stop command was issued

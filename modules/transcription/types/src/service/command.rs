@@ -11,3 +11,21 @@ pub enum TranscriptionServiceCommand {
     /// Stop the transcription service
     Stop,
 }
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_json_snapshot;
+
+    use super::*;
+
+    #[test]
+    fn serialize_stop_command() {
+        let command = TranscriptionServiceCommand::Stop;
+
+        assert_json_snapshot!(command, @ r#"
+        {
+          "kind": "stop"
+        }
+        "#);
+    }
+}

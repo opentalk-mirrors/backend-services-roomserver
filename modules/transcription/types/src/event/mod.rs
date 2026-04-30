@@ -17,13 +17,17 @@ use crate::{
 
 /// Events for the `transcription` namespace
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "action", rename_all = "snake_case")]
+#[serde(tag = "message", rename_all = "snake_case")]
 pub enum TranscriptionEvent {
     Segment(TranscriptionSegment),
 
-    StateUpdated { status: TranscriptionStatus },
+    StateUpdated {
+        status: TranscriptionStatus,
+    },
 
-    ServiceCommand(TranscriptionServiceCommand),
+    ServiceCommand {
+        command: TranscriptionServiceCommand,
+    },
 
     Error(TranscriptionError),
 }
@@ -31,5 +35,106 @@ pub enum TranscriptionEvent {
 impl From<TranscriptionError> for TranscriptionEvent {
     fn from(value: TranscriptionError) -> Self {
         Self::Error(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_json_snapshot;
+    use opentalk_types_common::time::Timestamp;
+    use opentalk_types_signaling::ParticipantId;
+
+    use super::*;
+
+    #[test]
+    fn serialize_segment() {
+        let event = TranscriptionEvent::Segment(TranscriptionSegment {
+            participant_id: ParticipantId::nil(),
+            track_id: "track1".into(),
+            starts_at: Timestamp::unix_epoch(),
+            ends_at: Timestamp::unix_epoch(),
+            text: "Hello world".into(),
+        });
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "segment",
+          "participant_id": "00000000-0000-0000-0000-000000000000",
+          "track_id": "track1",
+          "starts_at": "1970-01-01T00:00:00Z",
+          "ends_at": "1970-01-01T00:00:00Z",
+          "text": "Hello world"
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_requested() {
+        let event = TranscriptionEvent::StateUpdated {
+            status: TranscriptionStatus::Requested,
+        };
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "state_updated",
+          "status": "requested"
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_running() {
+        let event = TranscriptionEvent::StateUpdated {
+            status: TranscriptionStatus::Running,
+        };
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "state_updated",
+          "status": "running"
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_inactive() {
+        let event = TranscriptionEvent::StateUpdated {
+            status: TranscriptionStatus::Inactive,
+        };
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "state_updated",
+          "status": "inactive"
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_service_command() {
+        let event = TranscriptionEvent::ServiceCommand {
+            command: TranscriptionServiceCommand::Stop,
+        };
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "service_command",
+          "command": {
+            "kind": "stop"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_error() {
+        let event = TranscriptionEvent::Error(TranscriptionError::ServiceRequestFailed);
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "error",
+          "error": "service_request_failed"
+        }
+        "#);
     }
 }

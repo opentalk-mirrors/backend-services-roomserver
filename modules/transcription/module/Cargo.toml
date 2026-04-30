@@ -15,13 +15,20 @@ version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-opentalk-roomserver-common = { workspace = true }
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-transcription.workspace = true
 opentalk-transcription-web-api.workspace = true
-opentalk-types-api-internal = { workspace = true }
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 reqwest.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+axum.workspace = true
+opentalk-roomserver-crypto-provider.workspace = true
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+opentalk-roomserver-types-transcription.workspace = true
+opentalk-service-auth.workspace = true
+test-log.workspace = true
+tokio.workspace = true

@@ -532,7 +532,9 @@ mod tests {
     fn serialize_transcription() {
         let command = SignalingCommand {
             transaction_id: None,
-            payload: SignalingModuleCommand::Transcription(TranscriptionCommand::Start),
+            payload: SignalingModuleCommand::Transcription(TranscriptionCommand::Start {
+                language: None,
+            }),
         };
 
         let raw = serde_json::to_string_pretty(&command).unwrap();
