@@ -138,6 +138,7 @@ impl TestRoomBuilder {
                 fallback_language: langid!("en"),
                 ws_rate_limit: None,
                 allowed_origins: vec!["*".to_string()],
+                room_idle_timeout: Duration::from_secs(10),
             },
             module_registry: ModuleRegistry::new(),
         }
@@ -266,7 +267,6 @@ impl TestRoom {
             Arc::new(module_registry),
             Arc::clone(&settings),
             rx,
-            Duration::from_secs(10),
         );
         let join_handle = tokio::spawn(future_room);
         Self {

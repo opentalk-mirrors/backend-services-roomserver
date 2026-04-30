@@ -121,9 +121,6 @@ api_key = { "id" = "controller", "secret" = "secret" }
 # A random salt is generated at startup when not set. This value must be kept secret.
 # signaling_salt = "random string at least 24 characters long"
 
-# The duration in seconds after which a room without participants is closed.
-# room_idle_timeout = "60"
-
 # [defaults]
 # When true, participants can't share their screens unless permission is granted by a moderator.
 # Moderators can always share their screen.

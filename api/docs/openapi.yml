@@ -651,6 +651,11 @@ components:
           type: string
           description: The preferred language of the room.
           example: de
+        room_idle_timeout:
+          type: integer
+          format: uint64
+          description: The duration in milliseconds after which a room without participants is closed.
+          minimum: 0
         show_meeting_details:
           type: boolean
           description: |-
@@ -709,6 +714,7 @@ components:
             service_url: "http://localhost:7880"
         password: "1234"
         preferred_language: de
+        room_idle_timeout: 60000
         show_meeting_details: true
         streaming_targets:
           - id: 00000000-0000-0000-0000-000043434343
@@ -1036,6 +1042,7 @@ components:
               service_url: "http://localhost:7880"
           password: "1234"
           preferred_language: de
+          room_idle_timeout: 60000
           show_meeting_details: true
           streaming_targets:
             - id: 00000000-0000-0000-0000-000043434343

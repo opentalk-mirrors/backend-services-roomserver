@@ -117,8 +117,7 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
         let (client, handle) =
             OrchestratorClient::create(orchestrator_config.clone(), roomserver_key_ids).await;
 
-        let room_registry =
-            RoomTaskRegistry::new(settings.conference.room_idle_timeout, Some(handle));
+        let room_registry = RoomTaskRegistry::new(Some(handle));
 
         let state_provider = OrchestratorStateProvider::new(room_registry.clone());
 
@@ -135,7 +134,7 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
 
         room_registry
     } else {
-        RoomTaskRegistry::new(settings.conference.room_idle_timeout, None)
+        RoomTaskRegistry::new(None)
     };
 
     set.spawn(

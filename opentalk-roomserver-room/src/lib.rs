@@ -70,13 +70,15 @@ mod tests {
 
     fn create_room_task() -> (RoomTaskHandle<MockSocket>, watch::Sender<ApplicationState>) {
         let id = RoomId::from_u128(0xc270ab35_5cdb_4614_b872_8dd66ceefc70);
-        let params = Arc::new(RoomParameters::example_data());
+        let mut params = RoomParameters::example_data();
+        params.room_idle_timeout = TIMEOUT;
+        let params = Arc::new(params);
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
         let settings = Arc::new(Settings::test_settings("secret".to_owned()));
 
         let (task_handle, future_room) =
-            RoomTask::setup(id, params, module_registry, settings, state, TIMEOUT);
+            RoomTask::setup(id, params, module_registry, settings, state);
         tokio::spawn(future_room);
         (task_handle, sender)
     }
