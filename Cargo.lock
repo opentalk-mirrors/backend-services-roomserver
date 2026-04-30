@@ -6114,6 +6114,7 @@ name = "opentalk-roomserver-module-moderation"
 version = "0.0.36-alpha"
 dependencies = [
  "anyhow",
+ "http 1.4.0",
  "livekit",
  "opentalk-roomserver-module-livekit",
  "opentalk-roomserver-module-shared-folder",

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use http::StatusCode;
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{
@@ -245,12 +246,13 @@ async fn ban_participant() {
         }) if participant_id == bob.id() && &banned_participant.display_name == bob.display_name()
     ));
 
-    assert!(
-        room.room_handle
-            .is_banned(UserId::from(Uuid::from(bob.id())))
-            .await
-            .unwrap()
-    );
+    let error = room
+        .room_handle
+        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.status, StatusCode::FORBIDDEN);
 }
 
 #[test_log::test(tokio::test)]
@@ -302,10 +304,10 @@ async fn ban_waiting_participant() {
         && banned_participant.display_name == DisplayName::from_str_lossy("Bob the bold")
     ));
 
-    assert!(
-        room.room_handle
-            .is_banned(UserId::from(Uuid::from(bob.id())))
-            .await
-            .unwrap()
-    );
+    let error = room
+        .room_handle
+        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+        .await
+        .unwrap_err();
+    assert_eq!(error.status, StatusCode::FORBIDDEN);
 }

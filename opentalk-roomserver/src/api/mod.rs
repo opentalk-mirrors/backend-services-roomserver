@@ -319,22 +319,7 @@ impl RoomBackend for Context {
 
                 // Ensure the user isn't banned
                 if let Some(user_id) = client_parameters.kind.user_id() {
-                    let is_banned = match task_handle.is_banned(user_id).await {
-                        Ok(is_banned) => is_banned,
-                        Err(e) => {
-                            tracing::error!(
-                                "Failed to check ban status of participant {user_id} for room {room_id}: {e}"
-                            );
-                            return Err(ApiError::internal()
-                                .with_message("Failed to check the users ban status"));
-                        }
-                    };
-
-                    if is_banned {
-                        return Err(ApiError::forbidden()
-                            .with_code("banned")
-                            .with_message("User is banned from this room"));
-                    }
+                    task_handle.reject_if_banned(user_id).await?;
                 }
             }
         }

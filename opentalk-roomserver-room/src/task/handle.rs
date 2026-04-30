@@ -205,16 +205,31 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Self::receive_response(rx).await
     }
 
-    pub async fn is_banned(&self, user_id: UserId) -> Result<bool, RoomTaskHandleError<Socket>> {
+    pub async fn reject_if_banned(&self, user_id: UserId) -> Result<(), ApiError> {
         let (tx, rx) = oneshot::channel();
 
         self.send_request(Request::IsBanned {
             response: tx,
             user_id,
         })
-        .await?;
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to check ban status of participant {user_id}: {e}");
+            ApiError::internal().with_message("Failed to check the users ban status")
+        })?;
 
-        Self::receive_response(rx).await
+        let is_banned = Self::receive_response(rx).await.map_err(|e| {
+            tracing::error!("Failed to check ban status of participant {user_id}: {e}");
+            ApiError::internal().with_message("Failed to check the users ban status")
+        })?;
+
+        if is_banned {
+            Err(ApiError::forbidden()
+                .with_code("banned")
+                .with_message("User is banned from this room"))
+        } else {
+            Ok(())
+        }
     }
 
     pub async fn allowed_origins(&self) -> Option<Vec<String>> {
