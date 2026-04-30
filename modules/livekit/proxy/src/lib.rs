@@ -17,6 +17,7 @@ use tokio_tungstenite::{
         protocol::{CloseFrame as TungsteniteCloseFrame, frame::coding::CloseCode},
     },
 };
+use url::Url;
 
 /// A wrapper around `oneshot::Sender<()>` that sends on drop,
 /// ensuring the shutdown signal is always delivered.
@@ -40,12 +41,13 @@ impl Drop for ShutdownSender {
 
 /// Connects to the upstream LiveKit server and returns the WebSocket connection.
 pub async fn connect_to_livekit(
-    livekit_rtc_url: String,
+    livekit_rtc_url: Url,
     access_token: LiveKitAccessToken,
 ) -> anyhow::Result<PreparedSocket> {
     let request = match access_token {
         LiveKitAccessToken::Header(token) => {
             let mut request = livekit_rtc_url
+                .as_str()
                 .into_client_request()
                 .map_err(|err| anyhow!("failed to build livekit websocket request: {err}"))?;
 
@@ -55,6 +57,7 @@ pub async fn connect_to_livekit(
             request
         }
         LiveKitAccessToken::Query(token) => {
+            let livekit_rtc_url = livekit_rtc_url.to_string();
             let separator = if livekit_rtc_url.contains('?') {
                 '&'
             } else {
@@ -145,20 +148,23 @@ pub async fn proxy_websocket(
     Ok(())
 }
 
-pub fn build_livekit_rtc_url(service_url: &str) -> Result<String, anyhow::Error> {
-    let mut url = if let Some(rest) = service_url.strip_prefix("https://") {
-        format!("wss://{rest}")
-    } else if let Some(rest) = service_url.strip_prefix("http://") {
-        format!("ws://{rest}")
+pub fn build_livekit_rtc_url(service_url: &Url) -> Result<Url, anyhow::Error> {
+    let mut url = service_url.clone();
+    if url.scheme() == "https" {
+        url.set_scheme("wss")
+            .map_err(|_| anyhow!("Invalid scheme"))?;
+    } else if url.scheme() == "http" {
+        url.set_scheme("ws")
+            .map_err(|_| anyhow!("Invalid scheme"))?;
     } else {
-        bail!("unsupported scheme")
-    };
-
-    if !url.ends_with('/') {
-        url.push('/');
+        bail!("unsupported scheme");
     }
 
-    url.push_str("rtc");
+    // Do not use join as we want to not replace the last segment if a trailing
+    // slash is missing.
+    url.path_segments_mut()
+        .map_err(|_| anyhow!("Invalid URL cannot be base"))?
+        .push("rtc");
 
     Ok(url)
 }

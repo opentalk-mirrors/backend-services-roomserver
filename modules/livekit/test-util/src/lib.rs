@@ -21,6 +21,7 @@ use testcontainers::{
     runners::AsyncRunner as _,
 };
 use tokio::sync::mpsc::UnboundedReceiver;
+use url::Url;
 
 pub const LIVEKIT_PORT: u16 = 7880;
 pub const LIVEKIT_KEY: &str = "devkey";
@@ -87,13 +88,13 @@ pub async fn create_livekit_container() -> (ContainerGuard, LiveKitSettings) {
         .get_host_port_ipv4(LIVEKIT_PORT)
         .await
         .unwrap();
-    let url = format!("http://{host}:{host_port}");
+    let url = Url::parse(&format!("http://{host}:{host_port}")).unwrap();
 
     let settings = LiveKitSettings {
         api_key: LIVEKIT_KEY.to_string(),
         api_secret: LIVEKIT_SECRET.to_string(),
-        public_url: url.clone(),
-        service_url: url.clone(),
+        public_url: url.to_string(),
+        service_url: url,
     };
 
     (livekit_container.into(), settings)

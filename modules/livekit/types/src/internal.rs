@@ -9,6 +9,7 @@ use opentalk_roomserver_types::livekit_proxy::{
 };
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot;
+use url::Url;
 
 use crate::MicrophoneRestrictionState;
 
@@ -53,7 +54,7 @@ pub enum LiveKitInternal {
 
     /// Return the configured LiveKit service URL
     GetLivekitServiceUrl {
-        return_channel: oneshot::Sender<String>,
+        return_channel: oneshot::Sender<Url>,
     },
 }
 

@@ -387,10 +387,12 @@ impl LiveKitProxyBackend for Context {
         };
 
         let livekit_service_url = task_handle.livekit_service_url().await?;
-        let validate_url = format!("{}/rtc/validate", livekit_service_url.trim_end_matches('/'));
+        livekit_service_url
+            .join("/rtc/validate")
+            .map_err(|_| ApiError::internal())?;
 
         let response = reqwest::Client::new()
-            .post(validate_url)
+            .post(livekit_service_url)
             .headers(headers)
             .send()
             .await

@@ -19,6 +19,7 @@ use opentalk_roomserver_types_subroom_audio::{
 };
 use opentalk_types_common::time::Timestamp;
 use tokio::sync::oneshot::{self, Sender};
+use url::Url;
 
 use crate::{RoomTaskApiError, task::RoomTask};
 
@@ -174,7 +175,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     pub(super) fn get_livekit_service_url(
         &mut self,
-        return_channel: Sender<Result<String, RoomTaskApiError>>,
+        return_channel: Sender<Result<Url, RoomTaskApiError>>,
     ) -> Result<(), FatalError> {
         let (tx, rx) = oneshot::channel();
 

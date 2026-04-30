@@ -87,7 +87,7 @@ impl SignalingModule for SubroomAudioModule {
             .ok()?)?;
 
         let livekit_client = RoomClient::with_api_key(
-            &livekit_settings.service_url,
+            livekit_settings.service_url.as_str(),
             &livekit_settings.api_key,
             &livekit_settings.api_secret,
         );
