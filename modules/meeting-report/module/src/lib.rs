@@ -10,7 +10,7 @@ use chrono::Local;
 use chrono_tz::Tz;
 use icu_locid::{LanguageIdentifier, langid};
 use opentalk_report_generation::{GenerateOptions, ToReportDateTime};
-use opentalk_roomserver_room::{AssetUploaded, ModuleAssetStorage};
+use opentalk_roomserver_room::storage::assets::{AssetUploaded, ModuleAssetStorage};
 use opentalk_roomserver_signaling::{
     localization,
     module_context::ModuleContext,

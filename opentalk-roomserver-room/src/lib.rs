@@ -22,15 +22,24 @@ pub mod signaling;
 pub mod storage;
 pub mod task;
 
-pub use opentalk_roomserver_signaling::storage::assets::{
-    AssetMetaData, AssetUploaded, ModuleAssetStorage, StorageError,
+pub use opentalk_roomserver_common::{
+    application_state::ApplicationState, token_store::TokenStore,
 };
+pub use opentalk_roomserver_types::signaling::signaling_context::SignalingClientContext;
+
+pub mod settings {
+    pub use opentalk_roomserver_common::settings::Task;
+    pub mod settings_file {
+        pub use opentalk_roomserver_common::settings::settings_file::task::Task;
+    }
+}
 
 pub use crate::{
     registry::RoomTaskRegistry,
     signaling::module_initializer::ModuleRegistry,
     task::{
         RoomTaskApiError,
+        context::RoomTaskContext,
         handle::{Request, RoomTaskHandle, RoomTaskHandleError},
     },
 };
