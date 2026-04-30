@@ -64,7 +64,10 @@ use anyhow::Context;
 use breakout::state::BreakoutState;
 use chrono::Utc;
 use futures::stream::{FuturesUnordered, StreamExt};
-use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
+use opentalk_roomserver_common::{
+    application_state::ApplicationState,
+    settings::{self, runtime_settings::task::Task},
+};
 use opentalk_roomserver_signaling::{
     banned_participant::BannedParticipant,
     event_origin::{EventOrigin, ParticipantOrigin},
@@ -167,7 +170,7 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
     /// will return `None` when all futures are completed.
     loopback_cancel_tx: Option<oneshot::Sender<()>>,
 
-    settings: Arc<Settings>,
+    settings: Arc<Task>,
 
     app_state: watch::Receiver<ApplicationState>,
 
@@ -203,7 +206,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         module_registry: Arc<ModuleRegistry>,
         asset_storage: Arc<dyn AssetStorageProvider>,
         module_resources: Arc<dyn ModuleResourceProvider>,
-        settings: Arc<Settings>,
+        settings: Arc<settings::Task>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> (
         RoomTaskHandle<Socket>,

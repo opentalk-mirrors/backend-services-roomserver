@@ -43,7 +43,7 @@ mod tests {
         time::Duration,
     };
 
-    use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
+    use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_types::{
         client_parameters::{self, ClientParameters, Role},
         core::{CoreEvent, JoinBlockedReason},
@@ -80,7 +80,6 @@ mod tests {
         let params = Arc::new(params);
         let module_registry = Arc::new(ModuleRegistry::new());
         let (sender, state) = watch::channel(ApplicationState::Running);
-        let settings = Arc::new(Settings::test_settings("secret".to_owned()));
         let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
             total: None,
             used: 0,
@@ -93,7 +92,7 @@ mod tests {
             module_registry,
             asset_storage,
             module_resources,
-            settings,
+            Arc::default(),
             state,
         );
         tokio::spawn(future_room);

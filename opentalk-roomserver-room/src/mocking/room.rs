@@ -12,7 +12,7 @@ use icu_locid::langid;
 use opentalk_roomserver_common::{
     application_state::ApplicationState,
     settings::{
-        Http, Settings,
+        Task,
         runtime_settings::{
             reports::Reports,
             reports_typst::{ReportsTypst, reports_typst_packages_test_path},
@@ -30,7 +30,6 @@ use opentalk_roomserver_types::{
     room_parameters::{EventContext, RoomParameters},
     tariff_details::TariffDetails,
 };
-use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     assets::AssetId,
@@ -39,7 +38,6 @@ use opentalk_types_common::{
     tariffs::{QuotaType, TariffId},
 };
 use tokio::{sync::watch, task::JoinHandle};
-use url::Url;
 
 use super::participant::{MockParticipantJoined, MockParticipantJoining, ReceiveError};
 use crate::{
@@ -75,39 +73,20 @@ impl From<ReceiveError> for Error {
     }
 }
 
-fn settings() -> Settings {
-    let port = 11333;
-    let address = "localhost".to_string();
-    let public_url = Url::parse(&format!("http://{address}:{port}")).unwrap();
-    let service_url = Some(public_url.clone());
+fn settings() -> Task {
     let packages_path = reports_typst_packages_test_path();
-
-    Settings {
-        http: Http {
-            address,
-            port,
-            service_url,
-            public_url,
-            api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]),
-            enable_openapi: false,
-        },
-        controller: Default::default(),
-        orchestrator: Default::default(),
-        monitoring: Default::default(),
-        metrics: Default::default(),
-        tracing: Default::default(),
+    Task {
         conference: Default::default(),
         defaults: Default::default(),
         reports: Reports {
             typst: ReportsTypst { packages_path },
         },
-        internal: Default::default(),
     }
 }
 
 pub struct TestRoomBuilder {
     room_id: RoomId,
-    settings: Settings,
+    settings: Task,
     room_parameters: RoomParameters,
     module_registry: ModuleRegistry,
 }
@@ -207,7 +186,7 @@ impl TestRoomBuilder {
         self
     }
 
-    pub fn settings(mut self, update: impl FnOnce(&mut Settings)) -> Self {
+    pub fn settings(mut self, update: impl FnOnce(&mut Task)) -> Self {
         update(&mut self.settings);
         self
     }
@@ -244,7 +223,7 @@ pub struct TestRoom {
     room_id: RoomId,
     pub room_handle: RoomTaskHandle<MockSocket>,
     pub join_handle: JoinHandle<()>,
-    _settings: Arc<Settings>,
+    _settings: Arc<Task>,
     _app_state_tx: watch::Sender<ApplicationState>,
 }
 
@@ -257,7 +236,7 @@ impl TestRoom {
         room_id: RoomId,
         room_parameters: RoomParameters,
         module_registry: ModuleRegistry,
-        settings: Settings,
+        settings: Task,
     ) -> Self {
         let settings = Arc::new(settings);
         let (app_state_tx, rx) = watch::channel(ApplicationState::Running);

@@ -4,7 +4,7 @@
 use std::{collections::HashSet, pin::Pin, sync::Arc};
 
 use opentalk_orchestrator_client::{RoomserverEvent, client::OrchestratorHandle};
-use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
+use opentalk_roomserver_common::{application_state::ApplicationState, settings};
 use opentalk_roomserver_signaling::storage::{
     assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
 };
@@ -71,7 +71,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         module_registry: Arc<ModuleRegistry>,
         asset_storage: Arc<dyn AssetStorageProvider>,
         module_resources: Arc<dyn ModuleResourceProvider>,
-        settings: Arc<Settings>,
+        settings: Arc<settings::Task>,
         app_state: watch::Receiver<ApplicationState>,
     ) -> Result<(RoomAction, RoomTaskHandle<Socket>), RoomTaskHandleError<Socket>> {
         let rooms = self.rooms.write().await;
@@ -142,7 +142,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         module_registry: Arc<ModuleRegistry>,
         asset_storage: Arc<dyn AssetStorageProvider>,
         module_resources: Arc<dyn ModuleResourceProvider>,
-        settings: Arc<Settings>,
+        settings: Arc<settings::Task>,
         app_state: watch::Receiver<ApplicationState>,
     ) {
         let rooms = self.rooms.write().await;
@@ -251,7 +251,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 mod tests {
     use std::{sync::Arc, time::Duration};
 
-    use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
+    use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_types::{room_action::RoomAction, room_parameters::RoomParameters};
     use opentalk_types_api_internal::module_assets::Quota;
     use opentalk_types_common::{rooms::RoomId, utils::ExampleData as _};
@@ -289,7 +289,7 @@ mod tests {
                 ModuleRegistry::new().into(),
                 asset_storage,
                 module_resources,
-                Settings::test_settings("secret".to_string()).into(),
+                Arc::default(),
                 app_state,
             )
             .await
@@ -330,7 +330,7 @@ mod tests {
                 ModuleRegistry::new().into(),
                 asset_storage,
                 module_resources,
-                Settings::test_settings("secret".to_string()).into(),
+                Arc::default(),
                 app_state,
             )
             .await

@@ -5770,6 +5770,7 @@ dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
+ "opentalk-service-auth",
  "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-version",

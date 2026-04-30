@@ -256,7 +256,7 @@ impl RoomBackend for Context {
                 Arc::clone(&self.module_registry),
                 asset_storage,
                 module_resources,
-                Arc::clone(&self.settings),
+                Arc::clone(&self.settings.task),
                 self.app_state.subscribe(),
             )
             .await
@@ -317,7 +317,7 @@ impl RoomBackend for Context {
                         Arc::clone(&self.module_registry),
                         asset_storage,
                         module_resources,
-                        Arc::clone(&self.settings),
+                        Arc::clone(&self.settings.task),
                         self.app_state.subscribe(),
                     )
                     .await;
@@ -514,12 +514,14 @@ mod test {
 
     use axum::http::StatusCode;
     use icu_locid::langid;
+    use opentalk_roomserver_common::settings::{ControllerConfig, Http};
     use opentalk_roomserver_types::{
         client_parameters::{ClientKind, Role},
         module_settings::ModuleSettings,
         public_user_profile::PublicUserProfile,
         tariff_details::TariffDetails,
     };
+    use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use opentalk_types_api_internal::error::ErrorBody;
     use opentalk_types_common::{
         roomserver::DeviceSecret,
@@ -528,19 +530,48 @@ mod test {
         utils::ExampleData,
     };
     use pretty_assertions::assert_eq;
+    use url::Url;
 
     use super::*;
 
     fn test_context() -> Context {
-        let settings: Arc<Settings> = Arc::new(Settings::test_settings("secret".into()));
         let (app_state, _) = watch::channel(ApplicationState::Running);
 
         Context {
-            settings: settings.clone(),
+            settings: Arc::new(test_settings()),
             room_tasks: RoomTaskRegistry::new(None),
             token_store: Arc::new(Mutex::new(TokenStore::new())),
             module_registry: Arc::new(ModuleRegistry::new()),
             app_state,
+        }
+    }
+
+    /// Creates settings for testing
+    pub fn test_settings() -> Settings {
+        let port = 11333;
+        let address = "localhost".into();
+        let public_url = Url::parse(&format!("http://{address}:{port}")).unwrap();
+        let controller = ControllerConfig {
+            url: Url::parse("http://localhost:8000").unwrap(),
+            api_key: ApiKey::new("controller", "secret"),
+        };
+
+        Settings {
+            http: Http {
+                address,
+                port,
+                api_keys: ApiKeys::new(vec![ApiKey::new("roomserver", "secret")]),
+                enable_openapi: true,
+                service_url: None,
+                public_url,
+            },
+            controller: Some(controller),
+            orchestrator: None,
+            monitoring: None,
+            metrics: None,
+            tracing: None,
+            internal: Default::default(),
+            task: Arc::default(),
         }
     }
 

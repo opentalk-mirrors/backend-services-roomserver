@@ -4,7 +4,7 @@
 use std::{collections::BTreeMap, fmt::Debug, marker::PhantomData, sync::Arc, time::Duration};
 
 use anyhow::{Context, anyhow};
-use opentalk_roomserver_common::settings::Settings;
+use opentalk_roomserver_common::settings::Task;
 use opentalk_roomserver_types::{
     breakout::BreakoutRoom,
     connection_id::ConnectionId,
@@ -362,7 +362,7 @@ impl<M: SignalingModule> PeerDataMap<M> {
 #[derive(Clone, Debug)]
 pub struct SignalingModuleInitData {
     /// The roomserver settings
-    pub settings: Arc<Settings>,
+    pub settings: Arc<Task>,
     /// The room parameters that are used to initialize the room
     pub room_parameters: Arc<RoomParameters>,
 }
