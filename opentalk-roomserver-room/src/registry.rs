@@ -4,23 +4,19 @@
 use std::{collections::HashSet, pin::Pin, sync::Arc};
 
 use opentalk_orchestrator_client::{RoomserverEvent, client::OrchestratorHandle};
-use opentalk_roomserver_common::{application_state::ApplicationState, settings};
-use opentalk_roomserver_signaling::storage::{
-    assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
-};
 use opentalk_roomserver_types::{
     room_action::RoomAction, room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch, signaling::websocket::SignalingSocket,
 };
 use opentalk_types_common::{rooms::RoomId, users::UserId};
-use tokio::sync::{Notify, RwLock, watch};
+use tokio::sync::{Notify, RwLock};
 
-use super::signaling::module_initializer::ModuleRegistry;
 use crate::{
     RoomTaskApiError,
     room_map::RoomMap,
     task::{
         RoomTask,
+        context::RoomTaskContext,
         handle::{RoomTaskHandle, RoomTaskHandleError},
     },
 };
@@ -63,16 +59,11 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     ///
     /// [`Created`]: RoomAction::Created
     /// [`Updated`]: RoomAction::Updated
-    #[allow(clippy::too_many_arguments)]
     pub async fn put_room(
         &self,
+        ctx: RoomTaskContext,
         room_id: RoomId,
         room_parameters: Arc<RoomParameters>,
-        module_registry: Arc<ModuleRegistry>,
-        asset_storage: Arc<dyn AssetStorageProvider>,
-        module_resources: Arc<dyn ModuleResourceProvider>,
-        settings: Arc<settings::Task>,
-        app_state: watch::Receiver<ApplicationState>,
     ) -> Result<(RoomAction, RoomTaskHandle<Socket>), RoomTaskHandleError<Socket>> {
         let rooms = self.rooms.write().await;
 
@@ -84,15 +75,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         }
 
         let created_by = room_parameters.created_by.id;
-        let (task_handle, future_room) = RoomTask::setup(
-            room_id,
-            room_parameters,
-            module_registry,
-            asset_storage,
-            module_resources,
-            settings,
-            app_state,
-        );
+        let (task_handle, future_room) = RoomTask::setup(ctx, room_id, room_parameters);
 
         self.insert(room_id, created_by, rooms, &task_handle, future_room)
             .await;
@@ -134,16 +117,11 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     }
 
     /// Spawns a new room task if it does not already exists
-    #[allow(clippy::too_many_arguments)]
     pub async fn create_if_not_exists(
         &self,
+        ctx: RoomTaskContext,
         room_id: RoomId,
         room_parameters: Arc<RoomParameters>,
-        module_registry: Arc<ModuleRegistry>,
-        asset_storage: Arc<dyn AssetStorageProvider>,
-        module_resources: Arc<dyn ModuleResourceProvider>,
-        settings: Arc<settings::Task>,
-        app_state: watch::Receiver<ApplicationState>,
     ) {
         let rooms = self.rooms.write().await;
 
@@ -153,15 +131,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         }
 
         let created_by = room_parameters.created_by.id;
-        let (task_handle, join_handle) = RoomTask::setup(
-            room_id,
-            room_parameters,
-            module_registry,
-            asset_storage,
-            module_resources,
-            settings,
-            app_state,
-        );
+        let (task_handle, join_handle) = RoomTask::setup(ctx, room_id, room_parameters);
 
         self.insert(room_id, created_by, rooms, &task_handle, join_handle)
             .await;
@@ -255,6 +225,7 @@ mod tests {
     use opentalk_roomserver_types::{room_action::RoomAction, room_parameters::RoomParameters};
     use opentalk_types_api_internal::module_assets::Quota;
     use opentalk_types_common::{rooms::RoomId, utils::ExampleData as _};
+    use tokio::sync::watch;
 
     use crate::{
         ModuleRegistry, RoomTaskRegistry,
@@ -263,12 +234,13 @@ mod tests {
             memory_asset_storage::MemoryAssetStorage,
             memory_module_storage::MemoryModuleResourceStorage,
         },
+        task::context::RoomTaskContext,
     };
 
     #[test_log::test(tokio::test)]
     async fn room_is_removed_after_idle_timeout() {
         let registry = RoomTaskRegistry::<MockSocket>::new(None);
-        let (_app_state_sender, app_state) = tokio::sync::watch::channel(ApplicationState::Running);
+        let (_app_state_sender, app_state) = watch::channel(ApplicationState::Running);
 
         let room_id = RoomId::from_u128(1);
         // build room parameter without any modules
@@ -276,22 +248,9 @@ mod tests {
         parameter.room_idle_timeout = Duration::from_secs(0);
         parameter.module_settings.retain(|_, _| false);
 
-        let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
-            total: None,
-            used: 0,
-        }));
-        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
-
+        let ctx = create_task_context(app_state);
         let (action, ..) = registry
-            .put_room(
-                room_id,
-                parameter.into(),
-                ModuleRegistry::new().into(),
-                asset_storage,
-                module_resources,
-                Arc::default(),
-                app_state,
-            )
+            .put_room(ctx, room_id, parameter.into())
             .await
             .unwrap();
 
@@ -309,7 +268,7 @@ mod tests {
     async fn room_is_removed_after_shutdown() {
         // use a high RoomTask idle timeout to prevent stopping because of the timeout.
         let registry = RoomTaskRegistry::<MockSocket>::new(None);
-        let (app_state_sender, app_state) = tokio::sync::watch::channel(ApplicationState::Running);
+        let (app_state_sender, app_state) = watch::channel(ApplicationState::Running);
 
         let room_id = RoomId::from_u128(1);
         // build room parameter without any modules
@@ -317,22 +276,9 @@ mod tests {
         parameter.room_idle_timeout = Duration::from_secs(99999);
         parameter.module_settings.retain(|_, _| false);
 
-        let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
-            total: None,
-            used: 0,
-        }));
-        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
-
+        let ctx = create_task_context(app_state);
         let (action, ..) = registry
-            .put_room(
-                room_id,
-                parameter.into(),
-                ModuleRegistry::new().into(),
-                asset_storage,
-                module_resources,
-                Arc::default(),
-                app_state,
-            )
+            .put_room(ctx, room_id, parameter.into())
             .await
             .unwrap();
 
@@ -347,5 +293,21 @@ mod tests {
 
         let handle = registry.get_task_handle(&room_id).await;
         assert!(handle.is_none());
+    }
+
+    fn create_task_context(app_state: watch::Receiver<ApplicationState>) -> RoomTaskContext {
+        let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
+            total: None,
+            used: 0,
+        }));
+        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
+
+        RoomTaskContext {
+            module_registry: ModuleRegistry::new().into(),
+            asset_storage,
+            module_resources,
+            settings: Arc::default(),
+            app_state,
+        }
     }
 }

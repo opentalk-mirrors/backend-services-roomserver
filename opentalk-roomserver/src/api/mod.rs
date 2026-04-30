@@ -12,7 +12,10 @@ use axum::{
     serve::Listener as _,
 };
 use futures::{StreamExt, stream};
-use opentalk_roomserver_common::{settings::Settings, token_store::TokenStore};
+use opentalk_roomserver_common::{
+    settings::{ControllerConfig, Settings},
+    token_store::TokenStore,
+};
 use opentalk_roomserver_modules::setup_registry;
 use opentalk_roomserver_room::{
     ModuleRegistry, RoomTaskRegistry,
@@ -22,6 +25,7 @@ use opentalk_roomserver_room::{
         memory_asset_storage::MemoryAssetStorage,
         memory_module_storage::MemoryModuleResourceStorage,
     },
+    task::context::RoomTaskContext,
 };
 use opentalk_roomserver_signaling::storage::{
     assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
@@ -246,19 +250,10 @@ impl RoomBackend for Context {
         room_id: RoomId,
         room_parameters: RoomParameters,
     ) -> Result<RoomAction, opentalk_types_api_internal::error::ApiError> {
-        let asset_storage = create_storage_provider(&self.settings, &room_parameters.tariff);
-        let module_resources = create_module_resource_storage_provider(&self.settings);
+        let ctx = self.create_task_context(&room_parameters.tariff);
         let (action, task_handle) = self
             .room_tasks
-            .put_room(
-                room_id,
-                room_parameters.into(),
-                Arc::clone(&self.module_registry),
-                asset_storage,
-                module_resources,
-                Arc::clone(&self.settings.task),
-                self.app_state.subscribe(),
-            )
+            .put_room(ctx, room_id, room_parameters.into())
             .await
             .map_err(|err| {
                 tracing::info!("Failed to put room {room_id}: {err}");
@@ -308,18 +303,9 @@ impl RoomBackend for Context {
 
             // Room needs to be created
             (None, Some(parameters)) => {
-                let asset_storage = create_storage_provider(&self.settings, &parameters.tariff);
-                let module_resources = create_module_resource_storage_provider(&self.settings);
+                let ctx = self.create_task_context(&parameters.tariff);
                 self.room_tasks
-                    .create_if_not_exists(
-                        room_id,
-                        parameters.into(),
-                        Arc::clone(&self.module_registry),
-                        asset_storage,
-                        module_resources,
-                        Arc::clone(&self.settings.task),
-                        self.app_state.subscribe(),
-                    )
+                    .create_if_not_exists(ctx, room_id, parameters.into())
                     .await;
             }
 
@@ -365,31 +351,37 @@ impl RoomBackend for Context {
     }
 }
 
-fn create_storage_provider(
-    settings: &Settings,
-    tariff: &TariffDetails,
-) -> Arc<dyn AssetStorageProvider> {
-    let quota = Quota {
-        total: tariff.quota(&QuotaType::MaxStorage),
-        used: tariff.used_quota(&QuotaType::MaxStorage),
-    };
-    match &settings.controller {
-        Some(controller) => Arc::new(ControllerAssetStorage::new(
-            controller.url.clone(),
-            controller.api_key.clone(),
-            quota,
-        )),
-        None => Arc::new(MemoryAssetStorage::new(quota)),
-    }
-}
+impl Context {
+    fn create_task_context(&self, tariff: &TariffDetails) -> RoomTaskContext {
+        let quota = Quota {
+            total: tariff.quota(&QuotaType::MaxStorage),
+            used: tariff.used_quota(&QuotaType::MaxStorage),
+        };
 
-fn create_module_resource_storage_provider(settings: &Settings) -> Arc<dyn ModuleResourceProvider> {
-    match &settings.controller {
-        Some(controller) => Arc::new(ControllerModuleStorage::new(
-            controller.url.clone(),
-            controller.api_key.clone(),
-        )),
-        None => Arc::new(MemoryModuleResourceStorage::new()),
+        let (asset_storage, module_resources): (
+            Arc<dyn AssetStorageProvider>,
+            Arc<dyn ModuleResourceProvider>,
+        ) = match &self.settings.controller {
+            Some(ControllerConfig { url, api_key }) => {
+                let asset_storage =
+                    ControllerAssetStorage::new(url.clone(), api_key.clone(), quota);
+                let module_resources = ControllerModuleStorage::new(url.clone(), api_key.clone());
+
+                (Arc::new(asset_storage), Arc::new(module_resources))
+            }
+            None => (
+                Arc::new(MemoryAssetStorage::new(quota)),
+                Arc::new(MemoryModuleResourceStorage::new()),
+            ),
+        };
+
+        RoomTaskContext {
+            module_registry: Arc::clone(&self.module_registry),
+            asset_storage,
+            module_resources,
+            settings: Arc::clone(&self.settings.task),
+            app_state: self.app_state.subscribe(),
+        }
     }
 }
 

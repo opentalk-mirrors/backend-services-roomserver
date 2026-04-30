@@ -52,7 +52,7 @@ use crate::{
         memory_asset_storage::MemoryAssetStorage,
         memory_module_storage::MemoryModuleResourceStorage,
     },
-    task::RoomTask,
+    task::{RoomTask, context::RoomTaskContext},
 };
 
 #[derive(Debug)]
@@ -239,22 +239,21 @@ impl TestRoom {
         settings: Task,
     ) -> Self {
         let settings = Arc::new(settings);
-        let (app_state_tx, rx) = watch::channel(ApplicationState::Running);
+        let (app_state_tx, app_state) = watch::channel(ApplicationState::Running);
         let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
             total: room_parameters.tariff.quota(&QuotaType::MaxStorage),
             used: room_parameters.tariff.used_quota(&QuotaType::MaxStorage),
         }));
         let module_resources = Arc::new(MemoryModuleResourceStorage::new());
-
-        let (room_handle, future_room) = RoomTask::setup(
-            room_id,
-            room_parameters.into(),
-            Arc::new(module_registry),
+        let ctx = RoomTaskContext {
+            module_registry: module_registry.into(),
             asset_storage,
             module_resources,
-            Arc::clone(&settings),
-            rx,
-        );
+            settings: Arc::clone(&settings),
+            app_state,
+        };
+
+        let (room_handle, future_room) = RoomTask::setup(ctx, room_id, room_parameters.into());
         let join_handle = tokio::spawn(future_room);
         Self {
             room_id,
