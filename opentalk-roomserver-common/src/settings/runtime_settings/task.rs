@@ -3,7 +3,7 @@
 
 use crate::settings::{Conference, Defaults, Reports, settings_file};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Task {
     pub conference: Conference,
 

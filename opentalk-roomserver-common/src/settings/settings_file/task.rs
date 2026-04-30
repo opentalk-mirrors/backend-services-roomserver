@@ -7,7 +7,7 @@ use crate::settings::settings_file::{
     conference::Conference, defaults::Defaults, reports::Reports,
 };
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct Task {
     #[serde(default)]
     pub(crate) conference: Conference,
