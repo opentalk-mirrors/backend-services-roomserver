@@ -87,6 +87,7 @@ opentalk-types-api-internal = { version = "0.2", features = ["axum"] }
 opentalk-types-common = { version = "0.44.0", features = ["serde", "utoipa"] }
 opentalk-types-signaling = { version = "0.45", features = ["serde", "utoipa"] }
 
+actix-ws = "0.4"
 anstream = "1"
 anyhow = "1"
 async-trait = "0.1"
