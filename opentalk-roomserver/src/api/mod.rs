@@ -405,6 +405,8 @@ impl LiveKitProxyBackend for Context {
             .await
             .map_err(|_| ApiError::internal())?;
 
+        tracing::trace!("Received validate response: {response:?}");
+
         let status = axum::http::StatusCode::from_u16(response.status().as_u16())
             .map_err(|_| ApiError::internal())?;
         let mut builder = axum::response::Response::builder().status(status);
