@@ -6,7 +6,7 @@ use std::str::FromStr;
 use async_trait::async_trait;
 use axum::{
     extract::{Query, RawQuery, State, WebSocketUpgrade},
-    http::{HeaderMap, Method, header::AUTHORIZATION},
+    http::{HeaderMap, header::AUTHORIZATION},
     response::Response,
     routing::{get, post},
 };
@@ -22,16 +22,9 @@ use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
 use serde::Deserialize;
-use tower_http::cors::{AllowMethods, AllowOrigin, CorsLayer};
 use uuid::Uuid;
 
 use crate::{Router, v1::signaling::SignalingBackend};
-
-fn cors_layer(allowed_methods: impl Into<AllowMethods>) -> CorsLayer {
-    CorsLayer::new()
-        .allow_origin(AllowOrigin::any())
-        .allow_methods(allowed_methods)
-}
 
 pub fn routes<B: LiveKitProxyBackend + SignalingBackend + 'static>() -> Router<B> {
     Router::new().nest(
@@ -40,8 +33,7 @@ pub fn routes<B: LiveKitProxyBackend + SignalingBackend + 'static>() -> Router<B
             .route("/", get(proxy_socket::<B>))
             .route("/v1", get(proxy_socket::<B>))
             .route("/validate", post(proxy_validate::<B>))
-            .route("/v1/validate", post(proxy_validate::<B>))
-            .layer(cors_layer([Method::GET, Method::OPTIONS, Method::HEAD])),
+            .route("/v1/validate", post(proxy_validate::<B>)),
     )
 }
 
