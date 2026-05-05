@@ -10,7 +10,7 @@ use tracing::{Instrument, Level, span};
 
 use crate::v1::signaling::SignalingBackend;
 
-pub fn cors_layer<B: SignalingBackend + 'static>(
+pub(super) fn cors_layer<B: SignalingBackend + 'static>(
     state: B,
     allowed_methods: impl Into<AllowMethods>,
 ) -> CorsLayer {

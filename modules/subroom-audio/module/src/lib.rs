@@ -87,7 +87,7 @@ impl SignalingModule for SubroomAudioModule {
             .ok()?)?;
 
         let livekit_client = RoomClient::with_api_key(
-            &livekit_settings.service_url,
+            livekit_settings.service_url.as_str(),
             &livekit_settings.api_key,
             &livekit_settings.api_secret,
         );
@@ -136,7 +136,7 @@ impl SignalingModule for SubroomAudioModule {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
-        _connection_id: ConnectionId,
+        connection_id: ConnectionId,
         payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<SubroomAudioError>> {
         match payload {
@@ -144,7 +144,7 @@ impl SignalingModule for SubroomAudioModule {
                 self.leave_whisper_group(ctx, sender, whisper_id)
             }
             SubroomAudioCommand::CreateWhisperGroup { participant_ids } => {
-                self.create_whisper_group(ctx, sender, participant_ids)
+                self.create_whisper_group(ctx, (sender, connection_id), participant_ids)
             }
             SubroomAudioCommand::InviteToWhisperGroup(participant_targets) => {
                 self.invite_to_whisper_group(ctx, sender, participant_targets)
@@ -153,7 +153,7 @@ impl SignalingModule for SubroomAudioModule {
                 self.kick_whisper_participants(ctx, sender, participant_targets)
             }
             SubroomAudioCommand::AcceptWhisperInvite { whisper_id } => {
-                self.accept_whisper_invite(ctx, sender, whisper_id)
+                self.accept_whisper_invite(ctx, (sender, connection_id), whisper_id)
             }
             SubroomAudioCommand::DeclineWhisperInvite { whisper_id } => {
                 self.decline_whisper_invite(ctx, sender, whisper_id)
@@ -210,7 +210,8 @@ impl SubroomAudioModule {
             return;
         }
 
-        let access_token = websocket_request.access_token;
+        let raw_query = websocket_request.raw_query;
+        let headers = websocket_request.headers;
         let Ok(livekit_rtc_url) = build_livekit_rtc_url(&self.settings.service_url) else {
             tracing::warn!(?self.settings.service_url, "invalid livekit service URL");
             let _ = return_channel
@@ -220,7 +221,7 @@ impl SubroomAudioModule {
         };
 
         tokio::spawn(async move {
-            match connect_to_livekit(livekit_rtc_url, access_token).await {
+            match connect_to_livekit(livekit_rtc_url, raw_query, headers).await {
                 Ok(upstream_socket) => {
                     let _ = return_channel
                         .send(Some(upstream_socket))
@@ -336,7 +337,7 @@ impl SubroomAudioModule {
     fn create_whisper_group(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        sender: ParticipantId,
+        sender: (ParticipantId, ConnectionId),
         participant_ids: BTreeSet<ParticipantId>,
     ) -> Result<(), SignalingModuleError<SubroomAudioError>> {
         if participant_ids.is_empty() {
@@ -354,7 +355,7 @@ impl SubroomAudioModule {
             .map(|participant_id| (participant_id, WhisperState::default()))
             .collect::<BTreeMap<_, _>>();
 
-        whisper_participants.insert(sender, WhisperState::Creator);
+        whisper_participants.insert(sender.0, WhisperState::Creator);
 
         let whisper_group = WhisperGroup {
             whisper_id,
@@ -366,16 +367,16 @@ impl SubroomAudioModule {
         ctx.send_ws_message(
             whisper_participants
                 .keys()
-                .filter(|&&p| p != sender)
+                .filter(|&&p| p != sender.0)
                 .copied(),
             SubroomAudioEvent::WhisperInvite {
-                issuer: sender,
+                issuer: sender.0,
                 group: whisper_group.clone().into(),
             },
         )?;
 
         ctx.send_ws_message(
-            [sender],
+            [sender.0],
             SubroomAudioEvent::WhisperGroupCreated {
                 token,
                 group: whisper_group.into(),
@@ -388,24 +389,24 @@ impl SubroomAudioModule {
     fn accept_whisper_invite(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        sender: ParticipantId,
+        sender: (ParticipantId, ConnectionId),
         whisper_id: WhisperId,
     ) -> Result<(), SignalingModuleError<SubroomAudioError>> {
         let token = self.create_access_token(ctx.room_id, sender, whisper_id)?;
-        let whisper_group = self.get_whisper_group(sender, whisper_id)?;
+        let whisper_group = self.get_whisper_group(sender.0, whisper_id)?;
 
-        if whisper_group.has_accepted(&sender) {
+        if whisper_group.has_accepted(&sender.0) {
             return Err(SubroomAudioError::AlreadyAccepted.into());
         }
 
-        if let Some(state) = whisper_group.participants.get_mut(&sender) {
+        if let Some(state) = whisper_group.participants.get_mut(&sender.0) {
             *state = WhisperState::Accepted;
         } else {
             return Err(SubroomAudioError::NotInvited.into());
         }
 
         ctx.send_ws_message(
-            [sender],
+            [sender.0],
             SubroomAudioEvent::WhisperToken { whisper_id, token },
         )?;
 
@@ -413,11 +414,11 @@ impl SubroomAudioModule {
             whisper_group
                 .participants
                 .keys()
-                .filter(|&&p| p != sender)
+                .filter(|&&p| p != sender.0)
                 .copied(),
             SubroomAudioEvent::WhisperInviteAccepted {
                 whisper_id,
-                participant_id: sender,
+                participant_id: sender.0,
             },
         )?;
 
@@ -644,7 +645,7 @@ impl SubroomAudioModule {
     fn create_room_and_access_token(
         &self,
         ctx: &ModuleContext<'_, Self>,
-        sender: ParticipantId,
+        sender: (ParticipantId, ConnectionId),
         whisper_id: WhisperId,
     ) -> Result<String, SignalingModuleError<SubroomAudioError>> {
         let livekit_room_id = build_livekit_whisper_room_id(ctx.room_id, whisper_id);
@@ -662,15 +663,15 @@ impl SubroomAudioModule {
     fn create_access_token(
         &self,
         room_id: RoomId,
-        sender: ParticipantId,
+        sender: (ParticipantId, ConnectionId),
         whisper_id: WhisperId,
     ) -> Result<String, SignalingModuleError<SubroomAudioError>> {
-        let identity = &sender.to_string();
+        let identity = build_livekit_participant_id(sender.0, sender.1);
 
         let access_token =
             AccessToken::with_api_key(&self.settings.api_key, &self.settings.api_secret)
-                .with_name(identity)
-                .with_identity(identity)
+                .with_name(&identity)
+                .with_identity(&identity)
                 .with_grants(VideoGrants {
                     room_create: false,
                     room_list: false,
@@ -705,4 +706,8 @@ fn is_group_creator(sender: &ParticipantId, whisper_group: &WhisperGroup) -> boo
         whisper_group.participants.get(sender),
         Some(WhisperState::Creator)
     )
+}
+
+fn build_livekit_participant_id(participant: ParticipantId, connection: ConnectionId) -> String {
+    format!("{participant}:{connection}")
 }

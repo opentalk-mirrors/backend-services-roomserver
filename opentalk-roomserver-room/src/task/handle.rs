@@ -20,6 +20,7 @@ use tokio::sync::{
     oneshot::{self, Receiver},
 };
 use tracing::Span;
+use url::Url;
 
 use super::RoomTaskApiError;
 
@@ -272,7 +273,7 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Self::receive_response(rx).await
     }
 
-    pub async fn livekit_service_url(&self) -> Result<String, RoomTaskHandleError<Socket>> {
+    pub async fn livekit_service_url(&self) -> Result<Url, RoomTaskHandleError<Socket>> {
         let (tx, rx) = oneshot::channel();
 
         self.send_request(Request::GetLivekitServiceUrl { response: tx })
@@ -380,7 +381,7 @@ pub enum Request<Socket: SignalingSocket> {
     },
 
     GetLivekitServiceUrl {
-        response: ResponseSender<String>,
+        response: ResponseSender<Url>,
     },
 }
 

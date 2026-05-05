@@ -37,6 +37,7 @@ use opentalk_roomserver_types_livekit::{
 use opentalk_types_common::modules::{ModuleId, module_id};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot;
+use url::Url;
 
 use crate::{
     loopback::LiveKitLoopback,
@@ -111,7 +112,7 @@ impl SignalingModule for LiveKitModule {
             .is_some_and(|d| !d.screen_share_requires_permission);
 
         let livekit_client = RoomClient::with_api_key(
-            &livekit_settings.service_url,
+            livekit_settings.service_url.as_str(),
             &livekit_settings.api_key,
             &livekit_settings.api_secret,
         );
@@ -355,7 +356,8 @@ impl LiveKitModule {
             return;
         }
 
-        let access_token = websocket_request.access_token;
+        let raw_query = websocket_request.raw_query;
+        let headers = websocket_request.headers;
         let Ok(livekit_rtc_url) = build_livekit_rtc_url(&self.settings.service_url) else {
             tracing::warn!(?self.settings.service_url, "invalid livekit service URL");
             let _ = return_channel
@@ -365,7 +367,7 @@ impl LiveKitModule {
         };
 
         tokio::spawn(async move {
-            match connect_to_livekit(livekit_rtc_url, access_token).await {
+            match connect_to_livekit(livekit_rtc_url, raw_query, headers).await {
                 Ok(upstream_socket) => {
                     let _ = return_channel.send(Some(upstream_socket));
                 }
@@ -441,7 +443,7 @@ impl LiveKitModule {
         self.proxy_shutdown.remove(&(participant_id, connection_id));
     }
 
-    fn get_livekit_service_url(&self, return_channel: oneshot::Sender<String>) {
+    fn get_livekit_service_url(&self, return_channel: oneshot::Sender<Url>) {
         let _ = return_channel
             .send(self.settings.service_url.clone())
             .inspect_err(|_| tracing::debug!("failed to send response"));

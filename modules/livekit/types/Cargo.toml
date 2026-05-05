@@ -21,3 +21,4 @@ opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 serde.workspace = true
 tokio.workspace = true
+url.workspace = true

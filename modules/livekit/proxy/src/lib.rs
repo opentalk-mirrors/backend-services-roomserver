@@ -4,7 +4,7 @@
 use anyhow::{anyhow, bail};
 use futures::{SinkExt as _, StreamExt as _};
 use opentalk_roomserver_types::livekit_proxy::{
-    LiveKitAccessToken, PreparedSocket,
+    PreparedSocket,
     websocket::{CloseFrame, LiveKitSocket, LiveKitSocketMessage},
 };
 use tokio::sync::oneshot;
@@ -13,10 +13,11 @@ use tokio_tungstenite::{
     tungstenite::{
         Message as TungsteniteMessage,
         client::IntoClientRequest,
-        http::{HeaderValue, header::AUTHORIZATION},
+        http::{HeaderMap, header::AUTHORIZATION},
         protocol::{CloseFrame as TungsteniteCloseFrame, frame::coding::CloseCode},
     },
 };
+use url::Url;
 
 /// A wrapper around `oneshot::Sender<()>` that sends on drop,
 /// ensuring the shutdown signal is always delivered.
@@ -40,31 +41,20 @@ impl Drop for ShutdownSender {
 
 /// Connects to the upstream LiveKit server and returns the WebSocket connection.
 pub async fn connect_to_livekit(
-    livekit_rtc_url: String,
-    access_token: LiveKitAccessToken,
+    mut livekit_rtc_url: Url,
+    raw_query: Option<String>,
+    mut downstream_headers: HeaderMap,
 ) -> anyhow::Result<PreparedSocket> {
-    let request = match access_token {
-        LiveKitAccessToken::Header(token) => {
-            let mut request = livekit_rtc_url
-                .into_client_request()
-                .map_err(|err| anyhow!("failed to build livekit websocket request: {err}"))?;
+    livekit_rtc_url.set_query(raw_query.as_deref());
+    let mut request = livekit_rtc_url
+        .as_str()
+        .into_client_request()
+        .map_err(|err| anyhow!("failed to build livekit websocket request: {err}"))?;
 
-            let header_value = HeaderValue::from_str(&format!("Bearer {token}"))
-                .map_err(|err| anyhow!("failed to build livekit authorization header: {err}"))?;
-            request.headers_mut().insert(AUTHORIZATION, header_value);
-            request
-        }
-        LiveKitAccessToken::Query(token) => {
-            let separator = if livekit_rtc_url.contains('?') {
-                '&'
-            } else {
-                '?'
-            };
-            let uri = format!("{livekit_rtc_url}{separator}access_token={token}");
-            uri.into_client_request()
-                .map_err(|err| anyhow!("failed to build livekit websocket request: {err}"))?
-        }
-    };
+    // Only pass authorization header to LiveKit, ignore all other header
+    if let Some(authorization) = downstream_headers.remove(AUTHORIZATION) {
+        request.headers_mut().append(AUTHORIZATION, authorization);
+    }
 
     let (upstream_socket, _) = connect_async(request)
         .await
@@ -145,20 +135,23 @@ pub async fn proxy_websocket(
     Ok(())
 }
 
-pub fn build_livekit_rtc_url(service_url: &str) -> Result<String, anyhow::Error> {
-    let mut url = if let Some(rest) = service_url.strip_prefix("https://") {
-        format!("wss://{rest}")
-    } else if let Some(rest) = service_url.strip_prefix("http://") {
-        format!("ws://{rest}")
+pub fn build_livekit_rtc_url(service_url: &Url) -> Result<Url, anyhow::Error> {
+    let mut url = service_url.clone();
+    if url.scheme() == "https" {
+        url.set_scheme("wss")
+            .map_err(|_| anyhow!("Invalid scheme"))?;
+    } else if url.scheme() == "http" {
+        url.set_scheme("ws")
+            .map_err(|_| anyhow!("Invalid scheme"))?;
     } else {
-        bail!("unsupported scheme")
-    };
-
-    if !url.ends_with('/') {
-        url.push('/');
+        bail!("unsupported scheme");
     }
 
-    url.push_str("rtc");
+    // Do not use join as we want to not replace the last segment if a trailing
+    // slash is missing.
+    url.path_segments_mut()
+        .map_err(|_| anyhow!("Invalid URL cannot be base"))?
+        .push("rtc");
 
     Ok(url)
 }

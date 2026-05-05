@@ -5,14 +5,14 @@ use std::str::FromStr;
 
 use async_trait::async_trait;
 use axum::{
-    extract::{Query, State, WebSocketUpgrade},
-    http::{HeaderMap, header::AUTHORIZATION},
+    extract::{Query, RawQuery, State, WebSocketUpgrade},
+    http::{HeaderMap, Method, header::AUTHORIZATION},
     response::Response,
     routing::{get, post},
 };
 use livekit_api::access_token::Claims;
 pub use opentalk_roomserver_types::livekit_proxy::{
-    LiveKitAccessToken, LiveKitProxyRequest, LiveKitProxyTarget, PreparedSocket,
+    LiveKitProxyRequest, LiveKitProxyTarget, PreparedSocket,
 };
 use opentalk_roomserver_types::{
     LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER, breakout::breakout_id::BreakoutId,
@@ -22,18 +22,26 @@ use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use opentalk_types_signaling::ParticipantId;
 use serde::Deserialize;
+use tower_http::cors::{AllowMethods, AllowOrigin, CorsLayer};
 use uuid::Uuid;
 
-use crate::Router;
+use crate::{Router, v1::signaling::SignalingBackend};
 
-pub fn routes<B: LiveKitProxyBackend + 'static>() -> Router<B> {
+fn cors_layer(allowed_methods: impl Into<AllowMethods>) -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::any())
+        .allow_methods(allowed_methods)
+}
+
+pub fn routes<B: LiveKitProxyBackend + SignalingBackend + 'static>() -> Router<B> {
     Router::new().nest(
         "/livekit/rtc",
         Router::new()
             .route("/", get(proxy_socket::<B>))
             .route("/v1", get(proxy_socket::<B>))
             .route("/validate", post(proxy_validate::<B>))
-            .route("/v1/validate", post(proxy_validate::<B>)),
+            .route("/v1/validate", post(proxy_validate::<B>))
+            .layer(cors_layer([Method::GET, Method::OPTIONS, Method::HEAD])),
     )
 }
 
@@ -56,6 +64,7 @@ pub trait LiveKitProxyBackend: Clone + Send + Sync + std::fmt::Debug {
         &self,
         room_id: RoomId,
         headers: HeaderMap,
+        raw_query: Option<String>,
     ) -> Result<Response, ApiError>;
 }
 
@@ -92,6 +101,7 @@ pub(crate) struct LiveKitQuery {
 #[tracing::instrument(level = "info", name = "/livekit/proxy/rtc", skip_all)]
 pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
     State(ctx): State<B>,
+    RawQuery(raw_query): RawQuery,
     Query(query): Query<LiveKitQuery>,
     ws_upgrade: WebSocketUpgrade,
     headers: HeaderMap,
@@ -99,14 +109,17 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
     let access_token = extract_access_token(query, &headers)?;
 
     // we do not verify the token since this is done by livekit. We only proxy the connection.
-    let content =
-        jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_str().as_bytes())
-            .map_err(|_| ApiError::bad_request())?;
+    let content = jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_bytes())
+        .map_err(|err| {
+            tracing::debug!("Failed to decode livekit token: {err}");
+            ApiError::bad_request()
+        })?;
     let (room_id, proxy_target) = parse_livekit_room_id(&content.claims.video.room)?;
     let (participant_id, connection_id) = parse_livekit_participant(&content.claims.sub)?;
 
     let websocket_request = LiveKitProxyRequest {
-        access_token,
+        raw_query,
+        headers,
         room_id,
         proxy_target,
         participant_id,
@@ -150,37 +163,54 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
 #[tracing::instrument(level = "info", name = "/livekit/rtc/validate", skip_all)]
 pub(crate) async fn proxy_validate<B: LiveKitProxyBackend>(
     State(ctx): State<B>,
+    RawQuery(raw_query): RawQuery,
     Query(query): Query<LiveKitQuery>,
     headers: HeaderMap,
 ) -> Result<Response, ApiError> {
     let access_token = extract_access_token(query, &headers)?;
-    let content =
-        jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_str().as_bytes())
-            .map_err(|_| ApiError::bad_request())?;
+    let content = jsonwebtoken::dangerous::insecure_decode::<Claims>(access_token.as_bytes())
+        .map_err(|err| {
+            tracing::debug!("Failed to decode livekit token: {err}");
+            ApiError::bad_request()
+        })?;
 
     let (room_id, _) = parse_livekit_room_id(&content.claims.video.room)?;
 
-    ctx.proxy_livekit_validate(room_id, headers).await
+    ctx.proxy_livekit_validate(room_id, headers, raw_query)
+        .await
 }
 
 fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget), ApiError> {
     if let Some((room_id, whisper_id)) = livekit_id.split_once(LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER)
     {
-        let room_id = RoomId::from_str(room_id).map_err(|_| ApiError::bad_request())?;
-        let whisper_id = Uuid::from_str(whisper_id).map_err(|_| ApiError::bad_request())?;
+        let room_id = RoomId::from_str(room_id).map_err(|err| {
+            tracing::debug!("Failed to parse room id {room_id:?}: {err}");
+            ApiError::bad_request()
+        })?;
+        let whisper_id = Uuid::from_str(whisper_id).map_err(|err| {
+            tracing::debug!("Failed to parse whisper id {whisper_id:?}: {err}");
+            ApiError::bad_request()
+        })?;
 
         return Ok((room_id, LiveKitProxyTarget::SubroomAudio { whisper_id }));
     }
 
-    let (room_id, room_kind) = livekit_id
-        .split_once(':')
-        .ok_or_else(ApiError::bad_request)?;
+    let (room_id, room_kind) = livekit_id.split_once(':').ok_or_else(|| {
+        tracing::debug!("Failed to parse livekit room id, missing ':' delimiter in {livekit_id:?}");
+        ApiError::bad_request()
+    })?;
 
-    let room_id = RoomId::from_str(room_id).map_err(|_| ApiError::bad_request())?;
+    let room_id = RoomId::from_str(room_id).map_err(|err| {
+        tracing::debug!("Failed to parse room id {room_id:?}: {err}");
+        ApiError::bad_request()
+    })?;
     let room_kind = if room_kind == "main" {
         RoomKind::Main
     } else {
-        RoomKind::Breakout(BreakoutId::from_str(room_kind).map_err(|_| ApiError::bad_request())?)
+        RoomKind::Breakout(BreakoutId::from_str(room_kind).map_err(|err| {
+            tracing::debug!("Failed to parse breakout id {room_kind:?}: {err}");
+            ApiError::bad_request()
+        })?)
     };
 
     Ok((room_id, LiveKitProxyTarget::LiveKit { room_kind }))
@@ -188,21 +218,27 @@ fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget
 
 fn parse_livekit_participant(livekit_sub: &str) -> Result<(ParticipantId, ConnectionId), ApiError> {
     let Some((participant, connection)) = livekit_sub.split_once(':') else {
+        tracing::debug!(
+            "Failed to parse livekit participant, missing ':' delimiter in {livekit_sub:?}"
+        );
         return Err(ApiError::bad_request());
     };
 
-    let participant = participant.parse().map_err(|_| ApiError::bad_request())?;
-    let connection = connection.parse().map_err(|_| ApiError::bad_request())?;
+    let participant = participant.parse().map_err(|err| {
+        tracing::debug!("Failed to parse participant id {participant:?}: {err}");
+        ApiError::bad_request()
+    })?;
+    let connection = connection.parse().map_err(|err| {
+        tracing::debug!("Failed to parse connection id {connection:?}: {err}");
+        ApiError::bad_request()
+    })?;
 
     Ok((participant, connection))
 }
 
-fn extract_access_token(
-    query: LiveKitQuery,
-    headers: &HeaderMap,
-) -> Result<LiveKitAccessToken, ApiError> {
-    if let Some(access_token) = query.access_token {
-        Ok(LiveKitAccessToken::Query(access_token))
+fn extract_access_token(query: LiveKitQuery, headers: &HeaderMap) -> Result<String, ApiError> {
+    if let Some(token) = query.access_token {
+        Ok(token)
     } else {
         let Some(access_token) = headers
             .get(&AUTHORIZATION)
@@ -220,6 +256,6 @@ fn extract_access_token(
             return Err(ApiError::unauthorized());
         };
 
-        Ok(LiveKitAccessToken::Header(access_token))
+        Ok(access_token)
     }
 }

@@ -4,6 +4,7 @@
 
 use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
 use opentalk_types_common::modules::ModuleId;
+use url::Url;
 
 use crate::LIVEKIT_MODULE_ID;
 
@@ -20,7 +21,7 @@ pub struct LiveKitSettings {
     pub public_url: String,
 
     /// The url that the OpenTalk controller will use for connecting to LiveKit.
-    pub service_url: String,
+    pub service_url: Url,
 }
 
 impl SignalingModuleSettings for LiveKitSettings {
