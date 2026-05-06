@@ -20,6 +20,10 @@ anyhow.workspace = true
 futures.workspace = true
 opentalk-roomserver-types.workspace = true
 tokio.workspace = true
-tokio-tungstenite = { features = ["connect", "stream"], workspace = true }
+tokio-tungstenite = { features = [
+  "connect",
+  "rustls-tls-native-roots",
+  "stream",
+], workspace = true }
 tracing.workspace = true
 url.workspace = true
