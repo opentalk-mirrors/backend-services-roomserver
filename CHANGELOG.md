@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.36] - 2026-05-07
+
+### 🚀 New features
+
+- Add own recording consent state to JoinSuccess ([!1047](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1047))
+- (room) Configure room idle timeout in the room parameters ([!1041](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1041))
+- Create `AssetStorageProvider` and `ModuleResourceProvider` outside the `RoomTask` ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+- Move task settings in their own struct ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+- (room) Move shared resources of the room task into a new `RoomTaskContext` struct ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+- Move ban check into `RoomTaskHandle` ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+- Reexport types needed in the controller ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+- (common) Derive `PartialEq` and `Eq` for settings structs used in the controller ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+- (types) Add actix feature ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+- (signaling) Allow creating internal storage errors without anyhow ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+- (signaling) Allow creating module resource errors without anyhow ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+
+### 🐛 Bug fixes
+
+- (ci) Build resolute image instead of noble ([!1053](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1053))
+- Do not alter livekit query when proxying requests ([!1050](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1050), [#241](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/241))
+- Whisper token subjects need to contain the connection id ([!1050](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1050))
+- Remove left over cors ([!1060](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1060))
+- (livekit-proxy) Allow tls connections to livekit ([!1062](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1062))
+
+### 🔨 Refactor
+
+- Use generic SignalingSocket types ([!1009](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1009))
+- Make opentalk-roomserver-room independent from axum ([!1009](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1009), [#224](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/224))
+- Use URL type in Livekit settings ([!1050](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1050))
+- Simplify accessing used quota from `TariffDetails` ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+- Simplify `RoomParameters::calc_time_limit_quota` ([!1052](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1052))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!1051](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1051))
+- (deps) Update ubuntu docker tag to v26 ([!1039](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1039))
+- (deps) Update pre-commit hook alessandrojcm/commitlint-pre-commit-hook to v9.25.0 ([!1054](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1054))
+- (deps) Update rust crate utoipa to v5.5.0 ([!1058](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1058))
+- (deps) Update rust crate sysinfo to 0.39 ([!1063](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1063))
+
+### ⚙ Miscellaneous
+
+- Update README ([!1049](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1049))
+- (just) Allow to only plot specific crates ([!1009](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1009))
+
 ## [0.0.35] - 2026-04-27
 
 [0.0.35]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.34...v0.0.35
