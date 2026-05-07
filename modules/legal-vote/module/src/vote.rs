@@ -213,6 +213,8 @@ impl ActiveVote {
 
     /// Cancel the vote and record the reason in the protocol.
     pub fn cancel(mut self, issuer: UserId, reason: CancelReason) -> CanceledVote {
+        self.stop_timeout(LegalVoteLoopback::VoteCancelled);
+
         let end_time = Utc::now();
         let entry = ProtocolEntry::new_with_time(end_time, VoteEvent::Cancel { issuer, reason });
         self.protocol.push(entry);

@@ -252,7 +252,7 @@ impl SignalingModule for LegalVoteModule {
                 };
                 self.end_vote(ctx, active_vote, StopKind::Expired)
             }
-            LegalVoteLoopback::VoteEnded => Ok(()),
+            LegalVoteLoopback::VoteEnded | LegalVoteLoopback::VoteCancelled => Ok(()),
             LegalVoteLoopback::CreatedPdf {
                 msg_target,
                 legal_vote_id,

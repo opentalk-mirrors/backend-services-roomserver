@@ -45,6 +45,7 @@ pub enum LegalVoteLoopback {
         id: LegalVoteId,
     },
     VoteEnded,
+    VoteCancelled,
     CreatedPdf {
         msg_target: ParticipantId,
         legal_vote_id: LegalVoteId,
