@@ -7,6 +7,8 @@ use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "actix")]
+pub mod continuation_buffer;
 pub mod module_error;
 pub mod signaling_context;
 pub mod websocket;

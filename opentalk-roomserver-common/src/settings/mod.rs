@@ -12,6 +12,8 @@ pub use runtime_settings::{
     conference::Conference,
     defaults::Defaults,
     http::Http,
+    reports::Reports,
+    task::Task,
     telemetry::{Metrics, Monitoring, Tracing},
 };
 pub use settings_file::SettingsFile;

@@ -24,8 +24,34 @@ impl From<axum::Error> for Error {
     }
 }
 
+#[cfg(feature = "actix")]
+impl From<actix_ws::ProtocolError> for Error {
+    fn from(value: actix_ws::ProtocolError) -> Self {
+        Self {
+            source: Box::new(value),
+        }
+    }
+}
+
+#[cfg(feature = "actix")]
+impl From<super::continuation_buffer::ContinuationError> for Error {
+    fn from(value: super::continuation_buffer::ContinuationError) -> Self {
+        Self {
+            source: Box::new(value),
+        }
+    }
+}
+
 impl From<tokio_util::sync::PollSendError<SignalingSocketMessage>> for Error {
     fn from(value: tokio_util::sync::PollSendError<SignalingSocketMessage>) -> Self {
+        Self {
+            source: Box::new(value),
+        }
+    }
+}
+
+impl From<std::string::FromUtf8Error> for Error {
+    fn from(value: std::string::FromUtf8Error) -> Self {
         Self {
             source: Box::new(value),
         }
@@ -54,6 +80,16 @@ impl From<axum::extract::ws::CloseFrame> for CloseFrame {
         Self {
             code: value.code,
             reason: value.reason.to_string(),
+        }
+    }
+}
+
+#[cfg(feature = "actix")]
+impl From<actix_ws::CloseReason> for CloseFrame {
+    fn from(value: actix_ws::CloseReason) -> Self {
+        Self {
+            code: value.code.into(),
+            reason: value.description.unwrap_or_default(),
         }
     }
 }
@@ -109,6 +145,49 @@ impl From<axum::extract::ws::Message> for SignalingSocketMessage {
 pub struct SignalingSocketItem {
     pub message: SignalingSocketMessage,
     pub done: Option<oneshot::Sender<()>>,
+}
+
+#[cfg(feature = "actix")]
+impl SignalingSocketItem {
+    pub fn from_actix_message(
+        message: actix_ws::Message,
+        continuation_buffer: &mut super::continuation_buffer::ContinuationBuffer,
+    ) -> Option<Result<Self, Error>> {
+        match message {
+            actix_ws::Message::Text(byte_string) => {
+                Some(Self::try_from_byte_string(byte_string.into_bytes()).map_err(Into::into))
+            }
+            actix_ws::Message::Binary(bytes) => Some(Ok(SignalingSocketItem {
+                message: SignalingSocketMessage::Binary(bytes),
+                done: None,
+            })),
+            actix_ws::Message::Continuation(item) => continuation_buffer
+                .extend(item)
+                .map(|result| result.map_err(Into::into)),
+            actix_ws::Message::Ping(bytes) => Some(Ok(SignalingSocketItem {
+                message: SignalingSocketMessage::Ping(bytes),
+                done: None,
+            })),
+            actix_ws::Message::Pong(bytes) => Some(Ok(SignalingSocketItem {
+                message: SignalingSocketMessage::Pong(bytes),
+                done: None,
+            })),
+            actix_ws::Message::Close(close_reason) => Some(Ok(SignalingSocketItem {
+                message: SignalingSocketMessage::Close(close_reason.map(Into::into)),
+                done: None,
+            })),
+            actix_ws::Message::Nop => None,
+        }
+    }
+
+    pub fn try_from_byte_string(
+        bytes: impl Into<Vec<u8>>,
+    ) -> Result<Self, std::string::FromUtf8Error> {
+        String::from_utf8(bytes.into()).map(|message| SignalingSocketItem {
+            message: SignalingSocketMessage::Text(message),
+            done: None,
+        })
+    }
 }
 
 /// A stream of messages for a single signaling connection

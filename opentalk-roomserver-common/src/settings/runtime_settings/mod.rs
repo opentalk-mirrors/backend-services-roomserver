@@ -1,20 +1,17 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use conference::Conference;
-use defaults::Defaults;
+use std::sync::Arc;
+
 use http::Http;
 use internal::Internal;
 use opentalk_orchestrator_client::OrchestratorConfig;
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
-use reports::Reports;
+use task::Task;
 use telemetry::{Metrics, Monitoring, Tracing};
 use url::Url;
 
-use super::{
-    controller_settings::ControllerConfig, settings_file::SettingsFile,
-    signaling_salt::SignalingSalt,
-};
+use super::{controller_settings::ControllerConfig, settings_file::SettingsFile};
 
 pub mod conference;
 pub mod defaults;
@@ -22,6 +19,7 @@ pub mod http;
 pub mod internal;
 pub mod reports;
 pub mod reports_typst;
+pub mod task;
 pub mod telemetry;
 
 #[derive(Debug, Clone)]
@@ -39,13 +37,9 @@ pub struct Settings {
 
     pub tracing: Option<Tracing>,
 
-    pub conference: Conference,
-
-    pub defaults: Option<Defaults>,
-
-    pub reports: Reports,
-
     pub internal: Internal,
+
+    pub task: Arc<Task>,
 }
 
 impl Settings {
@@ -75,12 +69,8 @@ impl Settings {
             monitoring: None,
             metrics: None,
             tracing: None,
-            conference: Conference {
-                signaling_salt: SignalingSalt("abcdefghijklmnopqrstuvwx".into()),
-            },
-            defaults: None,
-            reports: Default::default(),
             internal: Default::default(),
+            task: Arc::default(),
         }
     }
 }
@@ -96,10 +86,8 @@ impl TryFrom<SettingsFile> for Settings {
             monitoring: value.monitoring.map(Into::into),
             metrics: value.metrics.map(Into::into),
             tracing: value.tracing.map(Into::into),
-            conference: value.conference.into(),
-            defaults: value.defaults.map(Into::into),
-            reports: value.reports.unwrap_or_default().into(),
             internal: value.internal.map(Into::into).unwrap_or_default(),
+            task: Arc::new(value.task.into()),
         })
     }
 }

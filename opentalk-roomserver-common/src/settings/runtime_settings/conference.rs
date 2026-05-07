@@ -3,7 +3,7 @@
 
 use crate::settings::{settings_file, signaling_salt::SignalingSalt};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Conference {
     pub signaling_salt: SignalingSalt,
 }

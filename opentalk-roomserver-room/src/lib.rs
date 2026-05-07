@@ -22,15 +22,24 @@ pub mod signaling;
 pub mod storage;
 pub mod task;
 
-pub use opentalk_roomserver_signaling::storage::assets::{
-    AssetMetaData, AssetUploaded, ModuleAssetStorage, StorageError,
+pub use opentalk_roomserver_common::{
+    application_state::ApplicationState, token_store::TokenStore,
 };
+pub use opentalk_roomserver_types::signaling::signaling_context::SignalingClientContext;
+
+pub mod settings {
+    pub use opentalk_roomserver_common::settings::Task;
+    pub mod settings_file {
+        pub use opentalk_roomserver_common::settings::settings_file::task::Task;
+    }
+}
 
 pub use crate::{
     registry::RoomTaskRegistry,
     signaling::module_initializer::ModuleRegistry,
     task::{
         RoomTaskApiError,
+        context::RoomTaskContext,
         handle::{Request, RoomTaskHandle, RoomTaskHandleError},
     },
 };
@@ -43,7 +52,7 @@ mod tests {
         time::Duration,
     };
 
-    use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
+    use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_types::{
         client_parameters::{self, ClientParameters, Role},
         core::{CoreEvent, JoinBlockedReason},
@@ -51,6 +60,7 @@ mod tests {
         signaling::websocket::{CloseFrame, SignalingSocketMessage},
         tariff_details::TariffDetails,
     };
+    use opentalk_types_api_internal::module_assets::Quota;
     use opentalk_types_common::{
         rooms::RoomId,
         roomserver::DeviceSecret,
@@ -63,7 +73,11 @@ mod tests {
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
     use crate::{
         mocking::{participant::create_participant_connection, room::TestRoom, socket::MockSocket},
-        task::RoomTask,
+        storage::{
+            memory_asset_storage::MemoryAssetStorage,
+            memory_module_storage::MemoryModuleResourceStorage,
+        },
+        task::{RoomTask, context::RoomTaskContext},
     };
 
     const TIMEOUT: Duration = Duration::from_millis(500);
@@ -74,11 +88,21 @@ mod tests {
         params.room_idle_timeout = TIMEOUT;
         let params = Arc::new(params);
         let module_registry = Arc::new(ModuleRegistry::new());
-        let (sender, state) = watch::channel(ApplicationState::Running);
-        let settings = Arc::new(Settings::test_settings("secret".to_owned()));
+        let (sender, app_state) = watch::channel(ApplicationState::Running);
+        let asset_storage = Arc::new(MemoryAssetStorage::new(Quota {
+            total: None,
+            used: 0,
+        }));
+        let module_resources = Arc::new(MemoryModuleResourceStorage::new());
+        let ctx = RoomTaskContext {
+            module_registry,
+            asset_storage,
+            module_resources,
+            settings: Arc::default(),
+            app_state,
+        };
 
-        let (task_handle, future_room) =
-            RoomTask::setup(id, params, module_registry, settings, state);
+        let (task_handle, future_room) = RoomTask::setup(ctx, id, params);
         tokio::spawn(future_room);
         (task_handle, sender)
     }

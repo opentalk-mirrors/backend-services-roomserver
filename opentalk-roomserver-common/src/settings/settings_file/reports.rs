@@ -18,7 +18,7 @@ mod tests {
 
     use pretty_assertions::assert_eq;
 
-    use crate::settings::settings_file::{Reports, reports_typst::ReportsTypst};
+    use crate::settings::settings_file::{reports::Reports, reports_typst::ReportsTypst};
 
     #[test]
     fn report_settings_full() {

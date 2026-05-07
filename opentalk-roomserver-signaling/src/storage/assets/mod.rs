@@ -82,6 +82,12 @@ pub enum StorageError {
     ReadAsset(AssetLoadError),
 }
 
+impl StorageError {
+    pub fn internal<E: Debug>(err: E) -> Self {
+        Self::Internal(anyhow::anyhow!("{err:?}"))
+    }
+}
+
 impl From<anyhow::Error> for StorageError {
     fn from(err: anyhow::Error) -> Self {
         StorageError::Internal(err)

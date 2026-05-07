@@ -392,8 +392,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     &mut self.waiting_participants,
                     &mut self.banned_participants,
                     timestamp,
-                    Arc::clone(&self.storage),
-                    Arc::clone(&self.module_resources),
+                    Arc::clone(&self.ctx.asset_storage),
+                    Arc::clone(&self.ctx.module_resources),
                     &mut messages,
                     &mut self.loopback_futures,
                 ),
@@ -443,8 +443,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.waiting_participants,
             &mut self.banned_participants,
             timestamp,
-            Arc::clone(&self.storage),
-            Arc::clone(&self.module_resources),
+            Arc::clone(&self.ctx.asset_storage),
+            Arc::clone(&self.ctx.module_resources),
             &mut messages,
             &mut self.loopback_futures,
         );
@@ -607,7 +607,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// [`TariffDetails::disabled_features`]: opentalk_roomserver_types::tariff_details::TariffDetails::disabled_features
     /// [`RoomParameters`]: opentalk_roomserver_types::room_parameters::RoomParameters
     pub(crate) fn enabled_modules(&self) -> BTreeMap<ModuleId, BTreeSet<FeatureId>> {
-        let mut enabled_modules = self.module_registry.module_features();
+        let mut enabled_modules = self.ctx.module_registry.module_features();
 
         enabled_modules.retain(|module_id, _| {
             self.modules.contains_key(module_id) || CORE_MODULES.contains(module_id)

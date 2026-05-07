@@ -39,6 +39,11 @@ impl TariffDetails {
     pub fn quota(&self, quota: &QuotaType) -> Option<u64> {
         self.quotas.get(quota).copied()
     }
+
+    /// Get a used quota value. Returns 0 if the quota is not set.
+    pub fn used_quota(&self, quota: &QuotaType) -> u64 {
+        self.used_quota.get(quota).copied().unwrap_or(0)
+    }
 }
 
 impl ExampleData for TariffDetails {

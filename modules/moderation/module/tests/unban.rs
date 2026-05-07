@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use http::StatusCode;
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{
@@ -131,12 +132,12 @@ async fn unban_participant() {
     let frank_event = frank.receive::<ModerationEvent>().await.unwrap();
     assert_eq!(event.payload, frank_event.payload);
 
-    assert!(
-        room.room_handle
-            .is_banned(UserId::from(Uuid::from(bob.id())))
-            .await
-            .unwrap()
-    );
+    let error = room
+        .room_handle
+        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+        .await
+        .unwrap_err();
+    assert_eq!(error.status, StatusCode::FORBIDDEN);
 
     alice
         .send_command::<ModerationModule>(ModerationCommand::Unban { target: bob.id() }, None)
@@ -156,11 +157,8 @@ async fn unban_participant() {
     let frank_event = frank.receive::<ModerationEvent>().await.unwrap();
     assert_eq!(event.payload, frank_event.payload);
 
-    assert!(
-        !room
-            .room_handle
-            .is_banned(UserId::from(Uuid::from(bob.id())))
-            .await
-            .unwrap()
-    );
+    room.room_handle
+        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+        .await
+        .expect("Bob must not be banned");
 }

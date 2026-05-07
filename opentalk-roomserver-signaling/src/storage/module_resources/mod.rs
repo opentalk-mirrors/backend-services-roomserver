@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use opentalk_types_common::users::UserId;
 use thiserror::Error;
@@ -23,6 +23,12 @@ pub enum Error {
     PatchFailed { msg: String },
     #[error("Internal error: {0:?}")]
     Internal(#[from] anyhow::Error),
+}
+
+impl Error {
+    pub fn internal<E: Debug>(err: E) -> Self {
+        Self::Internal(anyhow::anyhow!("{err:?}"))
+    }
 }
 
 /// The interface to access [`ModuleResource`]s

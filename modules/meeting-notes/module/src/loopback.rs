@@ -7,7 +7,7 @@ use anyhow::{Context as _, anyhow};
 use chrono::{Duration, Utc};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use opentalk_etherpad_client::{EtherpadClient, EtherpadError};
-use opentalk_roomserver_room::{AssetMetaData, AssetUploaded, ModuleAssetStorage};
+use opentalk_roomserver_room::storage::assets::{AssetMetaData, AssetUploaded, ModuleAssetStorage};
 use opentalk_roomserver_signaling::storage::assets::provider::AssetLoadError;
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,

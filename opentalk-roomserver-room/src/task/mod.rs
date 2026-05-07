@@ -64,7 +64,6 @@ use anyhow::Context;
 use breakout::state::BreakoutState;
 use chrono::Utc;
 use futures::stream::{FuturesUnordered, StreamExt};
-use opentalk_roomserver_common::{application_state::ApplicationState, settings::Settings};
 use opentalk_roomserver_signaling::{
     banned_participant::BannedParticipant,
     event_origin::{EventOrigin, ParticipantOrigin},
@@ -75,9 +74,6 @@ use opentalk_roomserver_signaling::{
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
-    storage::{
-        assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
-    },
     waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
@@ -96,24 +92,16 @@ use opentalk_types_common::{
     modules::ModuleId, rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType, time::Timestamp,
 };
 use opentalk_types_signaling::ParticipantId;
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
-use super::{
-    message_router::CloseReason,
-    signaling::module_initializer::{ModuleRegistry, Modules},
-};
+use super::{message_router::CloseReason, signaling::module_initializer::Modules};
 use crate::{
     message_router::{MessageEnvelope, MessageRouter, ScopedRouter, SignalingMessage},
     metrics::Metrics,
     signaling::{DynEvent, dyn_module_context::DynModuleContext},
-    storage::{
-        controller_asset_storage::ControllerAssetStorage,
-        controller_module_storage::ControllerModuleStorage,
-        memory_asset_storage::MemoryAssetStorage,
-        memory_module_storage::MemoryModuleResourceStorage,
-    },
     task::{
+        context::RoomTaskContext,
         handle::{Request, RoomTaskHandle, TaskMessage},
         timeout::Timeout,
     },
@@ -121,6 +109,7 @@ use crate::{
 
 pub mod breakout;
 pub mod closing;
+pub mod context;
 pub mod core;
 pub mod handle;
 mod livekit;
@@ -173,19 +162,11 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
     /// will return `None` when all futures are completed.
     loopback_cancel_tx: Option<oneshot::Sender<()>>,
 
-    settings: Arc<Settings>,
-
-    app_state: watch::Receiver<ApplicationState>,
-
     participants: Participants,
 
     modules: Modules,
 
-    module_registry: Arc<ModuleRegistry>,
-
-    storage: Arc<dyn AssetStorageProvider>,
-
-    module_resources: Arc<dyn ModuleResourceProvider>,
+    ctx: RoomTaskContext,
 
     /// Collection of participants in the waiting room.
     waiting_participants: HashMap<ParticipantId, WaitingParticipant>,
@@ -202,44 +183,29 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// Spawns a new [`RoomTask`] with a specific timeout
     #[tracing::instrument(level = "info", skip_all, fields(opentalk.room_id = %room_id))]
-    #[allow(clippy::too_many_arguments)]
     pub fn setup(
+        ctx: RoomTaskContext,
         room_id: RoomId,
         mut room_parameters: Arc<RoomParameters>,
-        module_registry: Arc<ModuleRegistry>,
-        settings: Arc<Settings>,
-        app_state: watch::Receiver<ApplicationState>,
     ) -> (
         RoomTaskHandle<Socket>,
         Pin<Box<dyn Future<Output = ()> + Send>>,
     ) {
         let (tx, rx) = mpsc::channel(20);
 
-        let message_router = MessageRouter::new(app_state.clone(), room_parameters.ws_rate_limit);
-        let storage = create_storage_provider(
-            &settings,
-            Quota {
-                total: room_parameters.tariff.quota(&QuotaType::MaxStorage),
-                used: room_parameters
-                    .tariff
-                    .used_quota
-                    .get(&QuotaType::MaxStorage)
-                    .cloned()
-                    .unwrap_or(0),
-            },
-        );
-        let module_resources = create_module_resource_storage_provider(&settings);
-
+        let message_router =
+            MessageRouter::new(ctx.app_state.clone(), room_parameters.ws_rate_limit);
         let room_handle = RoomTaskHandle {
-            assets: Arc::clone(&storage),
-            module_resources: Arc::clone(&module_resources),
+            assets: Arc::clone(&ctx.asset_storage),
+            module_resources: Arc::clone(&ctx.module_resources),
             sender: tx,
         };
 
         let future_room = Box::pin(async move {
-            let (modules, uninitialized) = module_registry
+            let (modules, uninitialized) = ctx
+                .module_registry
                 .initialize_modules(SignalingModuleInitData {
-                    settings: Arc::clone(&settings),
+                    settings: Arc::clone(&ctx.settings),
                     room_parameters: Arc::clone(&room_parameters),
                 })
                 .await;
@@ -275,6 +241,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .unwrap_or(0);
 
             let room_task = RoomTask {
+                ctx,
                 info: room_info,
                 api_rx: rx,
                 idle_timeout: Timeout::start_new(room_parameters.room_idle_timeout),
@@ -282,17 +249,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 breakout_config: None,
                 loopback_cancel_tx: Some(loopback_cancel_tx),
                 loopback_futures,
-                settings,
-                app_state,
                 participants: Participants::new(),
                 modules,
-                storage,
-                module_resources,
                 waiting_participants: HashMap::new(),
                 banned_participants: HashMap::new(),
                 quota_timeout: Timeout::new(Duration::from_secs(time_limit)),
                 metrics: Metrics::new(),
-                module_registry,
             };
 
             room_task.run().await;
@@ -348,8 +310,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 () = Self::check_breakout_timeout(&mut self.breakout_config) => {
                     self.breakout_expired();
                 }
-                result = self.app_state.changed() => {
-                    if result.is_err() || self.app_state.borrow().is_shutting_down() {
+                result = self.ctx.app_state.changed() => {
+                    if result.is_err() || self.ctx.app_state.borrow().is_shutting_down() {
                         tracing::debug!("Room task {} received shutdown signal, exiting", self.info.room_id);
                         return Ok(RoomCloseReason::GracefulShutdown)
                     }
@@ -501,8 +463,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.waiting_participants,
             &mut self.banned_participants,
             msg.timestamp,
-            Arc::clone(&self.storage),
-            Arc::clone(&self.module_resources),
+            Arc::clone(&self.ctx.asset_storage),
+            Arc::clone(&self.ctx.module_resources),
             &mut messages,
             &mut self.loopback_futures,
         );
@@ -589,8 +551,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.waiting_participants,
             &mut self.banned_participants,
             timestamp,
-            Arc::clone(&self.storage),
-            Arc::clone(&self.module_resources),
+            Arc::clone(&self.ctx.asset_storage),
+            Arc::clone(&self.ctx.module_resources),
             &mut messages,
             &mut self.loopback_futures,
         );
@@ -921,8 +883,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             &mut self.waiting_participants,
             &mut self.banned_participants,
             timestamp,
-            Arc::clone(&self.storage),
-            Arc::clone(&self.module_resources),
+            Arc::clone(&self.ctx.asset_storage),
+            Arc::clone(&self.ctx.module_resources),
             &mut messages,
             &mut self.loopback_futures,
         );
@@ -1167,7 +1129,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     /// private.
     fn derive_device_id(&self, device_secret: &DeviceSecret) -> DeviceId {
         let mut hasher = blake3::Hasher::new();
-        let salt = self.settings.conference.signaling_salt.as_bytes();
+        let salt = self.ctx.settings.conference.signaling_salt.as_bytes();
         hasher.update(salt);
         hasher.update(device_secret.to_string().as_bytes());
 
@@ -1207,25 +1169,4 @@ fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId
 /// This should either be the [`DeviceId`] for guests or a [`UserId`] in case of registered users.
 fn participant_id_from_uuid(user_id: impl Into<Uuid>) -> ParticipantId {
     ParticipantId::from(user_id.into())
-}
-
-fn create_storage_provider(settings: &Settings, quota: Quota) -> Arc<dyn AssetStorageProvider> {
-    match &settings.controller {
-        Some(controller) => Arc::new(ControllerAssetStorage::new(
-            controller.url.clone(),
-            controller.api_key.clone(),
-            quota,
-        )),
-        None => Arc::new(MemoryAssetStorage::new(quota)),
-    }
-}
-
-fn create_module_resource_storage_provider(settings: &Settings) -> Arc<dyn ModuleResourceProvider> {
-    match &settings.controller {
-        Some(controller) => Arc::new(ControllerModuleStorage::new(
-            controller.url.clone(),
-            controller.api_key.clone(),
-        )),
-        None => Arc::new(MemoryModuleResourceStorage::new()),
-    }
 }

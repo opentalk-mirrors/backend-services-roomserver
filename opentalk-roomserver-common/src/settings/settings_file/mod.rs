@@ -4,13 +4,11 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, anyhow};
-use conference::Conference;
 use config::{Config, Environment, File, FileFormat};
-use defaults::Defaults;
 use http::Http;
 use opentalk_orchestrator_client::OrchestratorConfig;
-use reports::Reports;
 use serde::Deserialize;
+use task::Task;
 use telemetry::{Metrics, Monitoring, Tracing};
 use thiserror::Error;
 
@@ -23,6 +21,7 @@ pub mod http;
 pub mod internal;
 pub mod reports;
 pub mod reports_typst;
+pub mod task;
 pub mod telemetry;
 
 #[derive(Debug, Error)]
@@ -52,16 +51,10 @@ pub struct SettingsFile {
     pub(crate) tracing: Option<Tracing>,
 
     #[serde(default)]
-    pub(crate) conference: Conference,
-
-    #[serde(default)]
-    pub(crate) defaults: Option<Defaults>,
-
-    #[serde(default)]
-    pub(crate) reports: Option<Reports>,
-
-    #[serde(default)]
     pub(crate) internal: Option<Internal>,
+
+    #[serde(default, flatten)]
+    pub(crate) task: Task,
 }
 
 impl SettingsFile {

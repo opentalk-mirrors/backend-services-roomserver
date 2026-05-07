@@ -5,7 +5,7 @@ use anyhow::bail;
 use rand::{RngExt, distr::Alphanumeric};
 use serde::Deserialize;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(try_from = "String")]
 pub struct SignalingSalt(pub String);
 
