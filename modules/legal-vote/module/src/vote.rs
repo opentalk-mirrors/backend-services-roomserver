@@ -36,7 +36,7 @@ pub struct ActiveVote {
     parameters: Parameters,
     tally: Tally,
     protocol: Vec<ProtocolEntry>,
-    pub timeout_cancel: Option<Sender<LegalVoteLoopback>>,
+    timeout_cancel: Option<Sender<LegalVoteLoopback>>,
 }
 
 /// A vote that has been completed and does not provide any mutating methods anymore.
@@ -226,6 +226,8 @@ impl ActiveVote {
 
     /// End the vote, verify the results and record them in the protocol.
     pub fn end(mut self, stop_kind: StopKind) -> CompletedVote {
+        self.stop_timeout(LegalVoteLoopback::VoteEnded);
+
         let end_time = Utc::now();
         let entry = ProtocolEntry::new_with_time(end_time, VoteEvent::Stop(stop_kind));
         self.protocol.push(entry);
@@ -324,5 +326,14 @@ impl ActiveVote {
 
     pub fn should_close(&self) -> bool {
         self.parameters.inner.auto_close && self.allowed_tokens.is_empty()
+    }
+
+    /// Stop the timeout loopback if it exists
+    fn stop_timeout(&mut self, loopback: LegalVoteLoopback) {
+        if let Some(cancel) = self.timeout_cancel.take()
+            && cancel.send(loopback).is_err()
+        {
+            tracing::debug!("Vote timeout cancel sender has been dropped");
+        }
     }
 }

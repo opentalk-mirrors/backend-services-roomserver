@@ -552,7 +552,7 @@ impl LegalVoteModule {
     fn end_vote(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        mut active_vote: ActiveVote,
+        active_vote: ActiveVote,
         stop_kind: StopKind,
     ) -> Result<(), SignalingModuleError<LegalVoteError>> {
         let protocol_stop_kind = match stop_kind {
@@ -563,13 +563,6 @@ impl LegalVoteModule {
             StopKind::Auto => proto::StopKind::Auto,
             StopKind::Expired => proto::StopKind::Expired,
         };
-
-        // Stop the timeout loopback if it exists
-        if let Some(cancel) = active_vote.timeout_cancel.take()
-            && cancel.send(LegalVoteLoopback::VoteEnded).is_err()
-        {
-            tracing::debug!("Vote timeout cancel sender has been dropped");
-        }
 
         let legal_vote_id = active_vote.id();
         let CompletedVote {
