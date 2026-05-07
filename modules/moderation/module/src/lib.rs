@@ -29,7 +29,7 @@ use opentalk_roomserver_types_livekit::{
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
     command::ModerationCommand,
-    event::{BannedParticipantInfo, ModerationError, ModerationEvent},
+    event::{BannedParticipantInfo, KickReason, ModerationError, ModerationEvent},
     state::{
         ChangeDisplayNameRestrictionState, ModerationState, ModeratorJoinInfo,
         WaitingParticipantPeerData,
@@ -250,7 +250,12 @@ impl ModerationModule {
             Self::set_waiting_room_state(ctx, true)?;
         }
 
-        ctx.send_ws_message([target], ModerationEvent::Kicked)?;
+        ctx.send_ws_message(
+            [target],
+            ModerationEvent::Kicked {
+                reason: KickReason::Kicked,
+            },
+        )?;
         ctx.kick_participants(Vec::from_iter([target]));
 
         Ok(())
@@ -416,7 +421,12 @@ impl ModerationModule {
             Self::set_waiting_room_state(ctx, true)?;
         }
 
-        ctx.send_ws_message(kicked.clone(), ModerationEvent::Kicked)?;
+        ctx.send_ws_message(
+            kicked.clone(),
+            ModerationEvent::Kicked {
+                reason: KickReason::Debriefed,
+            },
+        )?;
         ctx.kick_participants(kicked);
 
         Ok(())
