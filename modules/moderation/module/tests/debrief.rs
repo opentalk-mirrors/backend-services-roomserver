@@ -19,7 +19,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_moderation::{
     KickScope,
     command::ModerationCommand,
-    event::{ModerationError, ModerationEvent},
+    event::{KickReason, ModerationError, ModerationEvent},
 };
 use opentalk_types_signaling::ParticipantId;
 
@@ -230,7 +230,9 @@ async fn verify_disconnects(
                     panic!("Received unexpected SignalingSocketMessage: {message:?}");
                 };
                 assert_eq!(
-                    ModerationEvent::Kicked,
+                    ModerationEvent::Kicked {
+                        reason: KickReason::Debriefed
+                    },
                     serde_json::from_str::<SignalingEvent<ModerationEvent>>(&text)
                         .unwrap()
                         .payload

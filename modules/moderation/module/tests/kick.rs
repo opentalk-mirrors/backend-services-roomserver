@@ -9,7 +9,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
-    event::{ModerationError, ModerationEvent},
+    event::{KickReason, ModerationError, ModerationEvent},
 };
 use opentalk_types_signaling::ParticipantId;
 
@@ -180,7 +180,12 @@ async fn kick_participant() {
 
     // Bob receives the kicked event
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::Kicked);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::Kicked {
+            reason: KickReason::Kicked
+        }
+    );
 
     assert_eq!(
         bob.receive_close_frame().await.unwrap(),

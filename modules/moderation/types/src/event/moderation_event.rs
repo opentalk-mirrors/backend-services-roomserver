@@ -9,14 +9,17 @@ use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::event::{BannedParticipantInfo, ModerationError};
+use crate::event::{BannedParticipantInfo, KickReason, ModerationError};
 
 /// Events sent out by the `moderation` module
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "message", rename_all = "snake_case")]
 pub enum ModerationEvent {
     /// Sent to a participant when they are kicked from a meeting
-    Kicked,
+    Kicked {
+        /// The action that kicked the participant.
+        reason: KickReason,
+    },
 
     /// Sent to a participant when they are banned from a meeting
     Banned,
@@ -118,20 +121,28 @@ mod tests {
 
     #[test]
     fn serialize_kicked() {
-        let cmd = ModerationEvent::Kicked;
+        let cmd = ModerationEvent::Kicked {
+            reason: KickReason::Kicked,
+        };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
         {
-          "message": "kicked"
+          "message": "kicked",
+          "reason": "kicked"
         }
         "#);
     }
 
     #[test]
     fn deserialize_kicked() {
-        let json = json!({"message": "kicked"});
+        let json = json!({
+           "message": "kicked",
+           "reason": "kicked"
+        });
 
-        let expected = ModerationEvent::Kicked;
+        let expected = ModerationEvent::Kicked {
+            reason: KickReason::Kicked,
+        };
         let produced = serde_json::from_value(json).unwrap();
 
         assert_eq!(expected, produced);
