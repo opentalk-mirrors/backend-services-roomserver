@@ -129,9 +129,10 @@ mod tests {
 
     #[test]
     fn deserialize_kicked() {
-        let expected = json!({"message": "kicked"});
+        let json = json!({"message": "kicked"});
 
-        let produced = serde_json::to_value(ModerationEvent::Kicked).unwrap();
+        let expected = ModerationEvent::Kicked;
+        let produced = serde_json::from_value(json).unwrap();
 
         assert_eq!(expected, produced);
     }
@@ -154,19 +155,18 @@ mod tests {
 
     #[test]
     fn deserialize_role_updated_moderator() {
-        let expected = json!
+        let json = json!
         ({
           "message": "role_updated",
           "participant_id": "00000000-0000-0000-0000-000000000000",
           "new_role": "moderator"
         });
 
-        let event = ModerationEvent::RoleUpdated {
+        let expected = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::Moderator,
         };
-
-        let produced = serde_json::to_value(event).unwrap();
+        let produced = serde_json::from_value(json).unwrap();
 
         assert_eq!(expected, produced);
     }
@@ -189,40 +189,24 @@ mod tests {
 
     #[test]
     fn deserialize_role_updated_user() {
-        let expected = json!
+        let json = json!
         ({
           "message": "role_updated",
           "participant_id": "00000000-0000-0000-0000-000000000000",
           "new_role": "user"
         });
 
-        let event = ModerationEvent::RoleUpdated {
+        let expected = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::User,
         };
-
-        let produced = serde_json::to_value(event).unwrap();
+        let produced = serde_json::from_value(json).unwrap();
 
         assert_eq!(expected, produced);
     }
 
     #[test]
     fn serialize_debriefing_started() {
-        let expected = json!({
-            "message": "debriefing_started",
-            "issued_by": "00000000-0000-0000-0000-000000000000"
-        });
-
-        let produced = serde_json::to_value(ModerationEvent::DebriefingStarted {
-            issued_by: ParticipantId::nil(),
-        })
-        .unwrap();
-
-        assert_eq!(expected, produced);
-    }
-
-    #[test]
-    fn deserialize_debriefing_started() {
         let event = ModerationEvent::DebriefingStarted {
             issued_by: ParticipantId::nil(),
         };
@@ -233,6 +217,21 @@ mod tests {
           "issued_by": "00000000-0000-0000-0000-000000000000"
         }
         "#);
+    }
+
+    #[test]
+    fn deserialize_debriefing_started() {
+        let json = json!({
+            "message": "debriefing_started",
+            "issued_by": "00000000-0000-0000-0000-000000000000"
+        });
+
+        let expected = ModerationEvent::DebriefingStarted {
+            issued_by: ParticipantId::nil(),
+        };
+        let produced = serde_json::from_value(json).unwrap();
+
+        assert_eq!(expected, produced);
     }
 
     #[test]
@@ -248,13 +247,13 @@ mod tests {
 
     #[test]
     fn deserialize_accepted() {
-        let produced: ModerationEvent = serde_json::from_value(json!({
+        let produced = serde_json::from_value(json!({
             "message": "accepted"
         }))
         .unwrap();
         let expected = ModerationEvent::Accepted;
 
-        assert_eq!(produced, expected);
+        assert_eq!(expected, produced);
     }
 
     #[test]
@@ -274,7 +273,7 @@ mod tests {
 
     #[test]
     fn deserialize_muted() {
-        let produced: ModerationEvent = serde_json::from_value(json!({
+        let produced = serde_json::from_value(json!({
             "message": "muted",
             "moderator": "00000000-0000-0000-0000-000000000000"
         }))
@@ -283,7 +282,7 @@ mod tests {
             moderator: ParticipantId::nil(),
         };
 
-        assert_eq!(produced, expected);
+        assert_eq!(expected, produced);
     }
 
     #[test]
@@ -309,7 +308,7 @@ mod tests {
 
     #[test]
     fn deserialize_display_name_changed() {
-        let produced: ModerationEvent = serde_json::from_value(json!({
+        let produced = serde_json::from_value(json!({
             "message": "display_name_changed",
             "target": "00000000-0000-0000-0000-000000000000",
             "issued_by": "00000000-0000-0000-0000-000000000000",
@@ -324,7 +323,7 @@ mod tests {
             new_name: "Bob".parse().expect("valid display name"),
         };
 
-        assert_eq!(produced, expected);
+        assert_eq!(expected, produced);
     }
 
     #[test]
@@ -346,7 +345,7 @@ mod tests {
 
     #[test]
     fn deserialize_display_name_change_restrictions_enabled() {
-        let produced: ModerationEvent = serde_json::from_value(json!({
+        let produced = serde_json::from_value(json!({
             "message": "display_name_change_restrictions_enabled",
             "unrestricted_participants": [
                 "00000000-0000-0000-0000-000000000000",
@@ -356,7 +355,7 @@ mod tests {
         let expected = ModerationEvent::DisplayNameChangeRestrictionsEnabled {
             unrestricted_participants: HashSet::from([ParticipantId::nil()]),
         };
-        assert_eq!(produced, expected);
+        assert_eq!(expected, produced);
     }
 
     #[test]
@@ -373,11 +372,11 @@ mod tests {
 
     #[test]
     fn deserialize_display_name_change_restrictions_disabled() {
-        let produced: ModerationEvent = serde_json::from_value(json!({
+        let produced = serde_json::from_value(json!({
             "message": "display_name_change_restrictions_disabled"
         }))
         .unwrap();
         let expected = ModerationEvent::DisplayNameChangeRestrictionsDisabled;
-        assert_eq!(produced, expected);
+        assert_eq!(expected, produced);
     }
 }
