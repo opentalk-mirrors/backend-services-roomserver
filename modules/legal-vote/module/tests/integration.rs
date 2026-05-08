@@ -882,6 +882,8 @@ async fn cancel_initiator_left() {
     assert!(
         matches!(event, LegalVoteEvent::Canceled { reason, .. } if reason == CancelReason::InitiatorLeft)
     );
+
+    assert!(bob.received_nothing());
 }
 
 #[test_log::test(tokio::test)]
@@ -934,6 +936,171 @@ async fn cancel_insufficient_permissions() {
         event,
         LegalVoteEvent::Error(LegalVoteError::InsufficientPermissions)
     );
+}
+
+#[test_log::test(tokio::test)]
+async fn cancel() {
+    let mut room = TestRoom::builder()
+        .register_module::<LegalVoteModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice starts the vote
+    let alice_id = alice.id();
+    let (legal_vote_id, tokens) = start_vote(
+        &mut alice,
+        UserParameters {
+            pseudonymous: true,
+            live: false,
+            name: Name::from_str("Vote").unwrap(),
+            subtitle: None,
+            topic: None,
+            allowed_participants: AllowedParticipants::try_from([alice_id]).unwrap(),
+            enable_abstain: false,
+            auto_close: true,
+            duration: None,
+            create_pdf: true,
+            timezone: None,
+        },
+        &mut [],
+    )
+    .await;
+
+    // Alice cancels the vote
+    let reason = CustomCancelReason::from_str("never mind...").unwrap();
+    alice
+        .send_command::<LegalVoteModule>(
+            LegalVoteCommand::Cancel {
+                legal_vote_id,
+                reason: reason.clone(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the cancelled event
+    let event = alice
+        .receive_event::<LegalVoteModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert!(matches!(
+        event,
+        LegalVoteEvent::Canceled {
+            legal_vote_id: produced_id,
+            reason: produced_reason,
+            end_time: _,
+        } if produced_id == legal_vote_id && produced_reason == CancelReason::Custom(reason)
+    ));
+
+    // The protocol is stored as a module resource
+    let filter =
+        ModuleResourceFilter::new(room.id(), LEGAL_VOTE_MODULE_ID).id(*legal_vote_id.inner());
+    let resources = room
+        .downcast_module_resource_storage()
+        .get(filter)
+        .await
+        .unwrap();
+    assert_eq!(resources.len(), 1);
+    assert_json_snapshot!(resources[0].data, {
+        ".entries[].timestamp" => "[timestamp]",
+        ".entries[].event.parameters.legal_vote_id" => "[legal_vote_id]",
+        ".entries[].event.parameters.start_time" => "[timestamp]",
+        ".entries[].event.token" => "[token]",
+    }, @r#"
+    {
+      "entries": [
+        {
+          "event": {
+            "event": "start",
+            "issuer": "00000000-0000-0000-0000-0000000a11ce",
+            "parameters": {
+              "allowed_participants": [
+                "00000000-0000-0000-0000-0000000a11ce"
+              ],
+              "allowed_users": [
+                "00000000-0000-0000-0000-0000000a11ce"
+              ],
+              "auto_close": true,
+              "create_pdf": true,
+              "enable_abstain": false,
+              "initiator_id": "00000000-0000-0000-0000-0000000a11ce",
+              "legal_vote_id": "[legal_vote_id]",
+              "live": false,
+              "max_votes": 1,
+              "name": "Vote",
+              "pseudonymous": true,
+              "start_time": "[timestamp]"
+            }
+          },
+          "timestamp": "[timestamp]"
+        },
+        {
+          "event": {
+            "custom": "never mind...",
+            "event": "cancel",
+            "issuer": "00000000-0000-0000-0000-0000000a11ce",
+            "reason": "custom"
+          },
+          "timestamp": "[timestamp]"
+        }
+      ],
+      "version": 1
+    }
+    "#);
+
+    // Alice is notified that a pdf has been created
+    let asset_id = receive_pdf(&mut alice).await;
+
+    assert_eq!(room.file_count().await, 1);
+    let pdf = room.stored_asset(asset_id).await.unwrap();
+    let content = pdf_extract::extract_text_from_mem(&pdf).unwrap();
+    let alice_token = tokens[&alice.id()].unwrap();
+    insta::with_settings!({filters => vec![
+        (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", "[timestamp]"),
+        (r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "[legal_vote_id]"),
+        (&format!("{alice_token}"), "[token]"),
+    ]}, {
+        assert_snapshot!(content, @"
+
+
+        OpenTalk Vote Report
+         Title : Vote
+
+        Pseudonymous : Yes
+
+        Referendum leader : Alice Aal
+
+        Vote id : [legal_vote_id]
+
+        Start : [timestamp]
+
+        End : [timestamp]
+
+        Report timezone : Europe/Berlin
+
+        Participant count : 1
+
+        Scheduled duration : Unlimited
+
+        Abstention : Disallowed
+
+        Automatic close : Enabled
+
+        Vote ended due to : Aborted for custom reason:   never mind...
+
+        Number of votes : 0
+
+        Recorded votes
+         Name Token Vote Timestamp
+
+        Event log
+         Name Timestamp Event
+        ");
+    });
+
+    assert!(alice.received_nothing());
 }
 
 #[test_log::test(tokio::test)]
@@ -1114,6 +1281,8 @@ async fn stop() {
     ]}, {
         assert_snapshot!(content);
     });
+
+    assert!(alice.received_nothing());
 }
 
 #[test_log::test(tokio::test)]
