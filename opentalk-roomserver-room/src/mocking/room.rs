@@ -340,6 +340,17 @@ impl TestRoom {
             .unwrap()
     }
 
+    pub async fn join_transcription(
+        &mut self,
+        room_kind: RoomKind,
+        device_number: usize,
+    ) -> MockParticipantJoined {
+        MockParticipantJoined::transcription(device_number)
+            .join(self, room_kind)
+            .await
+            .unwrap()
+    }
+
     pub async fn waiting_room_bob(&mut self, device_number: usize) -> MockParticipantWaiting {
         MockParticipantJoining::bob(device_number)
             .enter_waiting_room(self)

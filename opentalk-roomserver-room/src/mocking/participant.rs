@@ -443,9 +443,18 @@ impl<S> MockParticipant<S> {
 
     pub fn recorder(device_number: usize) -> MockRecorderBuilder {
         MockRecorderBuilder {
-            profile: (),
+            profile: Recorder,
             role: Role::User,
             secret: DeviceSecret::from_str(&format!("Recorder Device Secret {device_number}"))
+                .expect("Valid device secret"),
+        }
+    }
+
+    pub fn transcription(device_number: usize) -> MockTranscriptionBuilder {
+        MockTranscriptionBuilder {
+            profile: Transcription,
+            role: Role::User,
+            secret: DeviceSecret::from_str(&format!("Transcription Device Secret {device_number}"))
                 .expect("Valid device secret"),
         }
     }
@@ -848,7 +857,8 @@ impl MockParticipantBuilder<DisplayName> {
     }
 }
 
-pub type MockRecorderBuilder = MockParticipantBuilder<()>;
+pub struct Recorder;
+pub type MockRecorderBuilder = MockParticipantBuilder<Recorder>;
 
 impl MockRecorderBuilder {
     pub async fn join(
@@ -859,6 +869,24 @@ impl MockRecorderBuilder {
         room.join_participant(ClientParameters {
             device_secret: self.secret,
             kind: ClientKind::Recorder { room: room_kind },
+            role: Role::User,
+        })
+        .await
+    }
+}
+
+pub struct Transcription;
+pub type MockTranscriptionBuilder = MockParticipantBuilder<Transcription>;
+
+impl MockTranscriptionBuilder {
+    pub async fn join(
+        self,
+        room: &mut TestRoom,
+        room_kind: RoomKind,
+    ) -> Result<MockParticipantJoined, room::Error> {
+        room.join_participant(ClientParameters {
+            device_secret: self.secret,
+            kind: ClientKind::Transcription { room: room_kind },
             role: Role::User,
         })
         .await

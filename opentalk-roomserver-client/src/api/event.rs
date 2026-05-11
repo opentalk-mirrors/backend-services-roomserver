@@ -23,6 +23,7 @@ use opentalk_roomserver_types_timer::{TIMER_MODULE_ID, TimerEvent};
 use opentalk_roomserver_types_training_participation_report::{
     TRAINING_PARTICIPATION_REPORT_MODULE_ID, TrainingParticipationReportEvent,
 };
+use opentalk_roomserver_types_transcription::{TRANSCRIPTION_MODULE_ID, event::TranscriptionEvent};
 use opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardEvent};
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use serde::{Deserialize, Serialize};
@@ -82,6 +83,7 @@ pub enum SignalingModuleEvent {
     LegalVote(LegalVoteEvent),
     TrainingParticipationReport(TrainingParticipationReportEvent),
     Recording(RecordingEvent),
+    Transcription(TranscriptionEvent),
 }
 
 impl SignalingModuleEvent {
@@ -108,6 +110,7 @@ impl SignalingModuleEvent {
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
             Self::Recording(..) => RECORDING_MODULE_ID,
+            Self::Transcription(..) => TRANSCRIPTION_MODULE_ID,
         }
     }
 }
@@ -147,6 +150,9 @@ mod tests {
     };
     use opentalk_roomserver_types_timer::TimerEvent;
     use opentalk_roomserver_types_training_participation_report::TrainingParticipationReportEvent;
+    use opentalk_roomserver_types_transcription::{
+        event::TranscriptionEvent, state::TranscriptionStatus,
+    };
     use opentalk_roomserver_types_whiteboard::WhiteboardEvent;
     use opentalk_types_common::{assets::AssetId, modules::ModuleId, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
@@ -657,6 +663,30 @@ mod tests {
           "namespace": "training_participation_report",
           "payload": {
             "message": "presence_confirmation_logged"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_event_transcription() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
+            payload: SignalingModuleEvent::Transcription(TranscriptionEvent::StateUpdated {
+                status: TranscriptionStatus::Running,
+            }),
+        };
+
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "timestamp": "1970-01-01T00:00:00Z",
+          "namespace": "transcription",
+          "payload": {
+            "message": "state_updated",
+            "status": "running"
           }
         }
         "#);

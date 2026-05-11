@@ -293,7 +293,7 @@ components:
               enum:
                 - guest
         - type: object
-          description: Invisible service participant used by the recording service
+          description: Invisible recording participant
           required:
             - room
             - kind
@@ -305,7 +305,7 @@ components:
             room:
               $ref: "#/components/schemas/RoomKind"
               description: |-
-                Room for which the recorder was requested from
+                Room for which the recording was requested from
 
                 Recorders may only access the recording-service commands & events in this room
         - type: object

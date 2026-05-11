@@ -2,6 +2,9 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_types_recording::{RECORDING_MODULE_ID, command::RecordingCommand};
+use opentalk_roomserver_types_transcription::{
+    TRANSCRIPTION_MODULE_ID, command::TranscriptionCommand,
+};
 use opentalk_types_common::modules::ModuleId;
 use serde::{Deserialize, Serialize};
 // reexport commands for easier usage
@@ -89,6 +92,7 @@ pub enum SignalingModuleCommand {
     LegalVote(LegalVoteCommand),
     TrainingParticipationReport(TrainingParticipationReportCommand),
     Recording(RecordingCommand),
+    Transcription(TranscriptionCommand),
 }
 
 impl SignalingModuleCommand {
@@ -114,6 +118,7 @@ impl SignalingModuleCommand {
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
             Self::Recording(..) => RECORDING_MODULE_ID,
+            Self::Transcription(..) => TRANSCRIPTION_MODULE_ID,
         }
     }
 }
@@ -143,6 +148,7 @@ mod tests {
     use opentalk_roomserver_types_recording::command::RecordingCommand;
     use opentalk_roomserver_types_timer::{TimerCommand, command::Kind};
     use opentalk_roomserver_types_training_participation_report::TrainingParticipationReportCommand;
+    use opentalk_roomserver_types_transcription::command::TranscriptionCommand;
     use opentalk_roomserver_types_whiteboard::WhiteboardCommand;
     use opentalk_types_common::modules::ModuleId;
     use opentalk_types_signaling::ParticipantId;
@@ -517,6 +523,27 @@ mod tests {
           "namespace": "recording",
           "payload": {
             "action": "start_recording"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_transcription() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            payload: SignalingModuleCommand::Transcription(TranscriptionCommand::Start {
+                language: None,
+            }),
+        };
+
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "transcription",
+          "payload": {
+            "action": "start"
           }
         }
         "#);

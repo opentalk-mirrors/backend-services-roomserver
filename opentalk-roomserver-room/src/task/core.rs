@@ -516,9 +516,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 self.info.room.created_by.id == profile.id,
             ),
             ClientKind::Guest { .. }
+            | ClientKind::Transcription { .. }
             | ClientKind::Recorder { .. }
-            | ClientKind::CallIn { .. }
-            | ClientKind::Transcription { .. } => (Role::Guest, None, false),
+            | ClientKind::CallIn { .. } => (Role::Guest, None, false),
         };
 
         let event_info = self
