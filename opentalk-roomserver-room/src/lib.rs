@@ -28,9 +28,11 @@ pub use opentalk_roomserver_common::{
 pub use opentalk_roomserver_types::signaling::signaling_context::SignalingClientContext;
 
 pub mod settings {
-    pub use opentalk_roomserver_common::settings::Task;
+    pub use opentalk_roomserver_common::settings::{Internal, Task};
     pub mod settings_file {
-        pub use opentalk_roomserver_common::settings::settings_file::task::Task;
+        pub use opentalk_roomserver_common::settings::settings_file::{
+            internal::Internal, task::Task,
+        };
     }
 }
 
