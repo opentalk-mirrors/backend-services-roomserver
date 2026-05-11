@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.37] - 2026-05-11
+
+### 🚀 New features
+
+- (moderation) Add a reason to the `Kicked` moderation event ([!1067](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1067), [#242](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/242))
+- (common) Reexport `Internal` settings ([!1075](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1075))
+
+### 🐛 Bug fixes
+
+- (legal-vote) Internal error event when vote is cancelled ([!1068](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1068), [#245](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/245))
+
+### 🔨 Refactor
+
+- (legal-vote) Move timeout cancellation into `ActiveVote` ([!1068](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1068))
+
+### Test
+
+- (moderation) Fix bogus deserialization tests ([!1066](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1066))
+- (moderation) Remove type hints from event deserialization tests ([!1066](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1066))
+
 ## [0.0.36] - 2026-05-07
 
 ### 🚀 New features
