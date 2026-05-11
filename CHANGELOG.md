@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.38] - 2026-05-11
+
+### 🚀 New features
+
+- Add transcription module ([!1020](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1020))
+- And serialization and integration tests ([!1020](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1020))
+
 ## [0.0.37] - 2026-05-11
 
 ### 🚀 New features
