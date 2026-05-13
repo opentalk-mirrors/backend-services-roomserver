@@ -33,7 +33,7 @@ use opentalk_roomserver_signaling::storage::{
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::ClientParameters,
-    livekit_proxy::{LiveKitProxyRequest, PreparedSocket, adapter::LiveKitSocketAdapter},
+    livekit_proxy::{LiveKitProxyRequest, PreparedSocket, websocket::LiveKitSocket},
     room_action::RoomAction,
     room_parameters::{self, RoomParameters},
     room_parameters_patch::RoomParametersPatch,
@@ -390,14 +390,14 @@ impl LiveKitProxyBackend for Context {
         &self,
         ws_request: LiveKitProxyRequest,
         upstream_socket: PreparedSocket,
-        socket: LiveKitSocketAdapter,
+        socket: Box<dyn LiveKitSocket>,
     ) -> Result<(), ApiError> {
         let Some(task_handle) = self.room_tasks.get_task_handle(&ws_request.room_id).await else {
             return Err(ApiError::not_found());
         };
 
         task_handle
-            .accept_livekit_socket(ws_request, upstream_socket, Box::new(socket))
+            .accept_livekit_socket(ws_request, upstream_socket, socket)
             .await?;
         Ok(())
     }

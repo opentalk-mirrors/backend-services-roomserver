@@ -15,8 +15,11 @@ pub use opentalk_roomserver_types::livekit_proxy::{
     LiveKitProxyRequest, LiveKitProxyTarget, PreparedSocket,
 };
 use opentalk_roomserver_types::{
-    LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER, breakout::breakout_id::BreakoutId,
-    connection_id::ConnectionId, livekit_proxy::adapter::LiveKitSocketAdapter, room_kind::RoomKind,
+    LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER,
+    breakout::breakout_id::BreakoutId,
+    connection_id::ConnectionId,
+    livekit_proxy::{adapter::LiveKitSocketAdapter, websocket::LiveKitSocket},
+    room_kind::RoomKind,
 };
 use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
@@ -51,7 +54,7 @@ pub trait LiveKitProxyBackend: Send + Sync + std::fmt::Debug {
         &self,
         ws_request: LiveKitProxyRequest,
         upstream_socket: PreparedSocket,
-        socket: LiveKitSocketAdapter,
+        socket: Box<dyn LiveKitSocket>,
     ) -> Result<(), ApiError>;
 
     /// Proxies a LiveKit REST validation request to the livekit module
@@ -128,7 +131,7 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
     Ok(ws_upgrade.on_upgrade(move |websocket| async move {
         let socket = LiveKitSocketAdapter::new(websocket);
         if let Err(err) = ctx
-            .connect_downstream_socket(websocket_request, upstream_socket, socket)
+            .connect_downstream_socket(websocket_request, upstream_socket, Box::new(socket))
             .await
         {
             tracing::warn!("failed to accept livekit websocket: {err:?}");
