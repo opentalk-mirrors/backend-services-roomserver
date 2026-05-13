@@ -38,7 +38,7 @@ pub fn routes<B: LiveKitProxyBackend + SignalingBackend + 'static>() -> Router<B
 }
 
 #[async_trait]
-pub trait LiveKitProxyBackend: Clone + Send + Sync + std::fmt::Debug {
+pub trait LiveKitProxyBackend: Send + Sync + std::fmt::Debug {
     async fn connect_upstream_socket(
         &self,
         ws_request: LiveKitProxyRequest,
@@ -122,10 +122,9 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
         .connect_upstream_socket(websocket_request.clone())
         .await?;
 
-    let backend = ctx.clone();
     Ok(ws_upgrade.on_upgrade(move |websocket| async move {
         let socket = LiveKitSocketAdapter::new(websocket);
-        if let Err(err) = backend
+        if let Err(err) = ctx
             .connect_downstream_socket(websocket_request, upstream_socket, socket)
             .await
         {
