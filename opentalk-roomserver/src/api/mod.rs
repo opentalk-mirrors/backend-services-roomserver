@@ -399,6 +399,7 @@ impl LiveKitProxyBackend for Context {
         task_handle
             .accept_livekit_socket(ws_request, upstream_socket, socket)
             .await?;
+
         Ok(())
     }
 
@@ -407,7 +408,7 @@ impl LiveKitProxyBackend for Context {
         room_id: RoomId,
         headers: axum::http::HeaderMap,
         raw_query: Option<String>,
-    ) -> Result<axum::response::Response, ApiError> {
+    ) -> Result<reqwest::Response, ApiError> {
         let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
             return Err(ApiError::not_found());
         };
@@ -423,27 +424,11 @@ impl LiveKitProxyBackend for Context {
             .push("validate");
         livekit_service_url.set_query(raw_query.as_deref());
 
-        let response = reqwest::Client::new()
+        reqwest::Client::new()
             .post(livekit_service_url)
             .headers(headers)
             .send()
             .await
-            .map_err(|_| ApiError::internal())?;
-
-        tracing::trace!("Received validate response: {response:?}");
-
-        let status = axum::http::StatusCode::from_u16(response.status().as_u16())
-            .map_err(|_| ApiError::internal())?;
-        let mut builder = axum::response::Response::builder().status(status);
-
-        for (name, value) in response.headers() {
-            builder = builder.header(name, value);
-        }
-
-        let body = response.bytes().await.map_err(|_| ApiError::internal())?;
-
-        builder
-            .body(axum::body::Body::from(body))
             .map_err(|_| ApiError::internal())
     }
 }

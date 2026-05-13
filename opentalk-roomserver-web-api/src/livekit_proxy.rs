@@ -42,7 +42,7 @@ pub fn routes<B: LiveKitProxyBackend + SignalingBackend + 'static>() -> Router<B
 
 /// A backend for proxying websocket requests between a frontend client and a LiveKit server.
 #[async_trait]
-pub trait LiveKitProxyBackend: Send + Sync + std::fmt::Debug {
+pub trait LiveKitProxyBackend: Send + Sync {
     /// Connect a websocket to the LiveKit server.
     async fn connect_upstream_socket(
         &self,
@@ -63,7 +63,7 @@ pub trait LiveKitProxyBackend: Send + Sync + std::fmt::Debug {
         room_id: RoomId,
         headers: HeaderMap,
         raw_query: Option<String>,
-    ) -> Result<Response, ApiError>;
+    ) -> Result<reqwest::Response, ApiError>;
 }
 
 #[derive(Debug, Deserialize)]
@@ -173,8 +173,25 @@ pub(crate) async fn proxy_validate<B: LiveKitProxyBackend>(
 
     let (room_id, _) = parse_livekit_room_id(&content.claims.video.room)?;
 
-    ctx.proxy_livekit_validate(room_id, headers, raw_query)
-        .await
+    let response = ctx
+        .proxy_livekit_validate(room_id, headers, raw_query)
+        .await?;
+
+    tracing::trace!("Received validate response: {response:?}");
+
+    let status = axum::http::StatusCode::from_u16(response.status().as_u16())
+        .map_err(|_| ApiError::internal())?;
+    let mut builder = axum::response::Response::builder().status(status);
+
+    for (name, value) in response.headers() {
+        builder = builder.header(name, value);
+    }
+
+    let body = response.bytes().await.map_err(|_| ApiError::internal())?;
+
+    builder
+        .body(axum::body::Body::from(body))
+        .map_err(|_| ApiError::internal())
 }
 
 pub fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget), ApiError> {
