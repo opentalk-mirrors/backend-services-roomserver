@@ -67,8 +67,8 @@ pub trait LiveKitProxyBackend: Send + Sync + std::fmt::Debug {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct LiveKitQuery {
-    access_token: Option<String>,
+pub struct LiveKitQuery {
+    pub access_token: Option<String>,
 }
 
 /// Opens a new LiveKit WebSocket connection for RTC communication.
@@ -177,7 +177,7 @@ pub(crate) async fn proxy_validate<B: LiveKitProxyBackend>(
         .await
 }
 
-fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget), ApiError> {
+pub fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget), ApiError> {
     if let Some((room_id, whisper_id)) = livekit_id.split_once(LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER)
     {
         let room_id = RoomId::from_str(room_id).map_err(|err| {
@@ -213,7 +213,9 @@ fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget
     Ok((room_id, LiveKitProxyTarget::LiveKit { room_kind }))
 }
 
-fn parse_livekit_participant(livekit_sub: &str) -> Result<(ParticipantId, ConnectionId), ApiError> {
+pub fn parse_livekit_participant(
+    livekit_sub: &str,
+) -> Result<(ParticipantId, ConnectionId), ApiError> {
     let Some((participant, connection)) = livekit_sub.split_once(':') else {
         tracing::debug!(
             "Failed to parse livekit participant, missing ':' delimiter in {livekit_sub:?}"
