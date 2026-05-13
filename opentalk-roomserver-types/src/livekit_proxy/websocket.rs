@@ -27,6 +27,15 @@ impl From<axum::Error> for Error {
 }
 
 #[cfg(feature = "actix")]
+impl From<actix_ws::ProtocolError> for Error {
+    fn from(value: actix_ws::ProtocolError) -> Self {
+        Self {
+            source: Box::new(value),
+        }
+    }
+}
+
+#[cfg(feature = "actix")]
 impl From<crate::signaling::continuation_buffer::ContinuationError> for Error {
     fn from(value: crate::signaling::continuation_buffer::ContinuationError) -> Self {
         Self {
