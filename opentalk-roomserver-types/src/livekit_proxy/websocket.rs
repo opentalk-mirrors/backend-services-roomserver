@@ -26,6 +26,15 @@ impl From<axum::Error> for Error {
     }
 }
 
+#[cfg(feature = "actix")]
+impl From<crate::signaling::continuation_buffer::ContinuationError> for Error {
+    fn from(value: crate::signaling::continuation_buffer::ContinuationError) -> Self {
+        Self {
+            source: Box::new(value),
+        }
+    }
+}
+
 impl From<PollSendError<LiveKitSocketMessage>> for Error {
     fn from(value: PollSendError<LiveKitSocketMessage>) -> Self {
         Self {
@@ -56,6 +65,16 @@ impl From<axum::extract::ws::CloseFrame> for CloseFrame {
         Self {
             code: value.code,
             reason: value.reason.to_string(),
+        }
+    }
+}
+
+#[cfg(feature = "actix")]
+impl From<actix_ws::CloseReason> for CloseFrame {
+    fn from(value: actix_ws::CloseReason) -> Self {
+        Self {
+            code: value.code.into(),
+            reason: value.description.unwrap_or_default(),
         }
     }
 }
@@ -99,6 +118,42 @@ impl From<axum::extract::ws::Message> for LiveKitSocketMessage {
             Message::Ping(bytes) => LiveKitSocketMessage::Ping(bytes),
             Message::Pong(bytes) => LiveKitSocketMessage::Pong(bytes),
             Message::Close(close_frame) => LiveKitSocketMessage::Close(close_frame.map(Into::into)),
+        }
+    }
+}
+
+#[cfg(feature = "actix")]
+impl From<crate::signaling::continuation_buffer::ContinuationMessage> for LiveKitSocketMessage {
+    fn from(value: crate::signaling::continuation_buffer::ContinuationMessage) -> Self {
+        use crate::signaling::continuation_buffer::ContinuationMessage;
+
+        match value {
+            ContinuationMessage::Text(text) => Self::Text(text),
+            ContinuationMessage::Binary(bytes) => Self::Binary(bytes),
+        }
+    }
+}
+
+#[cfg(feature = "actix")]
+impl LiveKitSocketMessage {
+    pub fn from_actix_message(
+        message: actix_ws::Message,
+        continuation_buffer: &mut crate::signaling::continuation_buffer::ContinuationBuffer,
+    ) -> Option<Result<Self, Error>> {
+        match message {
+            actix_ws::Message::Text(byte_string) => {
+                Some(Ok(LiveKitSocketMessage::Text(byte_string.to_string())))
+            }
+            actix_ws::Message::Binary(bytes) => Some(Ok(LiveKitSocketMessage::Binary(bytes))),
+            actix_ws::Message::Continuation(item) => continuation_buffer
+                .extend(item)
+                .map(|result| result.map(Self::from).map_err(Error::from)),
+            actix_ws::Message::Ping(bytes) => Some(Ok(LiveKitSocketMessage::Ping(bytes))),
+            actix_ws::Message::Pong(bytes) => Some(Ok(LiveKitSocketMessage::Pong(bytes))),
+            actix_ws::Message::Close(close_reason) => Some(Ok(LiveKitSocketMessage::Close(
+                close_reason.map(CloseFrame::from),
+            ))),
+            actix_ws::Message::Nop => None,
         }
     }
 }

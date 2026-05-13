@@ -18,7 +18,7 @@ use opentalk_roomserver_types::{
     LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER,
     breakout::breakout_id::BreakoutId,
     connection_id::ConnectionId,
-    livekit_proxy::{adapter::LiveKitSocketAdapter, websocket::LiveKitSocket},
+    livekit_proxy::{axum::LiveKitSocketAdapter, websocket::LiveKitSocket},
     room_kind::RoomKind,
 };
 use opentalk_types_api_internal::error::ApiError;

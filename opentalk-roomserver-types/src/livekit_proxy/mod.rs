@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+#[cfg(feature = "actix")]
+pub mod actix;
 #[cfg(feature = "axum")]
-pub mod adapter;
+pub mod axum;
 pub mod websocket;
 
 use http::HeaderMap;
