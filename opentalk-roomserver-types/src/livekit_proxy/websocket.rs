@@ -79,6 +79,22 @@ impl From<axum::extract::ws::CloseFrame> for CloseFrame {
 }
 
 #[cfg(feature = "actix")]
+impl From<CloseFrame> for actix_ws::CloseReason {
+    fn from(value: CloseFrame) -> Self {
+        let description = if value.reason.is_empty() {
+            None
+        } else {
+            Some(value.reason)
+        };
+
+        Self {
+            code: value.code.into(),
+            description,
+        }
+    }
+}
+
+#[cfg(feature = "actix")]
 impl From<actix_ws::CloseReason> for CloseFrame {
     fn from(value: actix_ws::CloseReason) -> Self {
         Self {
