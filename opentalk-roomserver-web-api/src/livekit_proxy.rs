@@ -37,13 +37,16 @@ pub fn routes<B: LiveKitProxyBackend + SignalingBackend + 'static>() -> Router<B
     )
 }
 
+/// A backend for proxying websocket requests between a frontend client and a LiveKit server.
 #[async_trait]
 pub trait LiveKitProxyBackend: Send + Sync + std::fmt::Debug {
+    /// Connect a websocket to the LiveKit server.
     async fn connect_upstream_socket(
         &self,
         ws_request: LiveKitProxyRequest,
     ) -> Result<PreparedSocket, ApiError>;
 
+    /// Connect a websocket to the frontend client.
     async fn connect_downstream_socket(
         &self,
         ws_request: LiveKitProxyRequest,
