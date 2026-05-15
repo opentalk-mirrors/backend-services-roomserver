@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.39] - 2026-05-15
+
+[0.0.39]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.38...v0.0.39
+
+### 🚀 New features
+
+- (web-api) Do not require `Clone` for `LiveKitProxyBackend` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (web-api) Abstract livekit websocket adapter in `LiveKitProxyBackend` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (web-api) Expose livekit proxy structs and functions ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (types) Abstract `ContinuationBuffer` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (types) Add actix implementation of `LivekitSocketAdapter` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (types) Implement `From<actix_ws::ProtocolError>` for `websocket::Error` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (types) Implement `From<CloseFrame>` for `actix_ws::CloseReason` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (web-api) Move `axum::Response` out of `LiveKitProxyBackend` trait ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+
+### ⚡ Performance
+
+- (web-api) Cache the reqwest client for livekit proxy validate requests ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+
+### 📚 Documentation
+
+- (web-api) Add doc comments for `LiveKitProxyBackend` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+
+### 🔨 Refactor
+
+- (web-api) Log errors when livekit proxy validate fails ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+
 ## [0.0.38] - 2026-05-11
 
 ### 🚀 New features
