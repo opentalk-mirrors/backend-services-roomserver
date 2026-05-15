@@ -135,6 +135,7 @@ where
         room_tasks: room_registry.clone(),
         token_store: Arc::new(Mutex::new(TokenStore::new())),
         module_registry: Arc::new(module_registry),
+        livekit_proxy_client: reqwest::Client::new(),
         app_state,
     };
 
@@ -228,6 +229,7 @@ pub(crate) struct Context {
     // A list of eligible participants and their join tokens
     token_store: Arc<Mutex<TokenStore<SignalingClientContext>>>,
     module_registry: Arc<ModuleRegistry>,
+    livekit_proxy_client: reqwest::Client,
 
     app_state: watch::Sender<ApplicationState>,
 }
@@ -424,7 +426,7 @@ impl LiveKitProxyBackend for Context {
             .push("validate");
         livekit_service_url.set_query(raw_query.as_deref());
 
-        reqwest::Client::new()
+        self.livekit_proxy_client
             .post(livekit_service_url)
             .headers(headers)
             .send()
@@ -504,6 +506,7 @@ mod test {
             room_tasks: RoomTaskRegistry::new(None),
             token_store: Arc::new(Mutex::new(TokenStore::new())),
             module_registry: Arc::new(ModuleRegistry::new()),
+            livekit_proxy_client: reqwest::Client::new(),
             app_state,
         }
     }
