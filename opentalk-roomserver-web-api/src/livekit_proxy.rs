@@ -179,19 +179,25 @@ pub(crate) async fn proxy_validate<B: LiveKitProxyBackend>(
 
     tracing::trace!("Received validate response: {response:?}");
 
-    let status = axum::http::StatusCode::from_u16(response.status().as_u16())
-        .map_err(|_| ApiError::internal())?;
+    let status = axum::http::StatusCode::from_u16(response.status().as_u16()).map_err(|err| {
+        tracing::error!("Failed to convert status code: {err}");
+        ApiError::internal()
+    })?;
     let mut builder = axum::response::Response::builder().status(status);
 
     for (name, value) in response.headers() {
         builder = builder.header(name, value);
     }
 
-    let body = response.bytes().await.map_err(|_| ApiError::internal())?;
+    let body = response.bytes().await.map_err(|err| {
+        tracing::error!("Failed to convert response body: {err}");
+        ApiError::internal()
+    })?;
 
-    builder
-        .body(axum::body::Body::from(body))
-        .map_err(|_| ApiError::internal())
+    builder.body(axum::body::Body::from(body)).map_err(|err| {
+        tracing::error!("Failed to build response: {err}");
+        ApiError::internal()
+    })
 }
 
 pub fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget), ApiError> {

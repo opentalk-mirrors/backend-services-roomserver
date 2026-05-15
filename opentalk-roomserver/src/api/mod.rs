@@ -431,7 +431,10 @@ impl LiveKitProxyBackend for Context {
             .headers(headers)
             .send()
             .await
-            .map_err(|_| ApiError::internal())
+            .map_err(|err| {
+                tracing::error!("Failed to send validate request to livekit: {err}");
+                ApiError::internal()
+            })
     }
 }
 
