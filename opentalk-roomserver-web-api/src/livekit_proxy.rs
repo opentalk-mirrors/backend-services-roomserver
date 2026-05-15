@@ -15,8 +15,11 @@ pub use opentalk_roomserver_types::livekit_proxy::{
     LiveKitProxyRequest, LiveKitProxyTarget, PreparedSocket,
 };
 use opentalk_roomserver_types::{
-    LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER, breakout::breakout_id::BreakoutId,
-    connection_id::ConnectionId, livekit_proxy::adapter::LiveKitSocketAdapter, room_kind::RoomKind,
+    LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER,
+    breakout::breakout_id::BreakoutId,
+    connection_id::ConnectionId,
+    livekit_proxy::{axum::LiveKitSocketAdapter, websocket::LiveKitSocket},
+    room_kind::RoomKind,
 };
 use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
@@ -37,18 +40,21 @@ pub fn routes<B: LiveKitProxyBackend + SignalingBackend + 'static>() -> Router<B
     )
 }
 
+/// A backend for proxying websocket requests between a frontend client and a LiveKit server.
 #[async_trait]
-pub trait LiveKitProxyBackend: Clone + Send + Sync + std::fmt::Debug {
+pub trait LiveKitProxyBackend: Send + Sync {
+    /// Connect a websocket to the LiveKit server.
     async fn connect_upstream_socket(
         &self,
         ws_request: LiveKitProxyRequest,
     ) -> Result<PreparedSocket, ApiError>;
 
+    /// Connect a websocket to the frontend client.
     async fn connect_downstream_socket(
         &self,
         ws_request: LiveKitProxyRequest,
         upstream_socket: PreparedSocket,
-        socket: LiveKitSocketAdapter,
+        socket: Box<dyn LiveKitSocket>,
     ) -> Result<(), ApiError>;
 
     /// Proxies a LiveKit REST validation request to the livekit module
@@ -57,12 +63,12 @@ pub trait LiveKitProxyBackend: Clone + Send + Sync + std::fmt::Debug {
         room_id: RoomId,
         headers: HeaderMap,
         raw_query: Option<String>,
-    ) -> Result<Response, ApiError>;
+    ) -> Result<reqwest::Response, ApiError>;
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct LiveKitQuery {
-    access_token: Option<String>,
+pub struct LiveKitQuery {
+    pub access_token: Option<String>,
 }
 
 /// Opens a new LiveKit WebSocket connection for RTC communication.
@@ -122,11 +128,10 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
         .connect_upstream_socket(websocket_request.clone())
         .await?;
 
-    let backend = ctx.clone();
     Ok(ws_upgrade.on_upgrade(move |websocket| async move {
         let socket = LiveKitSocketAdapter::new(websocket);
-        if let Err(err) = backend
-            .connect_downstream_socket(websocket_request, upstream_socket, socket)
+        if let Err(err) = ctx
+            .connect_downstream_socket(websocket_request, upstream_socket, Box::new(socket))
             .await
         {
             tracing::warn!("failed to accept livekit websocket: {err:?}");
@@ -168,11 +173,34 @@ pub(crate) async fn proxy_validate<B: LiveKitProxyBackend>(
 
     let (room_id, _) = parse_livekit_room_id(&content.claims.video.room)?;
 
-    ctx.proxy_livekit_validate(room_id, headers, raw_query)
-        .await
+    let response = ctx
+        .proxy_livekit_validate(room_id, headers, raw_query)
+        .await?;
+
+    tracing::trace!("Received validate response: {response:?}");
+
+    let status = axum::http::StatusCode::from_u16(response.status().as_u16()).map_err(|err| {
+        tracing::error!("Failed to convert status code: {err}");
+        ApiError::internal()
+    })?;
+    let mut builder = axum::response::Response::builder().status(status);
+
+    for (name, value) in response.headers() {
+        builder = builder.header(name, value);
+    }
+
+    let body = response.bytes().await.map_err(|err| {
+        tracing::error!("Failed to convert response body: {err}");
+        ApiError::internal()
+    })?;
+
+    builder.body(axum::body::Body::from(body)).map_err(|err| {
+        tracing::error!("Failed to build response: {err}");
+        ApiError::internal()
+    })
 }
 
-fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget), ApiError> {
+pub fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget), ApiError> {
     if let Some((room_id, whisper_id)) = livekit_id.split_once(LIVEKIT_SUBROOM_AUDIO_ROOM_DELIMITER)
     {
         let room_id = RoomId::from_str(room_id).map_err(|err| {
@@ -208,7 +236,9 @@ fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTarget
     Ok((room_id, LiveKitProxyTarget::LiveKit { room_kind }))
 }
 
-fn parse_livekit_participant(livekit_sub: &str) -> Result<(ParticipantId, ConnectionId), ApiError> {
+pub fn parse_livekit_participant(
+    livekit_sub: &str,
+) -> Result<(ParticipantId, ConnectionId), ApiError> {
     let Some((participant, connection)) = livekit_sub.split_once(':') else {
         tracing::debug!(
             "Failed to parse livekit participant, missing ':' delimiter in {livekit_sub:?}"

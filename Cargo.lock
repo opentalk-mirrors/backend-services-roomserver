@@ -7017,6 +7017,7 @@ dependencies = [
  "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "reqwest 0.13.3",
  "serde",
  "tower-http",
  "tracing",

@@ -33,7 +33,7 @@ use opentalk_roomserver_signaling::storage::{
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
     client_parameters::ClientParameters,
-    livekit_proxy::{LiveKitProxyRequest, PreparedSocket, adapter::LiveKitSocketAdapter},
+    livekit_proxy::{LiveKitProxyRequest, PreparedSocket, websocket::LiveKitSocket},
     room_action::RoomAction,
     room_parameters::{self, RoomParameters},
     room_parameters_patch::RoomParametersPatch,
@@ -135,6 +135,7 @@ where
         room_tasks: room_registry.clone(),
         token_store: Arc::new(Mutex::new(TokenStore::new())),
         module_registry: Arc::new(module_registry),
+        livekit_proxy_client: reqwest::Client::new(),
         app_state,
     };
 
@@ -228,6 +229,7 @@ pub(crate) struct Context {
     // A list of eligible participants and their join tokens
     token_store: Arc<Mutex<TokenStore<SignalingClientContext>>>,
     module_registry: Arc<ModuleRegistry>,
+    livekit_proxy_client: reqwest::Client,
 
     app_state: watch::Sender<ApplicationState>,
 }
@@ -390,15 +392,16 @@ impl LiveKitProxyBackend for Context {
         &self,
         ws_request: LiveKitProxyRequest,
         upstream_socket: PreparedSocket,
-        socket: LiveKitSocketAdapter,
+        socket: Box<dyn LiveKitSocket>,
     ) -> Result<(), ApiError> {
         let Some(task_handle) = self.room_tasks.get_task_handle(&ws_request.room_id).await else {
             return Err(ApiError::not_found());
         };
 
         task_handle
-            .accept_livekit_socket(ws_request, upstream_socket, Box::new(socket))
+            .accept_livekit_socket(ws_request, upstream_socket, socket)
             .await?;
+
         Ok(())
     }
 
@@ -407,7 +410,7 @@ impl LiveKitProxyBackend for Context {
         room_id: RoomId,
         headers: axum::http::HeaderMap,
         raw_query: Option<String>,
-    ) -> Result<axum::response::Response, ApiError> {
+    ) -> Result<reqwest::Response, ApiError> {
         let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
             return Err(ApiError::not_found());
         };
@@ -423,28 +426,15 @@ impl LiveKitProxyBackend for Context {
             .push("validate");
         livekit_service_url.set_query(raw_query.as_deref());
 
-        let response = reqwest::Client::new()
+        self.livekit_proxy_client
             .post(livekit_service_url)
             .headers(headers)
             .send()
             .await
-            .map_err(|_| ApiError::internal())?;
-
-        tracing::trace!("Received validate response: {response:?}");
-
-        let status = axum::http::StatusCode::from_u16(response.status().as_u16())
-            .map_err(|_| ApiError::internal())?;
-        let mut builder = axum::response::Response::builder().status(status);
-
-        for (name, value) in response.headers() {
-            builder = builder.header(name, value);
-        }
-
-        let body = response.bytes().await.map_err(|_| ApiError::internal())?;
-
-        builder
-            .body(axum::body::Body::from(body))
-            .map_err(|_| ApiError::internal())
+            .map_err(|err| {
+                tracing::error!("Failed to send validate request to livekit: {err}");
+                ApiError::internal()
+            })
     }
 }
 
@@ -519,6 +509,7 @@ mod test {
             room_tasks: RoomTaskRegistry::new(None),
             token_store: Arc::new(Mutex::new(TokenStore::new())),
             module_registry: Arc::new(ModuleRegistry::new()),
+            livekit_proxy_client: reqwest::Client::new(),
             app_state,
         }
     }

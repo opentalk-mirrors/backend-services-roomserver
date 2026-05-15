@@ -148,6 +148,23 @@ pub struct SignalingSocketItem {
 }
 
 #[cfg(feature = "actix")]
+impl From<super::continuation_buffer::ContinuationMessage> for SignalingSocketItem {
+    fn from(msg: super::continuation_buffer::ContinuationMessage) -> Self {
+        use super::continuation_buffer::ContinuationMessage;
+        match msg {
+            ContinuationMessage::Text(text) => SignalingSocketItem {
+                message: SignalingSocketMessage::Text(text),
+                done: None,
+            },
+            ContinuationMessage::Binary(bytes) => SignalingSocketItem {
+                message: SignalingSocketMessage::Binary(bytes),
+                done: None,
+            },
+        }
+    }
+}
+
+#[cfg(feature = "actix")]
 impl SignalingSocketItem {
     pub fn from_actix_message(
         message: actix_ws::Message,
@@ -155,38 +172,36 @@ impl SignalingSocketItem {
     ) -> Option<Result<Self, Error>> {
         match message {
             actix_ws::Message::Text(byte_string) => {
-                Some(Self::try_from_byte_string(byte_string.into_bytes()).map_err(Into::into))
+                let item = String::from_utf8(byte_string.into_bytes().into())
+                    .map(|text| SignalingSocketItem {
+                        message: SignalingSocketMessage::Text(text),
+                        done: None,
+                    })
+                    .map_err(Error::from);
+
+                Some(item)
             }
-            actix_ws::Message::Binary(bytes) => Some(Ok(SignalingSocketItem {
+            actix_ws::Message::Binary(bytes) => Some(Ok(Self {
                 message: SignalingSocketMessage::Binary(bytes),
                 done: None,
             })),
             actix_ws::Message::Continuation(item) => continuation_buffer
                 .extend(item)
-                .map(|result| result.map_err(Into::into)),
-            actix_ws::Message::Ping(bytes) => Some(Ok(SignalingSocketItem {
+                .map(|result| result.map(Self::from).map_err(Error::from)),
+            actix_ws::Message::Ping(bytes) => Some(Ok(Self {
                 message: SignalingSocketMessage::Ping(bytes),
                 done: None,
             })),
-            actix_ws::Message::Pong(bytes) => Some(Ok(SignalingSocketItem {
+            actix_ws::Message::Pong(bytes) => Some(Ok(Self {
                 message: SignalingSocketMessage::Pong(bytes),
                 done: None,
             })),
-            actix_ws::Message::Close(close_reason) => Some(Ok(SignalingSocketItem {
+            actix_ws::Message::Close(close_reason) => Some(Ok(Self {
                 message: SignalingSocketMessage::Close(close_reason.map(Into::into)),
                 done: None,
             })),
             actix_ws::Message::Nop => None,
         }
-    }
-
-    pub fn try_from_byte_string(
-        bytes: impl Into<Vec<u8>>,
-    ) -> Result<Self, std::string::FromUtf8Error> {
-        String::from_utf8(bytes.into()).map(|message| SignalingSocketItem {
-            message: SignalingSocketMessage::Text(message),
-            done: None,
-        })
     }
 }
 

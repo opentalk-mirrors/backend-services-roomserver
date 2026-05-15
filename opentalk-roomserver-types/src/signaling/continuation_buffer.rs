@@ -6,13 +6,21 @@ use std::string::FromUtf8Error;
 use bytes::{BufMut as _, Bytes, BytesMut};
 use derive_more::{Display, Error};
 
-use crate::signaling::websocket::{SignalingSocketItem, SignalingSocketMessage};
-
 #[cfg(not(test))]
 /// The maximum allowed message size (64MiB)
 const MAX_MESSAGE_SIZE: usize = 64 * 1024 * 1024;
 #[cfg(test)]
 const MAX_MESSAGE_SIZE: usize = 64;
+
+/// The result of a completed WebSocket continuation sequence.
+///
+/// This is a generic intermediate representation that can be converted
+/// into specific message types like `SignalingSocketItem` or `LiveKitSocketMessage`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ContinuationMessage {
+    Text(String),
+    Binary(Bytes),
+}
 
 /// A buffer for handling actix WebSocket message continuations.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -27,13 +35,13 @@ pub enum ContinuationBuffer {
 
 impl ContinuationBuffer {
     /// Extends the buffer with a new [`actix_ws::Item`] and returns the resulting websocket
-    /// message. If the item completes a message, it returns `Some(Ok(SignalingSocketItem))`. If
+    /// message. If the item completes a message, it returns `Some(Ok(ContinuationMessage))`. If
     /// an error occurs, it returns `Some(Err(ContinuationError))` and resets the buffer to empty.
     /// If the item is part of an ongoing message but does not complete it, it returns [`None`].
     pub fn extend(
         &mut self,
         item: actix_ws::Item,
-    ) -> Option<Result<SignalingSocketItem, ContinuationError>> {
+    ) -> Option<Result<ContinuationMessage, ContinuationError>> {
         match self.extend_inner(item) {
             Err(err) => {
                 *self = ContinuationBuffer::Empty;
@@ -46,7 +54,7 @@ impl ContinuationBuffer {
     fn extend_inner(
         &mut self,
         item: actix_ws::Item,
-    ) -> Result<Option<SignalingSocketItem>, ContinuationError> {
+    ) -> Result<Option<ContinuationMessage>, ContinuationError> {
         match (&mut *self, item) {
             (ContinuationBuffer::Empty, actix_ws::Item::FirstText(bytes)) => {
                 let limited_bytes = LimitedBytesMut::new(bytes)?;
@@ -71,18 +79,15 @@ impl ContinuationBuffer {
             (ContinuationBuffer::Text(bytes_mut), actix_ws::Item::Last(bytes)) => {
                 let final_bytes = bytes_mut.put_final(bytes)?;
                 *self = ContinuationBuffer::Empty;
-                let msg = SignalingSocketItem::try_from_byte_string(final_bytes)?;
+                let text = String::from_utf8(final_bytes.into())?;
 
-                Ok(Some(msg))
+                Ok(Some(ContinuationMessage::Text(text)))
             }
             (ContinuationBuffer::Binary(bytes_mut), actix_ws::Item::Last(bytes)) => {
                 let final_bytes = bytes_mut.put_final(bytes)?;
                 *self = ContinuationBuffer::Empty;
 
-                Ok(Some(SignalingSocketItem {
-                    message: SignalingSocketMessage::Binary(final_bytes.into()),
-                    done: None,
-                }))
+                Ok(Some(ContinuationMessage::Binary(final_bytes.into())))
             }
             (ContinuationBuffer::Empty, actix_ws::Item::Last(_))
             | (ContinuationBuffer::Empty, actix_ws::Item::Continue(_))
@@ -161,9 +166,8 @@ mod tests {
     use bytes::Bytes;
     use pretty_assertions::assert_eq;
 
-    use crate::signaling::{
-        continuation_buffer::{ContinuationBuffer, ContinuationError, MAX_MESSAGE_SIZE},
-        websocket::{SignalingSocketItem, SignalingSocketMessage},
+    use crate::signaling::continuation_buffer::{
+        ContinuationBuffer, ContinuationError, ContinuationMessage, MAX_MESSAGE_SIZE,
     };
 
     #[test]
@@ -186,10 +190,7 @@ mod tests {
         let expected_bytes = Bytes::from_iter(0..=8);
         assert!(matches!(
             message,
-            Some(Ok(SignalingSocketItem {
-                message: SignalingSocketMessage::Binary(produced_bytes),
-                done: _
-            })) if produced_bytes == expected_bytes
+            Some(Ok(ContinuationMessage::Binary(produced_bytes))) if produced_bytes == expected_bytes
         ));
 
         assert_eq!(buffer, ContinuationBuffer::Empty);
@@ -215,10 +216,7 @@ mod tests {
         let expected_text = "Hello, World!".to_string();
         assert!(matches!(
             message,
-            Some(Ok(SignalingSocketItem {
-                message: SignalingSocketMessage::Text(produced_text),
-                done: _
-            })) if produced_text == expected_text
+            Some(Ok(ContinuationMessage::Text(produced_text))) if produced_text == expected_text
         ));
 
         assert_eq!(buffer, ContinuationBuffer::Empty);
