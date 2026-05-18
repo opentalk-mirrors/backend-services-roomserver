@@ -21,6 +21,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, Role},
     connection_id::ConnectionId,
+    kick_reason::KickReason,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_types_livekit::{
@@ -29,7 +30,7 @@ use opentalk_roomserver_types_livekit::{
 use opentalk_roomserver_types_moderation::{
     KickScope, MODERATION_MODULE_ID,
     command::ModerationCommand,
-    event::{BannedParticipantInfo, KickReason, ModerationError, ModerationEvent},
+    event::{BannedParticipantInfo, ModerationError, ModerationEvent},
     state::{
         ChangeDisplayNameRestrictionState, ModerationState, ModeratorJoinInfo,
         WaitingParticipantPeerData,
@@ -256,7 +257,7 @@ impl ModerationModule {
                 reason: KickReason::Kicked,
             },
         )?;
-        ctx.kick_participants(Vec::from_iter([target]));
+        ctx.kick_participants(Vec::from_iter([target]), KickReason::Kicked);
 
         Ok(())
     }
@@ -427,7 +428,7 @@ impl ModerationModule {
                 reason: KickReason::Debriefed,
             },
         )?;
-        ctx.kick_participants(kicked);
+        ctx.kick_participants(kicked, KickReason::Debriefed);
 
         Ok(())
     }

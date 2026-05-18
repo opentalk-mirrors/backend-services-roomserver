@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 //! Exposed message types
-use opentalk_roomserver_types::{disconnect_reason::DisconnectReason, signaling::SignalingCommand};
+use opentalk_roomserver_types::{
+    disconnect_reason::DisconnectReason, kick_reason::KickReason, signaling::SignalingCommand,
+};
 use opentalk_types_signaling::ParticipantId;
 
 use super::ConnectionId;
@@ -21,6 +23,9 @@ pub enum CloseReason {
     /// The participant was kicked by a moderator
     Kicked,
 
+    /// The participant was removed from the meeting because debriefing was started
+    Debriefed,
+
     /// The participant was banned from the room
     Banned,
 
@@ -33,8 +38,18 @@ impl From<CloseReason> for DisconnectReason {
             CloseReason::ParticipantClosed => DisconnectReason::Leave,
             CloseReason::ConnectionLost => DisconnectReason::ConnectionLost,
             CloseReason::Kicked => DisconnectReason::Kicked,
+            CloseReason::Debriefed => DisconnectReason::Debriefed,
             CloseReason::Banned => DisconnectReason::Banned,
             CloseReason::InternalError | CloseReason::TaskClosed => DisconnectReason::InternalError,
+        }
+    }
+}
+
+impl From<KickReason> for CloseReason {
+    fn from(value: KickReason) -> Self {
+        match value {
+            KickReason::Kicked => CloseReason::Kicked,
+            KickReason::Debriefed => CloseReason::Debriefed,
         }
     }
 }
