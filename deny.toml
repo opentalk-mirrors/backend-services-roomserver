@@ -47,41 +47,6 @@ ignore = [
 
   # No fixed release available for rsa timing sidechannel yet.
   "RUSTSEC-2023-0071",
-
-  # rustls-pemfile is unmaintained
-  "RUSTSEC-2025-0134",
-
-  # Name constraints for URI names were ignored and therefore accepted
-  #
-  # rustls-webpki v0.101.7
-  # └── rustls v0.21.12
-  #     └── tokio-rustls v0.24.1
-  #         └── livekit-api v0.4.18
-  "RUSTSEC-2026-0098",
-
-  # Permitted subtree name constraints for DNS names were accepted for certificates asserting a wildcard name.
-  #
-  # rustls-webpki v0.101.7
-  # └── rustls v0.21.12
-  #     └── tokio-rustls v0.24.1
-  #         └── livekit-api v0.4.18
-  "RUSTSEC-2026-0099",
-
-  # rustls-webpki 0.101.7
-  #
-  # Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0104
-  # A panic was reachable when parsing certificate revocation lists via [`BorrowedCertRevocationList::from_der`]
-  # or [`OwnedCertRevocationList::from_der`].  This was the result of mishandling a syntactically valid empty
-  # `BIT STRING` appearing in the `onlySomeReasons` element of a `IssuingDistributionPoint` CRL extension.
-  #
-  # This panic is reachable prior to a CRL's signature being verified.
-  #
-  # Applications that do not use CRLs are not affected.
-  #
-  # This version of the rustls-webpki crate is pulled in as a transitive dependency of livekit-api, and so far
-  # no updated version which matches the compatible range is available, so we have to wait until the dependency
-  # tree of livekit-api becomes compatible / updated.
-  "RUSTSEC-2026-0104",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -417,7 +382,6 @@ skip = [
   { name = "linux-raw-sys", version = "0.4" },
   { name = "litemap", version = "0.7" },
   { name = "moxcms", version = "0.7" },
-  { name = "openssl-probe", version = "0.1" },
   { name = "phf", version = "0.12" },
   { name = "phf_shared", version = "0.12" },
   { name = "png", version = "0.17" },
@@ -434,9 +398,6 @@ skip = [
   { name = "reqwest", version = "0.12" },
   { name = "rustc-hash", version = "1" },
   { name = "rustix", version = "0.38" },
-  { name = "rustls", version = "0.21" },
-  { name = "rustls-native-certs", version = "0.6" },
-  { name = "rustls-webpki", version = "0.101" },
   { name = "serde_spanned", version = "0.6" },
   { name = "sha1", version = "0.10" },
   { name = "skrifa", version = "0.37" },
@@ -451,12 +412,9 @@ skip = [
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
   { name = "tinystr", version = "0.7" },
-  { name = "tokio-rustls", version = "0.24" },
-  { name = "tokio-tungstenite", version = "0.20.1" },
   { name = "toml", version = "0.8" },
   { name = "toml_datetime", version = "0.6.11" },
   { name = "toml_edit", version = "0.22" },
-  { name = "tungstenite", version = "0.20" },
   { name = "untrusted", version = "0.7" },
   { name = "winnow", version = "0.7" },
   { name = "writeable", version = "0.5" },
