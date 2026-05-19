@@ -15,6 +15,7 @@ pub mod disconnect_reason;
 pub mod duration_ms;
 pub mod error;
 pub mod join;
+pub mod kick_reason;
 pub mod livekit_proxy;
 pub mod module_settings;
 pub mod public_user_profile;

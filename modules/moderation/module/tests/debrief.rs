@@ -14,12 +14,13 @@ use opentalk_roomserver_types::{
     core::CoreEvent,
     disconnect_reason::DisconnectReason,
     join::join_success::JoinSuccess,
+    kick_reason::KickReason,
     signaling::websocket::{CloseFrame, SignalingSocketMessage},
 };
 use opentalk_roomserver_types_moderation::{
     KickScope,
     command::ModerationCommand,
-    event::{KickReason, ModerationError, ModerationEvent},
+    event::{ModerationError, ModerationEvent},
 };
 use opentalk_types_signaling::ParticipantId;
 
@@ -222,7 +223,7 @@ async fn verify_disconnects(
                     panic!("Received unexpected CoreEvent");
                 };
 
-                assert_eq!(DisconnectReason::Kicked, reason);
+                assert_eq!(DisconnectReason::Debriefed, reason);
                 assert!(expected.contains(&(participant_id, connection_id)));
             }
             Err(ReceiveError::InvalidJson { message, .. }) if expect_self_kick => {

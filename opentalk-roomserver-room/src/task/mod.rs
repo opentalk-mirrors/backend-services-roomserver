@@ -590,7 +590,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         instruction: Instruction,
     ) -> Result<(), FatalError> {
         match instruction {
-            Instruction::Kick { participants } => self.kick_participants(origin, participants),
+            Instruction::Kick {
+                participants,
+                reason,
+            } => self.kick_participants(origin, participants, reason.into()),
             Instruction::Ban { participant } => self.ban_participants(origin, participant),
             Instruction::BanWaiting { participant } => {
                 self.ban_waiting_participants(participant);
@@ -606,6 +609,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         origin: EventOrigin,
         participants: Vec<ParticipantId>,
+        reason: CloseReason,
     ) -> Result<(), FatalError> {
         for participant_id in participants {
             let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
@@ -621,12 +625,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
             let connections: Vec<ConnectionId> = state.connections().collect();
             for connection_id in connections {
-                self.disconnect_participant(
-                    origin,
-                    participant_id,
-                    connection_id,
-                    CloseReason::Kicked,
-                )?;
+                self.disconnect_participant(origin, participant_id, connection_id, reason)?;
             }
         }
         Ok(())

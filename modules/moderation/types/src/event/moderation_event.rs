@@ -4,12 +4,12 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use opentalk_roomserver_types::client_parameters::Role;
+use opentalk_roomserver_types::{client_parameters::Role, kick_reason::KickReason};
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::event::{BannedParticipantInfo, KickReason, ModerationError};
+use crate::event::{BannedParticipantInfo, ModerationError};
 
 /// Events sent out by the `moderation` module
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

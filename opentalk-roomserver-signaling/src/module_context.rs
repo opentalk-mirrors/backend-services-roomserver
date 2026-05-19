@@ -12,6 +12,7 @@ use opentalk_roomserver_types::{
     client_parameters::{ClientKind, Role},
     connection_id::ConnectionId,
     error::{self, SignalingError},
+    kick_reason::KickReason,
     room_kind::RoomKind,
     shared_raw_json::SharedRawJson,
     signaling::module_error::FatalError,
@@ -319,8 +320,11 @@ where
     }
 
     /// Kick the specified participants
-    pub fn kick_participants(&mut self, participants: Vec<ParticipantId>) {
-        let command = ModuleMessage::Instruction(Instruction::Kick { participants });
+    pub fn kick_participants(&mut self, participants: Vec<ParticipantId>, reason: KickReason) {
+        let command = ModuleMessage::Instruction(Instruction::Kick {
+            participants,
+            reason,
+        });
         self.messages.get_mut().push(command);
     }
 
