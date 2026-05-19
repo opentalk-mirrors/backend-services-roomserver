@@ -42,6 +42,8 @@ pub enum ModerationError {
     CannotChangeRoomOwnerRole,
     /// The participant already has the role assigned
     RoleAlreadyAssigned,
+    /// Guests and call-in users can not become moderators
+    UserCannotBeModerator,
     /// The participant is not in the waiting room
     NotWaiting,
     /// The participant cannot enter the room because they were not accepted by a moderator yet.
