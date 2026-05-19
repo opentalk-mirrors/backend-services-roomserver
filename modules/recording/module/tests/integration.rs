@@ -15,6 +15,7 @@ use opentalk_roomserver_types::{
         event::BreakoutEvent,
     },
     core::CoreEvent,
+    disconnect_reason::DisconnectReason,
     join::join_success::JoinSuccess,
     room_kind::RoomKind,
 };
@@ -283,6 +284,24 @@ async fn start_and_stop_recording() {
 
     recorder_update_recording_status(&mut recorder, &mut [&mut alice], RecordingStatus::Inactive)
         .await;
+
+    let recorder_id = recorder.id();
+    let recorder_connection_id = recorder.connection_id();
+    recorder.disconnect().await.unwrap();
+
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert!(matches!(
+        event,
+        CoreEvent::ParticipantDisconnected {
+            participant_id,
+            connection_id,
+            reason
+        } if participant_id == recorder_id
+         && connection_id == recorder_connection_id
+         && reason == DisconnectReason::Leave
+    ));
+
+    assert!(alice.received_nothing());
 }
 
 #[test_log::test(tokio::test)]

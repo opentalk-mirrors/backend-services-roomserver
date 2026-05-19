@@ -788,7 +788,11 @@ impl RecordingModule {
             return Ok(());
         }
 
-        if self.recording_states.remove(&ctx.room).is_some() {
+        if self
+            .recording_states
+            .remove(&ctx.room)
+            .is_some_and(|state| state != RecordingStatus::Inactive)
+        {
             ctx.send_ws_message(
                 ctx.participants.in_room(ctx.room).connected().ids(),
                 RecordingEvent::RecordingUpdated(RecordingStatus::Inactive),
