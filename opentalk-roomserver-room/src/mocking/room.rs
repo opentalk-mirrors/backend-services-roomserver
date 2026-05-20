@@ -27,7 +27,7 @@ use opentalk_roomserver_types::{
     public_user_profile::PublicUserProfile,
     rate_limit::RateLimitSettings,
     room_kind::RoomKind,
-    room_parameters::{EventContext, RoomParameters},
+    room_parameters::{EventContext, RoomParameters, WaitingRoom},
     tariff_details::TariffDetails,
 };
 use opentalk_types_api_internal::module_assets::Quota;
@@ -99,7 +99,7 @@ impl TestRoomBuilder {
             room_parameters: RoomParameters {
                 created_by: alice_public_profile(),
                 password: None,
-                waiting_room: false,
+                waiting_room: WaitingRoom::Disabled,
                 call_in: None,
                 event: None,
                 invite_code: None,
@@ -153,8 +153,8 @@ impl TestRoomBuilder {
         Ok(self)
     }
 
-    pub fn waiting_room(mut self, enabled: bool) -> Self {
-        self.room_parameters.waiting_room = enabled;
+    pub fn waiting_room(mut self, waiting_room: WaitingRoom) -> Self {
+        self.room_parameters.waiting_room = waiting_room;
         self
     }
 

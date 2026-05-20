@@ -15,6 +15,7 @@ use opentalk_roomserver_types::{
     disconnect_reason::DisconnectReason,
     join::join_success::JoinSuccess,
     kick_reason::KickReason,
+    room_parameters::WaitingRoom,
     signaling::websocket::{CloseFrame, SignalingSocketMessage},
 };
 use opentalk_roomserver_types_moderation::{
@@ -62,13 +63,28 @@ async fn debrief_all() {
 
     // Everyone receives the waiting room enabled event
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     let event = gustav.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     // Everyone gets kicked
     let expected = BTreeSet::from_iter([
@@ -119,13 +135,28 @@ async fn debrief_users_and_guests() {
 
     // Everyone receives the waiting room enabled event
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     let event = gustav.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     // Alice does not get kicked, because she is a moderator
     let expected = BTreeSet::from_iter([
@@ -179,13 +210,28 @@ async fn debrief_guests() {
 
     // Everyone receives the waiting room enabled event
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForGuests
+        }
+    );
 
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForGuests
+        }
+    );
 
     let event = gustav.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(event.payload, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event.payload,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForGuests
+        }
+    );
 
     // Alice does not get kicked, because she isn't a guest
     let expected = BTreeSet::from_iter([(gustav.id(), gustav.connection_id())]);

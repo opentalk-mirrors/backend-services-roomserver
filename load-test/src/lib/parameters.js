@@ -20,7 +20,7 @@ export function createRoomParameter(rateLimit, userId) {
       timezone: 'Europe/Berlin',
     },
     password: null,
-    waiting_room: false,
+    waiting_room: 'disabled',
     call_in: null,
     event: null,
     invite_code: null,

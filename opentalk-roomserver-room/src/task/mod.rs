@@ -924,9 +924,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return Ok(());
         }
 
-        let join_waiting_room = self.info.room.waiting_room
+        let join_waiting_room = self
+            .info
+            .room
+            .waiting_room
+            .applies_to(&client_parameters.kind)
             && !role.is_moderator()
-            && !client_parameters.kind.is_service()
             && self
                 .participants
                 .all_unfiltered

@@ -12,6 +12,7 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     core::{CoreCommand, CoreEvent, LeftWaitingRoom},
     disconnect_reason::DisconnectReason,
+    room_parameters::WaitingRoom,
 };
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
@@ -24,7 +25,7 @@ use opentalk_types_signaling::ParticipantId;
 async fn join_info() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .spawn();
     let bob_0 = room.waiting_room_bob(0).await;
     let bob_1 = room.waiting_room_bob(1).await;
@@ -38,7 +39,7 @@ async fn join_info() {
         .expect("Module data must not be none")
         .moderator_data
         .expect("Moderator data must be present");
-    assert!(moderator_data.waiting_room_enabled);
+    assert_eq!(moderator_data.waiting_room, WaitingRoom::ForEveryone);
 
     let waiting_bob = &moderator_data.waiting_room_participants[0];
     assert_matches!(
@@ -116,7 +117,7 @@ async fn accept_participant(
 async fn join_via_waiting_room() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let charlie = room.waiting_room_charlie(0).await;
@@ -256,7 +257,7 @@ async fn join_via_waiting_room() {
 #[test_log::test(tokio::test)]
 async fn accept_unknown_participant() {
     let mut room = TestRoom::builder()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .register_module::<ModerationModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
@@ -288,7 +289,7 @@ async fn accept_unknown_participant() {
 async fn moderators_skip_waiting_room() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .spawn();
     room.join_alice_moderator(0).await;
 }
@@ -302,7 +303,7 @@ async fn moderators_skip_waiting_room() {
 async fn registered_users_once_accepted_always_skip() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
@@ -331,7 +332,7 @@ async fn registered_users_once_accepted_always_skip() {
 async fn guest_users_once_accepted_always_skip() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForGuests)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
@@ -359,7 +360,7 @@ async fn guest_users_once_accepted_always_skip() {
 async fn event_when_leaving_waiting_room() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
@@ -373,14 +374,19 @@ async fn event_when_leaving_waiting_room() {
 }
 
 #[test_log::test(tokio::test)]
-async fn enable_waiting_room() {
+async fn enable_waiting_room_for_everyone() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
     alice
-        .send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeWaitingRoomState {
+                new_state: WaitingRoom::ForEveryone,
+            },
+            None,
+        )
         .await
         .unwrap();
 
@@ -389,14 +395,120 @@ async fn enable_waiting_room() {
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     // Sending the command again produces the same event
     alice
-        .send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeWaitingRoomState {
+                new_state: WaitingRoom::ForEveryone,
+            },
+            None,
+        )
         .await
         .unwrap();
-    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn enable_waiting_room_for_guests() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeWaitingRoomState {
+                new_state: WaitingRoom::ForGuests,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForGuests
+        }
+    );
+
+    // Sending the command again produces the same event
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeWaitingRoomState {
+                new_state: WaitingRoom::ForGuests,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForGuests
+        }
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn waiting_room_already_in_state() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(WaitingRoom::Disabled)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice disables the waiting room, even tough it already is disabled
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeWaitingRoomState {
+                new_state: WaitingRoom::Disabled,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice is notified that the waiting room has the desired state
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::Disabled
+        }
+    );
+
+    // Bob does not get notified because the waiting room state did not actually change
+    assert!(bob.received_nothing());
 }
 
 #[test_log::test(tokio::test)]
@@ -407,9 +519,14 @@ async fn enable_waiting_room_insufficient_permissions() {
     let mut bob = room.join_bob(0).await;
 
     // Bob tries to enable the waiting room
-    bob.send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
-        .await
-        .unwrap();
+    bob.send_command::<ModerationModule>(
+        ModerationCommand::ChangeWaitingRoomState {
+            new_state: WaitingRoom::ForEveryone,
+        },
+        None,
+    )
+    .await
+    .unwrap();
 
     let event = bob
         .receive_event::<ModerationModule>()
@@ -428,12 +545,17 @@ async fn enable_waiting_room_insufficient_permissions() {
 async fn disable_waiting_room() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
     alice
-        .send_command::<ModerationModule>(ModerationCommand::DisableWaitingRoom, None)
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeWaitingRoomState {
+                new_state: WaitingRoom::Disabled,
+            },
+            None,
+        )
         .await
         .unwrap();
 
@@ -442,7 +564,12 @@ async fn disable_waiting_room() {
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ModerationEvent::WaitingRoomDisabled);
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::Disabled
+        }
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -456,7 +583,12 @@ async fn disable_waiting_room_insufficient_permissions() {
 
     // Alice enables the waiting room
     alice
-        .send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeWaitingRoomState {
+                new_state: WaitingRoom::ForEveryone,
+            },
+            None,
+        )
         .await
         .unwrap();
 
@@ -466,7 +598,12 @@ async fn disable_waiting_room_insufficient_permissions() {
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     // Bob receives the waiting room enabled event
     let event = bob
@@ -474,12 +611,22 @@ async fn disable_waiting_room_insufficient_permissions() {
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     // Bob tries to disable the waiting room
-    bob.send_command::<ModerationModule>(ModerationCommand::DisableWaitingRoom, None)
-        .await
-        .unwrap();
+    bob.send_command::<ModerationModule>(
+        ModerationCommand::ChangeWaitingRoomState {
+            new_state: WaitingRoom::Disabled,
+        },
+        None,
+    )
+    .await
+    .unwrap();
     let event = bob
         .receive_event::<ModerationModule>()
         .await
@@ -503,7 +650,12 @@ async fn send_to_waiting_room_insufficient_permissions() {
     flush_connected_events(&mut [&mut alice]).await;
 
     alice
-        .send_command::<ModerationModule>(ModerationCommand::EnableWaitingRoom, None)
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeWaitingRoomState {
+                new_state: WaitingRoom::ForEveryone,
+            },
+            None,
+        )
         .await
         .unwrap();
 
@@ -512,14 +664,24 @@ async fn send_to_waiting_room_insufficient_permissions() {
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     let event = bob
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     bob.send_command::<ModerationModule>(
         ModerationCommand::SendToWaitingRoom { target: alice.id() },
@@ -572,7 +734,7 @@ async fn cannot_send_owner_to_waiting_room() {
 async fn send_to_waiting_room() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
-        .waiting_room(false) // waiting room is enabled automatically by move
+        .waiting_room(WaitingRoom::Disabled) // waiting room is enabled automatically by move
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
@@ -593,14 +755,24 @@ async fn send_to_waiting_room() {
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     let event = bob
         .receive_event::<ModerationModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ModerationEvent::WaitingRoomEnabled);
+    assert_eq!(
+        event,
+        ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::ForEveryone
+        }
+    );
 
     // Alice receives the ParticipantDisconnected and JoinedWaitingRoom events
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;

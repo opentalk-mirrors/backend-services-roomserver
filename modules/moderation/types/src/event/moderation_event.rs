@@ -4,7 +4,9 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use opentalk_roomserver_types::{client_parameters::Role, kick_reason::KickReason};
+use opentalk_roomserver_types::{
+    client_parameters::Role, kick_reason::KickReason, room_parameters::WaitingRoom,
+};
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
@@ -44,11 +46,11 @@ pub enum ModerationEvent {
         issued_by: ParticipantId,
     },
 
-    /// Sent out when the waiting room is enabled
-    WaitingRoomEnabled,
-
-    /// Sent out when the waiting room is disabled
-    WaitingRoomDisabled,
+    /// Sent when the waiting room state changed
+    WaitingRoomUpdated {
+        /// The new state of the waiting room
+        new_state: WaitingRoom,
+    },
 
     /// Sent to a participant that is moved to the waiting room
     SentToWaitingRoom,
@@ -239,6 +241,35 @@ mod tests {
 
         let expected = ModerationEvent::DebriefingStarted {
             issued_by: ParticipantId::nil(),
+        };
+        let produced = serde_json::from_value(json).unwrap();
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_waiting_room_updated() {
+        let event = ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::Disabled,
+        };
+
+        assert_snapshot!(serde_json::to_string_pretty(&event).unwrap(), @r#"
+        {
+          "message": "waiting_room_updated",
+          "new_state": "disabled"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_waiting_room_updated() {
+        let json = json!({
+           "message": "waiting_room_updated",
+           "new_state": "disabled",
+        });
+
+        let expected = ModerationEvent::WaitingRoomUpdated {
+            new_state: WaitingRoom::Disabled,
         };
         let produced = serde_json::from_value(json).unwrap();
 

@@ -486,6 +486,7 @@ mod test {
         client_parameters::{ClientKind, Role},
         module_settings::ModuleSettings,
         public_user_profile::PublicUserProfile,
+        room_parameters::WaitingRoom,
         tariff_details::TariffDetails,
     };
     use opentalk_service_auth::{ApiKey, service::ApiKeys};
@@ -578,7 +579,7 @@ mod test {
         RoomParameters {
             created_by: PublicUserProfile::example_data(),
             password: None,
-            waiting_room: false,
+            waiting_room: WaitingRoom::Disabled,
             call_in: None,
             event: None,
             invite_code: None,
