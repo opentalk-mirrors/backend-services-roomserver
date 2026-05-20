@@ -122,6 +122,64 @@ async fn unknown_participant() {
 }
 
 #[test_log::test(tokio::test)]
+async fn user_cannot_be_moderator() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut gustav = room.join_gustav_guest().await;
+    flush_connected_events(&mut [&mut alice]).await;
+    let richard = room.join_richard_registered_callin(0).await;
+    flush_connected_events(&mut [&mut alice, &mut gustav]).await;
+
+    // Alice tries to change the role of Gustav to a moderator
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: gustav.id(),
+                new_role: Role::Moderator,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives an error because guests cannot be moderators
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::UserCannotBeModerator)
+    );
+
+    // Alice tries to change the role of Richard to a moderator
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: richard.id(),
+                new_role: Role::Moderator,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives an error because call-in users cannot be moderators
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::UserCannotBeModerator)
+    );
+}
+
+#[test_log::test(tokio::test)]
 async fn change_role_to_moderator() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()

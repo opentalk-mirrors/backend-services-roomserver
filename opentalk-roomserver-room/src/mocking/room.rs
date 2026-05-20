@@ -329,6 +329,16 @@ impl TestRoom {
         MockParticipantJoining::gustav().join(self).await.unwrap()
     }
 
+    pub async fn join_richard_registered_callin(
+        &mut self,
+        device_number: usize,
+    ) -> MockParticipantJoined {
+        MockParticipantJoining::richard_registered_callin(device_number)
+            .join(self)
+            .await
+            .unwrap()
+    }
+
     pub async fn join_recorder(
         &mut self,
         room_kind: RoomKind,

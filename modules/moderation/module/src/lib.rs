@@ -380,6 +380,10 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
+        if !target_state.kind.is_registered_non_callin_user() {
+            return Err(ModerationError::UserCannotBeModerator.into());
+        }
+
         if target_state.role == new_role {
             return Err(ModerationError::RoleAlreadyAssigned.into());
         }
