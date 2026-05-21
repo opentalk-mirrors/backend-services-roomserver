@@ -11,6 +11,32 @@
   hyphenate: true,
 )
 
+// Helper that allows long mixed-alphanumeric tokens (e.g. "Room42Guest", user
+// names or titles containing digits) to wrap. Typst's hyphenator only runs on
+// tokens made entirely of letters from the active language; as soon as a
+// digit (or other non-letter) appears, the whole token becomes unbreakable
+// and overflows narrow table cells.
+//
+// The local show-rule below matches a run of digits together with an
+// optional adjacent letter on each side, and re-emits the characters joined
+// by a zero-width space (U+200B). The ZWSP is invisible but provides a legal
+// line-break opportunity, and it also splits the token into pure-letter
+// substrings that the hyphenator can then process normally.
+//
+// Matching the digit run as a whole (rather than just a letter/digit pair)
+// is important: regex matches are non-overlapping, so for a token like
+// "Foo1Bar" a pair-based regex would only fire on "o1" and miss the "1B"
+// boundary. We can't use look-around either, because Typst's regex engine
+// (Rust's `regex` crate) doesn't support it.
+//
+// The transformation is scoped to this helper (rather than applied
+// document-wide) so that fixed strings used by tests are not modified;
+// only the user-supplied fields that we explicitly wrap below are affected.
+#let wrappable(s) = {
+  show regex("\p{L}?\d+\p{L}?"): it => it.text.clusters().join("\u{200B}")
+  s
+}
+
 #let data = json("data.json")
 
 #set-database(eval(load-ftl-data("./l10n", data.available_languages)))
@@ -29,21 +55,21 @@
 #let metadata_table_content = (
   (
     linguify("title"),
-    data.summary.title,
+    wrappable(data.summary.title),
   ),
 )
 
 #if "subtitle" in data.summary {
   metadata_table_content.push((
     linguify("subtitle"),
-    data.summary.subtitle,
+    wrappable(data.summary.subtitle),
   ))
 }
 
 #if "topic" in data.summary {
   metadata_table_content.push((
     linguify("topic"),
-    data.summary.topic,
+    wrappable(data.summary.topic),
   ))
 }
 
@@ -54,7 +80,7 @@
 
 #metadata_table_content.push((
   linguify("referendum_leader"),
-  data.summary.creator,
+  wrappable(data.summary.creator),
 ))
 
 #metadata_table_content.push((
@@ -197,7 +223,7 @@
   ..for vote in data.votes {
     (
       if "name" in vote [
-        #vote.name
+        #wrappable(vote.name)
       ] else {
         linguify("hidden")
       },
@@ -224,7 +250,7 @@
   ..for event in data.events {
     (
       if "name" in event.event_details [
-        #event.event_details.name
+        #wrappable(event.event_details.name)
       ] else {
         linguify("anonymous")
       },
@@ -246,7 +272,7 @@
           }
 
           if "description" in event.event_details [
-            #issue: #event.event_details.description
+            #issue: #wrappable(event.event_details.description)
           ] else [
             #issue
           ]
