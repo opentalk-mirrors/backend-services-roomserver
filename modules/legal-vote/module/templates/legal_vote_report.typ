@@ -17,11 +17,12 @@
 // digit (or other non-letter) appears, the whole token becomes unbreakable
 // and overflows narrow table cells.
 //
-// The local show-rule below matches a run of digits together with an
-// optional adjacent letter on each side, and re-emits the characters joined
-// by a zero-width space (U+200B). The ZWSP is invisible but provides a legal
-// line-break opportunity, and it also splits the token into pure-letter
-// substrings that the hyphenator can then process normally.
+// The helper performs a string-level `str.replace`: it matches a run of
+// digits together with an optional adjacent letter on each side, and
+// re-emits the characters joined by a zero-width space (U+200B). The ZWSP
+// is invisible but provides a legal line-break opportunity, and it also
+// splits the token into pure-letter substrings that the hyphenator can then
+// process normally.
 //
 // Matching the digit run as a whole (rather than just a letter/digit pair)
 // is important: regex matches are non-overlapping, so for a token like
@@ -29,12 +30,19 @@
 // boundary. We can't use look-around either, because Typst's regex engine
 // (Rust's `regex` crate) doesn't support it.
 //
-// The transformation is scoped to this helper (rather than applied
-// document-wide) so that fixed strings used by tests are not modified;
-// only the user-supplied fields that we explicitly wrap below are affected.
-#let wrappable(s) = {
-  show regex("\p{L}?\d+\p{L}?"): it => it.text.clusters().join("\u{200B}")
-  s
+// We use `str.replace` rather than a `show regex(...)` rule for two
+// reasons: the helper returns a `str`, which is auto-promoted to content
+// in markup contexts, and crucially can still be passed as a scalar to
+// plugins (`linguify(args: ...)` forwards values to Fluent, which rejects
+// content). The transformation is scoped to this helper (rather than
+// applied document-wide) so that fixed strings used by tests are not
+// modified; only the user-supplied fields that we explicitly wrap below
+// are affected.
+#let wrappable(s) = if s == none { none } else {
+  s.replace(
+    regex("\p{L}?\d+\p{L}?"),
+    m => m.text.clusters().join("\u{200B}"),
+  )
 }
 
 #let data = json("data.json")
@@ -140,7 +148,7 @@
 #metadata_table_content.push((
   linguify("vote_ended_due_to"),
   if data.summary.stop_reason.kind == "by_user" {
-    linguify("user_ended_the_vote", args: (user: data.summary.stop_reason.user))
+    linguify("user_ended_the_vote", args: (user: wrappable(data.summary.stop_reason.user)))
   } else if data.summary.stop_reason.kind == "auto" {
     linguify("all_users_voted")
   } else if data.summary.stop_reason.kind == "expired" {
@@ -151,7 +159,7 @@
     } else if data.summary.stop_reason.reason == "initiator_left" {
       linguify("aborted_by_vote_initiator_leaving")
     } else if data.summary.stop_reason.reason == "custom" {
-      linguify("aborted_for_custom_reason", args: (reason: data.summary.stop_reason.custom))
+      linguify("aborted_for_custom_reason", args: (reason: wrappable(data.summary.stop_reason.custom)))
     } else {
       linguify("aborted_for_unknown_reason")
     }
@@ -167,7 +175,7 @@
 
 #table(
   stroke: none,
-  columns: 2,
+  columns: (auto, 1fr),
   ..for (name, content) in metadata_table_content {
     ([*#name*:], [#content])
   }
@@ -216,7 +224,7 @@
 #set table.hline(stroke: 0.5pt + rgb("bfbfbf"))
 #table(
   stroke: none,
-  columns: (auto, auto, auto, 1fr),
+  columns: (1fr, auto, auto, auto),
   table.header([*#linguify("name")*], [*#linguify("token")*], [*#linguify("vote")*], [*#linguify("timestamp")*]),
   table.hline(y: 0),
   table.hline(y: 1),
@@ -243,7 +251,7 @@
 #set table.hline(stroke: 0.5pt + rgb("bfbfbf"))
 #table(
   stroke: none,
-  columns: (auto, auto, 1fr),
+  columns: (1fr, auto, 1fr),
   table.header([*#linguify("name")*], [*#linguify("timestamp")*], [*#linguify("event")*]),
   table.hline(y: 0),
   table.hline(y: 1),
