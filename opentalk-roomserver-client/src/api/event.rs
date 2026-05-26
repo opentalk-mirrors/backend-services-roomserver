@@ -34,6 +34,7 @@ pub use {
     opentalk_roomserver_types_livekit::{
         Credentials, LIVEKIT_MODULE_ID, LiveKitError, LiveKitEvent, LiveKitState,
     },
+    opentalk_roomserver_types_reaction::{REACTION_MODULE_ID, ReactionEvent},
     opentalk_roomserver_types_shared_folder::{
         event::SharedFolder,
         {SHARED_FOLDER_MODULE_ID, event::SharedFolderEvent},
@@ -84,6 +85,7 @@ pub enum SignalingModuleEvent {
     TrainingParticipationReport(TrainingParticipationReportEvent),
     Recording(RecordingEvent),
     Transcription(TranscriptionEvent),
+    Reaction(ReactionEvent),
 }
 
 impl SignalingModuleEvent {
@@ -111,6 +113,7 @@ impl SignalingModuleEvent {
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
             Self::Recording(..) => RECORDING_MODULE_ID,
             Self::Transcription(..) => TRANSCRIPTION_MODULE_ID,
+            Self::Reaction(..) => REACTION_MODULE_ID,
         }
     }
 }
@@ -143,6 +146,7 @@ mod tests {
         event::PollsEvent,
     };
     use opentalk_roomserver_types_raise_hands::event::RaiseHandsEvent;
+    use opentalk_roomserver_types_reaction::ReactionEvent;
     use opentalk_roomserver_types_subroom_audio::{
         WhisperId,
         event::SubroomAudioEvent,
@@ -687,6 +691,32 @@ mod tests {
           "payload": {
             "message": "state_updated",
             "status": "running"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_event_reaction() {
+        let event = SignalingEvent {
+            transaction_id: None,
+            timestamp: Timestamp::unix_epoch(),
+            payload: SignalingModuleEvent::Reaction(ReactionEvent::Reacted {
+                participant_id: ParticipantId::nil(),
+                reaction: opentalk_roomserver_types_reaction::Reaction::ThumbsUp,
+            }),
+        };
+
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "timestamp": "1970-01-01T00:00:00Z",
+          "namespace": "reaction",
+          "payload": {
+            "message": "reacted",
+            "participant_id": "00000000-0000-0000-0000-000000000000",
+            "reaction": "thumbs_up"
           }
         }
         "#);

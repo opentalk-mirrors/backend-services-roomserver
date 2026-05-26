@@ -6113,6 +6113,7 @@ dependencies = [
  "opentalk-roomserver-types-moderation",
  "opentalk-roomserver-types-polls",
  "opentalk-roomserver-types-raise-hands",
+ "opentalk-roomserver-types-reaction",
  "opentalk-roomserver-types-recording",
  "opentalk-roomserver-types-shared-folder",
  "opentalk-roomserver-types-subroom-audio",
@@ -6465,6 +6466,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-roomserver-module-reaction"
+version = "0.0.40-alpha"
+dependencies = [
+ "anyhow",
+ "opentalk-roomserver-room",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-roomserver-types-reaction",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "test-log",
+ "tokio",
+]
+
+[[package]]
 name = "opentalk-roomserver-module-recording"
 version = "0.0.40-alpha"
 dependencies = [
@@ -6627,6 +6644,7 @@ dependencies = [
  "opentalk-roomserver-module-moderation",
  "opentalk-roomserver-module-polls",
  "opentalk-roomserver-module-raise-hands",
+ "opentalk-roomserver-module-reaction",
  "opentalk-roomserver-module-recording",
  "opentalk-roomserver-module-shared-folder",
  "opentalk-roomserver-module-subroom-audio",
@@ -6926,6 +6944,20 @@ dependencies = [
 
 [[package]]
 name = "opentalk-roomserver-types-raise-hands"
+version = "0.0.40-alpha"
+dependencies = [
+ "insta",
+ "opentalk-roomserver-signaling",
+ "opentalk-roomserver-types",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "opentalk-roomserver-types-reaction"
 version = "0.0.40-alpha"
 dependencies = [
  "insta",

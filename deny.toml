@@ -163,6 +163,9 @@ exceptions = [
   ], name = "opentalk-roomserver-module-raise-hands" },
   { allow = [
     "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-reaction" },
+  { allow = [
+    "EUPL-1.2",
   ], name = "opentalk-roomserver-module-recording" },
   { allow = [
     "EUPL-1.2",
@@ -233,6 +236,9 @@ exceptions = [
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-raise-hands" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-reaction" },
   { allow = [
     "EUPL-1.2",
   ], name = "opentalk-roomserver-types-recording" },
