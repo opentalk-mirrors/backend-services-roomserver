@@ -130,9 +130,9 @@ opentalk-orchestrator-client = { version = "0.8", features = [
 opentalk-report-generation = "0.2"
 opentalk-transcription-web-api = "0.1"
 opentalk-version = "0.4.0"
-opentelemetry = "0.31.0"
-opentelemetry-otlp = { version = "0.31.0", features = ["grpc-tonic"] }
-opentelemetry_sdk = { version = "0.31.0", features = [
+opentelemetry = "0.32.0"
+opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic"] }
+opentelemetry_sdk = { version = "0.32.0", features = [
   "rt-tokio-current-thread",
 ] }
 owo-colors = "4.3"
@@ -169,7 +169,7 @@ toml = "1.0"
 tower = "0.5"
 tower-http = "0.6.2"
 tracing = "0.1"
-tracing-opentelemetry = "0.32.0"
+tracing-opentelemetry = "0.33.0"
 tracing-subscriber = { version = "0.3", features = [
   "env-filter",
   "parking_lot",

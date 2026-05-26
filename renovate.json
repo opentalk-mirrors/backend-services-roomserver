@@ -43,6 +43,13 @@
       ],
       "groupName": "tungstenite",
       "groupSlug": "tungstenite"
+    },
+    {
+      "matchPackagePatterns": [
+        "*opentelemetry*"
+      ],
+      "groupName": "opentelemetry",
+      "groupSlug": "opentelemetry"
     }
   ]
 }
