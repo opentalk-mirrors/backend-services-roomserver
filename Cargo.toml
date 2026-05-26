@@ -124,7 +124,7 @@ livekit-protocol = "0.7"
 log = "0.4.22"
 mockito = "1.7.0"
 opentalk-etherpad-client = { version = "0.6", default-features = false }
-opentalk-orchestrator-client = { version = "0.7", features = [
+opentalk-orchestrator-client = { version = "0.8", features = [
   "roomserver-service",
 ] }
 opentalk-report-generation = "0.2"

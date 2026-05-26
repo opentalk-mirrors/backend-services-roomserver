@@ -5996,9 +5996,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-orchestrator-client"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b45b9b5775a197a7a91c49c980dfa2cc5794d5cf749bf5b7379add8958e6456e"
+checksum = "c1b64aab1be5a70dcd07cb6fc42265e00d09a81b9f1cf272cbe1b80f92dfaf92"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6016,9 +6016,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-orchestrator-shared"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a11b000a5861e356923ffec4386a1e1e9d18e906b98bed15f8b83954f7dfcbcd"
+checksum = "1189c1e75f99493bffef5b49eeb39bc8180fcac9ec687760b050476116721761"
 dependencies = [
  "opentalk-service-auth",
  "opentalk-types-common",
