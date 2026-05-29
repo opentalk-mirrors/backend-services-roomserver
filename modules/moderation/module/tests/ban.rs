@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::assert_matches;
+
 use http::StatusCode;
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
@@ -46,24 +48,24 @@ async fn join_info() {
 
     // Alice receives the disconnect event
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::ParticipantDisconnected {
             participant_id,
             reason,
             ..
         } if participant_id == bob.id() && reason == DisconnectReason::Banned,
-    ));
+    );
 
     // Alice receives the event that a bob got banned
     let event = alice.receive::<ModerationEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         ModerationEvent::ParticipantBanned(BannedParticipantInfo {
             participant_id,
             banned_participant
         }) if participant_id == bob.id() && &banned_participant.display_name == bob.display_name()
-    ));
+    );
 
     alice.disconnect().await.unwrap();
 
@@ -227,24 +229,24 @@ async fn ban_participant() {
 
     // Alice receives the disconnect event
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::ParticipantDisconnected {
             participant_id,
             reason,
             ..
         } if participant_id == bob.id() && reason == DisconnectReason::Banned,
-    ));
+    );
 
     // Alice receives the event that a bob got banned
     let event = alice.receive::<ModerationEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         ModerationEvent::ParticipantBanned(BannedParticipantInfo {
             participant_id,
             banned_participant
         }) if participant_id == bob.id() && &banned_participant.display_name == bob.display_name()
-    ));
+    );
 
     let error = room
         .room_handle
@@ -284,16 +286,16 @@ async fn ban_waiting_participant() {
     // Alice receives the disconnect event
     let event = alice.receive::<CoreEvent>().await.unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::LeftWaitingRoom(LeftWaitingRoom { id, connection_id })
         if id == bob.id() &&
         connection_id == bob.connection_id()
-    ));
+    );
 
     // Alice receives the event that a bob got banned
     let event = alice.receive::<ModerationEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         ModerationEvent::ParticipantBanned(BannedParticipantInfo {
             participant_id,
@@ -302,7 +304,7 @@ async fn ban_waiting_participant() {
         if participant_id == bob.id()
         // Can't get display name from bob because he never joined
         && banned_participant.display_name == DisplayName::from_str_lossy("Bob the bold")
-    ));
+    );
 
     let error = room
         .room_handle

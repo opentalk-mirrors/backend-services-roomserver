@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::assert_matches;
+
 use http::StatusCode;
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
@@ -96,29 +98,29 @@ async fn unban_participant() {
 
     // Alice receives the disconnect event
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::ParticipantDisconnected {
             participant_id,
             reason,
             ..
         } if participant_id == bob.id() && reason == DisconnectReason::Banned,
-    ));
+    );
 
     // Frank also receives the disconnected event
     let frank_event = frank.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         frank_event.payload,
         CoreEvent::ParticipantDisconnected {
             participant_id,
             reason,
             ..
         } if participant_id == bob.id() && reason == DisconnectReason::Banned,
-    ));
+    );
 
     // Alice receives the event that bob got banned
     let event = alice.receive::<ModerationEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         &event.payload,
         ModerationEvent::ParticipantBanned(BannedParticipantInfo {
             participant_id,
@@ -126,7 +128,7 @@ async fn unban_participant() {
         })
         if participant_id == &bob.id() &&
         & banned_participant.display_name == bob.display_name()
-    ));
+    );
 
     // Frank receives the same `ParticipantBanned` event
     let frank_event = frank.receive::<ModerationEvent>().await.unwrap();

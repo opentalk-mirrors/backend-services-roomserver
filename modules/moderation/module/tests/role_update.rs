@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::assert_matches;
+
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_module_shared_folder::SharedFolderModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
@@ -218,7 +220,7 @@ async fn change_role_to_moderator() {
         .await
         .unwrap();
     let event = bob.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::ParticipantDisconnected {
             participant_id,
@@ -227,7 +229,7 @@ async fn change_role_to_moderator() {
         }
         if participant_id == dave.id() &&
         reason == DisconnectReason::Banned
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]

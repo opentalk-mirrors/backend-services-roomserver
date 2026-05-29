@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::assert_matches;
+
 use opentalk_roomserver_module_automod::AutomodModule;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::{
@@ -732,7 +734,7 @@ async fn livekit_invalid_select() {
             },
         )
         .await;
-    assert!(matches!(event, BreakoutEvent::Started { .. }));
+    assert_matches!(event, BreakoutEvent::Started { .. });
 
     // Bob switches to breakout room 0
     bob.switch_breakout_room(&mut [&mut alice], RoomKind::Breakout(BreakoutId::from(0)))
@@ -939,11 +941,11 @@ async fn livekit_join_auto_append() {
     );
 
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         CoreEvent::ParticipantConnected { participant_id, connection_id, .. }
             if participant_id == bob.id() && connection_id == bob.connection_id()
-    ));
+    );
 
     // Bob was appended to the `remaining` list
     let event = alice
@@ -1048,11 +1050,11 @@ async fn livekit_join_no_auto_append() {
     );
 
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         CoreEvent::ParticipantConnected { participant_id, connection_id, .. }
             if participant_id == bob.id() && connection_id == bob.connection_id()
-    ));
+    );
 
     // Bob is not appended to the `remaining` list
     assert!(alice.received_nothing());
@@ -1079,7 +1081,7 @@ async fn livekit_breakout_room() {
         )
         .await;
 
-    assert!(matches!(event, BreakoutEvent::Started { .. }));
+    assert_matches!(event, BreakoutEvent::Started { .. });
 
     alice
         .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(BreakoutId::from(0)))
@@ -1656,11 +1658,11 @@ async fn livekit_selection_strategy_random() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         AutomodEvent::SpeakerUpdated { speaker, .. }
             if speaker == Some(alice.id()) || speaker == Some(bob.id())
-    ));
+    );
 
     // Selecting none is allowed
     alice
@@ -1672,10 +1674,7 @@ async fn livekit_selection_strategy_random() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
-        event,
-        AutomodEvent::SpeakerUpdated { speaker: None, .. }
-    ));
+    assert_matches!(event, AutomodEvent::SpeakerUpdated { speaker: None, .. });
 
     // Selecting a random participant is allowed
     alice
@@ -1688,11 +1687,11 @@ async fn livekit_selection_strategy_random() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         AutomodEvent::SpeakerUpdated { speaker, .. }
             if speaker == Some(alice.id()) || speaker == Some(bob.id())
-    ));
+    );
 
     // Selecting next is allowed
     alice

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use std::{
+    assert_matches,
     collections::{BTreeMap, BTreeSet},
     str::FromStr,
 };
@@ -100,12 +101,12 @@ async fn room_task_time_limit() {
     let mut alice = room.join_alice_moderator(0).await;
 
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         CoreEvent::Closing {
             reason: RoomCloseReason::TimeLimitReached
         }
-    ));
+    );
 
     let close_frame = alice.receive_close_frame().await.unwrap();
     assert_eq!(
@@ -156,7 +157,7 @@ async fn exceeding_rate_limit_sends_slow_down() {
         .unwrap();
 
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom)));
+    assert_matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom));
 
     // Second command should trigger slow down
     alice
@@ -170,5 +171,5 @@ async fn exceeding_rate_limit_sends_slow_down() {
 
     // Alice receives the actual response to her command afterwards
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom)));
+    assert_matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom));
 }

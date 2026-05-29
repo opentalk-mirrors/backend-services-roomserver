@@ -56,6 +56,8 @@ pub fn select_random<R: Rng>(session: &mut Session, rng: &mut R) -> SpeakerSelec
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
+
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::{assert_eq, assert_ne};
     use rand::{SeedableRng, rngs::StdRng};
@@ -91,10 +93,10 @@ mod test {
         );
 
         // === SELECT FIRST
-        assert!(matches!(
+        assert_matches!(
             select_random(&mut session, &mut rng),
             SpeakerSelectionOutput::ContinueWith { .. }
-        ));
+        );
 
         let history: Vec<ParticipantId> = session.participant_history().collect();
         let first = session.speaker.unwrap();
@@ -102,10 +104,10 @@ mod test {
         assert_eq!(history, vec![first]);
 
         // === SELECT SECOND
-        assert!(matches!(
+        assert_matches!(
             select_random(&mut session, &mut rng),
             SpeakerSelectionOutput::ContinueWith { .. }
-        ));
+        );
 
         let second = session.speaker.unwrap();
 
@@ -120,10 +122,10 @@ mod test {
         );
 
         // === SELECT THIRD
-        assert!(matches!(
+        assert_matches!(
             select_random(&mut session, &mut rng),
             SpeakerSelectionOutput::ContinueWith { .. }
-        ));
+        );
 
         let third = session.speaker.unwrap();
 
@@ -157,10 +159,10 @@ mod test {
             vec![p1, p2, p3],
         );
 
-        assert!(matches!(
+        assert_matches!(
             select_random(&mut session, &mut rng),
             SpeakerSelectionOutput::ContinueWith { .. }
-        ));
+        );
 
         let speaker = session.speaker.unwrap();
 
@@ -199,10 +201,10 @@ mod test {
         });
 
         // === SELECT FIRST
-        assert!(matches!(
+        assert_matches!(
             select_random(&mut session, &mut rng),
             SpeakerSelectionOutput::ContinueWith { .. }
-        ));
+        );
 
         let speaker = session.speaker.unwrap();
 
@@ -210,10 +212,10 @@ mod test {
         assert_eq!(session.remaining, vec![p1, p2]);
 
         // === SELECT SECOND
-        assert!(matches!(
+        assert_matches!(
             select_random(&mut session, &mut rng),
             SpeakerSelectionOutput::ContinueWith { .. }
-        ));
+        );
 
         let speaker = session.speaker.unwrap();
 
@@ -221,10 +223,10 @@ mod test {
         assert_eq!(session.remaining, vec![p1]);
 
         // === SELECT THIRD
-        assert!(matches!(
+        assert_matches!(
             select_random(&mut session, &mut rng),
             SpeakerSelectionOutput::ContinueWith { .. }
-        ));
+        );
 
         let speaker = session.speaker.unwrap();
 
@@ -232,10 +234,10 @@ mod test {
         assert_eq!(session.remaining, vec![]);
 
         // === SELECT LAST MUST BE NONE
-        assert!(matches!(
+        assert_matches!(
             select_random(&mut session, &mut rng),
             SpeakerSelectionOutput::End
-        ));
+        );
     }
 
     /// Test random selection when selection_strategy is Random and reselection is allowed
@@ -273,10 +275,10 @@ mod test {
         let mut selected = Vec::new();
 
         for _ in 0..4 {
-            assert!(matches!(
+            assert_matches!(
                 select_random(&mut session, &mut rng),
                 SpeakerSelectionOutput::ContinueWith { .. }
-            ));
+            );
 
             let speaker = session.speaker.unwrap();
 

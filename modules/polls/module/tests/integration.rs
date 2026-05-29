@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::BTreeSet, iter, time::Duration};
+use std::{assert_matches, collections::BTreeSet, iter, time::Duration};
 
 use opentalk_roomserver_module_polls::PollsModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
@@ -43,10 +43,10 @@ async fn can_not_start_second_poll() {
         .unwrap();
 
     // Poll is started successfully
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started { .. }
-    ));
+    );
 
     // Alice tries to start a second poll
     alice
@@ -116,10 +116,10 @@ async fn can_not_start_poll_with_invalid_duration() {
         .await
         .unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidDuration { .. })
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -142,10 +142,10 @@ async fn can_not_start_poll_with_invalid_topic_length() {
         .await
         .unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidTopicLength { .. })
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -168,10 +168,10 @@ async fn can_not_start_polls_with_invalid_choice_count() {
         .await
         .unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidChoiceCount { .. })
-    ));
+    );
 
     // Alice tries to start a poll with too many choices
     alice
@@ -188,10 +188,10 @@ async fn can_not_start_polls_with_invalid_choice_count() {
         .await
         .unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidChoiceCount { .. })
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -214,10 +214,10 @@ async fn can_not_start_poll_with_invalid_option_length() {
         .await
         .unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Error(Error::InvalidChoiceDescriptionLength { .. })
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -260,10 +260,10 @@ async fn can_not_vote_on_wrong_poll() {
         .unwrap();
 
     // Poll started successfully
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started { .. }
-    ));
+    );
 
     // Alice tries to vote on a different poll
     alice
@@ -435,10 +435,10 @@ async fn can_not_finish_poll_with_invalid_id() {
         .unwrap();
 
     // Poll is started successfully
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started { .. }
-    ));
+    );
 
     alice
         .send_command::<PollsModule>(
@@ -484,10 +484,10 @@ async fn receiving_live_update_when_enabled() {
         unreachable!("Poll did not start");
     };
 
-    assert!(matches!(
+    assert_matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started { .. }
-    ));
+    );
 
     // Alice votes
     alice
@@ -553,10 +553,10 @@ async fn not_receiving_live_update_when_disabled() {
         unreachable!("Poll did not start");
     };
 
-    assert!(matches!(
+    assert_matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started { .. }
-    ));
+    );
 
     // Alice votes
     alice
@@ -605,10 +605,10 @@ async fn single_choice_poll() {
         unreachable!("Poll did not start");
     };
 
-    assert!(matches!(
+    assert_matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started { .. }
-    ));
+    );
 
     // Alice votes
     alice
@@ -695,10 +695,10 @@ async fn multiple_choice_poll() {
         unreachable!("Poll did not start");
     };
 
-    assert!(matches!(
+    assert_matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started { .. }
-    ));
+    );
 
     // Alice votes for both options
     alice
@@ -860,24 +860,24 @@ async fn polls_expire() {
         .unwrap();
 
     // Alice and Bob receive the started event
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started { .. }
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Started { .. }
-    ));
+    );
 
     // Alice and Bob receive the done event
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Done(..)
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         bob.receive_event::<PollsModule>().await.unwrap().payload,
         PollsEvent::Done(..)
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]

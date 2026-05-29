@@ -477,7 +477,7 @@ impl UserBackend for Context {
 
 #[cfg(test)]
 mod test {
-    use std::{borrow::Cow, sync::Arc, time::Duration};
+    use std::{assert_matches, borrow::Cow, sync::Arc, time::Duration};
 
     use axum::http::StatusCode;
     use icu_locid::langid;
@@ -614,7 +614,7 @@ mod test {
             .request_room_token(RoomId::nil(), client_parameters1(), None)
             .await;
 
-        assert!(matches!(
+        assert_matches!(
             token,
             Err(ApiError {
                 status: StatusCode::UNPROCESSABLE_ENTITY,
@@ -624,7 +624,7 @@ mod test {
                 },
                 ..
             })
-        ));
+        );
 
         let token = ctx
             .request_room_token(RoomId::nil(), client_parameters1(), Some(room_parameters()))

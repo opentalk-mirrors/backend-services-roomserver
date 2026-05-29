@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{str::FromStr, time::Duration};
+use std::{assert_matches, str::FromStr, time::Duration};
 
 use futures::channel::oneshot::{self, Canceled};
 use opentalk_roomserver_signaling::{
@@ -219,10 +219,10 @@ impl MockParticipantJoined {
             .unwrap();
 
         for p in others {
-            assert!(matches!(
+            assert_matches!(
                 p.receive::<BreakoutEvent>().await.unwrap().payload,
                 BreakoutEvent::Started { .. },
-            ));
+            );
         }
 
         self.receive::<BreakoutEvent>().await.unwrap().payload
@@ -248,7 +248,7 @@ impl MockParticipantJoined {
         }
 
         let event = self.receive::<BreakoutEvent>().await.unwrap().payload;
-        assert!(matches!(event, BreakoutEvent::SwitchedRoom { .. }));
+        assert_matches!(event, BreakoutEvent::SwitchedRoom { .. });
         event
     }
 

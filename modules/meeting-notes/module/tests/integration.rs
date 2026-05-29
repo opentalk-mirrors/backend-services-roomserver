@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::BTreeSet, time::Duration};
+use std::{assert_matches, collections::BTreeSet, time::Duration};
 
 use opentalk_roomserver_module_meeting_notes::MeetingNotesModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
@@ -589,10 +589,7 @@ async fn grant_access() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
-        event,
-        MeetingNotesEvent::ReadAccessReceived { .. }
-    ));
+    assert_matches!(event, MeetingNotesEvent::ReadAccessReceived { .. });
 
     // Alice selects Bob as a writer too
     alice
@@ -1020,10 +1017,7 @@ async fn switch_breakout_room() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
-        event,
-        MeetingNotesEvent::ReadAccessReceived { .. }
-    ));
+    assert_matches!(event, MeetingNotesEvent::ReadAccessReceived { .. });
 
     // Alice and Frank receive the AccessChanged event because they are moderators
     let event = alice

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::assert_matches;
+
 use axum::{Json, routing::post};
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_module_transcription::TranscriptionModule;
@@ -576,11 +578,11 @@ async fn unexpected_service_disconnect() {
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::ParticipantDisconnected {
             participant_id,
             ..
         } if participant_id == transcription_participant_id
-    ),);
+    );
 }

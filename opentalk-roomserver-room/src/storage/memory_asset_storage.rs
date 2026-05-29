@@ -96,6 +96,8 @@ impl AssetStorageProvider for MemoryAssetStorage {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
+
     use anyhow::anyhow;
     use futures::{StreamExt, stream};
     use opentalk_roomserver_signaling::storage::{
@@ -183,7 +185,7 @@ mod test {
             .upload_asset(asset.boxed(), name, &storage_context)
             .await;
 
-        assert!(matches!(produced, Err(StorageError::QuotaExceeded)));
+        assert_matches!(produced, Err(StorageError::QuotaExceeded));
     }
 
     #[tokio::test]
@@ -218,6 +220,6 @@ mod test {
             .upload_asset(asset.boxed(), name, &storage_context)
             .await;
 
-        assert!(matches!(uploaded, Err(StorageError::ReadAsset(_))));
+        assert_matches!(uploaded, Err(StorageError::ReadAsset(_)));
     }
 }

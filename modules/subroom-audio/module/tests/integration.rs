@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::assert_matches;
+
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_subroom_audio::SubroomAudioModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
@@ -116,23 +118,23 @@ async fn livekit_accept_and_leave_whisper_group() {
         _ => panic!("Expected WhisperToken event, got {:?}", token_event),
     }
 
-    assert!(matches!(
+    assert_matches!(
         alice
             .receive_event::<SubroomAudioModule>()
             .await
             .unwrap()
             .payload,
         SubroomAudioEvent::WhisperGroupCreated { .. }
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         alice
             .receive_event::<SubroomAudioModule>()
             .await
             .unwrap()
             .payload,
         SubroomAudioEvent::WhisperInviteAccepted { .. }
-    ));
+    );
 
     // Bob leaves the whisper group
     bob.send_command::<SubroomAudioModule>(
@@ -334,13 +336,13 @@ async fn livekit_cannot_accept_whisper_invite_twice() {
     .await
     .unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         bob.receive_event::<SubroomAudioModule>()
             .await
             .unwrap()
             .payload,
         SubroomAudioEvent::WhisperToken { .. }
-    ));
+    );
 
     // Bob tries to accept again
     bob.send_command::<SubroomAudioModule>(

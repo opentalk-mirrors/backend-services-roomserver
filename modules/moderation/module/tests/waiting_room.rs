@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::BTreeSet;
+use std::{assert_matches, collections::BTreeSet};
 
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::{
@@ -41,11 +41,11 @@ async fn join_info() {
     assert!(moderator_data.waiting_room_enabled);
 
     let waiting_bob = &moderator_data.waiting_room_participants[0];
-    assert!(matches!(
-        waiting_bob,
-        WaitingParticipantPeerData { participant_id, accepted, .. }
+    assert_matches!(
+       waiting_bob,
+       WaitingParticipantPeerData { participant_id, accepted, .. }
             if *participant_id == bob_0.id() && !accepted
-    ));
+    );
 
     assert_eq!(
         waiting_bob
@@ -85,21 +85,21 @@ async fn accept_participant(
     let mut joinee = joinee.enter_room().await.unwrap();
 
     let event = moderator.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::LeftWaitingRoom(
             LeftWaitingRoom { id, connection_id }
         ) if joinee.id() == id && joinee.connection_id() == connection_id
-    ));
+    );
     let event = moderator.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::ParticipantConnected {
             participant_id,
             connection_id,
             ..
             } if participant_id == joinee.id() && connection_id == joinee.connection_id()
-    ));
+    );
     assert!(moderator.received_nothing());
     assert!(joinee.received_nothing());
     joinee
@@ -122,10 +122,10 @@ async fn join_via_waiting_room() {
     let charlie = room.waiting_room_charlie(0).await;
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == charlie.id()
-    ));
+    );
     let mut charlie = accept_participant(&mut alice, charlie).await;
 
     let mut bob_0 = room.waiting_room_bob(0).await;
@@ -198,12 +198,12 @@ async fn join_via_waiting_room() {
     let bob_1 = bob_1.join_success().await.unwrap();
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::LeftWaitingRoom(
             LeftWaitingRoom { id, connection_id }
         ) if bob_0.id() == id && bob_0.connection_id() == connection_id
-    ));
+    );
     // charlie should only receive the JoinedEvent, which will be checked next.
 
     async fn receive_joined_events(
@@ -308,24 +308,18 @@ async fn registered_users_once_accepted_always_skip() {
 
     let bob = room.waiting_room_bob(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == bob.id()
-    ));
+    );
     let bob = accept_participant(&mut alice, bob).await;
 
     bob.disconnect().await.unwrap();
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::ParticipantDisconnected { .. }
-    ));
+    assert_matches!(event.payload, CoreEvent::ParticipantDisconnected { .. });
     room.join_bob(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    assert_matches!(event.payload, CoreEvent::ParticipantConnected { .. });
 }
 
 /// 1. Spawn room with activated waiting room
@@ -343,24 +337,18 @@ async fn guest_users_once_accepted_always_skip() {
 
     let gustav = room.waiting_room_gustav_guest().await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == gustav.id()
-    ));
+    );
     let gustav = accept_participant(&mut alice, gustav).await;
 
     gustav.disconnect().await.unwrap();
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::ParticipantDisconnected { .. }
-    ));
+    assert_matches!(event.payload, CoreEvent::ParticipantDisconnected { .. });
     room.join_gustav_guest().await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    assert_matches!(event.payload, CoreEvent::ParticipantConnected { .. });
 }
 
 /// 1. Spawn room with activated waiting room
@@ -377,11 +365,11 @@ async fn event_when_leaving_waiting_room() {
 
     let bob = room.waiting_room_bob(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. }));
+    assert_matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. });
 
     bob.disconnect().await.unwrap();
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.payload, CoreEvent::LeftWaitingRoom(..)));
+    assert_matches!(event.payload, CoreEvent::LeftWaitingRoom(..));
 }
 
 #[test_log::test(tokio::test)]
@@ -616,14 +604,14 @@ async fn send_to_waiting_room() {
 
     // Alice receives the ParticipantDisconnected and JoinedWaitingRoom events
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         CoreEvent::ParticipantDisconnected {
             participant_id,
             connection_id,
             reason,
         } if participant_id == bob.id() && connection_id == bob.connection_id() && reason == DisconnectReason::SentToWaitingRoom
-    ));
+    );
 
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
     let CoreEvent::JoinedWaitingRoom {
@@ -657,22 +645,22 @@ async fn send_to_waiting_room() {
     let bob_1 = room.join_bob(1).await;
 
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         CoreEvent::ParticipantConnected {
             participant_id,
             connection_id,
             ..
         } if participant_id == bob_1.id() && connection_id == bob_1.connection_id()
-    ));
+    );
 
     let event = bob_0.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         CoreEvent::ParticipantConnected {
             participant_id,
             connection_id,
             ..
         } if participant_id == bob_1.id() && connection_id == bob_1.connection_id()
-    ));
+    );
 }

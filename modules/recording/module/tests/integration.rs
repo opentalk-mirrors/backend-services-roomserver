@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::assert_matches;
+
 use axum::{Json, routing::post};
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_module_recording::RecordingModule;
@@ -290,16 +292,14 @@ async fn start_and_stop_recording() {
     recorder.disconnect().await.unwrap();
 
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(
-        event,
-        CoreEvent::ParticipantDisconnected {
+    assert_matches!(event, CoreEvent::ParticipantDisconnected {
             participant_id,
             connection_id,
             reason
         } if participant_id == recorder_id
          && connection_id == recorder_connection_id
          && reason == DisconnectReason::Leave
-    ));
+    );
 
     assert!(alice.received_nothing());
 }

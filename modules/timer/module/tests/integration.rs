@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::assert_matches;
+
 use opentalk_roomserver_module_timer::TimerModule;
 use opentalk_roomserver_room::mocking::{
     participant::MockParticipantJoined,
@@ -40,10 +42,10 @@ async fn start_timer(
     .await
     .unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         user.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
-    ));
+    );
 }
 
 /// if ready state is enabled, it should be part of the join success information
@@ -61,7 +63,7 @@ async fn ready_state_is_part_of_join_success() {
         .get::<TimerState>()
         .expect("deserialization must work")
         .expect("state must be set");
-    assert!(matches!(
+    assert_matches!(
         state,
         TimerState {
             config: TimerConfig {
@@ -72,7 +74,7 @@ async fn ready_state_is_part_of_join_success() {
             ready_status: Some(false),
             ..
         }
-    ));
+    );
 
     let bob = room.join_bob(0).await;
     let join_success = bob.join_success();
@@ -81,7 +83,7 @@ async fn ready_state_is_part_of_join_success() {
         .get::<TimerState>()
         .expect("deserialization must work")
         .expect("state must be set");
-    assert!(matches!(
+    assert_matches!(
         state,
         TimerState {
             config: TimerConfig {
@@ -92,7 +94,7 @@ async fn ready_state_is_part_of_join_success() {
             ready_status: Some(false),
             ..
         }
-    ));
+    );
 
     let charlie_state_for_bob = join_success
         .participants
@@ -168,25 +170,25 @@ async fn all_participants_receive_timer_events() {
 
     start_timer(&mut alice, Kind::Stopwatch, None, None, false).await;
 
-    assert!(matches!(
+    assert_matches!(
         bob.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
-    ));
+    );
 
     alice
         .send_command::<TimerModule>(TimerCommand::Stop { reason: None }, None)
         .await
         .unwrap();
 
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(..)
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         bob.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(..)
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -203,13 +205,13 @@ async fn exceed_timer() {
     )
     .await;
 
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(Stopped {
             kind: StopKind::Expired,
             ..
         })
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -281,10 +283,10 @@ async fn update_ready_status() {
 
     start_timer(&mut alice, Kind::Stopwatch, None, None, true).await;
 
-    assert!(matches!(
+    assert_matches!(
         bob.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Started { .. }
-    ));
+    );
 
     bob.send_command::<TimerModule>(TimerCommand::UpdateReadyStatus { status: true }, None)
         .await
@@ -387,13 +389,13 @@ async fn breakout_room_scope() {
     )
     .await;
 
-    assert!(matches!(
+    assert_matches!(
         alice.receive_event::<TimerModule>().await.unwrap().payload,
         TimerEvent::Stopped(Stopped {
             kind: StopKind::Expired,
             ..
         })
-    ));
+    );
 
     // Bob doesn't
     assert!(bob.received_nothing());
@@ -462,11 +464,11 @@ async fn breakout_room_ready_state() {
     };
 
     let state = own_data.get::<TimerState>().unwrap();
-    assert!(matches!(
+    assert_matches!(
         state,
         Some(TimerState {
             ready_status: Some(true),
             ..
         })
-    ));
+    );
 }

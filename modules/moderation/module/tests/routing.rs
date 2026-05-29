@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::assert_matches;
+
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::{
     mock_module::{MockCommand, MockEvent, MockModule},
@@ -26,7 +28,7 @@ async fn waiting_participants_dont_receive_messages() {
     let mut bob = room.waiting_room_bob(0).await;
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. }));
+    assert_matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. });
 
     // Chat message is used as an arbitrary command that should not be sent to
     // waiting participants
@@ -35,7 +37,7 @@ async fn waiting_participants_dont_receive_messages() {
         .await
         .unwrap();
     let event = alice.receive_event::<MockModule>().await.unwrap();
-    assert!(matches!(event.payload, MockEvent::Success));
+    assert_matches!(event.payload, MockEvent::Success);
 
     // Bob should not receive the event
     assert!(bob.received_nothing());
@@ -53,11 +55,11 @@ async fn waiting_participants_dont_receive_broadcasts() {
 
     let mut bob = room.waiting_room_bob(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. }));
+    assert_matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. });
 
     let mut charlie = room.waiting_room_charlie(0).await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. }));
+    assert_matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. });
 
     alice
         .send_command::<ModerationModule>(
@@ -94,13 +96,10 @@ async fn waiting_participants_dont_receive_broadcasts() {
     let mut charlie = charlie.join_success().await.unwrap();
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(event.payload, CoreEvent::LeftWaitingRoom { .. }));
+    assert_matches!(event.payload, CoreEvent::LeftWaitingRoom { .. });
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    assert_matches!(event.payload, CoreEvent::ParticipantConnected { .. });
 
     assert!(bob.received_nothing());
 
@@ -120,20 +119,17 @@ async fn waiting_participants_dont_receive_broadcasts() {
         .unwrap();
 
     let event = alice.receive::<BreakoutEvent>().await.unwrap();
-    assert!(matches!(event.payload, BreakoutEvent::Started { .. }));
+    assert_matches!(event.payload, BreakoutEvent::Started { .. });
 
     let event = charlie.receive::<BreakoutEvent>().await.unwrap();
-    assert!(matches!(event.payload, BreakoutEvent::Started { .. }));
+    assert_matches!(event.payload, BreakoutEvent::Started { .. });
 
     assert!(bob.received_nothing());
 
     charlie.disconnect().await.unwrap();
 
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::ParticipantDisconnected { .. }
-    ));
+    assert_matches!(event.payload, CoreEvent::ParticipantDisconnected { .. });
 
     assert!(bob.received_nothing());
 }

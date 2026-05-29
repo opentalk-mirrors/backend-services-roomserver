@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::str::FromStr;
+use std::{assert_matches, str::FromStr};
 
 use insta::assert_json_snapshot;
 use opentalk_roomserver_room::{
@@ -206,7 +206,7 @@ async fn already_in_room() {
         .unwrap();
 
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
-    assert!(matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom)));
+    assert_matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom));
 }
 
 #[test_log::test(tokio::test)]

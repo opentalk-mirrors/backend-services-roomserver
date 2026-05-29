@@ -400,6 +400,8 @@ impl ScopedRouter {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_types::signaling::websocket::{
@@ -438,9 +440,7 @@ mod tests {
             .unwrap();
 
         let received = router.recv().await;
-        assert!(matches!(
-            received,
-            MessageEnvelope {
+        assert_matches!(received, MessageEnvelope {
                 participant_id,
                 connection_id,
                 message: SignalingMessage::Closed(
@@ -448,7 +448,7 @@ mod tests {
                 ),
                 ..
             } if participant_id == p1_id && connection_id == connection
-        ));
+        );
 
         let event = SignalingEvent {
             namespace: module_id!("echo"),

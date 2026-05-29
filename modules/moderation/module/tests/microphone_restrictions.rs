@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::BTreeSet;
+use std::{assert_matches, collections::BTreeSet};
 
 use livekit::{RoomEvent, RoomOptions};
 use opentalk_roomserver_module_moderation::ModerationModule;
@@ -50,7 +50,7 @@ async fn livekit_microphones_are_restricted() {
     .await
     .unwrap();
     let connected = room_events.recv().await;
-    assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
+    assert_matches!(connected, Some(RoomEvent::Connected { .. }));
     // Bob should be able to publish audio
     mocking::publish_audio(&bob_room, &mut room_events)
         .await
@@ -124,7 +124,7 @@ async fn livekit_permissions_are_updated() {
     .await
     .unwrap();
     let connected = room_events.recv().await;
-    assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
+    assert_matches!(connected, Some(RoomEvent::Connected { .. }));
     // Bob should be able to publish audio
     mocking::publish_audio(&bob_room, &mut room_events)
         .await
@@ -257,7 +257,7 @@ async fn livekit_disable_unknown_participant() {
         .await
         .unwrap();
         let connected = room_events.recv().await;
-        assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
+        assert_matches!(connected, Some(RoomEvent::Connected { .. }));
         // Bob should be able to publish audio
         mocking::publish_audio(&bob_room, &mut room_events)
             .await
@@ -401,7 +401,7 @@ async fn livekit_alice_in_breakout_bob_in_main() {
     .await
     .unwrap();
     let connected = room_events.recv().await;
-    assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
+    assert_matches!(connected, Some(RoomEvent::Connected { .. }));
     // Bob should be able to publish audio
     mocking::publish_audio(&bob_room, &mut room_events)
         .await
@@ -480,7 +480,7 @@ async fn livekit_alice_and_bob_in_breakout() {
     .await
     .unwrap();
     let connected = room_events.recv().await;
-    assert!(matches!(connected, Some(RoomEvent::Connected { .. })));
+    assert_matches!(connected, Some(RoomEvent::Connected { .. }));
     // Bob should be able to publish audio
     mocking::publish_audio(&bob_room, &mut room_events)
         .await

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::num::NonZero;
+use std::{assert_matches, num::NonZero};
 
 use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_room::mocking::{
@@ -1266,7 +1266,7 @@ async fn fill_messages(
             .await
             .unwrap();
         let event = sender.receive_event::<ChatModule>().await.unwrap().payload;
-        assert!(matches!(event, ChatEvent::MessageSent { .. }));
+        assert_matches!(event, ChatEvent::MessageSent { .. });
 
         // Messages must be received because otherwise the channel fills up and
         // builds back pressure on the sender of the sending participant.
@@ -1388,7 +1388,7 @@ async fn breakout_chat_history_on_join() {
         .unwrap();
 
     let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
-    assert!(matches!(event, ChatEvent::MessageSent { .. }));
+    assert_matches!(event, ChatEvent::MessageSent { .. });
 
     let alice_id = alice.id();
     alice.disconnect().await.unwrap();
@@ -1429,10 +1429,10 @@ async fn invalid_search_term_length() {
         .unwrap();
 
     let event = alice.receive_event::<ChatModule>().await.unwrap().payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         ChatEvent::Error(ChatError::InvalidSearchTermLength { .. })
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -1760,7 +1760,7 @@ async fn rate_limit_slow_down() {
         .await
         .unwrap();
         let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
-        assert!(matches!(event, ChatEvent::MessageSent { .. }));
+        assert_matches!(event, ChatEvent::MessageSent { .. });
     }
 
     // The 6th message triggers the slow down event
@@ -1774,11 +1774,11 @@ async fn rate_limit_slow_down() {
     .await
     .unwrap();
     let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
-    assert!(matches!(event, ChatEvent::SlowDown { .. }));
+    assert_matches!(event, ChatEvent::SlowDown { .. });
 
     // The message is still sent
     let event = bob.receive_event::<ChatModule>().await.unwrap().payload;
-    assert!(matches!(event, ChatEvent::MessageSent { .. }));
+    assert_matches!(event, ChatEvent::MessageSent { .. });
 
     assert!(bob.received_nothing());
 }

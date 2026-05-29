@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::assert_matches;
+
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{
@@ -197,14 +199,14 @@ async fn kick_participant() {
 
     // Alice receives the disconnect event
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
+    assert_matches!(
         event.payload,
         CoreEvent::ParticipantDisconnected {
             participant_id,
             reason,
             ..
         } if participant_id == bob.id() && reason == DisconnectReason::Kicked,
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]

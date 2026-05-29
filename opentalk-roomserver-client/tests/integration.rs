@@ -5,7 +5,7 @@
 // container to reflect the latest API. Running them in the CI would require building such a
 // container before the tests, otherwise changes to the roomserver API could break the tests.
 
-use std::str::FromStr;
+use std::{assert_matches, str::FromStr};
 
 use opentalk_roomserver_client::{
     ApiError, Client, Error, PostStorageQuotaError, RequestTokenError,
@@ -78,9 +78,9 @@ async fn post_storage_quota_not_found() {
     };
 
     let err = client.post_storage_quota(user_id, quota).await.unwrap_err();
-    assert!(matches!(err, Error::ApiError(ApiError {
+    assert_matches!(err, Error::ApiError(ApiError {
             code, ..
-        }) if code == PostStorageQuotaError::NotFound));
+        }) if code == PostStorageQuotaError::NotFound);
 }
 
 #[test_log::test(tokio::test)]

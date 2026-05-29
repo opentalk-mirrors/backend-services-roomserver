@@ -160,7 +160,7 @@ impl From<LimitedBytesMut> for Bytes {
 
 #[cfg(test)]
 mod tests {
-    use std::iter;
+    use std::{assert_matches, iter};
 
     use actix_ws::Item;
     use bytes::Bytes;
@@ -188,10 +188,12 @@ mod tests {
         let message = buffer.extend(Item::Last(bytes));
 
         let expected_bytes = Bytes::from_iter(0..=8);
-        assert!(matches!(
+        assert_matches!(
             message,
-            Some(Ok(ContinuationMessage::Binary(produced_bytes))) if produced_bytes == expected_bytes
-        ));
+            Some(
+               Ok(ContinuationMessage::Binary(produced_bytes))
+            ) if produced_bytes == expected_bytes
+        );
 
         assert_eq!(buffer, ContinuationBuffer::Empty);
     }
@@ -214,10 +216,12 @@ mod tests {
         let message = buffer.extend(Item::Last(bytes));
 
         let expected_text = "Hello, World!".to_string();
-        assert!(matches!(
+        assert_matches!(
             message,
-            Some(Ok(ContinuationMessage::Text(produced_text))) if produced_text == expected_text
-        ));
+            Some(
+               Ok(ContinuationMessage::Text(produced_text))
+            ) if produced_text == expected_text
+        );
 
         assert_eq!(buffer, ContinuationBuffer::Empty);
     }
