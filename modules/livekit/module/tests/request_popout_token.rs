@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use std::assert_matches;
+
 use livekit::RoomOptions;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
@@ -29,10 +31,10 @@ async fn livekit_request_access_token() {
     let token_event = alice.receive_event::<LiveKitModule>().await.unwrap();
     assert!(bob.received_nothing());
 
-    assert!(matches!(
+    assert_matches!(
         token_event.payload,
         LiveKitEvent::PopoutStreamAccessToken { .. }
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]

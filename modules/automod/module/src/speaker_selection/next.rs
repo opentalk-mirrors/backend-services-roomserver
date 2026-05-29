@@ -107,6 +107,8 @@ fn select_next_nomination(
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
+
     use pretty_assertions::assert_eq;
     use rand::{SeedableRng, rngs::StdRng};
 
@@ -259,7 +261,7 @@ mod test {
 
         // Check non-allowed participant
         let next = select_next(&mut session, Some(p3), &mut rng);
-        assert!(matches!(next, Err(AutomodError::InvalidSelection)));
+        assert_matches!(next, Err(AutomodError::InvalidSelection));
 
         let history: Vec<ParticipantId> = session.participant_history().collect();
         assert_eq!(history, vec![p1]);
@@ -270,7 +272,7 @@ mod test {
 
         // Check with nominee in history
         let next = select_next(&mut session, Some(p1), &mut rng);
-        assert!(matches!(next, Err(AutomodError::InvalidSelection)));
+        assert_matches!(next, Err(AutomodError::InvalidSelection));
 
         let history: Vec<ParticipantId> = session.participant_history().collect();
         assert_eq!(history, vec![p1]);

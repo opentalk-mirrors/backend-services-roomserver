@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::time::Duration;
+use std::{assert_matches, time::Duration};
 
 use insta::assert_snapshot;
 use opentalk_roomserver_module_training_participation_report::TrainingParticipationReportModule;
@@ -165,13 +165,13 @@ async fn enable_presence_logging_already_enabled() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         TrainingParticipationReportEvent::PresenceLoggingStarted {
             reason: Some(PresenceLoggingStartedReason::Autostart),
             ..
         }
-    ));
+    );
 
     alice
         .send_command::<TrainingParticipationReportModule>(
@@ -224,13 +224,13 @@ async fn enable_presence_logging() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         TrainingParticipationReportEvent::PresenceLoggingStarted {
             reason: Some(PresenceLoggingStartedReason::StartedManually),
             ..
         }
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -570,13 +570,13 @@ async fn stop_presence_logging_auto() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         TrainingParticipationReportEvent::PresenceLoggingStarted {
             reason: Some(PresenceLoggingStartedReason::Autostart),
             ..
         }
-    ));
+    );
 
     // Advance time to trigger the first checkpoint
     tokio::time::advance(first_checkpoint_delay).await;
@@ -675,13 +675,13 @@ async fn alice_in_breakout_bob_in_main() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         TrainingParticipationReportEvent::PresenceLoggingStarted {
             reason: Some(PresenceLoggingStartedReason::StartedManually),
             ..
         }
-    ));
+    );
 
     tokio::time::advance(first_checkpoint_delay).await;
 
@@ -731,10 +731,7 @@ async fn alice_in_breakout_bob_in_main() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
-        event,
-        TrainingParticipationReportEvent::PdfCreated { .. }
-    ));
+    assert_matches!(event, TrainingParticipationReportEvent::PdfCreated { .. });
 
     // Bob is not notified because he is in the main room and not the room owner.
     assert!(bob.received_nothing());

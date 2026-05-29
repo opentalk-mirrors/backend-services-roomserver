@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::time::Duration;
+use std::{assert_matches, time::Duration};
 
 use opentalk_roomserver_module_whiteboard::WhiteboardModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
@@ -51,7 +51,7 @@ async fn whiteboard_join_success() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::Initialized { .. }));
+    assert_matches!(event, WhiteboardEvent::Initialized { .. });
 
     let bob = room.join_bob(0).await;
     let state = bob
@@ -59,7 +59,7 @@ async fn whiteboard_join_success() {
         .get_module::<WhiteboardState>()
         .expect("Whiteboard state must be serializable")
         .expect("Whiteboard state must be present");
-    assert!(matches!(state, WhiteboardState::Initialized(..)));
+    assert_matches!(state, WhiteboardState::Initialized(..));
 }
 
 #[test_log::test(tokio::test)]
@@ -117,14 +117,14 @@ async fn generate_pdf_insufficient_permissions() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::Initialized { .. }));
+    assert_matches!(event, WhiteboardEvent::Initialized { .. });
 
     let event = bob
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::Initialized { .. }));
+    assert_matches!(event, WhiteboardEvent::Initialized { .. });
 
     // Bob tries to generate a PDF
     bob.send_command::<WhiteboardModule>(WhiteboardCommand::GeneratePdf, None)
@@ -182,7 +182,7 @@ async fn currently_initializing() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::Initialized { .. }));
+    assert_matches!(event, WhiteboardEvent::Initialized { .. });
 }
 
 #[test_log::test(tokio::test)]
@@ -208,7 +208,7 @@ async fn already_initialized() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::Initialized { .. }));
+    assert_matches!(event, WhiteboardEvent::Initialized { .. });
 
     // Alice tries to initialize the whiteboard again
     alice
@@ -290,7 +290,7 @@ async fn generate_pdf_while_initializing() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::Initialized { .. }));
+    assert_matches!(event, WhiteboardEvent::Initialized { .. });
 }
 
 #[test_log::test(tokio::test)]
@@ -319,7 +319,7 @@ async fn generate_pdf() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::Initialized { .. }));
+    assert_matches!(event, WhiteboardEvent::Initialized { .. });
 
     let event = bob
         .receive_event::<WhiteboardModule>()
@@ -333,7 +333,7 @@ async fn generate_pdf() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::Initialized { .. }));
+    assert_matches!(event, WhiteboardEvent::Initialized { .. });
 
     // Alice generates a PDF
     alice
@@ -347,14 +347,14 @@ async fn generate_pdf() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::PdfCreated { .. }));
+    assert_matches!(event, WhiteboardEvent::PdfCreated { .. });
 
     let event = bob
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::PdfCreated { .. }));
+    assert_matches!(event, WhiteboardEvent::PdfCreated { .. });
 
     assert_eq!(room.file_count().await, 1);
 }
@@ -402,7 +402,7 @@ async fn alice_in_breakout_bob_in_main() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::Initialized { .. }));
+    assert_matches!(event, WhiteboardEvent::Initialized { .. });
 
     // Bob does not receive any state from the whiteboard module, because he is in the main room
     assert!(bob.received_nothing());
@@ -419,7 +419,7 @@ async fn alice_in_breakout_bob_in_main() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(event, WhiteboardEvent::PdfCreated { .. }));
+    assert_matches!(event, WhiteboardEvent::PdfCreated { .. });
 
     // Bob does not receive any event from the whiteboard module, because he is in the main room
     assert!(bob.received_nothing());
@@ -436,5 +436,5 @@ async fn alice_in_breakout_bob_in_main() {
         .get::<WhiteboardState>()
         .expect("Whiteboard data must be serializable")
         .expect("Whiteboard data must be present");
-    assert!(matches!(state, WhiteboardState::Initialized { .. }));
+    assert_matches!(state, WhiteboardState::Initialized { .. });
 }

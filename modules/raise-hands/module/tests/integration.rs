@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::BTreeSet;
+use std::{assert_matches, collections::BTreeSet};
 
 use insta::assert_json_snapshot;
 use opentalk_roomserver_module_raise_hands::RaiseHandsModule;
@@ -576,7 +576,7 @@ async fn enable_raise_hands_does_not_overwrite() {
     let peer_state_alice = peer_state_alice
         .get_module::<RaisedHandPeerState>()
         .unwrap();
-    assert!(matches!(peer_state_alice, Some(RaisedHandPeerState { .. })));
+    assert_matches!(peer_state_alice, Some(RaisedHandPeerState { .. }));
 }
 
 #[test_log::test(tokio::test)]
@@ -603,10 +603,10 @@ async fn breakout_switch() {
         .unwrap();
 
     let event = alice.receive::<BreakoutEvent>().await.unwrap().payload;
-    assert!(matches!(event, BreakoutEvent::Started { .. }));
+    assert_matches!(event, BreakoutEvent::Started { .. });
 
     let event = bob.receive::<BreakoutEvent>().await.unwrap().payload;
-    assert!(matches!(event, BreakoutEvent::Started { .. }));
+    assert_matches!(event, BreakoutEvent::Started { .. });
 
     alice
         .send_breakout_command(
@@ -717,13 +717,13 @@ async fn raise_hand_is_breakout_local() {
         .unwrap();
 
     let event = alice.receive::<BreakoutEvent>().await.unwrap().payload;
-    assert!(matches!(event, BreakoutEvent::Started { .. }));
+    assert_matches!(event, BreakoutEvent::Started { .. });
 
     let event = bob.receive::<BreakoutEvent>().await.unwrap().payload;
-    assert!(matches!(event, BreakoutEvent::Started { .. }));
+    assert_matches!(event, BreakoutEvent::Started { .. });
 
     let event = charlie.receive::<BreakoutEvent>().await.unwrap().payload;
-    assert!(matches!(event, BreakoutEvent::Started { .. }));
+    assert_matches!(event, BreakoutEvent::Started { .. });
 
     // Charlie switches to the breakout room
     charlie
@@ -735,19 +735,13 @@ async fn raise_hand_is_breakout_local() {
         .unwrap();
 
     let event = alice.receive::<BreakoutEvent>().await.unwrap().payload;
-    assert!(matches!(
-        event,
-        BreakoutEvent::ParticipantSwitchedRoom { .. }
-    ));
+    assert_matches!(event, BreakoutEvent::ParticipantSwitchedRoom { .. });
 
     let event = bob.receive::<BreakoutEvent>().await.unwrap().payload;
-    assert!(matches!(
-        event,
-        BreakoutEvent::ParticipantSwitchedRoom { .. }
-    ));
+    assert_matches!(event, BreakoutEvent::ParticipantSwitchedRoom { .. });
 
     let event = charlie.receive::<BreakoutEvent>().await.unwrap().payload;
-    assert!(matches!(event, BreakoutEvent::SwitchedRoom { .. }));
+    assert_matches!(event, BreakoutEvent::SwitchedRoom { .. });
 
     // Bob raises his hand in the main room
     raise_hand(&mut bob, &mut [&mut alice]).await;
@@ -871,13 +865,13 @@ async fn raise_hand_not_reset_when_connected() {
         .join_success()
         .get_module::<RaisedHandState>()
         .unwrap();
-    assert!(matches!(
+    assert_matches!(
         alice_1_state,
         Some(RaisedHandState {
             raise_hands_enabled: true,
             state: Some(_),
         })
-    ));
+    );
 
     // alice_0 disconnects
     alice_0.disconnect().await.unwrap();
@@ -891,13 +885,13 @@ async fn raise_hand_not_reset_when_connected() {
         .join_success()
         .get_module::<RaisedHandState>()
         .unwrap();
-    assert!(matches!(
+    assert_matches!(
         alice_0_state,
         Some(RaisedHandState {
             raise_hands_enabled: true,
             state: Some(_),
         })
-    ));
+    );
 }
 
 #[test_log::test(tokio::test)]

@@ -140,6 +140,8 @@ impl AssetStorageProvider for ControllerAssetStorage {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use anyhow::anyhow;
     use bytes::Bytes;
     use futures::{StreamExt, stream};
@@ -304,7 +306,7 @@ mod tests {
 
         mock.assert_async().await;
 
-        assert!(matches!(upload_result, Err(StorageError::QuotaExceeded)));
+        assert_matches!(upload_result, Err(StorageError::QuotaExceeded));
     }
 
     #[test_log::test(tokio::test)]
@@ -359,6 +361,6 @@ mod tests {
             )
             .await;
 
-        assert!(matches!(upload_result, Err(StorageError::Internal(_))));
+        assert_matches!(upload_result, Err(StorageError::Internal(_)));
     }
 }

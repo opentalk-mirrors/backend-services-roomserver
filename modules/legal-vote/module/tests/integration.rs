@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::HashMap, str::FromStr};
+use std::{assert_matches, collections::HashMap, str::FromStr};
 
 use insta::{assert_json_snapshot, assert_snapshot};
 use opentalk_roomserver_module_legal_vote::LegalVoteModule;
@@ -985,14 +985,14 @@ async fn cancel() {
         .await
         .unwrap()
         .payload;
-    assert!(matches!(
+    assert_matches!(
         event,
         LegalVoteEvent::Canceled {
             legal_vote_id: produced_id,
             reason: produced_reason,
             end_time: _,
         } if produced_id == legal_vote_id && produced_reason == CancelReason::Custom(reason)
-    ));
+    );
 
     // The protocol is stored as a module resource
     let filter =
@@ -1695,20 +1695,14 @@ async fn reconnect_during_vote() {
 
     // Alice receives Bobs disconnect event
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::ParticipantDisconnected { .. }
-    ));
+    assert_matches!(event.payload, CoreEvent::ParticipantDisconnected { .. });
 
     // Bob reconnects
     let mut bob = room.join_bob(0).await;
 
     // Alice receives Bobs reconnect event
     let event = alice.receive::<CoreEvent>().await.unwrap();
-    assert!(matches!(
-        event.payload,
-        CoreEvent::ParticipantConnected { .. }
-    ));
+    assert_matches!(event.payload, CoreEvent::ParticipantConnected { .. });
 
     // Bob can still vote
     let bob_token = tokens[&bob.id()].unwrap();
