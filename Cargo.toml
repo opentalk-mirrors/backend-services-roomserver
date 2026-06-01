@@ -119,7 +119,7 @@ itertools = "0.14.0"
 json-patch = "4.0"
 jsonwebtoken = { version = "10", default-features = false }
 livekit = { version = "0.7", features = ["rustls-tls-native-roots"] }
-livekit-api = { version = "0.4", features = ["rustls-tls-native-roots"] }
+livekit-api = { version = "0.5", features = ["rustls-tls-native-roots"] }
 livekit-protocol = "0.7"
 log = "0.4.22"
 mockito = "1.7.0"
