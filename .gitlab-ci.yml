@@ -73,7 +73,7 @@ lint:fmt:
 lint:fmt_load_tests:
   stage: lint
   <<: *default_job_condition
-  image: node:24.15.0-alpine
+  image: node:24.16.0-alpine
   before_script:
     - npm install -g corepack@latest
     - corepack enable
