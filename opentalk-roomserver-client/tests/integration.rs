@@ -10,6 +10,7 @@ use std::{assert_matches, str::FromStr};
 use opentalk_roomserver_client::{
     ApiError, Client, Error, PostStorageQuotaError, RequestTokenError,
 };
+use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters, public_user_profile::PublicUserProfile,
     room_parameters::RoomParameters, room_parameters_patch::RoomParametersPatch,
@@ -165,6 +166,8 @@ async fn request_token_without_room_params() {
 }
 
 async fn spawn_roomserver() -> (ContainerAsync<GenericImage>, Url) {
+    ensure_crypto_provider();
+
     let config = std::env::current_dir()
         .unwrap()
         .join("../example/roomserver.toml");
