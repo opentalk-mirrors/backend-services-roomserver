@@ -155,6 +155,16 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         }
     }
 
+    pub async fn is_guest_access_allowed(&self, room_id: RoomId) -> Option<bool> {
+        self.rooms
+            .read()
+            .await
+            .map()
+            .get(&room_id)?
+            .is_guest_access_allowed()
+            .await
+    }
+
     pub async fn allowed_origins(&self, room_id: RoomId) -> Option<Vec<String>> {
         let rooms = self.rooms.read().await;
         rooms.map().get(&room_id)?.allowed_origins().await

@@ -147,6 +147,17 @@ impl ClientKind {
         matches!(self, ClientKind::Registered { profile: _ })
     }
 
+    pub fn is_guest_or_callin(&self) -> bool {
+        match self {
+            ClientKind::Registered { .. }
+            | ClientKind::Recorder { .. }
+            | ClientKind::Transcription { .. } => false,
+            ClientKind::Guest { .. }
+            | ClientKind::CallIn { .. }
+            | ClientKind::RegisteredCallIn { .. } => true,
+        }
+    }
+
     pub fn time_zone(&self) -> Option<TimeZone> {
         match self {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {

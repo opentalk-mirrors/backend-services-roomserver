@@ -64,6 +64,17 @@ async fn open_signaling_socket<B: SignalingBackend + 'static>(
     // This refreshes the rooms idle timeout if the room exists to avoid race conditions
     ctx.ensure_room_exists(room_id).await?;
 
+    // Ensure guests can not join the room when guest access is disabled
+    // We already enforce this when a token is requested, but guest access might have been disabled
+    // after the token was issued.
+    if signaling_context
+        .client_parameters
+        .kind
+        .is_guest_or_callin()
+    {
+        ctx.reject_if_guest_access_not_allowed(room_id).await?;
+    }
+
     let span = Span::current();
     span.record("opentalk.room_id", room_id.to_string());
 
@@ -105,6 +116,9 @@ pub trait SignalingBackend: Clone + Send + Sync + std::fmt::Debug {
     ///
     /// Returns an error if the token is does not exist
     async fn consume_token(&self, token: Token) -> Result<SignalingClientContext, Self::Error>;
+
+    /// Returns an error if guest access is disabled for the room.
+    async fn reject_if_guest_access_not_allowed(&self, room_id: RoomId) -> Result<(), Self::Error>;
 
     /// Resolve the [`RoomId`] from the token without consuming it.
     ///

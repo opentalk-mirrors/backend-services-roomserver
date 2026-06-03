@@ -99,6 +99,7 @@ impl TestRoomBuilder {
             room_parameters: RoomParameters {
                 created_by: alice_public_profile(),
                 password: None,
+                guest_access: true,
                 waiting_room: WaitingRoom::Disabled,
                 call_in: None,
                 event: None,

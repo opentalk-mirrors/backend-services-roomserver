@@ -34,6 +34,16 @@ impl SignalingBackend for Context {
             .ok_or_else(|| ApiError::unauthorized().with_code("invalid_token"))
     }
 
+    async fn reject_if_guest_access_not_allowed(&self, room_id: RoomId) -> Result<(), Self::Error> {
+        match self.room_tasks.is_guest_access_allowed(room_id).await {
+            Some(true) => Ok(()),
+            Some(false) => Err(ApiError::forbidden()
+                .with_code("guest_access_disabled")
+                .with_message("Guest access disabled")),
+            None => Err(ApiError::not_found()),
+        }
+    }
+
     async fn room_id(&self, token: Token) -> Option<RoomId> {
         self.token_store
             .lock()

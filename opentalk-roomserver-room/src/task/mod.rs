@@ -394,6 +394,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .send(Ok(self.info.room.allowed_origins.clone()))
                 .ok()
                 .context("Failed to respond to AllowedOrigins, response channel dropped")?,
+            Request::GuestAccess { response } => response
+                .send(Ok(self.info.room.guest_access))
+                .ok()
+                .context("Failed to respond to GuestAccess, response channel dropped")?,
             Request::WsJoin {
                 response,
                 socket,

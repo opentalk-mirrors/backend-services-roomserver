@@ -34,6 +34,9 @@ pub struct RoomParameters {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub password: Option<RoomPassword>,
 
+    /// When `true`, guests are allowed to participate in the meeting.
+    pub guest_access: bool,
+
     /// Defines who has to wait in the waiting room until admitted by a moderator.
     pub waiting_room: WaitingRoom,
 
@@ -135,6 +138,7 @@ impl ExampleData for RoomParameters {
         Self {
             created_by: PublicUserProfile::example_data(),
             password: Some(RoomPassword::from_str("1234").unwrap()),
+            guest_access: false,
             waiting_room: WaitingRoom::Disabled,
             call_in: Some(CallInInfo::example_data()),
             event: Some(EventContext::example_data()),
@@ -262,6 +266,7 @@ mod tests {
                 "id": "1234567890",
                 "password": "0987654321"
             },
+            "guest_access": false,
             "waiting_room": "disabled",
             "event": {
                 "description": "The Weekly Team Event",

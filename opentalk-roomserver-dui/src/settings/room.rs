@@ -85,6 +85,7 @@ pub fn default_room_parameters() -> RoomParameters {
     RoomParameters {
         created_by: alice_profile(),
         password: None,
+        guest_access: true,
         waiting_room: WaitingRoom::Disabled,
         call_in: None,
         event: Some(EventContext {

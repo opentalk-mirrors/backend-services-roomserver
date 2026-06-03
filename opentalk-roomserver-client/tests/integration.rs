@@ -12,15 +12,18 @@ use opentalk_roomserver_client::{
 };
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, public_user_profile::PublicUserProfile,
-    room_parameters::RoomParameters, room_parameters_patch::RoomParametersPatch,
+    client_parameters::{ClientKind, ClientParameters, Role},
+    public_user_profile::PublicUserProfile,
+    room_parameters::RoomParameters,
+    room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_service_auth::ApiKey;
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     events::EventTitle,
     rooms::{RoomId, RoomPassword},
-    users::UserId,
+    roomserver::DeviceSecret,
+    users::{DisplayName, UserId},
     utils::ExampleData,
 };
 use testcontainers::{
@@ -163,6 +166,41 @@ async fn request_token_without_room_params() {
     };
 
     assert_eq!(api_error.code, RequestTokenError::RoomParametersMissing);
+}
+
+#[test_log::test(tokio::test)]
+#[ignore = "Requires an up-to-date roomserver container"]
+async fn request_token_guest_access_disabled() {
+    let (_container, base_url) = spawn_roomserver().await;
+    let client = Client::new(base_url, api_key());
+
+    let room_id = RoomId::from_u128(1);
+    let guest_client_params = ClientParameters {
+        device_secret: DeviceSecret::from_str("guest device secret")
+            .expect("Device secret must be valid"),
+        kind: ClientKind::Guest {
+            display_name: DisplayName::from_str_lossy("Gustav Guest"),
+        },
+        role: Role::User,
+    };
+    let mut room_parameters = RoomParameters::example_data();
+    room_parameters.guest_access = false;
+
+    // Guests requesting a token for a new room fails when guest access is disabled
+    let error = client
+        .request_token(
+            room_id,
+            guest_client_params.clone(),
+            Some(room_parameters.clone()),
+        )
+        .await
+        .unwrap_err();
+
+    let Error::ApiError(api_error) = error else {
+        panic!("Expected ApiError, received {error:#?}");
+    };
+
+    assert_eq!(api_error.code, RequestTokenError::GuestAccessDisabled);
 }
 
 async fn spawn_roomserver() -> (ContainerAsync<GenericImage>, Url) {
