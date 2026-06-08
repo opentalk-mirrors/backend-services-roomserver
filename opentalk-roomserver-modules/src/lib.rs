@@ -14,6 +14,7 @@ use opentalk_roomserver_module_meeting_report::MeetingReportModule;
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_module_polls::PollsModule;
 use opentalk_roomserver_module_raise_hands::RaiseHandsModule;
+use opentalk_roomserver_module_reaction::ReactionModule;
 use opentalk_roomserver_module_recording::RecordingModule;
 use opentalk_roomserver_module_shared_folder::SharedFolderModule;
 use opentalk_roomserver_module_subroom_audio::SubroomAudioModule;
@@ -63,6 +64,7 @@ pub fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<RecordingModule>();
     module_registry.add_module::<EchoModule>();
     module_registry.add_module::<PollsModule>();
+    module_registry.add_module::<ReactionModule>();
     module_registry.add_module::<SharedFolderModule>();
     module_registry.add_module::<SubroomAudioModule>();
     module_registry.add_module::<TimerModule>();

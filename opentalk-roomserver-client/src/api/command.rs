@@ -29,6 +29,7 @@ pub use {
     opentalk_roomserver_types_moderation::{MODERATION_MODULE_ID, command::ModerationCommand},
     opentalk_roomserver_types_polls::{POLLS_MODULE_ID, command::PollsCommand},
     opentalk_roomserver_types_raise_hands::{RAISE_HANDS_MODULE_ID, command::RaiseHandsCommand},
+    opentalk_roomserver_types_reaction::{REACTION_MODULE_ID, ReactionCommand},
     opentalk_roomserver_types_shared_folder::{
         SHARED_FOLDER_MODULE_ID, command::SharedFolderCommand,
     },
@@ -93,6 +94,7 @@ pub enum SignalingModuleCommand {
     TrainingParticipationReport(TrainingParticipationReportCommand),
     Recording(RecordingCommand),
     Transcription(TranscriptionCommand),
+    Reaction(ReactionCommand),
 }
 
 impl SignalingModuleCommand {
@@ -119,6 +121,7 @@ impl SignalingModuleCommand {
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
             Self::Recording(..) => RECORDING_MODULE_ID,
             Self::Transcription(..) => TRANSCRIPTION_MODULE_ID,
+            Self::Reaction(..) => REACTION_MODULE_ID,
         }
     }
 }
@@ -145,6 +148,7 @@ mod tests {
         command::{Choices, PollsCommand, Vote},
     };
     use opentalk_roomserver_types_raise_hands::command::RaiseHandsCommand;
+    use opentalk_roomserver_types_reaction::ReactionCommand;
     use opentalk_roomserver_types_recording::command::RecordingCommand;
     use opentalk_roomserver_types_timer::{TimerCommand, command::Kind};
     use opentalk_roomserver_types_training_participation_report::TrainingParticipationReportCommand;
@@ -544,6 +548,28 @@ mod tests {
           "namespace": "transcription",
           "payload": {
             "action": "start"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn serialize_reaction() {
+        let command = SignalingCommand {
+            transaction_id: None,
+            payload: SignalingModuleCommand::Reaction(ReactionCommand::React {
+                reaction: opentalk_roomserver_types_reaction::Reaction::ThumbsUp,
+            }),
+        };
+
+        let raw = serde_json::to_string_pretty(&command).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "namespace": "reaction",
+          "payload": {
+            "action": "react",
+            "reaction": "thumbs_up"
           }
         }
         "#);
