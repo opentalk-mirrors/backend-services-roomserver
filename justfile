@@ -112,16 +112,25 @@ update-changelog VERSION: _check_opentalk_git_cliff
 # Create the release commit
 commit-release: _check_yq
     #!/usr/bin/env bash
-    current_version=$(cat Cargo.toml | yq -ptoml .workspace.package.version)
+    current_version=$(yq .workspace.package.version Cargo.toml)
     git commit -a -m "chore(release): prepare release $current_version"
     git log HEAD^..HEAD
 
 # Create the release tag
 tag-release: _check_yq
     #!/usr/bin/env bash
-    current_version=$(cat Cargo.toml | yq -ptoml .workspace.package.version)
+    current_version=$(yq .workspace.package.version Cargo.toml)
     git tag -s -m "v$current_version" "v$current_version"
     git show --no-patch "v$current_version"
+
+[no-exit-message]
+_check_glab:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v glab > /dev/null; then
+        echo 'glab is not available, see https://gitlab.com/gitlab-org/cli' >&2
+        exit 1
+    fi
 
 # Update generated or derived parts of the documentation
 update-docs: _check_ci_doc_updater
@@ -178,3 +187,20 @@ test-load TEST: _check_k6
 
     pushd load-test
     ../ci/run-load-test.sh src/tests/"{{ TEST }}".js
+
+# Create a GitLab release from the current version tag
+create-release: _check_yq _check_glab
+    #!/usr/bin/env bash
+    set -euo pipefail
+    current_version=$(yq .workspace.package.version Cargo.toml)
+    tag="v$current_version"
+
+    # Extract the changelog section for this version
+    notes=$(awk "/^## \\[$current_version\\]/{found=1; next} /^## \\[/{if(found) exit} /^\\[$current_version\\]:/{next} found{print}" CHANGELOG.md)
+
+    if [ -z "$notes" ]; then
+        echo "No changelog entry found for version $current_version" >&2
+        exit 1
+    fi
+
+    glab release create "$tag" --notes "$notes"
