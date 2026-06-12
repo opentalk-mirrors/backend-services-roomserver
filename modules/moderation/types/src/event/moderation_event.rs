@@ -277,6 +277,29 @@ mod tests {
     }
 
     #[test]
+    fn serialize_sent_to_waiting_room() {
+        let event = ModerationEvent::SentToWaitingRoom;
+
+        assert_snapshot!(&serde_json::to_string_pretty(&event).unwrap(), @r#"
+        {
+          "message": "sent_to_waiting_room"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_sent_to_waiting_room() {
+        let json = json!({
+           "message": "sent_to_waiting_room"
+        });
+
+        let expected = ModerationEvent::SentToWaitingRoom;
+        let produced = serde_json::from_value(json).unwrap();
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
     fn serialize_accepted() {
         let produced = serde_json::to_string_pretty(&ModerationEvent::Accepted).unwrap();
 

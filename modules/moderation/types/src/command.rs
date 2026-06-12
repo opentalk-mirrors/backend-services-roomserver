@@ -259,6 +259,34 @@ mod tests {
     }
 
     #[test]
+    fn serialize_send_to_waiting_room() {
+        let cmd = ModerationCommand::SendToWaitingRoom {
+            target: ParticipantId::nil(),
+        };
+
+        assert_snapshot!(&serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "send_to_waiting_room",
+          "target": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_send_to_waiting_room() {
+        let json = json!({
+           "action": "send_to_waiting_room",
+           "target": "00000000-0000-0000-0000-000000000000",
+        });
+        let produced: ModerationCommand = serde_json::from_value(json).unwrap();
+        let expected = ModerationCommand::SendToWaitingRoom {
+            target: ParticipantId::nil(),
+        };
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
     fn serialize_accept() {
         let cmd = ModerationCommand::Accept {
             target: ParticipantId::nil(),
