@@ -8,46 +8,32 @@
   ],
   "packageRules": [
     {
-      "matchPackagePatterns": [
-        "^opentalk-*"
-      ],
+      "matchPackageNames": ["opentalk-*"],
       "groupName": "opentalk",
       "groupSlug": "opentalk"
     },
     {
-      "matchPackagePatterns": [
-        "egui*",
-        "eframe"
-      ],
+      "matchPackageNames": ["egui*", "eframe"],
       "groupName": "egui",
       "groupSlug": "egui"
     },
     {
-      "matchPackagePatterns": [
-        "livekit*"
-      ],
+      "matchPackageNames": ["livekit*"],
       "groupName": "livekit",
       "groupSlug": "livekit"
     },
     {
-      "matchPackagePatterns": [
-        "typst-*"
-      ],
+      "matchPackageNames": ["typst-*"],
       "groupName": "typst",
       "groupSlug": "typst"
     },
     {
-      "matchPackagePatterns": [
-        "tungstenite",
-        "tokio-tungstenite"
-      ],
+      "matchPackageNames": ["tungstenite", "tokio-tungstenite"],
       "groupName": "tungstenite",
       "groupSlug": "tungstenite"
     },
     {
-      "matchPackagePatterns": [
-        "*opentelemetry*"
-      ],
+      "matchPackageNames": ["*opentelemetry*"],
       "groupName": "opentelemetry",
       "groupSlug": "opentelemetry"
     }
