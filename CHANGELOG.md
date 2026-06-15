@@ -5,6 +5,76 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.40] - 2026-06-15
+
+[0.0.40]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.39...v0.0.40
+
+### 🚀 New features
+
+- Add transcription module ([!1020](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1020))
+- And serialization and integration tests ([!1020](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1020))
+- (web-api) Do not require `Clone` for `LiveKitProxyBackend` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (web-api) Abstract livekit websocket adapter in `LiveKitProxyBackend` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (web-api) Expose livekit proxy structs and functions ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (types) Abstract `ContinuationBuffer` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (types) Add actix implementation of `LivekitSocketAdapter` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (types) Implement `From<actix_ws::ProtocolError>` for `websocket::Error` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (types) Implement `From<CloseFrame>` for `actix_ws::CloseReason` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (web-api) Move `axum::Response` out of `LiveKitProxyBackend` trait ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (moderation) Add a `Debrief` variant to the `DisconnectReason` ([!1083](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1083), [#255](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/255))
+- (moderation) Prevent guests and call-in users from becoming moderators ([!1089](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1089), [#260](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/260))
+- (reaction) Add `reaction` module ([!1109](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1109), [#257](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/257))
+- Guest-only waiting room ([!1090](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1090), [#209](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/209))
+- Allow fully disabling guest access via `RoomParameters` ([!1090](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1090))
+
+### 🐛 Bug fixes
+
+- (recording) Recording inactive event is sent twice when recording is stopped ([!1087](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1087), [#259](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/259))
+- More robust hyphenation ([!1088](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1088), [#258](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/258))
+- Word wrapping in all other typst documents ([!1091](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1091))
+- (ci) Migrate renovate.json from deprecated `matchPackagePatterns` to `matchPackageNames` ([!1117](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1117), [#275](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/275))
+- (test) Client integration tests fail due to missing crypto provider ([!1090](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1090))
+
+### ⚡ Performance
+
+- (web-api) Cache the reqwest client for livekit proxy validate requests ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+
+### 📚 Documentation
+
+- (web-api) Add doc comments for `LiveKitProxyBackend` ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+
+### 🔨 Refactor
+
+- (web-api) Log errors when livekit proxy validate fails ([!1078](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1078))
+- (test) Use `assert_matches!(value, pattern)` instead of `assert!(matches!(value, pattern))` ([!1108](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1108))
+- Replace `matches!()` macro with `matches` in `ClientKind::is_registered_non_callin_user()` ([!1090](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1090))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!1081](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1081), [!1111](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1111), [!1122](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1122), [!1097](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1097))
+- (deps) Update grafana/k6 docker tag to v2 ([!1074](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1074))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny ([!1096](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1096), [!1103](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1103))
+- (deps) Update rust crate opentalk-orchestrator-client to 0.8 ([!1093](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1093))
+- (deps) Update opentelemetry ([!1069](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1069))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.96.0 ([!1106](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1106))
+- (deps) Update livekit ([!1107](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1107))
+- (deps) Update node.js to v24.16.0 ([!1095](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1095))
+- (deps) Update pnpm ([!1084](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1084), [!1065](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1065), [!1112](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1112), [!1119](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1119), [!1123](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1123))
+
+### ⚙ Miscellaneous
+
+- (justfile) Create gitlab release ([!1115](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1115))
+
+### Ci
+
+- (renovate) Add group rule for opentelemetry ([!1069](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1069))
+- Build dev images for release branches ([!1092](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1092), [#244](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/244))
+
+### Test
+
+- (moderation) Add (de)serialization tests for `ModerationError` ([!1089](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1089))
+- Add serialization tests send to waiting room command & event ([!1090](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1090))
+
 ## [0.0.39] - 2026-05-15
 
 [0.0.39]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.38...v0.0.39
