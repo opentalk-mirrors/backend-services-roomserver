@@ -425,6 +425,7 @@ skip = [
   { name = "toml", version = "0.8" },
   { name = "toml_datetime", version = "0.6.11" },
   { name = "toml_edit", version = "0.22" },
+  { name = "tower-http", version = "0.6" },
   { name = "untrusted", version = "0.7" },
   { name = "winnow", version = "0.7" },
   { name = "writeable", version = "0.5" },
