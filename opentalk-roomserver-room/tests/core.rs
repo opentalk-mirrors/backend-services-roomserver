@@ -14,6 +14,7 @@ use opentalk_roomserver_room::{
 use opentalk_roomserver_types::{
     core::{CoreCommand, CoreError, CoreEvent},
     room_kind::RoomKind,
+    room_parameters::WaitingRoom,
     room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_types_api_internal::module_assets::Quota;
@@ -211,7 +212,9 @@ async fn already_in_room() {
 
 #[test_log::test(tokio::test)]
 async fn recorder_skips_waiting_room() {
-    let mut room = TestRoom::builder().waiting_room(true).spawn();
+    let mut room = TestRoom::builder()
+        .waiting_room(WaitingRoom::ForEveryone)
+        .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let recorder = room.join_recorder(RoomKind::Main, 0).await;
 

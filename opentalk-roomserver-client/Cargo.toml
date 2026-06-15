@@ -56,5 +56,6 @@ url.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
+opentalk-roomserver-crypto-provider.workspace = true
 test-log.workspace = true
 testcontainers.workspace = true

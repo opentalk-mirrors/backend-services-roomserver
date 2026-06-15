@@ -18,8 +18,9 @@ use opentalk_types_common::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    module_settings::ModuleSettings, public_user_profile::PublicUserProfile,
-    rate_limit::RateLimitSettings, tariff_details::TariffDetails,
+    client_parameters::ClientKind, module_settings::ModuleSettings,
+    public_user_profile::PublicUserProfile, rate_limit::RateLimitSettings,
+    tariff_details::TariffDetails,
 };
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -33,7 +34,11 @@ pub struct RoomParameters {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub password: Option<RoomPassword>,
 
-    pub waiting_room: bool,
+    /// When `true`, guests are allowed to participate in the meeting.
+    pub guest_access: bool,
+
+    /// Defines who has to wait in the waiting room until admitted by a moderator.
+    pub waiting_room: WaitingRoom,
 
     // Field is non-required already, utoipa adds a `nullable: true` entry
     // by default which creates a false positive in the spectral linter when
@@ -133,7 +138,8 @@ impl ExampleData for RoomParameters {
         Self {
             created_by: PublicUserProfile::example_data(),
             password: Some(RoomPassword::from_str("1234").unwrap()),
-            waiting_room: false,
+            guest_access: false,
+            waiting_room: WaitingRoom::Disabled,
             call_in: Some(CallInInfo::example_data()),
             event: Some(EventContext::example_data()),
             invite_code: Some(InviteCode::example_data()),
@@ -187,13 +193,58 @@ impl ExampleData for EventContext {
     }
 }
 
+// Ordering is from least to most strict, which the functions of this enum depends on.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum WaitingRoom {
+    /// No users have to go to the waiting room
+    Disabled = 0,
+    /// Guests have to go through the waiting room, registered users are allowed to skip
+    ForGuests = 1,
+    /// Everyone has to go through the waiting room (except moderators).
+    ForEveryone = 2,
+}
+
+impl WaitingRoom {
+    /// Does a participant of `kind` have to be placed in the waiting room?
+    ///
+    /// Does not take moderator rights into account.
+    pub fn applies_to(self, kind: &ClientKind) -> bool {
+        Self::min_strictness(kind).is_some_and(|min| self >= min)
+    }
+
+    /// Returns this setting raised just enough to place `kind` in the waiting room.
+    ///
+    /// Unchanged if `self` already catches `kind`, or if `kind` never enters the waiting room.
+    pub fn raise_to_include(self, kind: &ClientKind) -> Self {
+        match Self::min_strictness(kind) {
+            Some(min_required) => self.max(min_required),
+            None => self,
+        }
+    }
+
+    /// The minimum required waiting room strictness for a client to be placed in the waiting room.
+    fn min_strictness(kind: &ClientKind) -> Option<WaitingRoom> {
+        match kind {
+            ClientKind::Registered { .. } => Some(WaitingRoom::ForEveryone),
+            ClientKind::Guest { .. }
+            | ClientKind::CallIn { .. }
+            | ClientKind::RegisteredCallIn { .. } => Some(WaitingRoom::ForGuests),
+            ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use opentalk_types_common::utils::ExampleData;
+    use insta::assert_snapshot;
+    use opentalk_types_common::{users::DisplayName, utils::ExampleData};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::*;
+    use crate::{public_user_profile::PublicUserProfile, room_kind::RoomKind};
 
     #[test]
     fn room_parameters() {
@@ -215,7 +266,8 @@ mod tests {
                 "id": "1234567890",
                 "password": "0987654321"
             },
-            "waiting_room": false,
+            "guest_access": false,
+            "waiting_room": "disabled",
             "event": {
                 "description": "The Weekly Team Event",
                 "id": "00000000-0000-0000-0000-004433221100",
@@ -280,6 +332,54 @@ mod tests {
     }
 
     #[test]
+    fn serialize_waiting_room_disabled() {
+        let waiting_room = WaitingRoom::Disabled;
+        let produced = serde_json::to_string_pretty(&waiting_room).unwrap();
+
+        assert_snapshot!(produced, @r#""disabled""#);
+    }
+
+    #[test]
+    fn deserialize_waiting_room_disabled() {
+        let json = json!("disabled");
+        let produced: WaitingRoom = serde_json::from_value(json).unwrap();
+
+        assert_eq!(WaitingRoom::Disabled, produced);
+    }
+
+    #[test]
+    fn serialize_waiting_room_for_guests() {
+        let waiting_room = WaitingRoom::ForGuests;
+        let produced = serde_json::to_string_pretty(&waiting_room).unwrap();
+
+        assert_snapshot!(produced, @r#""for_guests""#);
+    }
+
+    #[test]
+    fn deserialize_waiting_room_for_guests() {
+        let json = json!("for_guests");
+        let produced: WaitingRoom = serde_json::from_value(json).unwrap();
+
+        assert_eq!(WaitingRoom::ForGuests, produced);
+    }
+
+    #[test]
+    fn serialize_waiting_room_for_everyone() {
+        let waiting_room = WaitingRoom::ForEveryone;
+        let produced = serde_json::to_string_pretty(&waiting_room).unwrap();
+
+        assert_snapshot!(produced, @r#""for_everyone""#);
+    }
+
+    #[test]
+    fn deserialize_waiting_room_for_everyone() {
+        let json = json!("for_everyone");
+        let produced: WaitingRoom = serde_json::from_value(json).unwrap();
+
+        assert_eq!(WaitingRoom::ForEveryone, produced);
+    }
+
+    #[test]
     fn event_info() {
         let info = EventContext::example_data();
         let json = json!({
@@ -302,5 +402,106 @@ mod tests {
 
         // deserialization
         assert_eq!(info, serde_json::from_value(json).unwrap());
+    }
+
+    fn registered() -> ClientKind {
+        ClientKind::Registered {
+            profile: PublicUserProfile::example_data(),
+        }
+    }
+
+    fn guest() -> ClientKind {
+        ClientKind::Guest {
+            display_name: DisplayName::from_str_lossy("Guest"),
+        }
+    }
+
+    fn call_in() -> ClientKind {
+        ClientKind::CallIn {
+            display_name: DisplayName::from_str_lossy("1001"),
+        }
+    }
+
+    fn registered_call_in() -> ClientKind {
+        ClientKind::RegisteredCallIn {
+            profile: PublicUserProfile::example_data(),
+        }
+    }
+
+    fn recorder() -> ClientKind {
+        ClientKind::Recorder {
+            room: RoomKind::Main,
+        }
+    }
+
+    fn transcription() -> ClientKind {
+        ClientKind::Transcription {
+            room: RoomKind::Main,
+        }
+    }
+
+    #[test]
+    fn applies_to_disabled() {
+        let waiting_room = WaitingRoom::Disabled;
+
+        assert!(!waiting_room.applies_to(&registered()));
+        assert!(!waiting_room.applies_to(&guest()));
+        assert!(!waiting_room.applies_to(&call_in()));
+        assert!(!waiting_room.applies_to(&registered_call_in()));
+        assert!(!waiting_room.applies_to(&recorder()));
+        assert!(!waiting_room.applies_to(&transcription()));
+    }
+
+    #[test]
+    fn applies_to_for_guests() {
+        let waiting_room = WaitingRoom::ForGuests;
+
+        assert!(!waiting_room.applies_to(&registered()));
+        assert!(waiting_room.applies_to(&guest()));
+        assert!(waiting_room.applies_to(&call_in()));
+        assert!(waiting_room.applies_to(&registered_call_in()));
+        assert!(!waiting_room.applies_to(&recorder()));
+        assert!(!waiting_room.applies_to(&transcription()));
+    }
+
+    #[test]
+    fn applies_to_for_everyone() {
+        let waiting_room = WaitingRoom::ForEveryone;
+
+        assert!(waiting_room.applies_to(&registered()));
+        assert!(waiting_room.applies_to(&guest()));
+        assert!(waiting_room.applies_to(&call_in()));
+        assert!(waiting_room.applies_to(&registered_call_in()));
+        assert!(!waiting_room.applies_to(&recorder()));
+        assert!(!waiting_room.applies_to(&transcription()));
+    }
+
+    #[test]
+    fn raise_to() {
+        assert_eq!(
+            WaitingRoom::Disabled.raise_to_include(&registered()),
+            WaitingRoom::ForEveryone
+        );
+        assert_eq!(
+            WaitingRoom::Disabled.raise_to_include(&guest()),
+            WaitingRoom::ForGuests
+        );
+        assert_eq!(
+            WaitingRoom::Disabled.raise_to_include(&call_in()),
+            WaitingRoom::ForGuests
+        );
+        assert_eq!(
+            WaitingRoom::Disabled.raise_to_include(&registered_call_in()),
+            WaitingRoom::ForGuests
+        );
+        // Services don't raise the waiting room, as they are never subject to it
+        assert_eq!(
+            WaitingRoom::Disabled.raise_to_include(&recorder()),
+            WaitingRoom::Disabled
+        );
+        assert_eq!(
+            WaitingRoom::Disabled.raise_to_include(&transcription()),
+            WaitingRoom::Disabled
+        );
     }
 }

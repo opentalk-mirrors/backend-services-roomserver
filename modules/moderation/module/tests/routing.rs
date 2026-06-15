@@ -15,6 +15,7 @@ use opentalk_roomserver_types::{
         event::BreakoutEvent,
     },
     core::{CoreCommand, CoreEvent},
+    room_parameters::WaitingRoom,
 };
 use opentalk_roomserver_types_moderation::{command::ModerationCommand, event::ModerationEvent};
 
@@ -22,7 +23,7 @@ use opentalk_roomserver_types_moderation::{command::ModerationCommand, event::Mo
 async fn waiting_participants_dont_receive_messages() {
     let mut room = TestRoom::builder()
         .register_module::<MockModule>()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.waiting_room_bob(0).await;
@@ -48,7 +49,7 @@ async fn waiting_participants_dont_receive_broadcasts() {
     let mut room = TestRoom::builder()
         .register_module::<MockModule>()
         .register_module::<ModerationModule>()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .spawn();
 
     let mut alice = room.join_alice_moderator(0).await;

@@ -6110,6 +6110,7 @@ dependencies = [
  "futures",
  "http 1.4.2",
  "insta",
+ "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-automod",
  "opentalk-roomserver-types-chat",

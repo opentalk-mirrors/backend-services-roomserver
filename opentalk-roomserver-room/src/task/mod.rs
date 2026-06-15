@@ -394,6 +394,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 .send(Ok(self.info.room.allowed_origins.clone()))
                 .ok()
                 .context("Failed to respond to AllowedOrigins, response channel dropped")?,
+            Request::GuestAccess { response } => response
+                .send(Ok(self.info.room.guest_access))
+                .ok()
+                .context("Failed to respond to GuestAccess, response channel dropped")?,
             Request::WsJoin {
                 response,
                 socket,
@@ -924,9 +928,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return Ok(());
         }
 
-        let join_waiting_room = self.info.room.waiting_room
+        let join_waiting_room = self
+            .info
+            .room
+            .waiting_room
+            .applies_to(&client_parameters.kind)
             && !role.is_moderator()
-            && !client_parameters.kind.is_service()
             && self
                 .participants
                 .all_unfiltered

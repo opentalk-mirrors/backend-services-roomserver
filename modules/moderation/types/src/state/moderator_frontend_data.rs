@@ -4,7 +4,7 @@
 
 use chrono::{DateTime, Utc};
 use opentalk_roomserver_signaling::waiting_participant::WaitingParticipant;
-use opentalk_roomserver_types::connection_id::ConnectionId;
+use opentalk_roomserver_types::{connection_id::ConnectionId, room_parameters::WaitingRoom};
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
@@ -14,8 +14,8 @@ use crate::event::BannedParticipantInfo;
 /// Moderation module state that is visible only to moderators
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModeratorJoinInfo {
-    /// Is waiting room enabled
-    pub waiting_room_enabled: bool,
+    /// The state of the waiting room
+    pub waiting_room: WaitingRoom,
 
     /// The participants that are currently in the waiting room (if any)
     #[serde(skip_serializing_if = "Vec::is_empty", default)]

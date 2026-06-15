@@ -14,6 +14,7 @@ use opentalk_roomserver_types::{
     core::{CORE_MODULE_ID, CoreCommand, CoreEvent, LeftWaitingRoom, state::CoreState},
     disconnect_reason::DisconnectReason,
     join::join_success::JoinSuccess,
+    room_parameters::WaitingRoom,
     shared_json::SharedJson,
 };
 use opentalk_roomserver_types_moderation::{
@@ -34,7 +35,7 @@ const DENIED_TEXT: &str = "⛔";
 
 #[derive(Debug)]
 pub struct WaitingRoomPlugin {
-    waiting_room_enabled: bool,
+    waiting_room: WaitingRoom,
     waiting: BTreeMap<ParticipantId, WaitingParticipant>,
     in_room: BTreeMap<ParticipantId, InRoomParticipant>,
     rng: rand::prelude::ThreadRng,
@@ -82,7 +83,7 @@ impl WaitingRoomPlugin {
         Self {
             waiting: BTreeMap::new(),
             in_room: BTreeMap::new(),
-            waiting_room_enabled: false,
+            waiting_room: WaitingRoom::Disabled,
             rng,
         }
     }
@@ -102,17 +103,35 @@ impl WaitingRoomPlugin {
     fn waiting_controls_ui(&mut self, ui: &mut egui::Ui) -> Option<SignalingModuleCommand> {
         let res = ui
             .horizontal(|ui| {
-                // we show both buttons unconditionally to enable testing
-                if ui.button("Enable").clicked() {
+                let before = self.waiting_room;
+                egui::ComboBox::from_label("Waiting Room")
+                    .selected_text(format!("{:?}", self.waiting_room))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(
+                            &mut self.waiting_room,
+                            WaitingRoom::Disabled,
+                            "Disabled",
+                        );
+                        ui.selectable_value(
+                            &mut self.waiting_room,
+                            WaitingRoom::ForGuests,
+                            "For Guests",
+                        );
+                        ui.selectable_value(
+                            &mut self.waiting_room,
+                            WaitingRoom::ForEveryone,
+                            "For Everyone",
+                        );
+                    });
+
+                if before != self.waiting_room {
                     return Some(SignalingModuleCommand::Moderation(
-                        ModerationCommand::EnableWaitingRoom,
+                        ModerationCommand::ChangeWaitingRoomState {
+                            new_state: self.waiting_room,
+                        },
                     ));
                 }
-                if ui.button("Disable").clicked() {
-                    return Some(SignalingModuleCommand::Moderation(
-                        ModerationCommand::DisableWaitingRoom,
-                    ));
-                }
+
                 if ui.button("Enter").clicked() {
                     return Some(SignalingModuleCommand::Core(CoreCommand::EnterRoom));
                 }
@@ -232,11 +251,8 @@ impl WaitingRoomPlugin {
                     log::warn!("Received `ParticipantAccepted` for unknown participant");
                 }
             }
-            SignalingModuleEvent::Moderation(ModerationEvent::WaitingRoomDisabled) => {
-                self.waiting_room_enabled = false;
-            }
-            SignalingModuleEvent::Moderation(ModerationEvent::WaitingRoomEnabled) => {
-                self.waiting_room_enabled = true;
+            SignalingModuleEvent::Moderation(ModerationEvent::WaitingRoomUpdated { new_state }) => {
+                self.waiting_room = *new_state;
             }
             _ => {}
         }

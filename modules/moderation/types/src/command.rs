@@ -7,7 +7,7 @@
 use std::collections::{BTreeSet, HashSet};
 
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
-use opentalk_roomserver_types::client_parameters::Role;
+use opentalk_roomserver_types::{client_parameters::Role, room_parameters::WaitingRoom};
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
@@ -38,11 +38,11 @@ pub enum ModerationCommand {
     /// Start the debriefing
     Debrief(KickScope),
 
-    /// Enable waiting room for the meeting
-    EnableWaitingRoom,
-
-    /// Disable waiting room for the meeting
-    DisableWaitingRoom,
+    /// Set the state of the waiting room
+    ChangeWaitingRoomState {
+        /// The new state of the waiting room
+        new_state: WaitingRoom,
+    },
 
     /// Send a participant to the waiting room
     SendToWaitingRoom {
@@ -226,6 +226,62 @@ mod tests {
 
         let produced: ModerationCommand = serde_json::from_value(json).unwrap();
         let expected = ModerationCommand::Debrief(KickScope::UsersAndGuests);
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_change_waiting_room_state() {
+        let cmd = ModerationCommand::ChangeWaitingRoomState {
+            new_state: WaitingRoom::Disabled,
+        };
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "change_waiting_room_state",
+          "new_state": "disabled"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_change_waiting_room_state() {
+        let json = json!({
+           "action": "change_waiting_room_state",
+             "new_state": "disabled"
+        });
+        let expected = ModerationCommand::ChangeWaitingRoomState {
+            new_state: WaitingRoom::Disabled,
+        };
+        let produced = serde_json::from_value(json).unwrap();
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_send_to_waiting_room() {
+        let cmd = ModerationCommand::SendToWaitingRoom {
+            target: ParticipantId::nil(),
+        };
+
+        assert_snapshot!(&serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "send_to_waiting_room",
+          "target": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_send_to_waiting_room() {
+        let json = json!({
+           "action": "send_to_waiting_room",
+           "target": "00000000-0000-0000-0000-000000000000",
+        });
+        let produced: ModerationCommand = serde_json::from_value(json).unwrap();
+        let expected = ModerationCommand::SendToWaitingRoom {
+            target: ParticipantId::nil(),
+        };
 
         assert_eq!(produced, expected);
     }

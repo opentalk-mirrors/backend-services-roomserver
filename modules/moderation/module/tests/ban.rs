@@ -9,6 +9,7 @@ use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{
     core::{CoreEvent, LeftWaitingRoom},
     disconnect_reason::DisconnectReason,
+    room_parameters::WaitingRoom,
     signaling::websocket::CloseFrame,
 };
 use opentalk_roomserver_types_moderation::{
@@ -260,7 +261,7 @@ async fn ban_participant() {
 #[test_log::test(tokio::test)]
 async fn ban_waiting_participant() {
     let mut room = TestRoom::builder()
-        .waiting_room(true)
+        .waiting_room(WaitingRoom::ForEveryone)
         .register_module::<ModerationModule>()
         .spawn();
     let mut bob = room.waiting_room_bob(0).await;

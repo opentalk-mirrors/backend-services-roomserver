@@ -19,7 +19,7 @@ use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
-    room_parameters::{EventContext, RoomParameters},
+    room_parameters::{EventContext, RoomParameters, WaitingRoom},
     tariff_details::TariffDetails,
 };
 use opentalk_roomserver_types_chat::CHAT_MODULE_ID;
@@ -85,7 +85,8 @@ pub fn default_room_parameters() -> RoomParameters {
     RoomParameters {
         created_by: alice_profile(),
         password: None,
-        waiting_room: false,
+        guest_access: true,
+        waiting_room: WaitingRoom::Disabled,
         call_in: None,
         event: Some(EventContext {
             id: EventId::from_u128(0xbdc9186e_ccdd_468a_b83c_35bf62b43a13),

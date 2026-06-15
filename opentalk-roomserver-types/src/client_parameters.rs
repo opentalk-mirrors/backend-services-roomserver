@@ -144,7 +144,25 @@ impl ClientKind {
 
     /// Returns `true` if the participant is a registered, non call-in user, `false` otherwise.
     pub fn is_registered_non_callin_user(&self) -> bool {
-        matches!(self, ClientKind::Registered { profile: _ })
+        match self {
+            ClientKind::Registered { .. } => true,
+            ClientKind::Guest { .. }
+            | ClientKind::Recorder { .. }
+            | ClientKind::Transcription { .. }
+            | ClientKind::CallIn { .. }
+            | ClientKind::RegisteredCallIn { .. } => false,
+        }
+    }
+
+    pub fn is_guest_or_callin(&self) -> bool {
+        match self {
+            ClientKind::Registered { .. }
+            | ClientKind::Recorder { .. }
+            | ClientKind::Transcription { .. } => false,
+            ClientKind::Guest { .. }
+            | ClientKind::CallIn { .. }
+            | ClientKind::RegisteredCallIn { .. } => true,
+        }
     }
 
     pub fn time_zone(&self) -> Option<TimeZone> {

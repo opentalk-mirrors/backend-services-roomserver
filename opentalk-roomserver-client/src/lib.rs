@@ -91,6 +91,8 @@ pub enum RequestTokenError {
     InternalServerError,
     #[error("The requesting participant is banned from the room")]
     Banned,
+    #[error("The requesting participant is a guest and guest access is disabled")]
+    GuestAccessDisabled,
 }
 
 #[derive(Debug, Clone)]

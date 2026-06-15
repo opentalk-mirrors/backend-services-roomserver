@@ -246,6 +246,17 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Self::receive_response(rx).await.ok()
     }
 
+    pub async fn is_guest_access_allowed(&self) -> Option<bool> {
+        let (tx, rx) = oneshot::channel();
+
+        self.send_request(Request::GuestAccess { response: tx })
+            .await
+            .inspect_err(|err| tracing::error!("Failed to check guest access: {err}"))
+            .ok()?;
+
+        Self::receive_response(rx).await.ok()
+    }
+
     pub fn assets(&self) -> Arc<dyn AssetStorageProvider> {
         Arc::clone(&self.assets)
     }
@@ -376,6 +387,11 @@ pub enum Request<Socket: SignalingSocket> {
         response: ResponseSender<Vec<String>>,
     },
 
+    /// Check if guests are allowed to participate in the meeting
+    GuestAccess {
+        response: ResponseSender<bool>,
+    },
+
     /// Join the room with a given websocket stream and sink
     WsJoin {
         response: ResponseSender<()>,
@@ -411,7 +427,7 @@ impl<Socket: SignalingSocket> Request<Socket> {
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
 
-            Request::IsBanned { response, .. } => response
+            Request::IsBanned { response, .. } | Request::GuestAccess { response } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
 

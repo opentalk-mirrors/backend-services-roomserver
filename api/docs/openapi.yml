@@ -608,6 +608,7 @@ components:
       type: object
       required:
         - created_by
+        - guest_access
         - waiting_room
         - tariff
         - streaming_targets
@@ -640,6 +641,9 @@ components:
             Fallback language to be used for localization purposes when the default language is not
             available.
           example: en
+        guest_access:
+          type: boolean
+          description: "When `true`, guests are allowed to participate in the meeting."
         invite_code:
           $ref: "#/components/schemas/InviteCode"
         module_settings:
@@ -668,7 +672,8 @@ components:
         tariff:
           $ref: "#/components/schemas/TariffDetails"
         waiting_room:
-          type: boolean
+          $ref: "#/components/schemas/WaitingRoom"
+          description: Defines who has to wait in the waiting room until admitted by a moderator.
         ws_rate_limit:
           oneOf:
             - type: "null"
@@ -705,6 +710,7 @@ components:
           starts_at: "1970-01-01T00:00:00Z"
           title: Team Event
         fallback_language: en
+        guest_access: false
         invite_code: 00000000-0000-0000-0000-0000deadbeef
         module_settings:
           livekit:
@@ -732,7 +738,7 @@ components:
             max_storage: 50000
           used_quota:
             max_storage: 20000
-        waiting_room: false
+        waiting_room: disabled
         ws_rate_limit:
           token_bucket_size: 30
           tokens_per_second: 10
@@ -1033,6 +1039,7 @@ components:
             starts_at: "1970-01-01T00:00:00Z"
             title: Team Event
           fallback_language: en
+          guest_access: false
           invite_code: 00000000-0000-0000-0000-0000deadbeef
           module_settings:
             livekit:
@@ -1060,7 +1067,7 @@ components:
               max_storage: 50000
             used_quota:
               max_storage: 20000
-          waiting_room: false
+          waiting_room: disabled
           ws_rate_limit:
             token_bucket_size: 30
             tokens_per_second: 10
@@ -1106,6 +1113,12 @@ components:
       examples:
         - M.Sc.
       maxLength: 255
+    WaitingRoom:
+      type: string
+      enum:
+        - disabled
+        - for_guests
+        - for_everyone
   securitySchemes:
     API-Token:
       type: http

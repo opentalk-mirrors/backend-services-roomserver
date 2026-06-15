@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
+use opentalk_roomserver_types::{
+    client_parameters::{ClientKind, Role},
+    room_parameters::WaitingRoom,
+};
 use serde::{Deserialize, Serialize};
 
 /// The scope of users to be kicked from the room
@@ -28,6 +31,15 @@ impl KickScope {
             }
             KickScope::UsersAndGuests => !matches!(role, Role::Moderator),
             KickScope::All => true,
+        }
+    }
+}
+
+impl From<KickScope> for WaitingRoom {
+    fn from(value: KickScope) -> Self {
+        match value {
+            KickScope::Guests => Self::ForGuests,
+            KickScope::UsersAndGuests | KickScope::All => Self::ForEveryone,
         }
     }
 }

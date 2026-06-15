@@ -305,6 +305,12 @@ impl RoomBackend for Context {
 
             // Room needs to be created
             (None, Some(parameters)) => {
+                if client_parameters.kind.is_guest_or_callin() && !parameters.guest_access {
+                    return Err(ApiError::forbidden()
+                        .with_code("guest_access_disabled")
+                        .with_message("Guest access disabled"));
+                }
+
                 let ctx = self.create_task_context(&parameters.tariff);
                 self.room_tasks
                     .create_if_not_exists(ctx, room_id, parameters.into())
@@ -322,6 +328,21 @@ impl RoomBackend for Context {
                 // Ensure the user isn't banned
                 if let Some(user_id) = client_parameters.kind.user_id() {
                     task_handle.reject_if_banned(user_id).await?;
+                }
+
+                if client_parameters.kind.is_guest_or_callin() {
+                    match task_handle.is_guest_access_allowed().await {
+                        Some(true) => {}
+                        Some(false) => {
+                            return Err(ApiError::forbidden()
+                                .with_code("guest_access_disabled")
+                                .with_message("Guest access disabled"));
+                        }
+                        None => {
+                            return Err(ApiError::internal()
+                                .with_message("Failed to check room guest access"));
+                        }
+                    }
                 }
             }
         }
@@ -486,6 +507,7 @@ mod test {
         client_parameters::{ClientKind, Role},
         module_settings::ModuleSettings,
         public_user_profile::PublicUserProfile,
+        room_parameters::WaitingRoom,
         tariff_details::TariffDetails,
     };
     use opentalk_service_auth::{ApiKey, service::ApiKeys};
@@ -543,7 +565,7 @@ mod test {
         }
     }
 
-    fn client_parameters2() -> ClientParameters {
+    fn guest_client_parameters() -> ClientParameters {
         ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::Guest {
@@ -553,7 +575,7 @@ mod test {
         }
     }
 
-    fn client_parameters1() -> ClientParameters {
+    fn registered_client_parameters() -> ClientParameters {
         ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::Registered {
@@ -578,7 +600,8 @@ mod test {
         RoomParameters {
             created_by: PublicUserProfile::example_data(),
             password: None,
-            waiting_room: false,
+            guest_access: true,
+            waiting_room: WaitingRoom::Disabled,
             call_in: None,
             event: None,
             invite_code: None,
@@ -611,7 +634,7 @@ mod test {
         let mut ctx = test_context();
 
         let token = ctx
-            .request_room_token(RoomId::nil(), client_parameters1(), None)
+            .request_room_token(RoomId::nil(), registered_client_parameters(), None)
             .await;
 
         assert_matches!(
@@ -627,15 +650,50 @@ mod test {
         );
 
         let token = ctx
-            .request_room_token(RoomId::nil(), client_parameters1(), Some(room_parameters()))
+            .request_room_token(
+                RoomId::nil(),
+                registered_client_parameters(),
+                Some(room_parameters()),
+            )
             .await;
 
         assert!(token.is_ok());
 
         let token = ctx
-            .request_room_token(RoomId::nil(), client_parameters2(), None)
+            .request_room_token(RoomId::nil(), guest_client_parameters(), None)
             .await;
 
         assert!(token.is_ok())
+    }
+
+    #[tokio::test]
+    async fn request_token_guests_disabled() {
+        let mut ctx = test_context();
+
+        let mut room_parameters = room_parameters();
+        room_parameters.guest_access = false;
+        let error = ctx
+            .request_room_token(
+                RoomId::nil(),
+                guest_client_parameters(),
+                Some(room_parameters.clone()),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+
+        let room_action = ctx.put_room(RoomId::nil(), room_parameters.clone()).await;
+        assert_eq!(room_action, Ok(RoomAction::Created));
+
+        // Requesting tokens also fails if the room already exists
+        let error = ctx
+            .request_room_token(
+                RoomId::nil(),
+                guest_client_parameters(),
+                Some(room_parameters.clone()),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
     }
 }
