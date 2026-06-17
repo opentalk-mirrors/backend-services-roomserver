@@ -10,7 +10,7 @@ use std::{
 use opentalk_roomserver_room::mocking::{
     mock_module::{MockCommand, MockModule},
     participant::{MockParticipantBuilder, bob_public_user_profile},
-    room::TestRoom,
+    room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
     client_parameters::Role,
@@ -172,4 +172,32 @@ async fn exceeding_rate_limit_sends_slow_down() {
     // Alice receives the actual response to her command afterwards
     let event = alice.receive::<CoreEvent>().await.unwrap().payload;
     assert_matches!(event, CoreEvent::Error(CoreError::AlreadyInRoom));
+}
+
+#[test_log::test(tokio::test)]
+async fn signaling_error_only_reaches_originating_connection() {
+    let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
+    let mut alice_device_0 = room.join_alice_moderator(0).await;
+    let mut alice_device_1 = room.join_alice_moderator(1).await;
+    flush_connected_events(&mut [&mut alice_device_0]).await;
+
+    // Alice sends a payload that cannot be deserialized into MockCommand from device 0
+    alice_device_0
+        .send_command_raw(json!({ "namespace": "mock", "payload": { "invalid": "payload" } }))
+        .await
+        .unwrap();
+
+    // Alice receives the corresponding error on device 0
+    let event = alice_device_0
+        .receive::<SignalingError>()
+        .await
+        .unwrap()
+        .payload;
+    assert_matches!(event, SignalingError::InvalidJson { message: _ });
+
+    // Alice does not receive an error on device 1
+    assert!(
+        alice_device_1.received_nothing(),
+        "the error must not be broadcast to the participant's other connections",
+    );
 }

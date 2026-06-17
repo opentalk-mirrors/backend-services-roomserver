@@ -351,8 +351,8 @@ where
     ///
     /// The message is always scoped to the [`error::ERROR_MODULE_ID`]
     pub fn handle_error(&self, error: SignalingError) {
-        let participant_id = match self.event_origin {
-            EventOrigin::Participant(participant_origin) => participant_origin.id,
+        let participant_origin = match self.event_origin {
+            EventOrigin::Participant(participant_origin) => participant_origin,
             EventOrigin::Internal => {
                 tracing::error!(
                     "Signaling module '{}' returned an error on an event with internal origin: {error:?} ",
@@ -380,26 +380,28 @@ where
         };
 
         let mut messages = self.messages.borrow_mut();
-        if let Some(state) = self.participants.connected().get(&participant_id) {
-            for connection_id in state.connections() {
-                messages.push(ModuleMessage::Websocket {
-                    connection_id,
-                    message: shared_json.clone(),
-                });
-            }
-        } else if let Some(waiting_participant) = self.waiting_participants.get(&participant_id) {
-            let connections = waiting_participant.connections.keys();
-            for &connection_id in connections {
-                messages.push(ModuleMessage::WaitingRoomWebsocket {
-                    connection_id,
-                    message: shared_json.clone(),
-                });
-            }
+        if self
+            .participants
+            .connected()
+            .contains(&participant_origin.id)
+        {
+            messages.push(ModuleMessage::Websocket {
+                connection_id: participant_origin.connection_id,
+                message: shared_json,
+            });
+        } else if self
+            .waiting_participants
+            .contains_key(&participant_origin.id)
+        {
+            messages.push(ModuleMessage::WaitingRoomWebsocket {
+                connection_id: participant_origin.connection_id,
+                message: shared_json,
+            });
         } else {
             tracing::error!(
                 "Module '{}' attempted to send a websocket error message to unknown participant {}",
                 M::NAMESPACE,
-                participant_id,
+                participant_origin.id,
             );
         }
     }
