@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{assert_matches, collections::BTreeSet};
+use std::{
+    assert_matches,
+    collections::{BTreeSet, HashSet},
+};
 
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::{
@@ -89,8 +92,8 @@ async fn accept_participant(
     assert_matches!(
         event.payload,
         CoreEvent::LeftWaitingRoom(
-            LeftWaitingRoom { id, connection_id }
-        ) if joinee.id() == id && joinee.connection_id() == connection_id
+            LeftWaitingRoom { id, connection_ids }
+        ) if joinee.id() == id && HashSet::from_iter([joinee.connection_id()]) == connection_ids
     );
     let event = moderator.receive::<CoreEvent>().await.unwrap();
     assert_matches!(
@@ -201,9 +204,10 @@ async fn join_via_waiting_room() {
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert_matches!(
         event.payload,
-        CoreEvent::LeftWaitingRoom(
-            LeftWaitingRoom { id, connection_id }
-        ) if bob_0.id() == id && bob_0.connection_id() == connection_id
+        CoreEvent::LeftWaitingRoom(LeftWaitingRoom { id, connection_ids })
+            if bob_0.id() == id
+                && BTreeSet::from_iter([&bob_0.connection_id(), &bob_1.connection_id()])
+                    == BTreeSet::from_iter(connection_ids.iter())
     );
     // charlie should only receive the JoinedEvent, which will be checked next.
 

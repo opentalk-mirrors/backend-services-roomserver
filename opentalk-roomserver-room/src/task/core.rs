@@ -189,7 +189,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             None,
             CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
                 id: participant_origin.id,
-                connection_id: participant_origin.connection_id,
+                connection_ids: participant.connections.keys().copied().collect(),
             }),
         )?;
 
