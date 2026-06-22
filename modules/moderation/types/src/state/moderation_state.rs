@@ -25,3 +25,45 @@ pub struct ModerationState {
 impl SignalingModuleFrontendData for ModerationState {
     const NAMESPACE: Option<ModuleId> = Some(MODERATION_MODULE_ID);
 }
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn serialize_moderation_state() {
+        let state = ModerationState {
+            moderator_data: None,
+            display_name_change_restrictions: ChangeDisplayNameRestrictionState::Disabled,
+        };
+
+        assert_snapshot!(serde_json::to_string_pretty(&state).unwrap(), @r#"
+        {
+          "display_name_change_restrictions": {
+            "type": "disabled"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_moderation_state() {
+        let json = json!({
+            "display_name_change_restrictions": {
+                "type": "disabled"
+            }
+        });
+
+        let produced: ModerationState = serde_json::from_value(json).unwrap();
+        let expected = ModerationState {
+            moderator_data: None,
+            display_name_change_restrictions: ChangeDisplayNameRestrictionState::Disabled,
+        };
+
+        assert_eq!(produced, expected);
+    }
+}
