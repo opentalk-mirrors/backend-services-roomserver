@@ -17,6 +17,9 @@ pub struct ModeratorJoinInfo {
     /// The state of the waiting room
     pub waiting_room: WaitingRoom,
 
+    /// Whether or not the guest access is enabled
+    pub guest_access: bool,
+
     /// The participants that are currently in the waiting room (if any)
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub waiting_room_participants: Vec<WaitingParticipantPeerData>,

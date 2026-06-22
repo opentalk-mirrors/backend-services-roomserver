@@ -97,6 +97,7 @@ impl SignalingModule for ModerationModule {
         let moderator_data = if ctx.is_moderator(participant_id) {
             let info = ModeratorJoinInfo {
                 waiting_room: ctx.room_task_info.room.waiting_room,
+                guest_access: ctx.room_task_info.room.guest_access,
                 waiting_room_participants: ctx
                     .waiting_participants
                     .iter()
