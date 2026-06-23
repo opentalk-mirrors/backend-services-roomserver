@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use chrono::{DateTime, Utc};
 use opentalk_types_api_internal::module_assets::Quota;
@@ -100,8 +100,8 @@ pub enum JoinBlockedReason {
 pub struct LeftWaitingRoom {
     /// The participant id for the associated participant
     pub id: ParticipantId,
-    /// The connection id for the associated participant
-    pub connection_id: ConnectionId,
+    /// The connection ids that left the waiting room
+    pub connection_ids: HashSet<ConnectionId>,
 }
 
 impl From<CoreError> for CoreEvent {
@@ -140,7 +140,7 @@ impl From<CoreError> for SignalingModuleError<CoreError> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, BTreeSet};
+    use std::collections::{BTreeMap, BTreeSet, HashSet};
 
     use chrono::DateTime;
     use insta::assert_snapshot;
@@ -338,7 +338,7 @@ mod tests {
     fn serialize_left_waiting_room() {
         let left_waiting_room = LeftWaitingRoom {
             id: opentalk_types_signaling::ParticipantId::from_u128(456),
-            connection_id: ConnectionId::from_u128(567),
+            connection_ids: HashSet::from_iter([ConnectionId::from_u128(567)]),
         };
 
         let produced =
@@ -349,7 +349,9 @@ mod tests {
         {
           "message": "left_waiting_room",
           "id": "00000000-0000-0000-0000-0000000001c8",
-          "connection_id": "00000000-0000-0000-0000-000000000237"
+          "connection_ids": [
+            "00000000-0000-0000-0000-000000000237"
+          ]
         }
         "#);
     }

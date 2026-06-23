@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use std::{
-    collections::{HashMap, hash_map::Entry},
+    collections::{HashMap, HashSet, hash_map::Entry},
     mem,
 };
 
@@ -51,7 +51,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             None,
             CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
                 id: participant_id,
-                connection_id,
+                connection_ids: HashSet::from_iter([connection_id]),
             }),
         );
         if let Err(e) = res {

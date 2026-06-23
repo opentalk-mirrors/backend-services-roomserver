@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::assert_matches;
+use std::{assert_matches, collections::HashSet};
 
 use http::StatusCode;
 use opentalk_roomserver_module_moderation::ModerationModule;
@@ -289,9 +289,9 @@ async fn ban_waiting_participant() {
 
     assert_matches!(
         event.payload,
-        CoreEvent::LeftWaitingRoom(LeftWaitingRoom { id, connection_id })
+        CoreEvent::LeftWaitingRoom(LeftWaitingRoom { id, connection_ids })
         if id == bob.id() &&
-        connection_id == bob.connection_id()
+        connection_ids == HashSet::from_iter([bob.connection_id()])
     );
 
     // Alice receives the event that a bob got banned
