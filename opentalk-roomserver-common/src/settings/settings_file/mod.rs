@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, anyhow};
-use config::{Config, Environment, File, FileFormat};
+use config::{Config, ConfigBuilder, Environment, File, FileFormat, builder::DefaultState};
 use http::Http;
 use opentalk_orchestrator_client::OrchestratorConfig;
 use serde::Deserialize;
@@ -58,25 +58,12 @@ pub struct SettingsFile {
 }
 
 impl SettingsFile {
-    fn environment() -> Environment {
-        Environment::with_prefix("OT_ROOMSERVER")
-            .prefix_separator("_")
-            .separator("__")
-            // try_parsing, list_separator and with_list_parse_key are required
-            // to parse sequences from the environment
-            .try_parsing(true)
-            .list_separator(",")
-            .with_list_parse_key("http.api_keys")
-            .with_list_parse_key("metrics.allowlist")
-    }
-
     /// Creates a new Settings instance from the provided TOML file.
     /// Specific fields can be set or overwritten with environment variables (See struct level docs
     /// for more details).
     pub fn load_from_path(file_path: &Path) -> Result<Self, Error> {
-        let config = Config::builder()
-            .add_source(File::from(file_path).format(FileFormat::Toml))
-            .add_source(Self::environment())
+        let builder = Config::builder().add_source(File::from(file_path).format(FileFormat::Toml));
+        let config = add_environment_source(builder)
             .build()
             .context("failed to build settings loader")?;
 
@@ -139,34 +126,61 @@ impl SettingsFile {
     }
 }
 
+fn add_environment_source(builder: ConfigBuilder<DefaultState>) -> ConfigBuilder<DefaultState> {
+    builder
+        // legacy environment prefix (before v0.1)
+        .add_source(
+            Environment::with_prefix("OT_ROOMSERVER")
+                .prefix_separator("_")
+                .separator("__")
+                // try_parsing, list_separator and with_list_parse_key are required
+                // to parse sequences from the environment
+                .try_parsing(true)
+                .list_separator(",")
+                .with_list_parse_key("http.api_keys")
+                .with_list_parse_key("metrics.allowlist"),
+        )
+        // currently supported prefix (starting with v0.1)
+        .add_source(
+            Environment::with_prefix("OPENTALK_ROOM")
+                .prefix_separator("_")
+                .separator("__")
+                // try_parsing, list_separator and with_list_parse_key are required
+                // to parse sequences from the environment
+                .try_parsing(true)
+                .list_separator(",")
+                .with_list_parse_key("http.api_keys")
+                .with_list_parse_key("metrics.allowlist"),
+        )
+}
+
 #[cfg(test)]
 mod tests {
     use config::Config;
 
-    use super::SettingsFile;
+    use super::{SettingsFile, add_environment_source};
 
     #[test]
     fn should_parse_array_from_env() {
         temp_env::with_vars(
             [
                 (
-                    "OT_ROOMSERVER_METRICS__ALLOWLIST",
+                    "OPENTALK_ROOM_METRICS__ALLOWLIST",
                     Some("172.0.0.0/9,172.128.0.0/9"),
                 ),
                 (
-                    "OT_ROOMSERVER_HTTP__API_KEYS",
+                    "OPENTALK_ROOM_HTTP__API_KEYS",
                     Some("roomserver:secret1,recorder:secret2"),
                 ),
             ],
             || {
-                let environment = SettingsFile::environment();
-
-                let config = Config::builder()
-                    .add_source(environment)
-                    .set_default("http.public_url", "http://localhost")
-                    .unwrap()
-                    .build()
-                    .unwrap();
+                let config = add_environment_source(
+                    Config::builder()
+                        .set_default("http.public_url", "http://localhost")
+                        .unwrap(),
+                )
+                .build()
+                .unwrap();
 
                 config.try_deserialize::<SettingsFile>().unwrap();
             },
@@ -177,18 +191,17 @@ mod tests {
     fn should_parse_array_from_env_single() {
         temp_env::with_vars(
             [
-                ("OT_ROOMSERVER_METRICS__ALLOWLIST", Some("172.0.0.0/9")),
-                ("OT_ROOMSERVER_HTTP__API_KEYS", Some("roomserver:secret1")),
+                ("OPENTALK_ROOM_METRICS__ALLOWLIST", Some("172.0.0.0/9")),
+                ("OPENTALK_ROOM_HTTP__API_KEYS", Some("roomserver:secret1")),
             ],
             || {
-                let environment = SettingsFile::environment();
-
-                let config = Config::builder()
-                    .add_source(environment)
-                    .set_default("http.public_url", "http://localhost")
-                    .unwrap()
-                    .build()
-                    .unwrap();
+                let config = add_environment_source(
+                    Config::builder()
+                        .set_default("http.public_url", "http://localhost")
+                        .unwrap(),
+                )
+                .build()
+                .unwrap();
 
                 config.try_deserialize::<SettingsFile>().unwrap();
             },

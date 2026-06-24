@@ -253,8 +253,8 @@ test:load:
       - TEST: [break-chat, break-join, fairness, rate-limit, spike-join, spike-storage-quota]
   variables:
     ROOMSERVER_BIN: $CI_PROJECT_DIR/target/release/opentalk-roomserver
-    OT_ROOMSERVER_HTTP__PUBLIC_URL: http://localhost:11333
-    OT_ROOMSERVER_MONITORING__ADDR: 127.0.0.1
+    OPENTALK_ROOM_HTTP__PUBLIC_URL: http://localhost:11333
+    OPENTALK_ROOM_MONITORING__ADDR: 127.0.0.1
     LOAD_TEST_BASE_URL: http://localhost:11333
     LOG_DIR: $CI_PROJECT_DIR/target/load-test/
   script:

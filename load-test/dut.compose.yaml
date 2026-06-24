@@ -10,10 +10,10 @@ services:
     # use network mode host to remove potential performance impacts of port-forwarding
     network_mode: host
     environment:
-      - OT_ROOMSERVER_HTTP__ADDRESS=${DEVICE_UNDER_TEST_ADDRESS}
-      - OT_ROOMSERVER_HTTP__PUBLIC_URL=${LOAD_TEST_BASE_URL}
-      - OT_ROOMSERVER_METRICS__ALLOWLIST=${TEST_DEVICE_CIDR}
-      - OT_ROOMSERVER_MONITORING__ADDR=${DEVICE_UNDER_TEST_ADDRESS}
+      - OPENTALK_ROOM_HTTP__ADDRESS=${DEVICE_UNDER_TEST_ADDRESS}
+      - OPENTALK_ROOM_HTTP__PUBLIC_URL=${LOAD_TEST_BASE_URL}
+      - OPENTALK_ROOM_METRICS__ALLOWLIST=${TEST_DEVICE_CIDR}
+      - OPENTALK_ROOM_MONITORING__ADDR=${DEVICE_UNDER_TEST_ADDRESS}
     volumes:
       - ./roomserver.toml:/etc/opentalk/roomserver.toml:ro,z
     ulimits:
