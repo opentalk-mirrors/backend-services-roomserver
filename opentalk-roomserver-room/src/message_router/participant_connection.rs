@@ -3,6 +3,7 @@
 //! Manages the websocket connection for a single participant
 use std::{pin::Pin, time::Duration};
 
+use bytes::Bytes;
 use futures::{
     FutureExt, SinkExt as _, StreamExt as _,
     stream::{self, Peekable},
@@ -41,6 +42,14 @@ use super::{
 /// frame is sent by the server. If the participant does not send a close frame
 /// within this period, the connection will be forcefully terminated.
 const CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// The interval at which keepalive ping frames are sent to the participant.
+///
+/// On an otherwise idle signaling connection (e.g. while a SIP/dial-in call is
+/// running and media flows over a different channel) this ensures that traffic
+/// is sent periodically. Without it, reverse proxies in front of the room server
+/// can reach their read/send timeout and reset the connection.
+const PING_INTERVAL: Duration = Duration::from_secs(20);
 
 /// The buffer size for events sent to the participant.
 const EVENT_BUFFER_SIZE: usize = 256;
@@ -212,6 +221,14 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
     async fn message_loop(&mut self) -> ExitReason {
         let mut buffer = Vec::with_capacity(EVENT_BUFFER_SIZE);
 
+        // Periodically send a ping to keep the connection alive on idle
+        // signaling connections and prevent reverse proxies from timing out.
+        let mut ping_interval = tokio::time::interval(PING_INTERVAL);
+        ping_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        // The first tick completes immediately; skip it so we don't ping right
+        // after the connection is established.
+        ping_interval.tick().await;
+
         loop {
             let mut stream = Pin::new(&mut self.stream);
 
@@ -256,6 +273,13 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                         return ExitReason::UnexpectedDisconnection;
                     }
                     buffer.clear();
+                }
+                _ = ping_interval.tick() => {
+                    if let Err(e) = self.sink.send(SignalingSocketMessage::Ping(Bytes::new())).await {
+                        tracing::debug!("Failed to send keepalive ping: {e}");
+
+                        return ExitReason::UnexpectedDisconnection;
+                    }
                 }
             }
         }

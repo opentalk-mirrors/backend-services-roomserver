@@ -54,6 +54,7 @@ mod tests {
         time::Duration,
     };
 
+    use futures::StreamExt as _;
     use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_types::{
         client_parameters::{self, ClientParameters, Role},
@@ -189,7 +190,7 @@ mod tests {
             .unwrap();
 
         // Charlie first receives a `JoinBlocked` event
-        let msg = participant.receiver.recv().await.unwrap();
+        let msg = participant.receiver.next().await.unwrap();
         let SignalingSocketMessage::Text(msg) = msg else {
             panic!("Expected text message, received {msg:?}");
         };
@@ -205,7 +206,7 @@ mod tests {
         );
 
         // Then Charlie receives a close frame with code 1013 (Try Again Later)
-        let msg = participant.receiver.recv().await.unwrap();
+        let msg = participant.receiver.next().await.unwrap();
         assert!(
             matches!(
                 msg,
