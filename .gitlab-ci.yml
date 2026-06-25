@@ -20,7 +20,7 @@ spec:
       regex: ^\d*$
       default: ''
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-alpine
+image: $RUST_LINT_IMAGE
 
 stages:
   - build
@@ -34,6 +34,7 @@ variables:
   KANIKO_IMAGE: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/kaniko:debug-1.25.2
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1
   DEFAULT_FLAVOR: alpine
+  RUST_LINT_IMAGE: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-trixie
 
 .template_vars:
   FLAVORS: [alpine, trixie, resolute, scratch]
@@ -51,6 +52,9 @@ variables:
 include:
   - project: opentalk/ci/templates/collect-commit-evidence
     ref: v2
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-lint
+    ref: v1
     file: .gitlab-ci-template.yml
   - project: opentalk/ci/templates/common-lint
     ref: v1
@@ -71,12 +75,6 @@ include:
     ref: v2
     file: .gitlab-ci-template.yml
 
-lint:fmt:
-  stage: lint
-  <<: *default_job_condition
-  script:
-    - cargo +nightly fmt -- --check
-
 lint:fmt_load_tests:
   stage: lint
   <<: *default_job_condition
@@ -92,47 +90,6 @@ lint:fmt_load_tests:
     - cd load-test
     - pnpm install
     - pnpm fmt:ci
-
-lint:clippy:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-trixie
-  stage: lint
-  <<: *default_job_condition
-  script:
-    - cargo clippy --workspace --all-features --tests -- --deny warnings
-
-lint:doc:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-trixie
-  stage: lint
-  <<: *default_job_condition
-  variables:
-    RUSTDOCFLAGS: -Dwarnings
-  script: cargo doc --workspace --no-deps
-
-lint:dependency_check:
-  stage: lint
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      changes:
-        - Cargo.lock
-        - deny.toml
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-  script:
-    - cargo-deny
-      --all-features
-      --workspace check
-      --deny unmatched-skip
-      --deny license-not-encountered
-      --deny license-exception-not-encountered
-      --hide-inclusion-graph
-
-lint:unnecessary_dependencies:
-  stage: lint
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
-  script: cargo machete --with-metadata
 
 lint:openapi:
   stage: lint
@@ -177,14 +134,6 @@ lint:commit-signature:
     - >
       git log --format=format:'%G?' $CI_MERGE_REQUEST_DIFF_BASE_SHA..HEAD
       | grep --null-data --quiet --invert-match --regexp="N" --regexp="B"
-
-lint:justfile:
-  stage: lint
-  <<: *default_job_condition
-  before_script: if ! just --version; then cargo install just; fi
-  script:
-    # The `--fmt` command-line parameter is still unstable, but valuable anyway.
-    - just --unstable --fmt --check
 
 lint:docs-generated-parts:
   stage: lint
@@ -273,6 +222,8 @@ test:load:
     expire_in: 1 week
 
 build:
+  # we need alpine here, so that this binary can be used in the `test:load` job, which uses an alpine based K6 image.
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-alpine
   stage: build
   needs: []
   rules:
@@ -293,7 +244,6 @@ build:
 
 # The DUI requires glibc. We therefore build it with a Debian based container.
 build:dui:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-trixie
   <<: *default_job_condition
   stage: build
   needs: []
