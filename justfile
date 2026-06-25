@@ -181,8 +181,8 @@ test-load TEST: _check_k6
     #!/usr/bin/env bash
 
     export ROOMSERVER_BIN="cargo run --"
-    export OT_ROOMSERVER_HTTP__PUBLIC_URL=http://localhost:11333
-    export OT_ROOMSERVER_MONITORING__ADDR=127.0.0.1
+    export OPENTALK_ROOM_HTTP__PUBLIC_URL=http://localhost:11333
+    export OPENTALK_ROOM_MONITORING__ADDR=127.0.0.1
     export LOAD_TEST_BASE_URL=http://localhost:11333
 
     pushd load-test
