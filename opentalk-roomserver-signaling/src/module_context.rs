@@ -546,7 +546,7 @@ where
 
     pub fn is_moderator(&self, participant_id: ParticipantId) -> bool {
         self.participant_role(participant_id)
-            .is_some_and(|r| r == Role::Moderator)
+            .is_some_and(|r| r.is_moderator())
     }
 
     pub fn get_client_kind(&self, participant_id: ParticipantId) -> Option<&ClientKind> {
