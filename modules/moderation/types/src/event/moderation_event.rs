@@ -11,7 +11,10 @@ use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::event::{BannedParticipantInfo, ModerationError};
+use crate::{
+    event::{BannedParticipantInfo, ModerationError},
+    state::ModeratorJoinInfo,
+};
 
 /// Events sent out by the `moderation` module
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -38,6 +41,10 @@ pub enum ModerationEvent {
         participant_id: ParticipantId,
         /// The participants new role
         new_role: Role,
+        /// The moderator data of the room. Sent only to the participant whose role was updated to
+        /// moderator.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        moderator_data: Option<ModeratorJoinInfo>,
     },
 
     /// Sent out when debriefing of a session started
@@ -155,6 +162,7 @@ mod tests {
         let cmd = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::Moderator,
+            moderator_data: None,
         };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
@@ -178,6 +186,7 @@ mod tests {
         let expected = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::Moderator,
+            moderator_data: None,
         };
         let produced = serde_json::from_value(json).unwrap();
 
@@ -189,6 +198,7 @@ mod tests {
         let cmd = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::User,
+            moderator_data: None,
         };
 
         assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
@@ -212,6 +222,7 @@ mod tests {
         let expected = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::User,
+            moderator_data: None,
         };
         let produced = serde_json::from_value(json).unwrap();
 

@@ -7,12 +7,15 @@ use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_module_shared_folder::SharedFolderModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{
-    client_parameters::Role, core::CoreEvent, disconnect_reason::DisconnectReason,
-    room_parameters::EventContext,
+    client_parameters::Role,
+    core::CoreEvent,
+    disconnect_reason::DisconnectReason,
+    room_parameters::{EventContext, WaitingRoom},
 };
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
+    state::ModeratorJoinInfo,
 };
 use opentalk_roomserver_types_shared_folder::event::SharedFolderEvent;
 use opentalk_types_common::{
@@ -204,16 +207,29 @@ async fn change_role_to_moderator() {
         .unwrap();
 
     // Alice and Bob receive the role update event
-    let bob_event = bob.receive_event::<ModerationModule>().await.unwrap();
-    let alice_event = alice.receive_event::<ModerationModule>().await.unwrap();
+    let event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        bob_event.payload,
+        event.payload,
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
             new_role: Role::Moderator,
+            moderator_data: Some(ModeratorJoinInfo {
+                waiting_room: WaitingRoom::Disabled,
+                guest_access: true,
+                waiting_room_participants: Vec::new(),
+                banned_participants: Vec::new(),
+            }),
         }
     );
-    assert_eq!(alice_event.payload, bob_event.payload);
+    let event = alice.receive_event::<ModerationModule>().await.unwrap();
+    assert_eq!(
+        event.payload,
+        ModerationEvent::RoleUpdated {
+            participant_id: bob.id(),
+            new_role: Role::Moderator,
+            moderator_data: None
+        }
+    );
 
     // Check if bob is now moderator by banning dave
     bob.send_command::<ModerationModule>(ModerationCommand::Ban { target: dave.id() }, None)
@@ -262,6 +278,7 @@ async fn change_role_to_user() {
     let expected_event = ModerationEvent::RoleUpdated {
         participant_id: frank.id(),
         new_role: Role::User,
+        moderator_data: None,
     };
     assert_eq!(bob_event.payload, expected_event);
     assert_eq!(alice_event.payload, expected_event);
@@ -324,16 +341,29 @@ async fn shared_folder_after_promotion() {
         .unwrap();
 
     // Alice and Bob receive the role update event
-    let bob_event = bob.receive_event::<ModerationModule>().await.unwrap();
-    let alice_event = alice.receive_event::<ModerationModule>().await.unwrap();
+    let event = bob.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
-        bob_event.payload,
+        event.payload,
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
             new_role: Role::Moderator,
+            moderator_data: Some(ModeratorJoinInfo {
+                waiting_room: WaitingRoom::Disabled,
+                guest_access: true,
+                waiting_room_participants: Vec::new(),
+                banned_participants: Vec::new(),
+            }),
         }
     );
-    assert_eq!(alice_event.payload, bob_event.payload);
+    let event = alice.receive_event::<ModerationModule>().await.unwrap();
+    assert_eq!(
+        event.payload,
+        ModerationEvent::RoleUpdated {
+            participant_id: bob.id(),
+            new_role: Role::Moderator,
+            moderator_data: None
+        }
+    );
 
     // Bob receives the new shared folder
     let bob_event = bob.receive_event::<SharedFolderModule>().await.unwrap();
@@ -396,6 +426,7 @@ async fn shared_folder_after_demotion() {
         ModerationEvent::RoleUpdated {
             participant_id: frank.id(),
             new_role: Role::User,
+            moderator_data: None,
         }
     );
     assert_eq!(alice_event.payload, frank_event.payload);

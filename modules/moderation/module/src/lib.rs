@@ -94,26 +94,9 @@ impl SignalingModule for ModerationModule {
         connection_id: ConnectionId,
         is_first_connection: bool,
     ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
-        let moderator_data = if ctx.is_moderator(participant_id) {
-            let info = ModeratorJoinInfo {
-                waiting_room: ctx.room_task_info.room.waiting_room,
-                guest_access: ctx.room_task_info.room.guest_access,
-                waiting_room_participants: ctx
-                    .waiting_participants
-                    .iter()
-                    .map(WaitingParticipantPeerData::from)
-                    .collect(),
-                banned_participants: ctx
-                    .banned_participants
-                    .iter()
-                    .map(BannedParticipantInfo::from)
-                    .collect(),
-            };
-            Some(info)
-        } else {
-            None
-        };
-
+        let moderator_data = ctx
+            .is_moderator(participant_id)
+            .then(|| Self::moderator_data(ctx));
         let join_info = ModuleJoinData {
             join_success: Some(ModerationState {
                 moderator_data,
@@ -123,6 +106,7 @@ impl SignalingModule for ModerationModule {
             }),
             ..Default::default()
         };
+
         Ok(join_info)
     }
 
@@ -391,13 +375,40 @@ impl ModerationModule {
 
         target_state.role = new_role;
 
-        ctx.send_ws_message(
-            ctx.participants.connected().ids(),
-            ModerationEvent::RoleUpdated {
-                participant_id: target,
-                new_role,
-            },
-        )?;
+        if new_role.is_moderator() {
+            // Send the role update event **with** moderator data to the participant that was
+            // promoted to moderator
+            ctx.send_ws_message(
+                [target],
+                ModerationEvent::RoleUpdated {
+                    participant_id: target,
+                    new_role,
+                    moderator_data: Some(Self::moderator_data(ctx)),
+                },
+            )?;
+
+            // Send the role update event without moderator data to everyone else
+            ctx.send_ws_message(
+                ctx.participants
+                    .connected()
+                    .ids()
+                    .filter(|id| *id != target),
+                ModerationEvent::RoleUpdated {
+                    participant_id: target,
+                    new_role,
+                    moderator_data: None,
+                },
+            )?;
+        } else {
+            ctx.send_ws_message(
+                ctx.participants.connected().ids(),
+                ModerationEvent::RoleUpdated {
+                    participant_id: target,
+                    new_role,
+                    moderator_data: None,
+                },
+            )?;
+        }
 
         ctx.send_internal_command::<SharedFolderModule>(UpdateSharedFolder {
             participant_id: target,
@@ -804,5 +815,22 @@ impl ModerationModule {
         }
 
         Ok(())
+    }
+
+    fn moderator_data(ctx: &ModuleContext<'_, Self>) -> ModeratorJoinInfo {
+        ModeratorJoinInfo {
+            waiting_room: ctx.room_task_info.room.waiting_room,
+            guest_access: ctx.room_task_info.room.guest_access,
+            waiting_room_participants: ctx
+                .waiting_participants
+                .iter()
+                .map(WaitingParticipantPeerData::from)
+                .collect(),
+            banned_participants: ctx
+                .banned_participants
+                .iter()
+                .map(BannedParticipantInfo::from)
+                .collect(),
+        }
     }
 }
