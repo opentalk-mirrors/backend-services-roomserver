@@ -1007,7 +1007,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         connection_id: ConnectionId,
         device_id: DeviceId,
         client_kind: ClientKind,
-        role: Role,
+        mut role: Role,
     ) -> Result<(), FatalError> {
         match self.participants.all_unfiltered.entry(participant_id) {
             Occupied(mut occupied) => {
@@ -1019,6 +1019,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 }
                 state.in_waiting_room = false;
                 state.connections.insert(connection_id, device_id);
+                role = state.role;
             }
             Vacant(vacant) => {
                 vacant

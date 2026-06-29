@@ -441,3 +441,71 @@ async fn shared_folder_after_demotion() {
 
     assert_eq!(frank_event.payload, SharedFolderEvent::Updated(read_only))
 }
+
+#[test_log::test(tokio::test)]
+async fn role_updated_on_rejoin() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice grants Bob the moderator role
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: bob.id(),
+                new_role: Role::Moderator,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice and Bob receive the role updated event
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::RoleUpdated {
+            participant_id: bob.id(),
+            new_role: Role::Moderator,
+            moderator_data: None,
+        }
+    );
+
+    let event = bob
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::RoleUpdated {
+            participant_id: bob.id(),
+            new_role: Role::Moderator,
+            moderator_data: Some(ModeratorJoinInfo {
+                waiting_room: WaitingRoom::Disabled,
+                guest_access: true,
+                waiting_room_participants: Vec::new(),
+                banned_participants: Vec::new(),
+            }),
+        }
+    );
+
+    // Bob disconnects
+    bob.disconnect().await.unwrap();
+
+    // Bob reconnects
+    let bob = room.join_bob(0).await;
+
+    // Bob is still a moderator
+    assert_eq!(
+        bob.join_success().role,
+        opentalk_types_signaling::Role::Moderator
+    );
+}
