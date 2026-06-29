@@ -12,6 +12,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
+    state::ModeratorJoinInfo,
 };
 use opentalk_types_signaling::ParticipantId;
 
@@ -75,7 +76,13 @@ async fn can_not_kick_room_owner() {
         event,
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
-            new_role: Role::Moderator
+            new_role: Role::Moderator,
+            moderator_data: Some(ModeratorJoinInfo {
+                waiting_room: WaitingRoom::Disabled,
+                guest_access: true,
+                waiting_room_participants: Vec::new(),
+                banned_participants: Vec::new(),
+            }),
         }
     );
 
@@ -101,7 +108,8 @@ async fn can_not_kick_room_owner() {
         event,
         ModerationEvent::RoleUpdated {
             participant_id: charlie.id(),
-            new_role: Role::Moderator
+            new_role: Role::Moderator,
+            moderator_data: None,
         }
     );
 
