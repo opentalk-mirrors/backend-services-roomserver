@@ -76,6 +76,9 @@ pub enum ReceiveError {
 
     #[error("UnexpectedMessage {0:?}")]
     UnexpectedMessage(SignalingSocketMessage),
+
+    #[error("UnexpectedCoreEvent {0:?}")]
+    UnexpectedCoreEvent(CoreEvent),
 }
 
 impl From<Elapsed> for ReceiveError {
@@ -140,67 +143,39 @@ impl<S: std::fmt::Debug> std::fmt::Debug for MockParticipant<S> {
 
 impl MockParticipant<()> {
     pub(crate) async fn join_success(mut self) -> Result<MockParticipantJoined, ReceiveError> {
-        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.next()).await? else {
-            return Err(ReceiveError::Closed);
-        };
-        match received {
-            SignalingSocketMessage::Text(text) => {
-                let event: SignalingEvent<CoreEvent> =
-                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
-                        error,
-                        message: SignalingSocketMessage::Text(text.clone()),
-                    })?;
+        let event = self.receive().await?;
 
-                if let CoreEvent::JoinSuccess(msg) = event.payload {
-                    Ok(MockParticipant {
-                        sender: self.sender,
-                        receiver: self.receiver,
-                        state: *msg,
-                    })
-                } else {
-                    Err(ReceiveError::UnexpectedMessage(
-                        SignalingSocketMessage::Text(text),
-                    ))
-                }
-            }
-            other => Err(ReceiveError::UnexpectedMessage(other)),
+        if let CoreEvent::JoinSuccess(msg) = event.payload {
+            Ok(MockParticipant {
+                sender: self.sender,
+                receiver: self.receiver,
+                state: *msg,
+            })
+        } else {
+            Err(ReceiveError::UnexpectedCoreEvent(event.payload))
         }
     }
 
     pub(crate) async fn join_waiting_room(
         mut self,
     ) -> Result<MockParticipantWaiting, ReceiveError> {
-        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.next()).await? else {
-            return Err(ReceiveError::Closed);
-        };
-        match received {
-            SignalingSocketMessage::Text(text) => {
-                let event: SignalingEvent<CoreEvent> =
-                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
-                        error,
-                        message: SignalingSocketMessage::Text(text.clone()),
-                    })?;
+        let event = self.receive().await?;
 
-                if let CoreEvent::InWaitingRoom {
+        if let CoreEvent::InWaitingRoom {
+            connection_id,
+            participant_id,
+        } = event.payload
+        {
+            Ok(MockParticipant {
+                sender: self.sender,
+                receiver: self.receiver,
+                state: WaitingRoomState {
                     connection_id,
                     participant_id,
-                } = event.payload
-                {
-                    Ok(MockParticipant {
-                        sender: self.sender,
-                        receiver: self.receiver,
-                        state: WaitingRoomState {
-                            connection_id,
-                            participant_id,
-                        },
-                    })
-                } else {
-                    Err(ReceiveError::UnexpectedMessage(
-                        SignalingSocketMessage::Text(text),
-                    ))
-                }
-            }
-            other => Err(ReceiveError::UnexpectedMessage(other)),
+                },
+            })
+        } else {
+            Err(ReceiveError::UnexpectedCoreEvent(event.payload))
         }
     }
 }
@@ -342,31 +317,16 @@ impl MockParticipantWaiting {
     }
 
     pub async fn join_success(mut self) -> Result<MockParticipantJoined, ParticipantError> {
-        let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.next())
-            .await
-            .map_err(|_| ReceiveError::Timeout)?
-        else {
-            return Err(ReceiveError::Closed.into());
-        };
-        match received {
-            SignalingSocketMessage::Text(text) => {
-                let event: SignalingEvent<CoreEvent> =
-                    serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
-                        error,
-                        message: SignalingSocketMessage::Text(text.clone()),
-                    })?;
+        let event = self.receive().await?;
 
-                if let CoreEvent::JoinSuccess(msg) = event.payload {
-                    Ok(MockParticipant {
-                        sender: self.sender,
-                        receiver: self.receiver,
-                        state: *msg,
-                    })
-                } else {
-                    Err(ReceiveError::UnexpectedMessage(SignalingSocketMessage::Text(text)).into())
-                }
-            }
-            other => Err(ReceiveError::UnexpectedMessage(other).into()),
+        if let CoreEvent::JoinSuccess(msg) = event.payload {
+            Ok(MockParticipant {
+                sender: self.sender,
+                receiver: self.receiver,
+                state: *msg,
+            })
+        } else {
+            Err(ReceiveError::UnexpectedCoreEvent(event.payload).into())
         }
     }
 
@@ -612,40 +572,21 @@ impl<S> MockParticipant<S> {
         M: SignalingModule,
         M::Outgoing: DeserializeOwned,
     {
-        loop {
-            let Some(received) = time::timeout(timeout, self.receiver.next()).await? else {
-                return Err(ReceiveError::Closed);
-            };
-            match received {
-                SignalingSocketMessage::Text(text) => {
-                    let event: SignalingEvent<M::Outgoing> =
-                        serde_json::from_str(&text).map_err(|error| ReceiveError::InvalidJson {
-                            error,
-                            message: SignalingSocketMessage::Text(text),
-                        })?;
-                    break Ok(event);
-                }
-                SignalingSocketMessage::Pong(_) => continue,
-                SignalingSocketMessage::Ping(msg) => {
-                    self.sender
-                        .send(Ok(SignalingSocketItem {
-                            message: SignalingSocketMessage::Pong(msg),
-                            done: None,
-                        }))
-                        .await
-                        .ok();
-                    continue;
-                }
-                other => break Err(ReceiveError::UnexpectedMessage(other)),
-            }
-        }
+        self.receive_timeout(timeout).await
     }
 
     pub async fn receive<E: DeserializeOwned>(
         &mut self,
     ) -> Result<SignalingEvent<E>, ReceiveError> {
+        self.receive_timeout(SOCKET_TIMEOUT).await
+    }
+
+    async fn receive_timeout<E: DeserializeOwned>(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<SignalingEvent<E>, ReceiveError> {
         loop {
-            let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.next()).await? else {
+            let Some(received) = time::timeout(timeout, self.receiver.next()).await? else {
                 return Err(ReceiveError::Closed);
             };
             match received {
