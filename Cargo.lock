@@ -5934,6 +5934,7 @@ dependencies = [
  "log",
  "opentalk-roomserver-client",
  "opentalk-roomserver-common",
+ "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-chat",
  "opentalk-roomserver-types-moderation",
