@@ -155,7 +155,9 @@ serde_path_to_error = "0.1.16"
 service-probe = "0.4.0"
 service-probe-client = "0.4.0"
 sysinfo = "0.39"
-test-log = { version = "0.2.17", default-features = false }
+test-log = { version = "0.2.17", default-features = false, features = [
+  "trace",
+] }
 testcontainers = "0.27.0"
 thiserror = "2.0"
 tokio = { version = "1", features = [
