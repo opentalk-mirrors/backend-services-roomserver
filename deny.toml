@@ -44,6 +44,14 @@ ignore = [
 
   # Bincode is unmaintained
   "RUSTSEC-2025-0141",
+
+  # ttf-parser is unmaintained
+  # ├ ttf-parser
+  # └── fontdb
+  #     └── krilla-svg
+  #         └── typst-pdf
+  #             └── opentalk-report-generation
+  "RUSTSEC-2026-0192",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -378,6 +386,7 @@ skip = [
   { name = "imagesize", version = "0.13" },
   { name = "itertools", version = "0.11" },
   { name = "itertools", version = "0.12" },
+  { name = "itertools", version = "0.14" },
   { name = "kurbo", version = "0.11" },
   { name = "kurbo", version = "0.12" },
   { name = "linux-raw-sys", version = "0.4" },
