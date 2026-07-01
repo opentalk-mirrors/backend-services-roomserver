@@ -217,7 +217,10 @@ impl MeetingReportModule {
             BTreeMap::from_iter(files),
             &generate_options,
         )
-        .map_err(|_| MeetingReportError::Generate)?;
+        .map_err(|err| {
+            tracing::error!("Failed to generate report: {err}");
+            MeetingReportError::Generate
+        })?;
 
         Ok(report)
     }
@@ -314,7 +317,7 @@ mod tests {
             .expect("text should be extractable from generated pdf")
     }
 
-    #[test]
+    #[test_log::test]
     fn generate_report_small() {
         insta::with_settings!({filters => vec![
             (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", "[timestamp]")
@@ -335,7 +338,7 @@ mod tests {
         });
     }
 
-    #[test]
+    #[test_log::test]
     fn generate_report_small_de() {
         let mut report_template_data = crate::template::tests::example_small();
         report_template_data.report_language = langid!("de");
@@ -359,7 +362,7 @@ mod tests {
         });
     }
 
-    #[test]
+    #[test_log::test]
     fn generate_report_medium() {
         insta::with_settings!({filters => vec![
             (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", "[timestamp]")
@@ -390,7 +393,7 @@ mod tests {
         });
     }
 
-    #[test]
+    #[test_log::test]
     fn generate_report_medium_de() {
         let mut report_template_data = crate::template::tests::example_medium();
         report_template_data.report_language = langid!("de");
@@ -424,7 +427,7 @@ mod tests {
         });
     }
 
-    #[test]
+    #[test_log::test]
     fn generate_report_large() {
         insta::with_settings!({filters => vec![
             (r"[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", "[timestamp]")
@@ -463,7 +466,7 @@ mod tests {
         });
     }
 
-    #[test]
+    #[test_log::test]
     fn generate_report_large_de() {
         let mut report_template_data = crate::template::tests::example_large();
         report_template_data.report_language = langid!("de");

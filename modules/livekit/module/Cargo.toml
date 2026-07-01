@@ -35,5 +35,5 @@ livekit.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-roomserver-test-util-livekit.workspace = true
 pretty_assertions.workspace = true
-test-log = { workspace = true, features = ["trace"] }
+test-log.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
