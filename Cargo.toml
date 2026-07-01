@@ -130,7 +130,7 @@ opentalk-orchestrator-client = { version = "0.8", features = [
   "roomserver-service",
 ] }
 opentalk-orchestrator-shared = "0.8"
-opentalk-report-generation = "0.2"
+opentalk-report-generation = "0.3"
 opentalk-transcription-web-api = "0.1"
 opentalk-version = "0.4.0"
 opentelemetry = "0.32.0"

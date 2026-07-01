@@ -207,9 +207,9 @@ impl MeetingReportModule {
             .into_bytes()
             .into();
         let files = [
-            (Path::new("data.json"), (None, serialized)),
-            (Path::new("l10n/de.ftl"), (None, FTL_DE.as_bytes().into())),
-            (Path::new("l10n/en.ftl"), (None, FTL_EN.as_bytes().into())),
+            ("data.json", (None, serialized)),
+            ("l10n/de.ftl", (None, FTL_DE.as_bytes().into())),
+            ("l10n/en.ftl", (None, FTL_EN.as_bytes().into())),
         ];
 
         let report = opentalk_report_generation::generate_pdf_report(
