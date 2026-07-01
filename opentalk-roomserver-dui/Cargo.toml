@@ -30,6 +30,7 @@ livekit.workspace = true
 log.workspace = true
 opentalk-roomserver-client.workspace = true
 opentalk-roomserver-common.workspace = true
+opentalk-roomserver-crypto-provider.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-chat.workspace = true
 opentalk-roomserver-types-moderation.workspace = true

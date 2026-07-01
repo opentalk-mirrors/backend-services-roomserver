@@ -3,6 +3,7 @@
 
 use app::RoomServerApp;
 use clap::Parser as _;
+use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 
 pub mod app;
 mod cli;
@@ -12,6 +13,8 @@ pub mod settings;
 fn main() -> eframe::Result {
     const APP_NAME: &str = "OpenTalk RoomServer Developer UI";
     env_logger::init();
+
+    ensure_crypto_provider();
 
     let args = cli::Args::parse();
     if args.run_tasks().should_exit() {

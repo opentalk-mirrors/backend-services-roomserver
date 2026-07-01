@@ -105,7 +105,7 @@ impl RoomServerApp {
         match &mut self.view {
             CentralAppView::Signaling(signaling_view) if signaling_view.show_side_panel() => {
                 egui::Panel::left("Message Side Panel")
-                    .show_inside(ui, |ui| {
+                    .show(ui, |ui| {
                         signaling_view.left_panel_ui(
                             ui,
                             &self.command_tx,
@@ -144,7 +144,7 @@ impl RoomServerApp {
     }
 
     fn menu_ui(&mut self, ui: &mut egui::Ui) {
-        egui::Panel::top("menu_bar").show_inside(ui, |ui| {
+        egui::Panel::top("menu_bar").show(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 egui::widgets::global_theme_preference_switch(ui);
 
@@ -260,7 +260,7 @@ impl eframe::App for RoomServerApp {
         egui::Panel::bottom("bottom-view")
             .resizable(true)
             .default_size(102.)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 self.bottom_panel_ui(ui);
             });
         if let Err(RunnerGoneError) = self.left_panel_ui(ui) {
@@ -271,7 +271,7 @@ impl eframe::App for RoomServerApp {
                 ui,
             );
         }
-        egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             self.central_panel_ui(ui);
         });
         if let Some(settings_view) = &mut self.settings_view {
