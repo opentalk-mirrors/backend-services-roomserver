@@ -618,7 +618,7 @@ mod test {
         }
     }
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn put_room() {
         let ctx = test_context();
 
@@ -629,7 +629,7 @@ mod test {
         // TODO add second put_room request and check for UPDATED response once implemented
     }
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn request_token() {
         let mut ctx = test_context();
 
@@ -666,7 +666,7 @@ mod test {
         assert!(token.is_ok())
     }
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn request_token_guests_disabled() {
         let mut ctx = test_context();
 
