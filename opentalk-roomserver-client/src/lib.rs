@@ -46,8 +46,9 @@ pub enum Error<T> {
     Unexpected { status: StatusCode, body: String },
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Error, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[error("{code}: {message}")]
 pub struct ApiError<T> {
     pub code: T,
     pub message: String,
@@ -94,6 +95,9 @@ pub enum RequestTokenError {
     #[error("The requesting participant is a guest and guest access is disabled")]
     GuestAccessDisabled,
 }
+
+#[derive(Error, Debug, Deserialize, PartialEq, Eq)]
+pub enum DeleteRoomError {}
 
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -165,6 +169,26 @@ impl Client {
             response.status(),
             &response.bytes().await?,
         ))
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn delete_room(&self, room_id: RoomId) -> Result<(), Error<DeleteRoomError>> {
+        let url = self.base_url.join(&format!("v1/rooms/{room_id}"))?;
+        let response = self
+            .reqwest_client
+            .delete(url)
+            .header(AUTHORIZATION, self.auth_header()?)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            Err(Self::parse_api_error::<DeleteRoomError>(
+                response.status(),
+                &response.bytes().await?,
+            ))
+        }
     }
 
     #[tracing::instrument(skip(self))]
@@ -267,5 +291,35 @@ impl Client {
         token: Token,
     ) -> Result<SignalingConnection, SignalingError> {
         SignalingConnection::connect(url, token).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+
+    use crate::{ApiError, Error, PutRoomError};
+
+    #[test]
+    fn display_error() {
+        let err = Error::ApiError(ApiError {
+            code: PutRoomError::InvalidApiToken,
+            message: "You shall not pass!".to_owned(),
+        });
+        assert_snapshot!(&err.to_string(), @r#"
+        RoomServer returned an error: ApiError {
+            code: InvalidApiToken,
+            message: "You shall not pass!",
+        }
+        "#);
+    }
+
+    #[test]
+    fn display_api_error() {
+        let err = ApiError {
+            code: PutRoomError::InvalidApiToken,
+            message: "You shall not pass!".to_owned(),
+        };
+        assert_snapshot!(&err.to_string(), @"The provided API token is invalid: You shall not pass!");
     }
 }

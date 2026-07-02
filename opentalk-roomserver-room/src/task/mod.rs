@@ -293,8 +293,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         return Ok(RoomCloseReason::ImmediateShutdown);
                     };
 
-                    if let Err(e) = self.handle_api_request(msg).await {
-                        tracing::error!("Failed to handle room task api request: {e:?}");
+                    match self.handle_api_request(msg).await {
+                        Ok(None) => {},
+                        Ok(Some(reason)) => return Ok(reason),
+                        Err(e) => tracing::error!("Failed to handle room task api request: {e:?}")
                     }
                 },
                 msg = self.message_router.recv() => {
@@ -333,7 +335,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(skip_all, parent = &msg.span, fields(opentalk.room_id = %self.info.room_id))]
-    async fn handle_api_request(&mut self, msg: TaskMessage<Socket>) -> anyhow::Result<()> {
+    async fn handle_api_request(
+        &mut self,
+        msg: TaskMessage<Socket>,
+    ) -> anyhow::Result<Option<RoomCloseReason>> {
         match msg.request {
             Request::RefreshIdleTimeout { response } => {
                 self.refresh_idle_timeout();
@@ -362,7 +367,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         .ok()
                         .context("Failed to respond to PatchParameter, response channel dropped")?;
 
-                    return Ok(());
+                    return Ok(None);
                 }
 
                 self.broadcast_room_parameters_changed_event(*patch)
@@ -432,9 +437,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             Request::GetLivekitServiceUrl { response } => {
                 self.get_livekit_service_url(response)?;
             }
+            Request::Close { response, reason } => {
+                // Do not return an error when sending the response fails because that would mean
+                // the room tasks keeps running until terminated with the `ImmediateShutdown` reason
+                // due to being dropped.
+                response.send(Ok(())).ok().unwrap_or_else(|| {
+                    tracing::error!("Failed to respond to Close, response channel dropped")
+                });
+
+                return Ok(Some(reason));
+            }
         }
 
-        Ok(())
+        Ok(None)
     }
 
     fn handle_loopback(&mut self, msg: Option<LoopbackMessage>) -> Result<(), FatalError> {

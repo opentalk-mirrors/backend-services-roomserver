@@ -72,6 +72,31 @@ async fn patch_room() {
 
 #[test_log::test(tokio::test)]
 #[ignore = "Requires an up-to-date roomserver container"]
+async fn delete_room() {
+    let (_container, base_url) = spawn_roomserver().await;
+    let client = Client::new(base_url, api_key());
+    let room_id = RoomId::from_u128(0x1);
+
+    client
+        .put_room(room_id, RoomParameters::example_data())
+        .await
+        .unwrap();
+
+    client.delete_room(room_id).await.unwrap();
+}
+
+#[test_log::test(tokio::test)]
+#[ignore = "Requires an up-to-date roomserver container"]
+async fn delete_non_existing_room() {
+    let (_container, base_url) = spawn_roomserver().await;
+    let client = Client::new(base_url, api_key());
+    let room_id = RoomId::from_u128(0x1);
+
+    client.delete_room(room_id).await.unwrap();
+}
+
+#[test_log::test(tokio::test)]
+#[ignore = "Requires an up-to-date roomserver container"]
 async fn post_storage_quota_not_found() {
     let (_container, base_url) = spawn_roomserver().await;
     let client = Client::new(base_url, api_key());

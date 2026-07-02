@@ -118,6 +118,7 @@ pub enum RoomCloseReason {
     FatalError,
     TimeLimitReached,
     IdleTimeoutReached,
+    RoomDeleted,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

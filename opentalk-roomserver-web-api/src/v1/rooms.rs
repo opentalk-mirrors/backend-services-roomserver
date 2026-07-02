@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use axum::{
     Json,
     extract::{Path, State},
-    routing::{patch, post, put},
+    routing::{delete, patch, post, put},
 };
 pub use opentalk_roomserver_types::room_action::RoomAction;
 use opentalk_roomserver_types::{
@@ -35,6 +35,9 @@ pub trait RoomBackend: Clone + Send + Sync + Debug {
         room_id: RoomId,
         patch: RoomParametersPatch,
     ) -> Result<RoomAction, ApiError>;
+
+    /// Delete the room and close the room task
+    async fn delete_room(&self, room_id: RoomId);
 
     async fn request_room_token(
         &mut self,
@@ -104,6 +107,26 @@ pub(crate) async fn patch_room<B: RoomBackend>(
     ctx.patch_room(room_id, patch).await
 }
 
+#[utoipa::path(
+   delete,
+   path = "/rooms/{room_id}",
+   summary = "Close the room",
+   params(
+      ("room_id" = RoomId, Path, description = "The UUID that identifies the room"),
+   ),
+   responses(
+      (status = StatusCode::OK, description = "The room was closed successfully or did not exist"),
+      (status = StatusCode::UNAUTHORIZED, description = "The provided API token is invalid"),
+      (status = StatusCode::BAD_REQUEST, description = "The provided API token could not be parsed"),
+   ),
+   security(
+       ("API-Token" = [])
+   )
+)]
+pub(crate) async fn delete_room<B: RoomBackend>(State(ctx): State<B>, Path(room_id): Path<RoomId>) {
+    ctx.delete_room(room_id).await;
+}
+
 /// Creates a new signaling token for the specified user and room
 ///
 /// The signaling token can be used to establish a websocket connection with the roomserver through
@@ -153,6 +176,7 @@ pub fn routes<B: RoomBackend + 'static>() -> Router<B> {
         Router::new()
             .route("/{room_id}", put(put_room::<B>))
             .route("/{room_id}", patch(patch_room::<B>))
+            .route("/{room_id}", delete(delete_room::<B>))
             .route("/{room_id}/token", post(request_token::<B>)),
     )
 }
