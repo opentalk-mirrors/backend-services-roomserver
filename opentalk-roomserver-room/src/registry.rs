@@ -88,7 +88,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         room_id: RoomId,
         patch: RoomParametersPatch,
     ) -> Result<RoomAction, RoomTaskHandleError<Socket>> {
-        let rooms = self.rooms.write().await;
+        let rooms = self.rooms.read().await;
 
         let Some(task_handle) = rooms.map().get(&room_id) else {
             return Err(RoomTaskApiError::NotFound.into());
