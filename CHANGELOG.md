@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0] - 2026-07-07
+
+[0.1.0]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.40...v0.1.0
+
+### 🚀 New features
+
+- Add guest access to `ModeratorJoinInfo` ([!1140](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1140))
+- Change environment config prefix to match other OpenTalk services ([!1144](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1144), [#297](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/297))
+- (moderation) Send moderator data to new moderators on `ModerationEvent::RoleUpdated` ([!1157](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1157), [#298](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/298))
+- (meeting-notes) Log errors when report generation fails ([!1165](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1165))
+
+### 🐛 Bug fixes
+
+- (signaling) Send errors only to the originating connection ([!1130](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1130))
+- (core) `CoreEvent::LeftWaitingRoom` only contains a single connection ([!1139](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1139), [#284](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/284))
+- Keep signaling websocket open by sending periodic ping frames ([!1147](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1147))
+- (room) Participants receive the wrong role in `JoinSuccess` when rejoining after promotion ([!1158](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1158), [#299](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/299))
+- (dui) Error due to missing crypto provider ([!1150](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1150))
+
+### ⚡ Performance
+
+- (room) Use read lock in patch_room ([!1168](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1168))
+
+### 🔨 Refactor
+
+- (signaling) Use `is_moderator()` function to check moderator rights ([!1157](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1157))
+- (mock) Move recieve event into a function ([!1147](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1147))
+
+### 📦 Dependencies
+
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.9 ([!1127](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1127))
+- (deps) Update node.js to v24.17.0 ([!1134](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1134))
+- (deps) Update pnpm to v11.8.0 ([!1133](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1133))
+- (deps) Lock file maintenance ([!1137](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1137), [!1156](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1156), [!1170](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1170))
+- (deps) Update pnpm to v11.9.0 ([!1142](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1142))
+- (deps) Update pre-commit hook alessandrojcm/commitlint-pre-commit-hook to v9.26.0 ([!1146](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1146))
+- (deps) Update rust crate pdf-extract to 0.12 ([!1152](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1152))
+- (deps) Update node.js to v24.18.0 ([!1145](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1145))
+- (deps) Update pre-commit hook davidanson/markdownlint-cli2 to v0.23.0 ([!1163](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1163))
+- (deps) Update grafana/k6 docker tag to v2.1.0 ([!1161](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1161))
+- (deps) Update dependency prettier to v3.9.4 ([!1159](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1159))
+- (deps) Update rust crate itertools to 0.15.0 ([!1128](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1128))
+- (deps) Update egui ([!1150](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1150))
+- (deps) Update rust crate tower-http to 0.7.0 ([!1126](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1126))
+- (deps) Update pnpm to v11.10.0 ([!1169](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1169))
+- (deps) Document RUSTSEC-2026-0194 and RUSTSEC-2026-0195 ([!1170](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1170))
+- (deps) Update crate crossbeam-epoch to v0.9.20 ([!1171](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1171))
+
+### Ci
+
+- Use container build template ([!1149](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1149))
+- Use rust-lint template ([!1149](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1149))
+
+### Test
+
+- (moderation) Add (de)serialization tests for moderation state ([!1140](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1140))
+- Always use `test-log` with the `trace` feature ([!1165](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1165))
+
 ## [0.0.40] - 2026-06-15
 
 [0.0.40]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.39...v0.0.40
