@@ -5,7 +5,7 @@ use std::{collections::HashSet, pin::Pin, sync::Arc};
 
 use opentalk_orchestrator_client::{RoomserverEvent, client::OrchestratorHandle};
 use opentalk_roomserver_types::{
-    room_action::RoomAction, room_parameters::RoomParameters,
+    core::RoomCloseReason, room_action::RoomAction, room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch, signaling::websocket::SignalingSocket,
 };
 use opentalk_types_common::{rooms::RoomId, users::UserId};
@@ -96,6 +96,17 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 
         task_handle.patch_parameters(patch).await?;
         Ok(RoomAction::Updated)
+    }
+
+    pub async fn delete_room(&self, room_id: RoomId) {
+        let rooms = self.rooms.read().await;
+
+        // Deleting a non existing room is treated as success.
+        // Removing the room from the registry is not necessary here. The room will be removed when
+        // the room task completes, see `insert()`.
+        if let Some(task_handle) = rooms.map().get(&room_id) {
+            task_handle.close(RoomCloseReason::RoomDeleted).await;
+        };
     }
 
     async fn insert(
@@ -229,17 +240,25 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
 #[cfg(test)]
 #[cfg(feature = "mock")]
 mod tests {
-    use std::{sync::Arc, time::Duration};
+    use std::{assert_matches, sync::Arc, time::Duration};
 
+    use opentalk_orchestrator_client::client::OrchestratorHandle;
+    use opentalk_orchestrator_shared::{Event, RoomserverEvent};
     use opentalk_roomserver_common::application_state::ApplicationState;
-    use opentalk_roomserver_types::{room_action::RoomAction, room_parameters::RoomParameters};
+    use opentalk_roomserver_types::{
+        client_parameters::ClientParameters,
+        core::{CoreEvent, RoomCloseReason},
+        room_action::RoomAction,
+        room_parameters::RoomParameters,
+        signaling::websocket::CloseFrame,
+    };
     use opentalk_types_api_internal::module_assets::Quota;
     use opentalk_types_common::{rooms::RoomId, utils::ExampleData as _};
-    use tokio::sync::watch;
+    use tokio::sync::{mpsc, watch};
 
     use crate::{
         ModuleRegistry, RoomTaskRegistry,
-        mocking::socket::MockSocket,
+        mocking::{participant::create_participant_connection, socket::MockSocket},
         storage::{
             memory_asset_storage::MemoryAssetStorage,
             memory_module_storage::MemoryModuleResourceStorage,
@@ -303,6 +322,59 @@ mod tests {
 
         let handle = registry.get_task_handle(&room_id).await;
         assert!(handle.is_none());
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn delete_room_notifies_participants_and_orchestrator() {
+        let (orchestrator_tx, mut orchestrator_rx) = mpsc::channel(1);
+        let orchestrator_handle = OrchestratorHandle(orchestrator_tx);
+        let registry = RoomTaskRegistry::<MockSocket>::new(Some(orchestrator_handle));
+        let (_app_state_sender, app_state) = watch::channel(ApplicationState::Running);
+
+        let room_id = RoomId::from_u128(1);
+        let ctx = create_task_context(app_state);
+        let (action, ..) = registry
+            .put_room(ctx, room_id, RoomParameters::example_data().into())
+            .await
+            .unwrap();
+        assert_eq!(RoomAction::Created, action);
+
+        let handle = registry.get_task_handle(&room_id).await.unwrap();
+        let (socket, participant) = create_participant_connection();
+        handle
+            .accept_signaling_socket(socket, ClientParameters::example_data())
+            .await
+            .unwrap();
+        let mut participant = participant.join_success().await.unwrap();
+
+        // Delete the room via the registry, as the web api does.
+        registry.delete_room(room_id).await;
+
+        // The participant is notified that the room is closing.
+        let event = participant.receive::<CoreEvent>().await.unwrap();
+        assert_matches!(
+            event.payload,
+            CoreEvent::Closing {
+                reason: RoomCloseReason::RoomDeleted
+            }
+        );
+
+        // The participant's connection is then closed with a close frame.
+        let close_frame = participant.receive_close_frame().await.unwrap();
+        assert_eq!(
+            close_frame,
+            Some(CloseFrame {
+                code: 1000,
+                reason: "closed by server".to_owned(),
+            })
+        );
+
+        // The orchestrator is notified that the room was removed.
+        let event = orchestrator_rx.recv().await.unwrap();
+        assert_eq!(
+            event,
+            Event::Roomserver(RoomserverEvent::RemoveRoom(room_id))
+        );
     }
 
     fn create_task_context(app_state: watch::Receiver<ApplicationState>) -> RoomTaskContext {

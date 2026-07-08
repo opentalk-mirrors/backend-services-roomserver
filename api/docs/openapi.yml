@@ -103,6 +103,27 @@ paths:
           description: An internal server error occurred
       security:
         - API-Token: []
+    delete:
+      tags:
+        - "v1::rooms"
+      summary: Close the room
+      operationId: delete_room
+      parameters:
+        - name: room_id
+          in: path
+          description: The UUID that identifies the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+      responses:
+        "200":
+          description: The room was closed successfully or did not exist
+        "400":
+          description: The provided API token could not be parsed
+        "401":
+          description: The provided API token is invalid
+      security:
+        - API-Token: []
     patch:
       tags:
         - "v1::rooms"

@@ -79,6 +79,7 @@ pub mod websocket;
         paths(
             v1::rooms::put_room,
             v1::rooms::patch_room,
+            v1::rooms::delete_room,
             v1::rooms::request_token,
             v1::user::post_storage_quota,
             v1::signaling::open_signaling_socket,
@@ -357,6 +358,10 @@ impl RoomBackend for Context {
 
         Ok(RoomServerAccess { public_url, token })
     }
+
+    async fn delete_room(&self, room_id: RoomId) {
+        self.room_tasks.delete_room(room_id).await;
+    }
 }
 
 impl Context {
@@ -618,7 +623,7 @@ mod test {
         }
     }
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn put_room() {
         let ctx = test_context();
 
@@ -629,7 +634,19 @@ mod test {
         // TODO add second put_room request and check for UPDATED response once implemented
     }
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
+    async fn delete_room() {
+        let ctx = test_context();
+
+        let id = RoomId::from_u128(0x1);
+        let action = ctx.put_room(id, room_parameters()).await.unwrap();
+        assert_eq!(action, RoomAction::Created);
+
+        ctx.delete_room(id).await;
+        assert!(ctx.room_tasks.get_task_handle(&id).await.is_none());
+    }
+
+    #[test_log::test(tokio::test)]
     async fn request_token() {
         let mut ctx = test_context();
 
@@ -666,7 +683,7 @@ mod test {
         assert!(token.is_ok())
     }
 
-    #[tokio::test]
+    #[test_log::test(tokio::test)]
     async fn request_token_guests_disabled() {
         let mut ctx = test_context();
 

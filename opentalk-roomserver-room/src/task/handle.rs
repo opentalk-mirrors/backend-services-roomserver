@@ -8,6 +8,7 @@ use opentalk_roomserver_signaling::storage::{
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
+    core::RoomCloseReason,
     livekit_proxy::{LiveKitProxyRequest, PreparedSocket, websocket::LiveKitSocket},
     room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch,
@@ -171,6 +172,23 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Self::receive_response(rx).await?;
 
         Ok(())
+    }
+
+    pub async fn close(&self, reason: RoomCloseReason) {
+        let (tx, rx) = oneshot::channel();
+
+        // When the room task is already gone, we do not want to respond with an error because the
+        // room **is** closed.
+        self.send_request(Request::Close {
+            response: tx,
+            reason,
+        })
+        .await
+        .unwrap_or_else(|err| tracing::error!("Room task already gone: {err}"));
+
+        Self::receive_response(rx)
+            .await
+            .unwrap_or_else(|err| tracing::error!("Room task already gone: {err}"));
     }
 
     pub async fn set_storage_quota(&self, quota: Quota) -> Result<(), RoomTaskHandleError<Socket>> {
@@ -414,6 +432,15 @@ pub enum Request<Socket: SignalingSocket> {
     GetLivekitServiceUrl {
         response: ResponseSender<Url>,
     },
+
+    /// Close the room task with the given reason
+    Close {
+        response: ResponseSender<()>,
+        /// The close reason sent to the participants in [`CoreEvent::Closing`]
+        ///
+        /// [`CoreEvent::Closing`]: opentalk_roomserver_types::core::CoreEvent::Closing
+        reason: RoomCloseReason,
+    },
 }
 
 impl<Socket: SignalingSocket> Request<Socket> {
@@ -423,6 +450,7 @@ impl<Socket: SignalingSocket> Request<Socket> {
             | Request::SetParameters { response, .. }
             | Request::PatchParameters { response, .. }
             | Request::StorageQuotaChanged { response, .. }
+            | Request::Close { response, .. }
             | Request::WsJoin { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),

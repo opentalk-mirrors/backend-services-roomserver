@@ -6476,6 +6476,7 @@ dependencies = [
  "json-patch",
  "mockito",
  "opentalk-orchestrator-client",
+ "opentalk-orchestrator-shared",
  "opentalk-roomserver-common",
  "opentalk-roomserver-crypto-provider",
  "opentalk-roomserver-signaling",
