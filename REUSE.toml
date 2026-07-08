@@ -16,12 +16,12 @@ SPDX-FileCopyrightText = [
 SPDX-License-Identifier = "EUPL-1.2"
 path = [
   "**/*.json",
+  "**/CHANGELOG.md",
   "**/README.md",
   "**/package.json",
   "**/pnpm-lock.yaml",
   "**/snapshots/**.snap",
   ".commitlintrc.json",
-  "CHANGELOG.md",
   "Cargo.lock",
   "api/docs/**.yml",
   "ci/spectral/*.yml",

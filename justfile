@@ -6,6 +6,8 @@
 
 set quiet
 
+binary_crate := "opentalk-roomserver"
+
 [no-exit-message]
 _check_cargo_set_version:
     #!/usr/bin/env bash
@@ -71,20 +73,55 @@ _check_k6:
         exit 1
     fi
 
+# Print the path to a crate's Cargo.toml
+_crate-manifest CRATE: _check_yq
+    #!/usr/bin/env bash
+    set -euo pipefail
+    manifest=$(cargo metadata --frozen --format-version 1 --no-deps \
+        | yq -p json -r '.packages[] | select(.name == "{{ CRATE }}") | .manifest_path')
+    if [[ -z "$manifest" ]]; then
+        echo "unknown crate {{ CRATE }}" >&2
+        exit 1
+    fi
+    echo "$manifest"
+
+_crate-version CRATE: _check_yq
+    #!/usr/bin/env bash
+    set -euo pipefail
+    yq .package.version "$(just _crate-manifest {{ CRATE }})"
+
+# Print the release tag for a crate and version
+_release-tag CRATE VERSION:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ {{ CRATE }} = {{ binary_crate }} ]]; then
+        echo "v{{ VERSION }}"
+    else
+        echo "{{ CRATE }}-v{{ VERSION }}"
+    fi
+
 # Prepare a release
-prepare-release VERSION: (set-version VERSION) update-openapi (update-changelog VERSION)
+prepare-release CRATE VERSION: (set-version CRATE VERSION) (update-openapi CRATE) (update-changelog CRATE VERSION)
 
 # Sets the version in the Cargo.toml and updates the Cargo.lock
-set-version VERSION: _check_cargo_set_version _check_yq
-    # Set the version number for all packages in the workspace
-    cargo set-version --workspace {{ VERSION }}
+set-version CRATE VERSION: _check_cargo_set_version _check_yq
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Set the version number for the crate
+    cargo set-version --package {{ CRATE }} {{ VERSION }}
     # Regenerate the lockfile
     cargo check
     # update the frontend api
-    yq '.info.version = "{{ VERSION }}"' -i api/docs/openapi.yml
+    if [[ {{ CRATE }} = {{ binary_crate }} ]]; then
+        yq '.info.version = "{{ VERSION }}"' -i api/docs/openapi.yml
+    fi
 
 # Update the version in the OpenAPI spec
-update-openapi:
+update-openapi CRATE=binary_crate:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # OpenAPI is only updated for the binary crate
+    [[ {{ CRATE }} = {{ binary_crate }} ]] || exit 0
     # Update OpenAPI specification (which contains the version number)
     cargo run -- openapi dump > api/docs/openapi.yml
     # Trim whitespace
@@ -93,12 +130,26 @@ update-openapi:
     echo '' >> api/docs/openapi.yml
 
 # Update the changelog
-update-changelog VERSION: _check_opentalk_git_cliff
+update-changelog CRATE VERSION: _check_opentalk_git_cliff _check_yq
     #!/usr/bin/env bash
+    set -euo pipefail
 
-    if [ -z "$GITLAB_TOKEN" ] && [ -f "$HOME/.gitlab_token" ]; then
+    if [ -z "${GITLAB_TOKEN:-}" ] && [ -f "$HOME/.gitlab_token" ]; then
         GITLAB_TOKEN=$(cat $HOME/.gitlab_token)
     fi
+
+    if [[ {{ CRATE }} = {{ binary_crate }} ]]; then
+        changelog="CHANGELOG.md"
+        include_path=()
+    else
+        manifest=$(just _crate-manifest {{ CRATE }})
+        dir=$(realpath --relative-to . "$(dirname "$manifest")")
+        changelog="$dir/CHANGELOG.md"
+        include_path=(--include-path "$dir/**")
+    fi
+
+    # create the changelog if it doesn't exist yet
+    [[ -f $changelog ]] || touch "$changelog"
 
     # Update Changelog
     GITLAB_TOKEN=$GITLAB_TOKEN \
@@ -106,22 +157,55 @@ update-changelog VERSION: _check_opentalk_git_cliff
     GITLAB_REPO=opentalk/backend/services/roomserver \
     opentalk-git-cliff \
         --unreleased \
+        "${include_path[@]}" \
         --tag "v{{ VERSION }}" \
-        --prepend CHANGELOG.md
+        --prepend "$changelog"
 
 # Create the release commit
-commit-release: _check_yq
+commit-release +CRATES=binary_crate: _check_yq
     #!/usr/bin/env bash
-    current_version=$(yq .workspace.package.version Cargo.toml)
-    git commit -a -m "chore(release): prepare release $current_version"
+    set -euo pipefail
+
+    crates=({{ CRATES }})
+
+    # Resolve every crate version in a single cargo metadata pass
+    metadata=$(cargo metadata --frozen --format-version 1 --no-deps)
+    declare -A versions
+    while read -r name version; do
+        versions[$name]=$version
+    done < <(yq -p json -r '.packages[] | .name + " " + .version' <<<"$metadata")
+
+    # Validate all requested crates exist
+    for crate in "${crates[@]}"; do
+        if [[ -z "${versions[$crate]:-}" ]]; then
+            echo "unknown crate $crate" >&2
+            exit 1
+        fi
+    done
+
+    if [[ ${#crates[@]} -eq 1 ]]; then
+        crate="${crates[0]}"
+        release=$(just _release-tag "$crate" "${versions[$crate]}")
+        git commit -a -m "chore(release): prepare release $release"
+    else
+        message=$'chore(release): prepare release\n\n'
+        for crate in "${crates[@]}"; do
+            message+="* $crate ${versions[$crate]}"$'\n'
+        done
+        git commit -a -m "$message"
+    fi
     git log HEAD^..HEAD
 
 # Create the release tag
-tag-release: _check_yq
+tag-release +CRATES=binary_crate: _check_yq
     #!/usr/bin/env bash
-    current_version=$(yq .workspace.package.version Cargo.toml)
-    git tag -s -m "v$current_version" "v$current_version"
-    git show --no-patch "v$current_version"
+    set -euo pipefail
+    crates=({{ CRATES }})
+    for crate in "${crates[@]}"; do
+        tag=$(just _release-tag "$crate" "$(just _crate-version "$crate")")
+        git tag -s -m "$tag" "$tag"
+    done
+    git show --decorate --no-patch
 
 [no-exit-message]
 _check_glab:
