@@ -50,7 +50,7 @@
 #set-database(eval(load-ftl-data("./l10n", data.available_languages)))
 #set text(lang: data.report_language)
 
-#let parse_datetime(s) = toml.decode("date = " + s).date
+#let parse_datetime(s) = toml(bytes("date = " + s)).date
 #let datetime_format = "[year]-[month]-[day] [hour]:[minute]"
 #let role_label = (
   moderator: linguify("moderator"),
